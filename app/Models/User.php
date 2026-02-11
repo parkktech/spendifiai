@@ -22,6 +22,11 @@ class User extends Authenticatable implements MustVerifyEmail
         'google_id',
         'avatar_url',
         'email_verified_at',
+        'failed_login_attempts',
+        'locked_until',
+        'two_factor_secret',
+        'two_factor_recovery_codes',
+        'two_factor_confirmed_at',
     ];
 
     protected $hidden = [
@@ -36,6 +41,7 @@ class User extends Authenticatable implements MustVerifyEmail
     {
         return [
             'email_verified_at'         => 'datetime',
+            'locked_until'              => 'datetime',
             'password'                  => 'hashed',
             'two_factor_confirmed_at'   => 'datetime',
             'two_factor_recovery_codes' => 'encrypted:array',  // Auto encrypt + JSON encode/decode
