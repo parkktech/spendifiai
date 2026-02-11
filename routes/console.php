@@ -40,8 +40,12 @@ Schedule::call(function () {
 })->dailyAt('02:00')->name('detect-subscriptions');
 
 // ── Generate savings recommendations (weekly on Mondays) ──
-// TODO: Enable after spendwise:savings-analysis command is created
-// Schedule::command('spendwise:savings-analysis')->weeklyOn(1, '06:00');
+Schedule::call(function () {
+    $analyzer = app(\App\Services\AI\SavingsAnalyzerService::class);
+    User::whereHas('bankConnections')->each(function ($user) use ($analyzer) {
+        $analyzer->analyze($user);
+    });
+})->weeklyOn(1, '06:00')->name('generate-savings-recommendations');
 
 // ── Expire old AI questions (daily) ──
 Schedule::call(function () {

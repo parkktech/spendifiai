@@ -234,6 +234,8 @@ PROMPT;
                 'difficulty'               => $rec['difficulty'],
                 'category'                 => $rec['category'],
                 'impact'                   => $rec['impact'],
+                'action_steps'             => $rec['action_steps'] ?? null,
+                'related_merchants'        => $rec['related_merchants'] ?? null,
                 'generated_at'             => now(),
             ]);
             $saved++;
