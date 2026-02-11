@@ -1,10 +1,13 @@
 <?php
 namespace App\Models;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class UserFinancialProfile extends Model
 {
+    use HasFactory;
+
     protected $fillable = [
         'user_id', 'employment_type', 'business_type', 'has_home_office',
         'tax_filing_status', 'estimated_tax_bracket', 'monthly_income',

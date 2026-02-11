@@ -41,4 +41,36 @@ class UserFactory extends Factory
             'email_verified_at' => null,
         ]);
     }
+
+    /**
+     * Indicate that the user has two-factor authentication enabled.
+     */
+    public function withTwoFactor(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'two_factor_secret' => 'test-2fa-secret-key',
+            'two_factor_confirmed_at' => now(),
+            'two_factor_recovery_codes' => [
+                'recovery-code-1',
+                'recovery-code-2',
+                'recovery-code-3',
+                'recovery-code-4',
+                'recovery-code-5',
+                'recovery-code-6',
+                'recovery-code-7',
+                'recovery-code-8',
+            ],
+        ]);
+    }
+
+    /**
+     * Indicate that the user is connected via Google OAuth.
+     */
+    public function withGoogle(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'google_id' => fake()->uuid(),
+            'avatar_url' => fake()->imageUrl(96, 96, 'people'),
+        ]);
+    }
 }

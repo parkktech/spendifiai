@@ -2,12 +2,15 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class SavingsTarget extends Model
 {
+    use HasFactory;
+
     protected $fillable = [
         'user_id', 'monthly_target', 'motivation', 'target_start_date',
         'target_end_date', 'goal_total', 'is_active',

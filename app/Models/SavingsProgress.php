@@ -2,11 +2,14 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class SavingsProgress extends Model
 {
+    use HasFactory;
+
     protected $table = 'savings_progress';
 
     protected $fillable = [

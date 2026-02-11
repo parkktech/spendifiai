@@ -41,7 +41,34 @@ expect()->extend('toBeOne', function () {
 |
 */
 
-function something()
+function createAuthenticatedUser(array $attrs = []): \App\Models\User
 {
-    // ..
+    $user = \App\Models\User::factory()->create($attrs);
+    \Laravel\Sanctum\Sanctum::actingAs($user);
+    return $user;
+}
+
+function createUserWithBank(array $userAttrs = []): array
+{
+    $user = createAuthenticatedUser($userAttrs);
+    $connection = \App\Models\BankConnection::factory()->create([
+        'user_id' => $user->id,
+        'status' => \App\Enums\ConnectionStatus::Active,
+        'last_synced_at' => now(),
+    ]);
+    $account = \App\Models\BankAccount::factory()->create([
+        'user_id' => $user->id,
+        'bank_connection_id' => $connection->id,
+    ]);
+    return compact('user', 'connection', 'account');
+}
+
+function createUserWithBankAndProfile(array $userAttrs = []): array
+{
+    $data = createUserWithBank($userAttrs);
+    $profile = \App\Models\UserFinancialProfile::factory()->create([
+        'user_id' => $data['user']->id,
+        'employment_type' => 'self_employed',
+    ]);
+    return array_merge($data, ['profile' => $profile]);
 }

@@ -1,11 +1,14 @@
 <?php
 namespace App\Models;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class ParsedEmail extends Model
 {
+    use HasFactory;
+
     protected $fillable = [
         'user_id', 'email_connection_id', 'email_message_id', 'email_thread_id',
         'is_purchase', 'is_refund', 'is_subscription', 'raw_parsed_data',

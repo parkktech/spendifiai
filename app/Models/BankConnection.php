@@ -3,12 +3,15 @@
 namespace App\Models;
 
 use App\Enums\ConnectionStatus;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class BankConnection extends Model
 {
+    use HasFactory;
+
     protected $fillable = [
         'user_id', 'plaid_item_id', 'plaid_access_token', 'institution_name',
         'institution_id', 'status', 'last_synced_at', 'sync_cursor',

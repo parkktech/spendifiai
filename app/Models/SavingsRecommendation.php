@@ -2,11 +2,14 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class SavingsRecommendation extends Model
 {
+    use HasFactory;
+
     protected $fillable = [
         'user_id', 'title', 'description', 'monthly_savings', 'annual_savings',
         'difficulty', 'impact', 'category', 'status',

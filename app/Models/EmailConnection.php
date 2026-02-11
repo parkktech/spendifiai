@@ -1,12 +1,15 @@
 <?php
 namespace App\Models;
 use App\Enums\ConnectionStatus;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class EmailConnection extends Model
 {
+    use HasFactory;
+
     protected $fillable = [
         'user_id', 'provider', 'email_address', 'access_token', 'refresh_token',
         'token_expires_at', 'status', 'last_synced_at', 'sync_status',

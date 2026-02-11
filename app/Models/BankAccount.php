@@ -3,12 +3,15 @@
 namespace App\Models;
 
 use App\Enums\AccountPurpose;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class BankAccount extends Model
 {
+    use HasFactory;
+
     protected $fillable = [
         'user_id', 'bank_connection_id', 'plaid_account_id', 'name', 'official_name',
         'type', 'subtype', 'mask', 'purpose', 'nickname', 'business_name',

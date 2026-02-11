@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Enums\AccountPurpose;
 use App\Enums\ExpenseType;
 use App\Enums\ReviewStatus;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -12,6 +13,8 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Transaction extends Model
 {
+    use HasFactory;
+
     protected $fillable = [
         'user_id', 'bank_account_id', 'plaid_transaction_id', 'account_purpose',
         'merchant_name', 'merchant_normalized', 'description', 'amount',
