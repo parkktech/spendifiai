@@ -82,7 +82,7 @@ class TaxExportService
                 DB::raw('MIN(transaction_date) as first_date'),
                 DB::raw('MAX(transaction_date) as last_date'),
             )
-            ->groupBy('tax_category')
+            ->groupBy(DB::raw("COALESCE(tax_category, user_category, ai_category, 'Uncategorized')"))
             ->orderByDesc('total')
             ->get()
             ->toArray();

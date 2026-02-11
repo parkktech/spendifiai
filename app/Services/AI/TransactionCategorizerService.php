@@ -270,7 +270,11 @@ PROMPT;
 
         $transaction = $question->transaction;
 
-        switch ($question->question_type) {
+        $questionType = $question->question_type instanceof \App\Enums\QuestionType
+            ? $question->question_type->value
+            : $question->question_type;
+
+        switch ($questionType) {
             case 'business_personal':
                 $expenseType = match (true) {
                     str_contains(strtolower($answer), 'business') => 'business',

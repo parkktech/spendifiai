@@ -15,6 +15,10 @@ pest()->extend(Tests\TestCase::class)
     ->use(Illuminate\Foundation\Testing\RefreshDatabase::class)
     ->in('Feature');
 
+// Unit/Services tests need the Laravel app for models, config, Http::fake, etc.
+pest()->extend(Tests\TestCase::class)
+    ->in('Unit/Services');
+
 /*
 |--------------------------------------------------------------------------
 | Expectations
