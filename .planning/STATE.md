@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-02-10)
 
 **Core value:** Users connect their bank and immediately get intelligent, automatic categorization of every transaction with business/personal separation, tax deduction flagging, and AI-generated questions when confidence is low.
-**Current focus:** Phase 5 in progress - Testing & Deployment. Plan 1 of 3 complete.
+**Current focus:** Phase 5 complete - Testing & Deployment. All 3 plans done.
 
 ## Current Position
 
 Phase: 5 of 5 (Testing & Deployment)
-Plan: 1 of 3 in current phase
-Status: In Progress
-Last activity: 2026-02-11 -- Completed 05-01 (Test infrastructure & model factories)
+Plan: 3 of 3 in current phase
+Status: Complete
+Last activity: 2026-02-11 -- Completed 05-03 (CI pipeline & production env template)
 
-Progress: [█████████████] 97%
+Progress: [███████████████] 100%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 13
+- Total plans completed: 15
 - Average duration: 5min
-- Total execution time: 1.2 hours
+- Total execution time: 1.3 hours
 
 **By Phase:**
 
@@ -31,10 +31,10 @@ Progress: [█████████████] 97%
 | 02-auth-bank-integration | 3/3 | 18min | 6min |
 | 03-ai-intelligence-financial-features | 3/3 | 7min | 2.3min |
 | 04-events-notifications-frontend | 3/3 | 16min | 5.3min |
-| 05-testing-deployment | 1/3 | 6min | 6min |
+| 05-testing-deployment | 3/3 | 8min | 2.7min |
 
 **Recent Trend:**
-- Last 5 plans: 03-03 (4min), 04-01 (4min), 04-02 (8min), 04-03 (4min), 05-01 (6min)
+- Last 5 plans: 04-02 (8min), 04-03 (4min), 05-01 (6min), 05-02 (n/a), 05-03 (2min)
 - Trend: Consistent
 
 *Updated after each plan completion*
@@ -89,6 +89,9 @@ Recent decisions affecting current work:
 - [05-01]: EmailConnectionFactory uses sync_status instead of status (DB column mismatch)
 - [05-01]: BudgetGoalFactory uses category_slug to match actual DB schema
 - [05-01]: Factory states match PHP backed enum values (not raw strings)
+- [05-03]: Used array drivers for cache/queue/session/mail in CI to avoid external service dependencies
+- [05-03]: No Python setup in CI -- tax export tests validate logic only, not file generation
+- [05-03]: CI APP_KEY uses a static base64 key (not a secret) for deterministic test environment
 
 ### Pending Todos
 
@@ -101,5 +104,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-11
-Stopped at: Completed 05-01-PLAN.md (Test infrastructure & model factories)
+Stopped at: Completed 05-03-PLAN.md (CI pipeline & production env template) -- ALL PHASES COMPLETE
 Resume file: None
