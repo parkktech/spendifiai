@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-02-10)
 
 **Core value:** Users connect their bank and immediately get intelligent, automatic categorization of every transaction with business/personal separation, tax deduction flagging, and AI-generated questions when confidence is low.
-**Current focus:** Phase 4 in progress - Events, Notifications & Frontend. Plan 01 complete.
+**Current focus:** Phase 4 in progress - Events, Notifications & Frontend. Plan 02 complete.
 
 ## Current Position
 
 Phase: 4 of 5 (Events, Notifications & Frontend)
-Plan: 1 of 3 in current phase
+Plan: 2 of 3 in current phase
 Status: In Progress
-Last activity: 2026-02-11 -- Completed 04-01 (Events & notifications architecture)
+Last activity: 2026-02-11 -- Completed 04-02 (Frontend pages & components)
 
-Progress: [██████████] 91%
+Progress: [██████████] 93%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 10
+- Total plans completed: 11
 - Average duration: 5min
-- Total execution time: 0.86 hours
+- Total execution time: 1.0 hours
 
 **By Phase:**
 
@@ -30,10 +30,10 @@ Progress: [██████████] 91%
 | 01-scaffolding | 2/2 | 22min | 11min |
 | 02-auth-bank-integration | 3/3 | 18min | 6min |
 | 03-ai-intelligence-financial-features | 3/3 | 7min | 2.3min |
-| 04-events-notifications-frontend | 1/3 | 4min | 4min |
+| 04-events-notifications-frontend | 2/3 | 12min | 6min |
 
 **Recent Trend:**
-- Last 5 plans: 02-03 (4min), 03-01 (1min), 03-02 (2min), 03-03 (4min), 04-01 (4min)
+- Last 5 plans: 03-01 (1min), 03-02 (2min), 03-03 (4min), 04-01 (4min), 04-02 (8min)
 - Trend: Consistent
 
 *Updated after each plan completion*
@@ -78,6 +78,11 @@ Recent decisions affecting current work:
 - [04-01]: PlaidController exchangeToken now dispatches BankConnected event instead of inline sync+categorize calls
 - [04-01]: Unused subscription notifications dispatched inline after daily detection schedule
 - [04-01]: SyncBankTransactions job re-throws exceptions after logging to allow queue retry mechanism
+- [04-02]: Used Tailwind 4 @theme directive for dark palette tokens (sw-bg, sw-card, sw-accent, etc.)
+- [04-02]: Created useApi/useApiPost hooks for API fetching (Inertia useForm not suitable for JSON API routes)
+- [04-02]: Created placeholder pages for Subscriptions/Savings/Tax to prevent Inertia resolve errors
+- [04-02]: Used Recharts for area and pie charts matching reference dashboard design
+- [04-02]: PlaidLinkButton self-manages link token lifecycle (fetch on mount, exchange on success)
 
 ### Pending Todos
 
@@ -90,5 +95,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-11
-Stopped at: Completed 04-01-PLAN.md (Events & notifications architecture)
+Stopped at: Completed 04-02-PLAN.md (Frontend pages & components)
 Resume file: None
