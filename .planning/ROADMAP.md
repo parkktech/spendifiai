@@ -69,9 +69,9 @@ Plans:
 **Plans**: 3 plans
 
 Plans:
-- [ ] 03-01: Wire up AI categorization pipeline and question flow (Claude API integration, confidence routing, question CRUD, bulk answers)
-- [ ] 03-02: Complete subscription detection, savings analysis and target planning (recurring charge detection, Claude savings analysis, action plans)
-- [ ] 03-03: Tax export pipeline and email receipt parsing (Schedule C mapping, Excel/PDF/CSV export, Gmail OAuth, receipt parsing, reconciliation)
+- [ ] 03-01-PLAN.md -- Fix AIQuestion model $fillable, wire categorization dispatch into PlaidController sync, enable subscription detection schedule
+- [ ] 03-02-PLAN.md -- Fix SavingsPlanAction $fillable, add savings_recommendations migration, update SavingsAnalyzerService, enable savings schedule
+- [ ] 03-03-PLAN.md -- Install Python deps for tax export, copy/fix email parsing services, implement EmailConnectionController, enable email sync schedule
 
 ### Phase 4: Events, Notifications & Frontend
 **Goal**: All backend features are connected via event-driven architecture with automated jobs and scheduled tasks, users receive actionable notifications, and all React/Inertia/TypeScript pages are built matching the reference dashboard design
@@ -116,6 +116,6 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5
 |-------|----------------|--------|-----------|
 | 1. Scaffolding & API Architecture | 2/2 | ✓ Complete | 2026-02-11 |
 | 2. Auth & Bank Integration | 3/3 | ✓ Complete | 2026-02-11 |
-| 3. AI Intelligence & Financial Features | 0/3 | Not started | - |
+| 3. AI Intelligence & Financial Features | 0/3 | In Progress | - |
 | 4. Events, Notifications & Frontend | 0/3 | Not started | - |
 | 5. Testing & Deployment | 0/2 | Not started | - |
