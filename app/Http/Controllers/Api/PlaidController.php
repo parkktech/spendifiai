@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Events\BankConnected;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\ExchangeTokenRequest;
+use App\Jobs\CategorizePendingTransactions;
 use App\Models\BankConnection;
 use App\Services\PlaidService;
 use Illuminate\Http\JsonResponse;

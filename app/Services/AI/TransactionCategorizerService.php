@@ -11,7 +11,7 @@ use Illuminate\Support\Collection;
 
 class TransactionCategorizerService
 {
-    protected string $apiKey;
+    protected ?string $apiKey;
     protected string $model;
 
     // Confidence thresholds
@@ -22,7 +22,7 @@ class TransactionCategorizerService
 
     public function __construct()
     {
-        $this->apiKey = config('services.anthropic.api_key');
+        $this->apiKey = config('services.anthropic.api_key') ?? '';
         $this->model  = config('services.anthropic.model', 'claude-sonnet-4-20250514');
     }
 

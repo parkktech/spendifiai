@@ -14,12 +14,12 @@ use Carbon\Carbon;
 
 class SavingsTargetPlannerService
 {
-    protected string $apiKey;
+    protected ?string $apiKey;
     protected string $model;
 
     public function __construct()
     {
-        $this->apiKey = config('services.anthropic.api_key');
+        $this->apiKey = config('services.anthropic.api_key') ?? '';
         $this->model  = config('services.anthropic.model', 'claude-sonnet-4-20250514');
     }
 

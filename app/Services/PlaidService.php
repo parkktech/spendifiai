@@ -18,8 +18,8 @@ class PlaidService
 
     public function __construct()
     {
-        $this->clientId = config('services.plaid.client_id');
-        $this->secret   = config('services.plaid.secret');
+        $this->clientId = config('services.plaid.client_id') ?? '';
+        $this->secret   = config('services.plaid.secret') ?? '';
         $this->baseUrl  = match (config('services.plaid.env')) {
             'production'  => 'https://production.plaid.com',
             'development' => 'https://development.plaid.com',
