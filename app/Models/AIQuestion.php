@@ -13,14 +13,14 @@ class AIQuestion extends Model
 
     protected $fillable = [
         'user_id', 'transaction_id', 'question', 'options', 'question_type',
-        'confidence', 'user_answer', 'status', 'answered_at',
+        'ai_confidence', 'ai_best_guess', 'user_answer', 'status', 'answered_at',
     ];
 
     protected function casts(): array
     {
         return [
             'options'       => 'array',
-            'confidence'    => 'decimal:2',
+            'ai_confidence' => 'decimal:2',
             'question_type' => QuestionType::class,
             'status'        => QuestionStatus::class,
             'answered_at'   => 'datetime',
