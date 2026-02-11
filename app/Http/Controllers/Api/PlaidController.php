@@ -2,9 +2,9 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Events\BankConnected;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\ExchangeTokenRequest;
-use App\Jobs\CategorizePendingTransactions;
 use App\Models\BankConnection;
 use App\Services\PlaidService;
 use Illuminate\Http\JsonResponse;
@@ -36,11 +36,8 @@ class PlaidController extends Controller
             $request->validated('public_token')
         );
 
-        // Sync initial transactions
-        $this->plaidService->syncTransactions($connection);
-
-        // Queue AI categorization
-        CategorizePendingTransactions::dispatch(auth()->id());
+        // Dispatch event — triggers sync -> categorization -> subscription detection chain
+        BankConnected::dispatch($connection, $request->user());
 
         return response()->json([
             'message'     => 'Bank connected successfully',

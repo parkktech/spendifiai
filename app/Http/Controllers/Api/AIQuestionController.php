@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Events\UserAnsweredQuestion;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\AnswerQuestionRequest;
 use App\Http\Requests\BulkAnswerRequest;
@@ -38,6 +39,8 @@ class AIQuestionController extends Controller
     {
         $this->categorizer->handleUserAnswer($question, $request->validated('answer'));
 
+        UserAnsweredQuestion::dispatch($question->fresh(), $request->user());
+
         return response()->json([
             'message'     => 'Answer recorded',
             'transaction' => new TransactionResource($question->transaction->fresh()),
@@ -58,6 +61,7 @@ class AIQuestionController extends Controller
 
             if ($question && $question->status->value === 'pending') {
                 $this->categorizer->handleUserAnswer($question, $item['answer']);
+                UserAnsweredQuestion::dispatch($question->fresh(), $request->user());
                 $processed++;
             }
         }
