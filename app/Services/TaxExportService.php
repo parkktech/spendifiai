@@ -147,8 +147,10 @@ class TaxExportService
         // ── Business Subscription Expenses ──
         $businessSubs = Subscription::where('user_id', $userId)
             ->where('status', '!=', 'cancelled')
-            ->where('category', 'Software')
-            ->orWhere('is_essential', true)
+            ->where(function ($query) {
+                $query->where('category', 'Software')
+                      ->orWhere('is_essential', true);
+            })
             ->get()
             ->map(fn($s) => [
                 'service'      => $s->merchant_normalized ?? $s->merchant_name,

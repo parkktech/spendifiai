@@ -60,6 +60,7 @@ class SubscriptionDetectorService
         $transactions = Transaction::where('user_id', $userId)
             ->where('transaction_date', '>=', $since)
             ->where('amount', '>', 0)
+            ->select(['id', 'user_id', 'merchant_name', 'merchant_normalized', 'amount', 'transaction_date', 'ai_category'])
             ->orderBy('transaction_date')
             ->get();
 

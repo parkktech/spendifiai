@@ -157,6 +157,10 @@ export default function SavingsIndex() {
             {/* Progress bar */}
             <div className="w-full h-3 bg-sw-border rounded-full overflow-hidden mt-3">
               <div
+                role="progressbar"
+                aria-valuenow={Math.round(progress)}
+                aria-valuemin={0}
+                aria-valuemax={100}
                 className="h-full bg-sw-accent rounded-full transition-all duration-500"
                 style={{ width: `${progress}%` }}
               />
@@ -321,7 +325,7 @@ export default function SavingsIndex() {
         )}
 
         {!recsLoading && recs.length > 0 && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <div aria-live="polite" className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             {recs.map((rec) => (
               <RecommendationCard
                 key={rec.id}

@@ -45,7 +45,7 @@ export default function SubscriptionsIndex() {
             <h1 className="text-xl font-bold text-sw-text tracking-tight">Subscriptions</h1>
             <p className="text-xs text-sw-dim mt-0.5">Track and manage all recurring charges</p>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 flex-wrap">
             <ViewModeToggle value={viewMode} onChange={setViewMode} />
             <button
               onClick={handleDetect}
@@ -143,7 +143,7 @@ export default function SubscriptionsIndex() {
 
       {/* Subscription grid */}
       {!loading && filtered.length > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div aria-live="polite" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {/* Show unused first */}
           {[...unused, ...filtered.filter((s) => s.status !== 'inactive' && s.status !== 'unused')].map((sub) => (
             <SubscriptionCard

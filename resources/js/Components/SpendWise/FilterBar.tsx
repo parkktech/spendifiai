@@ -61,6 +61,7 @@ export default function FilterBar({ filters, onChange, categories = [] }: Filter
           value={localSearch}
           onChange={(e) => handleSearchChange(e.target.value)}
           placeholder="Search transactions..."
+          aria-label="Search transactions"
           className={`${inputClasses} w-full pl-9`}
         />
       </div>
@@ -70,6 +71,7 @@ export default function FilterBar({ filters, onChange, categories = [] }: Filter
         type="date"
         value={filters.date_from || ''}
         onChange={(e) => update('date_from', e.target.value)}
+        aria-label="Start date"
         className={inputClasses}
         placeholder="From"
       />
@@ -79,6 +81,7 @@ export default function FilterBar({ filters, onChange, categories = [] }: Filter
         type="date"
         value={filters.date_to || ''}
         onChange={(e) => update('date_to', e.target.value)}
+        aria-label="End date"
         className={inputClasses}
         placeholder="To"
       />

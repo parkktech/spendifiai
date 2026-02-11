@@ -159,7 +159,7 @@ export default function SettingsIndex() {
             </div>
           </div>
 
-          {profileSuccess && <div className="mb-4"><SuccessToast message="Profile saved successfully" /></div>}
+          {profileSuccess && <div aria-live="polite" className="mb-4"><SuccessToast message="Profile saved successfully" /></div>}
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
@@ -257,9 +257,9 @@ export default function SettingsIndex() {
               <Lock size={14} /> Change Password
             </h4>
 
-            {passwordSuccess && <div className="mb-3"><SuccessToast message="Password changed successfully" /></div>}
+            {passwordSuccess && <div aria-live="polite" className="mb-3"><SuccessToast message="Password changed successfully" /></div>}
             {passwordError && (
-              <div className="mb-3 px-4 py-2 rounded-lg bg-sw-danger/10 border border-sw-danger/30 text-sw-danger text-xs">
+              <div aria-live="polite" className="mb-3 px-4 py-2 rounded-lg bg-sw-danger/10 border border-sw-danger/30 text-sw-danger text-xs">
                 {passwordError}
               </div>
             )}
@@ -270,6 +270,7 @@ export default function SettingsIndex() {
                 value={passwordForm.current_password}
                 onChange={(e) => setPasswordForm({ ...passwordForm, current_password: e.target.value })}
                 placeholder="Current password"
+                aria-label="Current password"
                 className={inputClasses}
               />
               <input
@@ -277,6 +278,7 @@ export default function SettingsIndex() {
                 value={passwordForm.password}
                 onChange={(e) => setPasswordForm({ ...passwordForm, password: e.target.value })}
                 placeholder="New password"
+                aria-label="New password"
                 className={inputClasses}
               />
               <input
@@ -284,6 +286,7 @@ export default function SettingsIndex() {
                 value={passwordForm.password_confirmation}
                 onChange={(e) => setPasswordForm({ ...passwordForm, password_confirmation: e.target.value })}
                 placeholder="Confirm new password"
+                aria-label="Confirm new password"
                 className={inputClasses}
               />
               <button

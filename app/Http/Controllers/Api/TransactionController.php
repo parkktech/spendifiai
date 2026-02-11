@@ -8,6 +8,7 @@ use App\Http\Resources\TransactionResource;
 use App\Models\Transaction;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 
 class TransactionController extends Controller
 {
@@ -58,6 +59,12 @@ class TransactionController extends Controller
             'tax_deductible' => $request->validated('tax_deductible') ?? $transaction->tax_deductible,
             'review_status'  => 'user_confirmed',
         ]);
+
+        // Invalidate dashboard cache for all view modes
+        $userId = auth()->id();
+        Cache::forget("dashboard:{$userId}:all");
+        Cache::forget("dashboard:{$userId}:personal");
+        Cache::forget("dashboard:{$userId}:business");
 
         return response()->json([
             'message'     => 'Updated',

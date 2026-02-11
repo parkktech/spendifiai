@@ -47,7 +47,7 @@ export default function TaxIndex() {
             <h1 className="text-xl font-bold text-sw-text tracking-tight">Tax Center</h1>
             <p className="text-xs text-sw-dim mt-0.5">Track deductible expenses for tax season</p>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 flex-wrap">
             {/* Year selector */}
             <div className="relative">
               <select
@@ -186,13 +186,13 @@ export default function TaxIndex() {
         <div className="rounded-2xl border border-sw-border bg-sw-card p-6">
           <h2 className="text-sm font-semibold text-sw-text mb-4">Deductions by Schedule C Line</h2>
           <div className="overflow-x-auto">
-            <table className="w-full">
+            <table aria-label="Tax deductions by category" className="w-full">
               <thead>
                 <tr className="border-b border-sw-border">
-                  <th className="text-left text-xs text-sw-muted font-medium py-2.5 pr-4">Category</th>
-                  <th className="text-left text-xs text-sw-muted font-medium py-2.5 pr-4">IRS Tax Line</th>
-                  <th className="text-right text-xs text-sw-muted font-medium py-2.5 pr-4">Transactions</th>
-                  <th className="text-right text-xs text-sw-muted font-medium py-2.5">Total</th>
+                  <th scope="col" className="text-left text-xs text-sw-muted font-medium py-2.5 pr-4">Category</th>
+                  <th scope="col" className="text-left text-xs text-sw-muted font-medium py-2.5 pr-4">IRS Tax Line</th>
+                  <th scope="col" className="text-right text-xs text-sw-muted font-medium py-2.5 pr-4">Transactions</th>
+                  <th scope="col" className="text-right text-xs text-sw-muted font-medium py-2.5">Total</th>
                 </tr>
               </thead>
               <tbody>

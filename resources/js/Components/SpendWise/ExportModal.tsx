@@ -115,10 +115,11 @@ export default function ExportModal({ open, onClose, year, mode, onExport }: Exp
               {!isDownload && (
                 <div className="space-y-3 mb-4">
                   <div>
-                    <label className="block text-xs text-sw-muted font-medium mb-1">
+                    <label htmlFor="export-accountant-email" className="block text-xs text-sw-muted font-medium mb-1">
                       Accountant Email
                     </label>
                     <input
+                      id="export-accountant-email"
                       type="email"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
@@ -127,10 +128,11 @@ export default function ExportModal({ open, onClose, year, mode, onExport }: Exp
                     />
                   </div>
                   <div>
-                    <label className="block text-xs text-sw-muted font-medium mb-1">
+                    <label htmlFor="export-message" className="block text-xs text-sw-muted font-medium mb-1">
                       Message (optional)
                     </label>
                     <textarea
+                      id="export-message"
                       value={message}
                       onChange={(e) => setMessage(e.target.value)}
                       placeholder="Here are my expense reports for the year..."
@@ -150,9 +152,11 @@ export default function ExportModal({ open, onClose, year, mode, onExport }: Exp
                   {(['excel', 'pdf', 'csv'] as const).map((fmt) => (
                     <label
                       key={fmt}
+                      htmlFor={`export-format-${fmt}`}
                       className="flex items-center gap-2 cursor-pointer text-sm text-sw-text"
                     >
                       <input
+                        id={`export-format-${fmt}`}
                         type="checkbox"
                         checked={formats[fmt]}
                         onChange={() => toggleFormat(fmt)}

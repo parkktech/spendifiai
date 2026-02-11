@@ -13,13 +13,15 @@ const modes: Array<{ key: 'all' | 'personal' | 'business'; label: string; Icon: 
 
 export default function ViewModeToggle({ value, onChange }: ViewModeToggleProps) {
   return (
-    <div className="inline-flex items-center rounded-lg border border-sw-border bg-sw-card p-0.5">
+    <div role="radiogroup" className="inline-flex items-center rounded-lg border border-sw-border bg-sw-card p-0.5">
       {modes.map(({ key, label, Icon }) => {
         const active = value === key;
         return (
           <button
             key={key}
             onClick={() => onChange(key)}
+            role="radio"
+            aria-checked={active}
             className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition ${
               active
                 ? 'bg-sw-accent text-white'

@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Jobs\CategorizePendingTransactions;
 use App\Models\BankConnection;
 use App\Models\PlaidWebhookLog;
+use App\Notifications\BankConnectionIssueNotification;
 use App\Services\PlaidService;
 use Firebase\JWT\JWT;
 use Firebase\JWT\JWK;
@@ -186,7 +187,12 @@ class PlaidWebhookController extends Controller
             'error_message' => $errorMessage,
         ]);
 
-        // TODO: Phase 4 - Notify user about connection error
+        $connection->user->notify(new BankConnectionIssueNotification(
+            'error',
+            $connection->institution_name,
+            $errorMessage,
+        ));
+
         Log::warning('Plaid item error', [
             'connection_id' => $connection->id,
             'user_id' => $connection->user_id,
@@ -208,7 +214,12 @@ class PlaidWebhookController extends Controller
             'error_message' => 'Bank connection requires re-authentication',
         ]);
 
-        // TODO: Phase 4 - Notify user about pending expiration
+        $connection->user->notify(new BankConnectionIssueNotification(
+            'pending_expiration',
+            $connection->institution_name,
+            'Your bank connection will expire soon. Please re-authenticate to continue syncing.',
+        ));
+
         Log::info('Plaid connection pending expiration', [
             'connection_id' => $connection->id,
             'user_id' => $connection->user_id,

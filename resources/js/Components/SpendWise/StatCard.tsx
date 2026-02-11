@@ -14,7 +14,7 @@ export default function StatCard({ title, value, subtitle, trend, icon }: StatCa
   const trendNegative = trend !== undefined && trend < 0;
 
   return (
-    <div className="relative overflow-hidden rounded-2xl border border-sw-border bg-sw-card p-5 flex-1 min-w-[200px]">
+    <div className="relative overflow-hidden rounded-2xl border border-sw-border bg-sw-card p-5 flex-1 sm:min-w-[200px] min-w-0">
       {/* Background glow */}
       <div className="absolute -top-5 -right-5 w-20 h-20 rounded-full bg-sw-accent/5 blur-xl" />
 

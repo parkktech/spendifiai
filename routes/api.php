@@ -101,7 +101,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
     });
 
     // ─── SpendWise API v1 ───
-    Route::prefix('v1')->group(function () {
+    Route::prefix('v1')->middleware('throttle:120,1')->group(function () {
 
         // Dashboard
         Route::get('/dashboard', [DashboardController::class, 'index']);
@@ -132,26 +132,32 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
             // Subscriptions
             Route::get('/subscriptions', [SubscriptionController::class, 'index']);
-            Route::post('/subscriptions/detect', [SubscriptionController::class, 'detect']);
+            Route::post('/subscriptions/detect', [SubscriptionController::class, 'detect'])
+                ->middleware('throttle:5,1');
 
             // Savings
             Route::prefix('savings')->group(function () {
                 Route::get('/', [SavingsController::class, 'recommendations']);
-                Route::post('/analyze', [SavingsController::class, 'analyze']);
+                Route::post('/analyze', [SavingsController::class, 'analyze'])
+                    ->middleware('throttle:5,1');
                 Route::post('/{rec}/dismiss', [SavingsController::class, 'dismiss']);
                 Route::post('/{rec}/apply', [SavingsController::class, 'apply']);
                 Route::post('/target', [SavingsController::class, 'setTarget']);
                 Route::get('/target', [SavingsController::class, 'getTarget']);
-                Route::post('/target/regenerate', [SavingsController::class, 'regeneratePlan']);
+                Route::post('/target/regenerate', [SavingsController::class, 'regeneratePlan'])
+                    ->middleware('throttle:5,1');
                 Route::post('/plan/{action}/respond', [SavingsController::class, 'respondToAction']);
-                Route::get('/pulse', [SavingsController::class, 'pulseCheck']);
+                Route::get('/pulse', [SavingsController::class, 'pulseCheck'])
+                    ->middleware('throttle:10,1');
             });
 
             // Tax
             Route::prefix('tax')->middleware('profile.complete')->group(function () {
                 Route::get('/summary', [TaxController::class, 'summary']);
-                Route::post('/export', [TaxController::class, 'export']);
-                Route::post('/send-to-accountant', [TaxController::class, 'sendToAccountant']);
+                Route::post('/export', [TaxController::class, 'export'])
+                    ->middleware('throttle:3,1');
+                Route::post('/send-to-accountant', [TaxController::class, 'sendToAccountant'])
+                    ->middleware('throttle:3,1');
                 Route::get('/download/{year}/{type}', [TaxController::class, 'download'])
                     ->name('tax.download');
             });

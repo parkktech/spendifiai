@@ -113,7 +113,7 @@ export default function TransactionsIndex() {
 
       {/* Transaction list */}
       {!loading && !error && transactions.length > 0 && (
-        <div className="rounded-2xl border border-sw-border bg-sw-card p-6">
+        <div aria-live="polite" className="rounded-2xl border border-sw-border bg-sw-card p-6">
           {transactions.map((tx) => (
             <TransactionRow
               key={tx.id}
@@ -143,6 +143,7 @@ export default function TransactionsIndex() {
           <button
             onClick={() => setPage(Math.max(1, page - 1))}
             disabled={page <= 1}
+            aria-label="Previous page"
             className="p-2 rounded-lg border border-sw-border text-sw-muted hover:text-sw-text disabled:opacity-30 disabled:cursor-not-allowed transition"
           >
             <ChevronLeft size={16} />
@@ -177,6 +178,7 @@ export default function TransactionsIndex() {
           <button
             onClick={() => setPage(Math.min(meta.last_page, page + 1))}
             disabled={page >= meta.last_page}
+            aria-label="Next page"
             className="p-2 rounded-lg border border-sw-border text-sw-muted hover:text-sw-text disabled:opacity-30 disabled:cursor-not-allowed transition"
           >
             <ChevronRight size={16} />

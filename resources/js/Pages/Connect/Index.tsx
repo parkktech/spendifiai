@@ -190,6 +190,7 @@ export default function ConnectIndex() {
                   }}
                   className="p-2 rounded-lg text-sw-dim hover:text-sw-danger hover:bg-sw-danger/10 transition"
                   title="Disconnect"
+                  aria-label="Disconnect account"
                 >
                   <Trash2 size={14} />
                 </button>

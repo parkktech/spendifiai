@@ -68,7 +68,7 @@ export default function Dashboard() {
       )}
 
       {data && (
-        <div className="space-y-6">
+        <div aria-live="polite" className="space-y-6">
           {/* Sync status */}
           {data.sync_status && (
             <div className="flex items-center gap-2 text-xs text-sw-dim">

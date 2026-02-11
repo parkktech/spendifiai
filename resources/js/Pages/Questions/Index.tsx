@@ -123,7 +123,7 @@ export default function QuestionsIndex() {
 
       {/* Single mode */}
       {!loading && !bulkMode && questions.length > 0 && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div aria-live="polite" className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           {questions.map((q) => (
             <QuestionCard key={q.id} question={q} onAnswer={handleAnswer} />
           ))}
@@ -135,7 +135,7 @@ export default function QuestionsIndex() {
         <div>
           <div className="rounded-2xl border border-sw-border bg-sw-card overflow-hidden">
             {/* Table header */}
-            <div className="grid grid-cols-[1fr_1fr_200px] gap-4 px-5 py-3 border-b border-sw-border bg-sw-bg/50">
+            <div className="grid grid-cols-1 md:grid-cols-[1fr_1fr_200px] gap-4 px-5 py-3 border-b border-sw-border bg-sw-bg/50">
               <span className="text-xs font-medium text-sw-dim uppercase tracking-wider">Transaction</span>
               <span className="text-xs font-medium text-sw-dim uppercase tracking-wider">Question</span>
               <span className="text-xs font-medium text-sw-dim uppercase tracking-wider">Answer</span>
@@ -145,7 +145,7 @@ export default function QuestionsIndex() {
             {questions.map((q) => (
               <div
                 key={q.id}
-                className="grid grid-cols-[1fr_1fr_200px] gap-4 px-5 py-3 border-b border-sw-border last:border-b-0 items-center"
+                className="grid grid-cols-1 md:grid-cols-[1fr_1fr_200px] gap-4 px-5 py-3 border-b border-sw-border last:border-b-0 items-center"
               >
                 <div className="min-w-0">
                   <div className="text-xs font-medium text-sw-text truncate">

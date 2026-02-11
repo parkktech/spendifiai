@@ -13,6 +13,7 @@ use App\Models\Transaction;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 
 class DashboardController extends Controller
@@ -24,13 +25,14 @@ class DashboardController extends Controller
     public function index(Request $request): JsonResponse
     {
         $user = auth()->user();
+        $viewMode = $request->input('view', 'all');
+        $cacheKey = "dashboard:{$user->id}:{$viewMode}";
+
+        return response()->json(Cache::remember($cacheKey, 60, function () use ($user, $viewMode) {
         $now = Carbon::now();
         $monthStart = $now->copy()->startOfMonth();
         $lastMonthStart = $now->copy()->subMonth()->startOfMonth();
         $lastMonthEnd = $now->copy()->subMonth()->endOfMonth();
-
-        // View filter: personal, business, or all (default)
-        $viewMode = $request->input('view', 'all');
 
         // Base query builder that respects the view filter
         $txQuery = fn() => Transaction::where('user_id', $user->id)
@@ -118,7 +120,7 @@ class DashboardController extends Controller
             ->orderBy('month_start')
             ->get();
 
-        return response()->json([
+        return [
             'view_mode' => $viewMode,
             'summary' => [
                 'this_month_spending'  => round($thisMonth, 2),
@@ -135,11 +137,11 @@ class DashboardController extends Controller
             'spending_trend' => $trend,
             'sync_status'    => BankConnection::where('user_id', $user->id)
                 ->first()?->only(['status', 'last_synced_at', 'institution_name']),
-            'accounts_summary' => [
-                'personal' => BankAccount::where('user_id', $user->id)->where('purpose', 'personal')->count(),
-                'business' => BankAccount::where('user_id', $user->id)->where('purpose', 'business')->count(),
-                'mixed'    => BankAccount::where('user_id', $user->id)->where('purpose', 'mixed')->count(),
-            ],
-        ]);
+            'accounts_summary' => BankAccount::where('user_id', $user->id)
+                ->select('purpose', DB::raw('COUNT(*) as count'))
+                ->groupBy('purpose')
+                ->pluck('count', 'purpose'),
+        ];
+        }));
     }
 }

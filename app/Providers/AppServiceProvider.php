@@ -20,7 +20,9 @@ use App\Policies\SavingsPlanActionPolicy;
 use App\Policies\SavingsRecommendationPolicy;
 use App\Policies\SubscriptionPolicy;
 use App\Policies\TransactionPolicy;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Vite;
 use Illuminate\Support\ServiceProvider;
@@ -61,5 +63,17 @@ class AppServiceProvider extends ServiceProvider
 
         // ── Vite Prefetch (from Breeze starter kit) ──
         Vite::prefetch(concurrency: 3);
+
+        // ── Slow Query Logging (development only) ──
+        if ($this->app->environment('local')) {
+            DB::listen(function ($query) {
+                if ($query->time > 100) {
+                    Log::warning('Slow query', [
+                        'sql'  => $query->sql,
+                        'time' => $query->time . 'ms',
+                    ]);
+                }
+            });
+        }
     }
 }

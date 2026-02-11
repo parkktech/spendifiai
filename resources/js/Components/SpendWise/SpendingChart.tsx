@@ -28,7 +28,7 @@ function formatCurrency(value: number): string {
 
 export default function SpendingChart({ data, categories }: SpendingChartProps) {
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+    <div aria-label="Monthly spending chart" role="img" className="grid grid-cols-1 lg:grid-cols-2 gap-5">
       {/* Spending Trend - Area Chart */}
       <div className="rounded-2xl border border-sw-border bg-sw-card p-6">
         <div className="mb-5">

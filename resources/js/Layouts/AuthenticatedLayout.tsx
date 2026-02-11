@@ -103,7 +103,7 @@ export default function AuthenticatedLayout({
       </div>
 
       {/* Nav */}
-      <nav className="flex-1 flex flex-col gap-1 px-3 py-4 overflow-y-auto">
+      <nav aria-label="Main navigation" className="flex-1 flex flex-col gap-1 px-3 py-4 overflow-y-auto">
         {navItems.map((item) => (
           <NavItem
             key={item.routeName}
@@ -127,6 +127,8 @@ export default function AuthenticatedLayout({
   );
 
   return (
+    <>
+    <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:top-4 focus:left-4 focus:px-4 focus:py-2 focus:bg-sw-accent focus:text-white focus:rounded-lg focus:text-sm focus:font-semibold">Skip to main content</a>
     <div className="flex h-screen bg-sw-bg overflow-hidden">
       {/* Desktop sidebar */}
       <aside
@@ -144,6 +146,7 @@ export default function AuthenticatedLayout({
           <aside className="relative w-64 h-full bg-sw-sidebar border-r border-sw-border flex flex-col z-50">
             <button
               onClick={() => setMobileOpen(false)}
+              aria-label="Close sidebar"
               className="absolute top-4 right-4 text-sw-muted hover:text-sw-text"
             >
               <X size={20} />
@@ -161,6 +164,8 @@ export default function AuthenticatedLayout({
             {/* Mobile hamburger */}
             <button
               onClick={() => setMobileOpen(true)}
+              aria-label="Open sidebar"
+              aria-expanded={mobileOpen}
               className="sm:hidden text-sw-muted hover:text-sw-text"
             >
               <Menu size={20} />
@@ -171,7 +176,7 @@ export default function AuthenticatedLayout({
 
           <div className="flex items-center gap-3">
             {/* Notification bell */}
-            <button className="relative w-9 h-9 rounded-lg border border-sw-border bg-transparent flex items-center justify-center text-sw-muted hover:text-sw-text transition">
+            <button aria-label="Notifications" className="relative w-9 h-9 rounded-lg border border-sw-border bg-transparent flex items-center justify-center text-sw-muted hover:text-sw-text transition">
               <Bell size={16} />
             </button>
 
@@ -179,6 +184,8 @@ export default function AuthenticatedLayout({
             <div className="relative">
               <button
                 onClick={() => setUserMenuOpen(!userMenuOpen)}
+                aria-expanded={userMenuOpen}
+                aria-haspopup="true"
                 className="w-9 h-9 rounded-lg bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center text-white text-sm font-bold cursor-pointer"
               >
                 {user.name?.charAt(0)?.toUpperCase() || 'U'}
@@ -187,19 +194,21 @@ export default function AuthenticatedLayout({
               {userMenuOpen && (
                 <>
                   <div className="fixed inset-0 z-30" onClick={() => setUserMenuOpen(false)} />
-                  <div className="absolute right-0 mt-2 w-48 rounded-xl border border-sw-border bg-sw-card shadow-lg z-40 py-1">
+                  <div role="menu" className="absolute right-0 mt-2 w-48 rounded-xl border border-sw-border bg-sw-card shadow-lg z-40 py-1">
                     <div className="px-4 py-2 border-b border-sw-border">
                       <div className="text-sm font-medium text-sw-text truncate">{user.name}</div>
                       <div className="text-xs text-sw-dim truncate">{user.email}</div>
                     </div>
                     <Link
                       href="/settings"
+                      role="menuitem"
                       className="flex items-center gap-2 px-4 py-2 text-sm text-sw-muted hover:text-sw-text hover:bg-sw-card-hover transition"
                     >
                       <Settings size={14} /> Settings
                     </Link>
                     <button
                       onClick={() => router.post('/logout')}
+                      role="menuitem"
                       className="flex items-center gap-2 w-full px-4 py-2 text-sm text-sw-muted hover:text-sw-danger hover:bg-sw-card-hover transition"
                     >
                       <LogOut size={14} /> Log Out
@@ -212,10 +221,11 @@ export default function AuthenticatedLayout({
         </header>
 
         {/* Page content */}
-        <main className="flex-1 overflow-y-auto p-6">
+        <main id="main-content" role="main" className="flex-1 overflow-y-auto p-6">
           {children}
         </main>
       </div>
     </div>
+    </>
   );
 }
