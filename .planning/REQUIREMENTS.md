@@ -223,7 +223,7 @@ Deferred to future release. Tracked but not in current roadmap.
 | WebSocket push notifications | Polling and page refresh sufficient for v1 financial data |
 | Outlook email parsing | Gmail-first; Outlook support in v2 |
 | Investment tracking | Account purpose supports "investment" tag but no dedicated investment features |
-| Budget creation UI | BudgetGoal model exists but creating/managing budgets deferred — focus on detection and alerts |
+| Budget creation UI | BudgetGoal model exists but creating/managing budgets deferred -- focus on detection and alerts |
 
 ## Traceability
 
@@ -231,138 +231,138 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| FNDN-01 | TBD | Pending |
-| FNDN-02 | TBD | Pending |
-| FNDN-03 | TBD | Pending |
-| FNDN-04 | TBD | Pending |
-| FNDN-05 | TBD | Pending |
-| AUTH-01 | TBD | Pending |
-| AUTH-02 | TBD | Pending |
-| AUTH-03 | TBD | Pending |
-| AUTH-04 | TBD | Pending |
-| AUTH-05 | TBD | Pending |
-| AUTH-06 | TBD | Pending |
-| AUTH-07 | TBD | Pending |
-| AUTH-08 | TBD | Pending |
-| AUTH-09 | TBD | Pending |
-| AUTH-10 | TBD | Pending |
-| AUTH-11 | TBD | Pending |
-| AUTH-12 | TBD | Pending |
-| AUTH-13 | TBD | Pending |
-| AUTH-14 | TBD | Pending |
-| AUTH-15 | TBD | Pending |
-| PLAID-01 | TBD | Pending |
-| PLAID-02 | TBD | Pending |
-| PLAID-03 | TBD | Pending |
-| PLAID-04 | TBD | Pending |
-| PLAID-05 | TBD | Pending |
-| PLAID-06 | TBD | Pending |
-| PLAID-07 | TBD | Pending |
-| PLAID-08 | TBD | Pending |
-| HOOK-01 | TBD | Pending |
-| HOOK-02 | TBD | Pending |
-| HOOK-03 | TBD | Pending |
-| HOOK-04 | TBD | Pending |
-| HOOK-05 | TBD | Pending |
-| HOOK-06 | TBD | Pending |
-| HOOK-07 | TBD | Pending |
-| AICAT-01 | TBD | Pending |
-| AICAT-02 | TBD | Pending |
-| AICAT-03 | TBD | Pending |
-| AICAT-04 | TBD | Pending |
-| AICAT-05 | TBD | Pending |
-| AICAT-06 | TBD | Pending |
-| AICAT-07 | TBD | Pending |
-| AIQST-01 | TBD | Pending |
-| AIQST-02 | TBD | Pending |
-| AIQST-03 | TBD | Pending |
-| AIQST-04 | TBD | Pending |
-| AIQST-05 | TBD | Pending |
-| SUBS-01 | TBD | Pending |
-| SUBS-02 | TBD | Pending |
-| SUBS-03 | TBD | Pending |
-| SUBS-04 | TBD | Pending |
-| SUBS-05 | TBD | Pending |
-| SAVE-01 | TBD | Pending |
-| SAVE-02 | TBD | Pending |
-| SAVE-03 | TBD | Pending |
-| SAVE-04 | TBD | Pending |
-| SAVE-05 | TBD | Pending |
-| SAVE-06 | TBD | Pending |
-| SAVE-07 | TBD | Pending |
-| SAVE-08 | TBD | Pending |
-| SAVE-09 | TBD | Pending |
-| SAVE-10 | TBD | Pending |
-| TAX-01 | TBD | Pending |
-| TAX-02 | TBD | Pending |
-| TAX-03 | TBD | Pending |
-| TAX-04 | TBD | Pending |
-| TAX-05 | TBD | Pending |
-| TAX-06 | TBD | Pending |
-| TAX-07 | TBD | Pending |
-| EMAIL-01 | TBD | Pending |
-| EMAIL-02 | TBD | Pending |
-| EMAIL-03 | TBD | Pending |
-| EMAIL-04 | TBD | Pending |
-| EMAIL-05 | TBD | Pending |
-| CTRL-01 | TBD | Pending |
-| CTRL-02 | TBD | Pending |
-| CTRL-03 | TBD | Pending |
-| CTRL-04 | TBD | Pending |
-| CTRL-05 | TBD | Pending |
-| PROF-01 | TBD | Pending |
-| PROF-02 | TBD | Pending |
-| EVNT-01 | TBD | Pending |
-| EVNT-02 | TBD | Pending |
-| EVNT-03 | TBD | Pending |
-| EVNT-04 | TBD | Pending |
-| EVNT-05 | TBD | Pending |
-| EVNT-06 | TBD | Pending |
-| EVNT-07 | TBD | Pending |
-| EVNT-08 | TBD | Pending |
-| EVNT-09 | TBD | Pending |
-| EVNT-10 | TBD | Pending |
-| EVNT-11 | TBD | Pending |
-| EVNT-12 | TBD | Pending |
-| EVNT-13 | TBD | Pending |
-| EVNT-14 | TBD | Pending |
-| EVNT-15 | TBD | Pending |
-| NOTF-01 | TBD | Pending |
-| NOTF-02 | TBD | Pending |
-| NOTF-03 | TBD | Pending |
-| NOTF-04 | TBD | Pending |
-| NOTF-05 | TBD | Pending |
-| UI-01 | TBD | Pending |
-| UI-02 | TBD | Pending |
-| UI-03 | TBD | Pending |
-| UI-04 | TBD | Pending |
-| UI-05 | TBD | Pending |
-| UI-06 | TBD | Pending |
-| UI-07 | TBD | Pending |
-| UI-08 | TBD | Pending |
-| UI-09 | TBD | Pending |
-| UI-10 | TBD | Pending |
-| TEST-01 | TBD | Pending |
-| TEST-02 | TBD | Pending |
-| TEST-03 | TBD | Pending |
-| TEST-04 | TBD | Pending |
-| TEST-05 | TBD | Pending |
-| TEST-06 | TBD | Pending |
-| TEST-07 | TBD | Pending |
-| TEST-08 | TBD | Pending |
-| TEST-09 | TBD | Pending |
-| TEST-10 | TBD | Pending |
-| TEST-11 | TBD | Pending |
-| TEST-12 | TBD | Pending |
-| TEST-13 | TBD | Pending |
-| DEPLOY-01 | TBD | Pending |
-| DEPLOY-02 | TBD | Pending |
+| FNDN-01 | Phase 1 | Pending |
+| FNDN-02 | Phase 1 | Pending |
+| FNDN-03 | Phase 1 | Pending |
+| FNDN-04 | Phase 1 | Pending |
+| FNDN-05 | Phase 1 | Pending |
+| AUTH-01 | Phase 2 | Pending |
+| AUTH-02 | Phase 2 | Pending |
+| AUTH-03 | Phase 2 | Pending |
+| AUTH-04 | Phase 2 | Pending |
+| AUTH-05 | Phase 2 | Pending |
+| AUTH-06 | Phase 2 | Pending |
+| AUTH-07 | Phase 2 | Pending |
+| AUTH-08 | Phase 2 | Pending |
+| AUTH-09 | Phase 2 | Pending |
+| AUTH-10 | Phase 2 | Pending |
+| AUTH-11 | Phase 2 | Pending |
+| AUTH-12 | Phase 2 | Pending |
+| AUTH-13 | Phase 2 | Pending |
+| AUTH-14 | Phase 2 | Pending |
+| AUTH-15 | Phase 2 | Pending |
+| PLAID-01 | Phase 2 | Pending |
+| PLAID-02 | Phase 2 | Pending |
+| PLAID-03 | Phase 2 | Pending |
+| PLAID-04 | Phase 2 | Pending |
+| PLAID-05 | Phase 2 | Pending |
+| PLAID-06 | Phase 2 | Pending |
+| PLAID-07 | Phase 2 | Pending |
+| PLAID-08 | Phase 2 | Pending |
+| HOOK-01 | Phase 2 | Pending |
+| HOOK-02 | Phase 2 | Pending |
+| HOOK-03 | Phase 2 | Pending |
+| HOOK-04 | Phase 2 | Pending |
+| HOOK-05 | Phase 2 | Pending |
+| HOOK-06 | Phase 2 | Pending |
+| HOOK-07 | Phase 2 | Pending |
+| AICAT-01 | Phase 3 | Pending |
+| AICAT-02 | Phase 3 | Pending |
+| AICAT-03 | Phase 3 | Pending |
+| AICAT-04 | Phase 3 | Pending |
+| AICAT-05 | Phase 3 | Pending |
+| AICAT-06 | Phase 3 | Pending |
+| AICAT-07 | Phase 3 | Pending |
+| AIQST-01 | Phase 3 | Pending |
+| AIQST-02 | Phase 3 | Pending |
+| AIQST-03 | Phase 3 | Pending |
+| AIQST-04 | Phase 3 | Pending |
+| AIQST-05 | Phase 3 | Pending |
+| SUBS-01 | Phase 3 | Pending |
+| SUBS-02 | Phase 3 | Pending |
+| SUBS-03 | Phase 3 | Pending |
+| SUBS-04 | Phase 3 | Pending |
+| SUBS-05 | Phase 3 | Pending |
+| SAVE-01 | Phase 3 | Pending |
+| SAVE-02 | Phase 3 | Pending |
+| SAVE-03 | Phase 3 | Pending |
+| SAVE-04 | Phase 3 | Pending |
+| SAVE-05 | Phase 3 | Pending |
+| SAVE-06 | Phase 3 | Pending |
+| SAVE-07 | Phase 3 | Pending |
+| SAVE-08 | Phase 3 | Pending |
+| SAVE-09 | Phase 3 | Pending |
+| SAVE-10 | Phase 3 | Pending |
+| TAX-01 | Phase 3 | Pending |
+| TAX-02 | Phase 3 | Pending |
+| TAX-03 | Phase 3 | Pending |
+| TAX-04 | Phase 3 | Pending |
+| TAX-05 | Phase 3 | Pending |
+| TAX-06 | Phase 3 | Pending |
+| TAX-07 | Phase 3 | Pending |
+| EMAIL-01 | Phase 3 | Pending |
+| EMAIL-02 | Phase 3 | Pending |
+| EMAIL-03 | Phase 3 | Pending |
+| EMAIL-04 | Phase 3 | Pending |
+| EMAIL-05 | Phase 3 | Pending |
+| CTRL-01 | Phase 1 | Pending |
+| CTRL-02 | Phase 1 | Pending |
+| CTRL-03 | Phase 1 | Pending |
+| CTRL-04 | Phase 1 | Pending |
+| CTRL-05 | Phase 1 | Pending |
+| PROF-01 | Phase 2 | Pending |
+| PROF-02 | Phase 2 | Pending |
+| EVNT-01 | Phase 4 | Pending |
+| EVNT-02 | Phase 4 | Pending |
+| EVNT-03 | Phase 4 | Pending |
+| EVNT-04 | Phase 4 | Pending |
+| EVNT-05 | Phase 4 | Pending |
+| EVNT-06 | Phase 4 | Pending |
+| EVNT-07 | Phase 4 | Pending |
+| EVNT-08 | Phase 4 | Pending |
+| EVNT-09 | Phase 4 | Pending |
+| EVNT-10 | Phase 4 | Pending |
+| EVNT-11 | Phase 4 | Pending |
+| EVNT-12 | Phase 4 | Pending |
+| EVNT-13 | Phase 4 | Pending |
+| EVNT-14 | Phase 4 | Pending |
+| EVNT-15 | Phase 4 | Pending |
+| NOTF-01 | Phase 4 | Pending |
+| NOTF-02 | Phase 4 | Pending |
+| NOTF-03 | Phase 4 | Pending |
+| NOTF-04 | Phase 4 | Pending |
+| NOTF-05 | Phase 4 | Pending |
+| UI-01 | Phase 4 | Pending |
+| UI-02 | Phase 4 | Pending |
+| UI-03 | Phase 4 | Pending |
+| UI-04 | Phase 4 | Pending |
+| UI-05 | Phase 4 | Pending |
+| UI-06 | Phase 4 | Pending |
+| UI-07 | Phase 4 | Pending |
+| UI-08 | Phase 4 | Pending |
+| UI-09 | Phase 4 | Pending |
+| UI-10 | Phase 4 | Pending |
+| TEST-01 | Phase 5 | Pending |
+| TEST-02 | Phase 5 | Pending |
+| TEST-03 | Phase 5 | Pending |
+| TEST-04 | Phase 5 | Pending |
+| TEST-05 | Phase 5 | Pending |
+| TEST-06 | Phase 5 | Pending |
+| TEST-07 | Phase 5 | Pending |
+| TEST-08 | Phase 5 | Pending |
+| TEST-09 | Phase 5 | Pending |
+| TEST-10 | Phase 5 | Pending |
+| TEST-11 | Phase 5 | Pending |
+| TEST-12 | Phase 5 | Pending |
+| TEST-13 | Phase 5 | Pending |
+| DEPLOY-01 | Phase 5 | Pending |
+| DEPLOY-02 | Phase 5 | Pending |
 
 **Coverage:**
-- v1 requirements: 98 total
-- Mapped to phases: 0
-- Unmapped: 98 (pending roadmap creation)
+- v1 requirements: 126 total
+- Mapped to phases: 126
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-02-10*
-*Last updated: 2026-02-10 after initial definition*
+*Last updated: 2026-02-10 after roadmap creation*
