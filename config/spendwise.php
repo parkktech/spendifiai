@@ -58,7 +58,7 @@ return [
     |--------------------------------------------------------------------------
     */
     'captcha' => [
-        'enabled'    => env('RECAPTCHA_SITE_KEY') !== null,
+        'enabled'    => !empty(env('RECAPTCHA_SITE_KEY')),
         'site_key'   => env('RECAPTCHA_SITE_KEY'),
         'secret_key' => env('RECAPTCHA_SECRET_KEY'),
         'threshold'  => (float) env('RECAPTCHA_THRESHOLD', 0.5),
