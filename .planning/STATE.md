@@ -9,29 +9,29 @@ See: .planning/PROJECT.md (updated 2026-02-10)
 
 ## Current Position
 
-Phase: 1 of 5 (Scaffolding & API Architecture)
-Plan: 1 of 2 in current phase
-Status: Executing
-Last activity: 2026-02-11 -- Completed 01-01 (Laravel scaffolding)
+Phase: 1 of 5 (Scaffolding & API Architecture) -- COMPLETE
+Plan: 2 of 2 in current phase
+Status: Phase Complete
+Last activity: 2026-02-11 -- Completed 01-02 (controller decomposition)
 
-Progress: [█░░░░░░░░░] 10%
+Progress: [██░░░░░░░░] 20%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 1
-- Average duration: 16min
-- Total execution time: 0.27 hours
+- Total plans completed: 2
+- Average duration: 11min
+- Total execution time: 0.37 hours
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| 01-scaffolding | 1/2 | 16min | 16min |
+| 01-scaffolding | 2/2 | 22min | 11min |
 
 **Recent Trend:**
-- Last 5 plans: 01-01 (16min)
-- Trend: N/A (first plan)
+- Last 5 plans: 01-01 (16min), 01-02 (6min)
+- Trend: Accelerating
 
 *Updated after each plan completion*
 
@@ -50,6 +50,11 @@ Recent decisions affecting current work:
 - [01-01]: Used predis client instead of phpredis for Redis
 - [01-01]: Commented out not-yet-created jobs/commands in console.php (Phase 6 work)
 - [01-01]: Removed invalid Sanctum::$personalAccessTokenModel::$prunable line
+- [01-02]: Created ExchangeTokenRequest FormRequest to follow CLAUDE.md no-inline-validation convention
+- [01-02]: Created 3 missing policies (BankConnection, SavingsRecommendation, SavingsPlanAction) for authorize() calls
+- [01-02]: Used TransactionResource::collection() for dashboard recent transactions for consistency
+- [01-02]: Renamed SpendWiseController to .bak instead of deleting
+- [01-02]: EmailConnectionController returns 501 stubs for Phase 3 work
 
 ### Pending Todos
 
@@ -62,5 +67,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-11
-Stopped at: Completed 01-01-PLAN.md. Ready for 01-02 (controller splitting).
+Stopped at: Completed 01-02-PLAN.md. Phase 1 complete. Ready for Phase 2.
 Resume file: None
