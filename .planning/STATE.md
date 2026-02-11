@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-02-10)
 
 **Core value:** Users connect their bank and immediately get intelligent, automatic categorization of every transaction with business/personal separation, tax deduction flagging, and AI-generated questions when confidence is low.
-**Current focus:** Phase 2 complete. Ready for Phase 3 - AI/Services
+**Current focus:** Phase 3 in progress - AI Intelligence & Financial Features
 
 ## Current Position
 
-Phase: 2 of 5 (Auth & Bank Integration) -- COMPLETE
-Plan: 3 of 3 in current phase -- COMPLETE
-Status: Phase Complete
-Last activity: 2026-02-11 -- Completed 02-03 (Plaid webhooks & account deletion)
+Phase: 3 of 5 (AI Intelligence & Financial Features)
+Plan: 1 of 3 in current phase -- COMPLETE
+Status: Executing
+Last activity: 2026-02-11 -- Completed 03-01 (AI categorization pipeline)
 
-Progress: [██████░░░░] 60%
+Progress: [███████░░░] 70%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 6
+- Total plans completed: 7
 - Average duration: 6min
-- Total execution time: 0.67 hours
+- Total execution time: 0.68 hours
 
 **By Phase:**
 
@@ -29,9 +29,10 @@ Progress: [██████░░░░] 60%
 |-------|-------|-------|----------|
 | 01-scaffolding | 2/2 | 22min | 11min |
 | 02-auth-bank-integration | 3/3 | 18min | 6min |
+| 03-ai-intelligence-financial-features | 1/3 | 1min | 1min |
 
 **Recent Trend:**
-- Last 5 plans: 01-02 (6min), 02-01 (4min), 02-02 (3min), 02-03 (4min)
+- Last 5 plans: 02-01 (4min), 02-02 (3min), 02-03 (4min), 03-01 (1min)
 - Trend: Accelerating
 
 *Updated after each plan completion*
@@ -64,6 +65,8 @@ Recent decisions affecting current work:
 - [02-03]: Used inline validation for deleteAccount password field (single destructive check, FormRequest overhead not warranted)
 - [02-03]: Plaid disconnect errors during account deletion are logged but don't block deletion
 - [02-03]: Phase 4 TODO comments added for user notifications on connection errors and pending expirations
+- [03-01]: PlaidController already dispatched CategorizePendingTransactions from Phase 2 work -- no changes needed
+- [03-01]: Subscription detection uses Schedule::call with SubscriptionDetectorService instead of artisan command
 
 ### Pending Todos
 
@@ -76,5 +79,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-11
-Stopped at: Completed 02-03-PLAN.md (Plaid webhooks & account deletion). Phase 2 complete. Ready for Phase 3.
+Stopped at: Completed 03-01-PLAN.md (AI categorization pipeline). Continuing Phase 3.
 Resume file: None
