@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-02-10)
 
 **Core value:** Users connect their bank and immediately get intelligent, automatic categorization of every transaction with business/personal separation, tax deduction flagging, and AI-generated questions when confidence is low.
-**Current focus:** Phase 4 complete - Events, Notifications & Frontend. All 3 plans done.
+**Current focus:** Phase 5 in progress - Testing & Deployment. Plan 1 of 3 complete.
 
 ## Current Position
 
-Phase: 4 of 5 (Events, Notifications & Frontend)
-Plan: 3 of 3 in current phase
-Status: Phase Complete
-Last activity: 2026-02-11 -- Completed 04-03 (Remaining frontend pages & components)
+Phase: 5 of 5 (Testing & Deployment)
+Plan: 1 of 3 in current phase
+Status: In Progress
+Last activity: 2026-02-11 -- Completed 05-01 (Test infrastructure & model factories)
 
-Progress: [████████████] 96%
+Progress: [█████████████] 97%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 12
+- Total plans completed: 13
 - Average duration: 5min
-- Total execution time: 1.1 hours
+- Total execution time: 1.2 hours
 
 **By Phase:**
 
@@ -31,9 +31,10 @@ Progress: [████████████] 96%
 | 02-auth-bank-integration | 3/3 | 18min | 6min |
 | 03-ai-intelligence-financial-features | 3/3 | 7min | 2.3min |
 | 04-events-notifications-frontend | 3/3 | 16min | 5.3min |
+| 05-testing-deployment | 1/3 | 6min | 6min |
 
 **Recent Trend:**
-- Last 5 plans: 03-02 (2min), 03-03 (4min), 04-01 (4min), 04-02 (8min), 04-03 (4min)
+- Last 5 plans: 03-03 (4min), 04-01 (4min), 04-02 (8min), 04-03 (4min), 05-01 (6min)
 - Trend: Consistent
 
 *Updated after each plan completion*
@@ -84,6 +85,10 @@ Recent decisions affecting current work:
 - [04-02]: Used Recharts for area and pie charts matching reference dashboard design
 - [04-02]: PlaidLinkButton self-manages link token lifecycle (fetch on mount, exchange on success)
 - [04-03]: Fixed Recharts Tooltip formatter type to accept number|undefined (same pattern as 04-02)
+- [05-01]: Used PostgreSQL for test database (SQLite cannot run migration 000005 column changes)
+- [05-01]: EmailConnectionFactory uses sync_status instead of status (DB column mismatch)
+- [05-01]: BudgetGoalFactory uses category_slug to match actual DB schema
+- [05-01]: Factory states match PHP backed enum values (not raw strings)
 
 ### Pending Todos
 
@@ -96,5 +101,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-11
-Stopped at: Completed 04-03-PLAN.md (Remaining frontend pages & components) -- Phase 4 complete
+Stopped at: Completed 05-01-PLAN.md (Test infrastructure & model factories)
 Resume file: None
