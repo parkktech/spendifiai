@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Order extends Model
 {
-    protected $fillable = ['user_id','parsed_email_id','merchant','order_number','order_date','subtotal','tax','shipping','total','matched_transaction_id'];
+    protected $fillable = ['user_id','parsed_email_id','merchant','merchant_normalized','order_number','order_date','subtotal','tax','shipping','total','currency','matched_transaction_id','is_reconciled'];
     protected function casts(): array { return ['order_date'=>'date','subtotal'=>'decimal:2','tax'=>'decimal:2','shipping'=>'decimal:2','total'=>'decimal:2']; }
     public function user(): BelongsTo { return $this->belongsTo(User::class); }
     public function parsedEmail(): BelongsTo { return $this->belongsTo(ParsedEmail::class); }

@@ -19,7 +19,7 @@ class Transaction extends Model
         'plaid_category', 'plaid_detailed_category', 'plaid_metadata',
         'ai_category', 'ai_confidence', 'user_category', 'expense_type',
         'tax_deductible', 'tax_category', 'review_status', 'is_subscription',
-        'matched_order_id',
+        'matched_order_id', 'is_reconciled',
     ];
 
     protected $hidden = [
