@@ -32,8 +32,12 @@ Schedule::call(function () {
 })->everyTwoHours()->name('categorize-pending');
 
 // ── Detect subscriptions (daily at 2am) ──
-// TODO: Enable after spendwise:detect-subscriptions command is created
-// Schedule::command('spendwise:detect-subscriptions')->dailyAt('02:00');
+Schedule::call(function () {
+    $detector = app(\App\Services\SubscriptionDetectorService::class);
+    User::whereHas('bankConnections')->each(function ($user) use ($detector) {
+        $detector->detectSubscriptions($user->id);
+    });
+})->dailyAt('02:00')->name('detect-subscriptions');
 
 // ── Generate savings recommendations (weekly on Mondays) ──
 // TODO: Enable after spendwise:savings-analysis command is created
