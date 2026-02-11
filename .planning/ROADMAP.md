@@ -16,7 +16,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 2: Auth & Bank Integration** - Wire up authentication, Plaid bank connection, webhooks, and user profile management
 - [x] **Phase 3: AI Intelligence & Financial Features** - AI categorization, questions, subscriptions, savings, tax export, email parsing
 - [x] **Phase 4: Events, Notifications & Frontend** - Event-driven automation, notification system, and all React/Inertia pages
-- [ ] **Phase 5: Testing & Deployment** - Full Pest PHP test suite with factories, CI/CD pipeline
+- [x] **Phase 5: Testing & Deployment** - Full Pest PHP test suite with factories, CI/CD pipeline
 
 ## Phase Details
 
@@ -104,9 +104,9 @@ Plans:
 **Plans**: 3 plans
 
 Plans:
-- [ ] 05-01-PLAN.md -- Test infrastructure: PostgreSQL test DB, HasFactory on 17 models, 18 factories, Pest.php helpers
-- [ ] 05-02-PLAN.md -- All feature tests (auth, Plaid, transactions, AI questions, subscriptions, savings, tax, account deletion) and unit tests (categorizer, subscription detector, tax export, captcha)
-- [ ] 05-03-PLAN.md -- GitHub Actions CI pipeline and production .env template
+- [x] 05-01: Test infrastructure — PostgreSQL test DB, HasFactory on 17 models, 18 factories, Pest.php helpers
+- [x] 05-02: All feature tests (auth, Plaid, transactions, AI questions, subscriptions, savings, tax, account deletion) and unit tests (categorizer, subscription detector, tax export, captcha)
+- [x] 05-03: GitHub Actions CI pipeline and production .env template
 
 ## Progress
 
@@ -119,4 +119,4 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5
 | 2. Auth & Bank Integration | 3/3 | ✓ Complete | 2026-02-11 |
 | 3. AI Intelligence & Financial Features | 3/3 | ✓ Complete | 2026-02-11 |
 | 4. Events, Notifications & Frontend | 3/3 | ✓ Complete | 2026-02-11 |
-| 5. Testing & Deployment | 0/3 | Not started | - |
+| 5. Testing & Deployment | 3/3 | ✓ Complete | 2026-02-11 |
