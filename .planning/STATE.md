@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-02-10)
 
 **Core value:** Users connect their bank and immediately get intelligent, automatic categorization of every transaction with business/personal separation, tax deduction flagging, and AI-generated questions when confidence is low.
-**Current focus:** Phase 3 complete - AI Intelligence & Financial Features done. Ready for Phase 4.
+**Current focus:** Phase 4 in progress - Events, Notifications & Frontend. Plan 01 complete.
 
 ## Current Position
 
-Phase: 3 of 5 (AI Intelligence & Financial Features) -- COMPLETE
-Plan: 3 of 3 in current phase -- COMPLETE
-Status: Phase Complete
-Last activity: 2026-02-11 -- Completed 03-03 (Tax export & email parsing pipeline)
+Phase: 4 of 5 (Events, Notifications & Frontend)
+Plan: 1 of 3 in current phase
+Status: In Progress
+Last activity: 2026-02-11 -- Completed 04-01 (Events & notifications architecture)
 
-Progress: [█████████░] 90%
+Progress: [██████████] 91%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 9
+- Total plans completed: 10
 - Average duration: 5min
-- Total execution time: 0.79 hours
+- Total execution time: 0.86 hours
 
 **By Phase:**
 
@@ -30,10 +30,11 @@ Progress: [█████████░] 90%
 | 01-scaffolding | 2/2 | 22min | 11min |
 | 02-auth-bank-integration | 3/3 | 18min | 6min |
 | 03-ai-intelligence-financial-features | 3/3 | 7min | 2.3min |
+| 04-events-notifications-frontend | 1/3 | 4min | 4min |
 
 **Recent Trend:**
-- Last 5 plans: 02-02 (3min), 02-03 (4min), 03-01 (1min), 03-02 (2min), 03-03 (4min)
-- Trend: Accelerating
+- Last 5 plans: 02-03 (4min), 03-01 (1min), 03-02 (2min), 03-03 (4min), 04-01 (4min)
+- Trend: Consistent
 
 *Updated after each plan completion*
 
@@ -73,6 +74,10 @@ Recent decisions affecting current work:
 - [03-03]: Preserved sync_status lifecycle in ProcessOrderEmails for concurrency guard pattern
 - [03-03]: Used inline validation in EmailConnectionController callback (single OAuth code field)
 - [03-03]: Wired ReconciliationService into ProcessOrderEmails for automatic reconciliation after email sync
+- [04-01]: Notification classes created alongside listeners in Task 1 since listeners reference them directly
+- [04-01]: PlaidController exchangeToken now dispatches BankConnected event instead of inline sync+categorize calls
+- [04-01]: Unused subscription notifications dispatched inline after daily detection schedule
+- [04-01]: SyncBankTransactions job re-throws exceptions after logging to allow queue retry mechanism
 
 ### Pending Todos
 
@@ -85,5 +90,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-11
-Stopped at: Completed 03-03-PLAN.md (Tax export & email parsing pipeline). Phase 3 complete.
+Stopped at: Completed 04-01-PLAN.md (Events & notifications architecture)
 Resume file: None
