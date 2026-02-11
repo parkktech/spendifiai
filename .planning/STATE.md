@@ -5,7 +5,7 @@
 See: .planning/PROJECT.md (updated 2026-02-10)
 
 **Core value:** Users connect their bank and immediately get intelligent, automatic categorization of every transaction with business/personal separation, tax deduction flagging, and AI-generated questions when confidence is low.
-**Current focus:** Phase 1 - Project Scaffolding & API Architecture
+**Current focus:** Phase 2 - Auth & Bank Integration
 
 ## Current Position
 

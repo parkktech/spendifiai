@@ -12,7 +12,7 @@ LedgerIQ is an AI-powered expense tracker with ~60% of backend code already buil
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [ ] **Phase 1: Project Scaffolding & API Architecture** - Create Laravel 12 project, integrate existing code, split monolithic controller into 10 focused controllers
+- [x] **Phase 1: Project Scaffolding & API Architecture** - Create Laravel 12 project, integrate existing code, split monolithic controller into 10 focused controllers
 - [ ] **Phase 2: Auth & Bank Integration** - Wire up authentication, Plaid bank connection, webhooks, and user profile management
 - [ ] **Phase 3: AI Intelligence & Financial Features** - AI categorization, questions, subscriptions, savings, tax export, email parsing
 - [ ] **Phase 4: Events, Notifications & Frontend** - Event-driven automation, notification system, and all React/Inertia pages
@@ -33,8 +33,8 @@ Decimal phases appear between their surrounding integers in numeric order.
 **Plans**: 2 plans
 
 Plans:
-- [ ] 01-01: Create Laravel 12 project and integrate all existing code (models, services, enums, middleware, policies, migrations, configs, routes, seeders)
-- [ ] 01-02: Split SpendWiseController into 10 controllers, create API Resources and Form Requests
+- [x] 01-01: Create Laravel 12 project and integrate all existing code (models, services, enums, middleware, policies, migrations, configs, routes, seeders)
+- [x] 01-02: Split SpendWiseController into 10 controllers, create API Resources and Form Requests
 
 ### Phase 2: Auth & Bank Integration
 **Goal**: Users can register, log in (with optional 2FA and Google OAuth), connect their bank via Plaid, sync transactions, and manage their financial profile -- with real-time webhook handling for ongoing updates
@@ -114,7 +114,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Scaffolding & API Architecture | 0/2 | Not started | - |
+| 1. Scaffolding & API Architecture | 2/2 | ✓ Complete | 2026-02-11 |
 | 2. Auth & Bank Integration | 0/3 | Not started | - |
 | 3. AI Intelligence & Financial Features | 0/3 | Not started | - |
 | 4. Events, Notifications & Frontend | 0/3 | Not started | - |
