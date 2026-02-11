@@ -51,6 +51,9 @@ class PlaidController extends Controller
 
     /**
      * Sync transactions for the user's active bank connection.
+     *
+     * Note: Syncs only the first active connection. Multi-connection sync
+     * is handled by the webhook handler and scheduled tasks.
      */
     public function sync(): JsonResponse
     {
