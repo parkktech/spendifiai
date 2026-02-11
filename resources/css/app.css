@@ -1,3 +1,21 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+
+@theme {
+  --color-sw-bg: #0B0F1A;
+  --color-sw-sidebar: #0F1629;
+  --color-sw-card: #111827;
+  --color-sw-card-hover: #1a2332;
+  --color-sw-border: #1e293b;
+  --color-sw-accent: #10b981;
+  --color-sw-accent-hover: #059669;
+  --color-sw-danger: #ef4444;
+  --color-sw-warning: #f59e0b;
+  --color-sw-text: #f1f5f9;
+  --color-sw-muted: #94a3b8;
+  --color-sw-dim: #64748b;
+  --font-sans: 'Figtree', ui-sans-serif, system-ui, sans-serif;
+}
+
+body {
+  @apply bg-sw-bg text-sw-text;
+}
