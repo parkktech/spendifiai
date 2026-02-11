@@ -34,10 +34,11 @@ Progress: [███████████████] 100%
 | 05-testing-deployment | 3/3 | 8min | 2.7min |
 
 **Recent Trend:**
-- Last 5 plans: 04-02 (8min), 04-03 (4min), 05-01 (6min), 05-02 (n/a), 05-03 (2min)
+- Last 5 plans: 04-02 (8min), 04-03 (4min), 05-01 (6min), 05-02 (11min), 05-03 (2min)
 - Trend: Consistent
 
 *Updated after each plan completion*
+| Phase 05 P02 | 11min | 2 tasks | 25 files |
 
 ## Accumulated Context
 
@@ -92,6 +93,10 @@ Recent decisions affecting current work:
 - [05-03]: Used array drivers for cache/queue/session/mail in CI to avoid external service dependencies
 - [05-03]: No Python setup in CI -- tax export tests validate logic only, not file generation
 - [05-03]: CI APP_KEY uses a static base64 key (not a secret) for deterministic test environment
+- [Phase 05-02]: Unit/Services tests bound to Laravel TestCase in Pest.php for model, config, and Http::fake access
+- [Phase 05-02]: Fixed enum switch comparison in TransactionCategorizerService by extracting ->value before switch
+- [Phase 05-02]: Service constructors use nullable types with fallback for null config values in test env
+- [Phase 05-02]: Added AuthorizesRequests trait to base Controller (Laravel 12 omits it by default)
 
 ### Pending Todos
 
