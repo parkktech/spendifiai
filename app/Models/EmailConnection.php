@@ -9,7 +9,7 @@ class EmailConnection extends Model
 {
     protected $fillable = [
         'user_id', 'provider', 'email_address', 'access_token', 'refresh_token',
-        'token_expires_at', 'status', 'last_synced_at',
+        'token_expires_at', 'status', 'last_synced_at', 'sync_status',
     ];
 
     protected $hidden = [

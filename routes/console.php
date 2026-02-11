@@ -1,9 +1,11 @@
 <?php
 
 use App\Jobs\CategorizePendingTransactions;
+use App\Jobs\ProcessOrderEmails;
 // use App\Jobs\SyncBankTransactions; // TODO: Create in Phase 6
 use App\Models\AIQuestion;
 use App\Models\BankConnection;
+use App\Models\EmailConnection;
 use App\Models\User;
 use Illuminate\Support\Facades\Schedule;
 
@@ -56,4 +58,8 @@ Schedule::call(function () {
 })->dailyAt('03:00')->name('expire-ai-questions');
 
 // ── Sync email accounts for order confirmations (every 6 hours) ──
-// Schedule::command('spendwise:sync-emails')->everySixHours();
+Schedule::call(function () {
+    EmailConnection::where('sync_status', '!=', 'syncing')->each(function ($conn) {
+        ProcessOrderEmails::dispatch($conn);
+    });
+})->everySixHours()->name('sync-email-orders');
