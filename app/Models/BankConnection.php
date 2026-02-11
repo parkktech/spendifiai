@@ -11,14 +11,14 @@ class BankConnection extends Model
 {
     protected $fillable = [
         'user_id', 'plaid_item_id', 'plaid_access_token', 'institution_name',
-        'institution_id', 'status', 'last_synced_at', 'plaid_cursor',
+        'institution_id', 'status', 'last_synced_at', 'sync_cursor',
         'error_code', 'error_message',
     ];
 
     protected $hidden = [
         'plaid_access_token',  // Encrypted Plaid token — NEVER expose
         'plaid_item_id',       // Internal Plaid identifier
-        'plaid_cursor',        // Sync cursor — internal use only
+        'sync_cursor',         // Sync cursor — internal use only
         'error_code',          // Internal diagnostics
         'error_message',
     ];
