@@ -6,7 +6,10 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\UpdateFinancialProfileRequest;
 use App\Jobs\CategorizePendingTransactions;
 use App\Models\UserFinancialProfile;
+use App\Services\PlaidService;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 class UserProfileController extends Controller
 {
@@ -51,15 +54,37 @@ class UserProfileController extends Controller
     /**
      * Delete the user's account and all associated data.
      * GDPR/CCPA compliance.
+     *
+     * Requires password confirmation for security.
+     * Revokes all Plaid access tokens before cascading data deletion.
      */
-    public function deleteAccount(): JsonResponse
+    public function deleteAccount(Request $request): JsonResponse
     {
+        $request->validate([
+            'password' => 'required|current_password',
+        ]);
+
         $user = auth()->user();
 
-        // Revoke all API tokens
+        // 1. Disconnect all bank connections (revokes Plaid access tokens)
+        $plaidService = app(PlaidService::class);
+        $user->bankConnections->each(function ($connection) use ($plaidService) {
+            try {
+                $plaidService->disconnect($connection);
+            } catch (\Exception $e) {
+                // Log but continue -- don't block account deletion if Plaid fails
+                Log::warning('Failed to disconnect bank during account deletion', [
+                    'user_id'       => $connection->user_id,
+                    'connection_id' => $connection->id,
+                    'error'         => $e->getMessage(),
+                ]);
+            }
+        });
+
+        // 2. Revoke all API tokens
         $user->tokens()->delete();
 
-        // Delete the user (cascading deletes handle related data)
+        // 3. Delete the user (cascade deletes handle all related data via foreign keys)
         $user->delete();
 
         return response()->json(null, 204);
