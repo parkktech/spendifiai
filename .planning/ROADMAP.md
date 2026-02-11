@@ -92,20 +92,21 @@ Plans:
 - [x] 04-03: Build frontend pages -- Subscriptions, Savings, Tax, shared components
 
 ### Phase 5: Testing & Deployment
-**Goal**: All critical flows are covered by automated tests, model factories exist for all 16 models, and a CI/CD pipeline runs lint, build, and test on every push
+**Goal**: All critical flows are covered by automated tests, model factories exist for all 18 models, and a CI/CD pipeline runs lint, build, and test on every push
 **Depends on**: Phase 4
 **Requirements**: TEST-01, TEST-02, TEST-03, TEST-04, TEST-05, TEST-06, TEST-07, TEST-08, TEST-09, TEST-10, TEST-11, TEST-12, TEST-13, DEPLOY-01, DEPLOY-02
 **Success Criteria** (what must be TRUE):
   1. `php artisan test` runs all tests and passes (feature tests for auth, Plaid, transactions, AI questions, subscriptions, savings, tax, account deletion)
   2. Unit tests verify TransactionCategorizerService confidence routing, SubscriptionDetectorService recurrence detection, TaxExportService Schedule C mapping, and CaptchaService thresholds
-  3. Model factories exist for all 16 models and can generate valid test data
+  3. Model factories exist for all 18 models and can generate valid test data
   4. GitHub Actions CI pipeline installs dependencies, builds frontend assets, runs full test suite, and reports pass/fail on every push
   5. Production .env template documents all required environment variables
-**Plans**: 2 plans
+**Plans**: 3 plans
 
 Plans:
-- [ ] 05-01: Create model factories and write all feature and unit tests
-- [ ] 05-02: Set up GitHub Actions CI pipeline and production environment template
+- [ ] 05-01-PLAN.md -- Test infrastructure: PostgreSQL test DB, HasFactory on 17 models, 18 factories, Pest.php helpers
+- [ ] 05-02-PLAN.md -- All feature tests (auth, Plaid, transactions, AI questions, subscriptions, savings, tax, account deletion) and unit tests (categorizer, subscription detector, tax export, captcha)
+- [ ] 05-03-PLAN.md -- GitHub Actions CI pipeline and production .env template
 
 ## Progress
 
@@ -118,4 +119,4 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5
 | 2. Auth & Bank Integration | 3/3 | ✓ Complete | 2026-02-11 |
 | 3. AI Intelligence & Financial Features | 3/3 | ✓ Complete | 2026-02-11 |
 | 4. Events, Notifications & Frontend | 3/3 | ✓ Complete | 2026-02-11 |
-| 5. Testing & Deployment | 0/2 | Not started | - |
+| 5. Testing & Deployment | 0/3 | Not started | - |
