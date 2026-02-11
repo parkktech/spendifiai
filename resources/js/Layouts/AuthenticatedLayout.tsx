@@ -1,179 +1,221 @@
-import ApplicationLogo from '@/Components/ApplicationLogo';
-import Dropdown from '@/Components/Dropdown';
-import NavLink from '@/Components/NavLink';
-import ResponsiveNavLink from '@/Components/ResponsiveNavLink';
-import { Link, usePage } from '@inertiajs/react';
+import { Link, usePage, router } from '@inertiajs/react';
 import { PropsWithChildren, ReactNode, useState } from 'react';
+import {
+  LayoutDashboard,
+  Receipt,
+  CreditCard,
+  PiggyBank,
+  FileText,
+  Link2,
+  Settings,
+  HelpCircle,
+  Bell,
+  LogOut,
+  ChevronLeft,
+  ChevronRight,
+  Menu,
+  X,
+} from 'lucide-react';
 
-export default function Authenticated({
-    header,
-    children,
+interface NavItemDef {
+  label: string;
+  href: string;
+  routeName: string;
+  icon: ReactNode;
+  badge?: number;
+}
+
+function NavItem({
+  item,
+  active,
+  collapsed,
+}: {
+  item: NavItemDef;
+  active: boolean;
+  collapsed: boolean;
+}) {
+  return (
+    <Link
+      href={item.href}
+      className={`relative flex items-center gap-3 w-full px-4 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+        active
+          ? 'bg-sw-accent/10 text-sw-accent border-l-2 border-sw-accent'
+          : 'text-sw-muted hover:text-sw-text hover:bg-sw-card border-l-2 border-transparent'
+      }`}
+    >
+      <span className="shrink-0">{item.icon}</span>
+      {!collapsed && <span>{item.label}</span>}
+      {!collapsed && item.badge !== undefined && item.badge > 0 && (
+        <span className="ml-auto bg-sw-danger text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center">
+          {item.badge}
+        </span>
+      )}
+    </Link>
+  );
+}
+
+export default function AuthenticatedLayout({
+  header,
+  children,
 }: PropsWithChildren<{ header?: ReactNode }>) {
-    const user = usePage().props.auth.user;
+  const page = usePage();
+  const user = page.props.auth.user as { name: string; email: string };
+  const currentRoute = (page.props as Record<string, unknown>).ziggy
+    ? route().current()
+    : '';
 
-    const [showingNavigationDropdown, setShowingNavigationDropdown] =
-        useState(false);
+  const [collapsed, setCollapsed] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
 
-    return (
-        <div className="min-h-screen bg-gray-100">
-            <nav className="border-b border-gray-100 bg-white">
-                <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-                    <div className="flex h-16 justify-between">
-                        <div className="flex">
-                            <div className="flex shrink-0 items-center">
-                                <Link href="/">
-                                    <ApplicationLogo className="block h-9 w-auto fill-current text-gray-800" />
-                                </Link>
-                            </div>
+  const navItems: NavItemDef[] = [
+    { label: 'Dashboard', href: '/dashboard', routeName: 'dashboard', icon: <LayoutDashboard size={18} /> },
+    { label: 'Transactions', href: '/transactions', routeName: 'transactions', icon: <Receipt size={18} /> },
+    { label: 'Subscriptions', href: '/subscriptions', routeName: 'subscriptions', icon: <CreditCard size={18} /> },
+    { label: 'Savings', href: '/savings', routeName: 'savings', icon: <PiggyBank size={18} /> },
+    { label: 'Tax', href: '/tax', routeName: 'tax', icon: <FileText size={18} /> },
+    { label: 'Connect', href: '/connect', routeName: 'connect', icon: <Link2 size={18} /> },
+    { label: 'Settings', href: '/settings', routeName: 'settings', icon: <Settings size={18} /> },
+    { label: 'AI Questions', href: '/questions', routeName: 'questions', icon: <HelpCircle size={18} /> },
+  ];
 
-                            <div className="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex">
-                                <NavLink
-                                    href={route('dashboard')}
-                                    active={route().current('dashboard')}
-                                >
-                                    Dashboard
-                                </NavLink>
-                            </div>
-                        </div>
+  const isActive = (routeName: string) => {
+    try {
+      return route().current(routeName);
+    } catch {
+      return currentRoute === routeName;
+    }
+  };
 
-                        <div className="hidden sm:ms-6 sm:flex sm:items-center">
-                            <div className="relative ms-3">
-                                <Dropdown>
-                                    <Dropdown.Trigger>
-                                        <span className="inline-flex rounded-md">
-                                            <button
-                                                type="button"
-                                                className="inline-flex items-center rounded-md border border-transparent bg-white px-3 py-2 text-sm font-medium leading-4 text-gray-500 transition duration-150 ease-in-out hover:text-gray-700 focus:outline-none"
-                                            >
-                                                {user.name}
-
-                                                <svg
-                                                    className="-me-0.5 ms-2 h-4 w-4"
-                                                    xmlns="http://www.w3.org/2000/svg"
-                                                    viewBox="0 0 20 20"
-                                                    fill="currentColor"
-                                                >
-                                                    <path
-                                                        fillRule="evenodd"
-                                                        d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
-                                                        clipRule="evenodd"
-                                                    />
-                                                </svg>
-                                            </button>
-                                        </span>
-                                    </Dropdown.Trigger>
-
-                                    <Dropdown.Content>
-                                        <Dropdown.Link
-                                            href={route('profile.edit')}
-                                        >
-                                            Profile
-                                        </Dropdown.Link>
-                                        <Dropdown.Link
-                                            href={route('logout')}
-                                            method="post"
-                                            as="button"
-                                        >
-                                            Log Out
-                                        </Dropdown.Link>
-                                    </Dropdown.Content>
-                                </Dropdown>
-                            </div>
-                        </div>
-
-                        <div className="-me-2 flex items-center sm:hidden">
-                            <button
-                                onClick={() =>
-                                    setShowingNavigationDropdown(
-                                        (previousState) => !previousState,
-                                    )
-                                }
-                                className="inline-flex items-center justify-center rounded-md p-2 text-gray-400 transition duration-150 ease-in-out hover:bg-gray-100 hover:text-gray-500 focus:bg-gray-100 focus:text-gray-500 focus:outline-none"
-                            >
-                                <svg
-                                    className="h-6 w-6"
-                                    stroke="currentColor"
-                                    fill="none"
-                                    viewBox="0 0 24 24"
-                                >
-                                    <path
-                                        className={
-                                            !showingNavigationDropdown
-                                                ? 'inline-flex'
-                                                : 'hidden'
-                                        }
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                        strokeWidth="2"
-                                        d="M4 6h16M4 12h16M4 18h16"
-                                    />
-                                    <path
-                                        className={
-                                            showingNavigationDropdown
-                                                ? 'inline-flex'
-                                                : 'hidden'
-                                        }
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                        strokeWidth="2"
-                                        d="M6 18L18 6M6 6l12 12"
-                                    />
-                                </svg>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-                <div
-                    className={
-                        (showingNavigationDropdown ? 'block' : 'hidden') +
-                        ' sm:hidden'
-                    }
-                >
-                    <div className="space-y-1 pb-3 pt-2">
-                        <ResponsiveNavLink
-                            href={route('dashboard')}
-                            active={route().current('dashboard')}
-                        >
-                            Dashboard
-                        </ResponsiveNavLink>
-                    </div>
-
-                    <div className="border-t border-gray-200 pb-1 pt-4">
-                        <div className="px-4">
-                            <div className="text-base font-medium text-gray-800">
-                                {user.name}
-                            </div>
-                            <div className="text-sm font-medium text-gray-500">
-                                {user.email}
-                            </div>
-                        </div>
-
-                        <div className="mt-3 space-y-1">
-                            <ResponsiveNavLink href={route('profile.edit')}>
-                                Profile
-                            </ResponsiveNavLink>
-                            <ResponsiveNavLink
-                                method="post"
-                                href={route('logout')}
-                                as="button"
-                            >
-                                Log Out
-                            </ResponsiveNavLink>
-                        </div>
-                    </div>
-                </div>
-            </nav>
-
-            {header && (
-                <header className="bg-white shadow">
-                    <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-                        {header}
-                    </div>
-                </header>
-            )}
-
-            <main>{children}</main>
+  const sidebarContent = (
+    <>
+      {/* Logo */}
+      <div className="flex items-center gap-3 px-5 py-5 border-b border-sw-border">
+        <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-sw-accent to-blue-500 flex items-center justify-center text-sw-bg font-extrabold text-base shrink-0">
+          $
         </div>
-    );
+        {!collapsed && (
+          <div>
+            <div className="text-[15px] font-bold text-sw-text tracking-tight">LedgerIQ</div>
+            <div className="text-[10px] text-sw-dim uppercase tracking-wider">AI Expense Tracker</div>
+          </div>
+        )}
+      </div>
+
+      {/* Nav */}
+      <nav className="flex-1 flex flex-col gap-1 px-3 py-4 overflow-y-auto">
+        {navItems.map((item) => (
+          <NavItem
+            key={item.routeName}
+            item={item}
+            active={!!isActive(item.routeName)}
+            collapsed={collapsed}
+          />
+        ))}
+      </nav>
+
+      {/* Collapse toggle (desktop only) */}
+      <div className="hidden sm:block border-t border-sw-border p-3">
+        <button
+          onClick={() => setCollapsed(!collapsed)}
+          className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg border border-sw-border bg-transparent text-sw-dim text-xs cursor-pointer hover:text-sw-muted transition"
+        >
+          {collapsed ? <ChevronRight size={14} /> : <><ChevronLeft size={14} /> Collapse</>}
+        </button>
+      </div>
+    </>
+  );
+
+  return (
+    <div className="flex h-screen bg-sw-bg overflow-hidden">
+      {/* Desktop sidebar */}
+      <aside
+        className={`hidden sm:flex flex-col bg-sw-sidebar border-r border-sw-border shrink-0 transition-all duration-300 ${
+          collapsed ? 'w-[68px]' : 'w-64'
+        }`}
+      >
+        {sidebarContent}
+      </aside>
+
+      {/* Mobile sidebar overlay */}
+      {mobileOpen && (
+        <div className="sm:hidden fixed inset-0 z-40">
+          <div className="absolute inset-0 bg-black/60" onClick={() => setMobileOpen(false)} />
+          <aside className="relative w-64 h-full bg-sw-sidebar border-r border-sw-border flex flex-col z-50">
+            <button
+              onClick={() => setMobileOpen(false)}
+              className="absolute top-4 right-4 text-sw-muted hover:text-sw-text"
+            >
+              <X size={20} />
+            </button>
+            {sidebarContent}
+          </aside>
+        </div>
+      )}
+
+      {/* Main content area */}
+      <div className="flex-1 flex flex-col overflow-hidden">
+        {/* Top bar */}
+        <header className="shrink-0 h-16 flex items-center justify-between px-6 border-b border-sw-border bg-sw-card">
+          <div className="flex items-center gap-4">
+            {/* Mobile hamburger */}
+            <button
+              onClick={() => setMobileOpen(true)}
+              className="sm:hidden text-sw-muted hover:text-sw-text"
+            >
+              <Menu size={20} />
+            </button>
+
+            {header && <div>{header}</div>}
+          </div>
+
+          <div className="flex items-center gap-3">
+            {/* Notification bell */}
+            <button className="relative w-9 h-9 rounded-lg border border-sw-border bg-transparent flex items-center justify-center text-sw-muted hover:text-sw-text transition">
+              <Bell size={16} />
+            </button>
+
+            {/* User dropdown */}
+            <div className="relative">
+              <button
+                onClick={() => setUserMenuOpen(!userMenuOpen)}
+                className="w-9 h-9 rounded-lg bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center text-white text-sm font-bold cursor-pointer"
+              >
+                {user.name?.charAt(0)?.toUpperCase() || 'U'}
+              </button>
+
+              {userMenuOpen && (
+                <>
+                  <div className="fixed inset-0 z-30" onClick={() => setUserMenuOpen(false)} />
+                  <div className="absolute right-0 mt-2 w-48 rounded-xl border border-sw-border bg-sw-card shadow-lg z-40 py-1">
+                    <div className="px-4 py-2 border-b border-sw-border">
+                      <div className="text-sm font-medium text-sw-text truncate">{user.name}</div>
+                      <div className="text-xs text-sw-dim truncate">{user.email}</div>
+                    </div>
+                    <Link
+                      href="/settings"
+                      className="flex items-center gap-2 px-4 py-2 text-sm text-sw-muted hover:text-sw-text hover:bg-sw-card-hover transition"
+                    >
+                      <Settings size={14} /> Settings
+                    </Link>
+                    <button
+                      onClick={() => router.post('/logout')}
+                      className="flex items-center gap-2 w-full px-4 py-2 text-sm text-sw-muted hover:text-sw-danger hover:bg-sw-card-hover transition"
+                    >
+                      <LogOut size={14} /> Log Out
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        </header>
+
+        {/* Page content */}
+        <main className="flex-1 overflow-y-auto p-6">
+          {children}
+        </main>
+      </div>
+    </div>
+  );
 }

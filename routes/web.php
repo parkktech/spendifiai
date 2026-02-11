@@ -25,10 +25,17 @@ Route::get('/', function () {
     ]);
 });
 
-// ── Inertia Dashboard ──
-Route::get('/dashboard', function () {
-    return Inertia::render('Dashboard');
-})->middleware(['auth', 'verified'])->name('dashboard');
+// ── Inertia SPA Pages ──
+Route::middleware(['auth', 'verified'])->group(function () {
+    Route::get('/dashboard', fn() => Inertia::render('Dashboard'))->name('dashboard');
+    Route::get('/transactions', fn() => Inertia::render('Transactions/Index'))->name('transactions');
+    Route::get('/subscriptions', fn() => Inertia::render('Subscriptions/Index'))->name('subscriptions');
+    Route::get('/savings', fn() => Inertia::render('Savings/Index'))->name('savings');
+    Route::get('/tax', fn() => Inertia::render('Tax/Index'))->name('tax');
+    Route::get('/connect', fn() => Inertia::render('Connect/Index'))->name('connect');
+    Route::get('/settings', fn() => Inertia::render('Settings/Index'))->name('settings');
+    Route::get('/questions', fn() => Inertia::render('Questions/Index'))->name('questions');
+});
 
 // ── Profile Management (Breeze) ──
 Route::middleware('auth')->group(function () {
