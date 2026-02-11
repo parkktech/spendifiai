@@ -40,7 +40,7 @@ Users connect their bank and immediately get intelligent, automatic categorizati
 - [ ] Event-driven architecture (bank connected, transactions imported, categorized, question answered, etc.)
 - [ ] Notifications (AI questions ready, unused subscriptions, budget threshold, weekly digest)
 - [ ] Full test suite (Pest PHP — factories, feature tests for all flows, unit tests for services)
-- [ ] Deployment config (Docker, queue workers, scheduler, CI/CD)
+- [ ] Deployment config (CI/CD pipeline, production env template)
 
 ### Out of Scope
 
