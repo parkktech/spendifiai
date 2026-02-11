@@ -13,7 +13,7 @@ LedgerIQ is an AI-powered expense tracker with ~60% of backend code already buil
 Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Project Scaffolding & API Architecture** - Create Laravel 12 project, integrate existing code, split monolithic controller into 10 focused controllers
-- [ ] **Phase 2: Auth & Bank Integration** - Wire up authentication, Plaid bank connection, webhooks, and user profile management
+- [x] **Phase 2: Auth & Bank Integration** - Wire up authentication, Plaid bank connection, webhooks, and user profile management
 - [ ] **Phase 3: AI Intelligence & Financial Features** - AI categorization, questions, subscriptions, savings, tax export, email parsing
 - [ ] **Phase 4: Events, Notifications & Frontend** - Event-driven automation, notification system, and all React/Inertia pages
 - [ ] **Phase 5: Testing & Deployment** - Full Pest PHP test suite with factories, CI/CD pipeline
@@ -51,9 +51,9 @@ Plans:
 **Plans**: 3 plans
 
 Plans:
-- [ ] 02-01: Verify and complete authentication system (email/password, Google OAuth, 2FA, password reset, email verification, captcha, account lockout)
-- [ ] 02-02: Wire up Plaid integration (link token, exchange, sync, balances, disconnect, account purpose tagging)
-- [ ] 02-03: Build Plaid webhook handler and user profile management
+- [x] 02-01: Verify and complete authentication system (email/password, Google OAuth, 2FA, password reset, email verification, captcha, account lockout)
+- [x] 02-02: Wire up Plaid integration (link token, exchange, sync, balances, disconnect, account purpose tagging)
+- [x] 02-03: Build Plaid webhook handler and user profile management
 
 ### Phase 3: AI Intelligence & Financial Features
 **Goal**: Transactions are automatically categorized by Claude AI with confidence-based routing, users can answer AI questions, subscriptions are detected, savings recommendations are generated, tax reports are exportable, and email receipts are parsed and reconciled
@@ -115,7 +115,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Scaffolding & API Architecture | 2/2 | ✓ Complete | 2026-02-11 |
-| 2. Auth & Bank Integration | 0/3 | Not started | - |
+| 2. Auth & Bank Integration | 3/3 | ✓ Complete | 2026-02-11 |
 | 3. AI Intelligence & Financial Features | 0/3 | Not started | - |
 | 4. Events, Notifications & Frontend | 0/3 | Not started | - |
 | 5. Testing & Deployment | 0/2 | Not started | - |
