@@ -10,28 +10,28 @@ See: .planning/PROJECT.md (updated 2026-02-10)
 ## Current Position
 
 Phase: 2 of 5 (Auth & Bank Integration)
-Plan: 2 of 3 in current phase
+Plan: 3 of 3 in current phase
 Status: Executing
-Last activity: 2026-02-11 -- Completed 02-02 (Plaid integration fix)
+Last activity: 2026-02-11 -- Completed 02-01 (auth system bug fix & verification)
 
 Progress: [████░░░░░░] 40%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 4
-- Average duration: 8min
-- Total execution time: 0.53 hours
+- Total plans completed: 5
+- Average duration: 7min
+- Total execution time: 0.60 hours
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 01-scaffolding | 2/2 | 22min | 11min |
-| 02-auth-bank-integration | 2/3 | 10min | 5min |
+| 02-auth-bank-integration | 2/3 | 14min | 7min |
 
 **Recent Trend:**
-- Last 5 plans: 01-01 (16min), 01-02 (6min), 02-01 (7min), 02-02 (3min)
+- Last 5 plans: 01-01 (16min), 01-02 (6min), 02-01 (4min), 02-02 (3min)
 - Trend: Accelerating
 
 *Updated after each plan completion*
@@ -56,6 +56,9 @@ Recent decisions affecting current work:
 - [01-02]: Used TransactionResource::collection() for dashboard recent transactions for consistency
 - [01-02]: Renamed SpendWiseController to .bak instead of deleting
 - [01-02]: EmailConnectionController returns 501 stubs for Phase 3 work
+- [02-01]: Fixed captcha config to use !empty() instead of !== null for RECAPTCHA_SITE_KEY check
+- [02-01]: Created PlaidWebhookController stub to unblock route registration (full impl in Plan 03)
+- [02-01]: Left inline validation in TwoFactorController as-is (single-field checks, not worth FormRequest overhead)
 - [02-02]: Fixed plaid_cursor -> sync_cursor naming mismatch (was preventing cursor persistence between syncs)
 - [02-02]: Published missing Sanctum personal_access_tokens migration
 
@@ -70,5 +73,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-11
-Stopped at: Completed 02-02-PLAN.md (Plaid integration fix). Ready for 02-03.
+Stopped at: Completed 02-01-PLAN.md (auth system bug fix & verification). Ready for 02-03.
 Resume file: None
