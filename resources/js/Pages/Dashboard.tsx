@@ -201,12 +201,12 @@ function MonthlyBillsSection({ bills, totalMonthly }: { bills: RecurringBill[]; 
       <div className="grid grid-cols-2 gap-3 mb-4">
         <div className="rounded-lg bg-slate-50 border border-slate-200 p-3">
           <div className="text-[11px] text-sw-muted font-medium uppercase tracking-wider mb-1">Essential</div>
-          <div className="text-base font-bold text-sw-text">{fmt.format(essentialBills.reduce((s, b) => s + b.amount, 0))}</div>
+          <div className="text-base font-bold text-sw-text">{fmt.format(essentialBills.reduce((s, b) => s + Number(b.amount), 0))}</div>
           <div className="text-[11px] text-sw-dim">{essentialBills.length} bills</div>
         </div>
         <div className="rounded-lg bg-amber-50 border border-amber-200 p-3">
           <div className="text-[11px] text-amber-700 font-medium uppercase tracking-wider mb-1">Non-Essential</div>
-          <div className="text-base font-bold text-amber-700">{fmt.format(nonEssentialBills.reduce((s, b) => s + b.amount, 0))}</div>
+          <div className="text-base font-bold text-amber-700">{fmt.format(nonEssentialBills.reduce((s, b) => s + Number(b.amount), 0))}</div>
           <div className="text-[11px] text-amber-600">{nonEssentialBills.length} could be cut</div>
         </div>
       </div>
@@ -235,7 +235,11 @@ function MonthlyBillsSection({ bills, totalMonthly }: { bills: RecurringBill[]; 
                 <span className="text-[13px] font-medium text-sw-text truncate">
                   {bill.merchant_normalized || bill.merchant_name}
                 </span>
-                {bill.status === 'unused' && <Badge variant="danger">Unused</Badge>}
+                {bill.status === 'unused' && (
+                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-red-50 text-red-600 border border-red-200" title="No charges detected in over 2× the normal billing cycle. This subscription may have lapsed or been cancelled by the provider.">
+                    Stopped billing
+                  </span>
+                )}
               </div>
               <div className="text-[11px] text-sw-dim mt-0.5">
                 {bill.frequency}
@@ -401,18 +405,18 @@ function buildActionItems(data: DashboardData): ActionItem[] {
   // 1. Unused subscriptions -> Quick Wins
   for (const sub of data.unused_subscription_details) {
     const merchant = sub.merchant_normalized || sub.merchant_name;
-    const daysSinceUsed = sub.last_used_at
-      ? Math.floor((Date.now() - new Date(sub.last_used_at).getTime()) / 86400000)
+    const daysSinceCharge = sub.last_charge_date
+      ? Math.floor((Date.now() - new Date(sub.last_charge_date).getTime()) / 86400000)
       : null;
     items.push({
       id: `sub-${sub.id}`,
       type: 'subscription',
-      title: `Cancel ${merchant}`,
-      description: daysSinceUsed
-        ? `You haven't used ${merchant} in ${daysSinceUsed} days. That's ${fmt.format(sub.amount)} every month going to waste.`
-        : `${merchant} appears to be unused. You're paying ${fmt.format(sub.amount)}/mo (${fmt.format(sub.annual_cost)}/yr).`,
-      monthlySavings: sub.amount,
-      annualSavings: sub.annual_cost,
+      title: `Review ${merchant}`,
+      description: daysSinceCharge
+        ? `No charges from ${merchant} in ${daysSinceCharge} days — billing may have stopped. Was ${fmt.format(sub.amount)}/mo (${fmt.format(sub.annual_cost)}/yr). Confirm if you still use it.`
+        : `${merchant} hasn't billed recently. You were paying ${fmt.format(sub.amount)}/mo (${fmt.format(sub.annual_cost)}/yr). Verify if this is still active.`,
+      monthlySavings: Number(sub.amount),
+      annualSavings: Number(sub.annual_cost),
       tab: 'quick',
       actionLabel: 'Respond',
       sourceId: sub.id,
@@ -427,8 +431,8 @@ function buildActionItems(data: DashboardData): ActionItem[] {
       type: 'recommendation',
       title: rec.title,
       description: rec.description,
-      monthlySavings: rec.monthly_savings,
-      annualSavings: rec.annual_savings,
+      monthlySavings: Number(rec.monthly_savings),
+      annualSavings: Number(rec.annual_savings),
       tab,
       actionLabel: 'Respond',
       actionSteps: rec.action_steps ?? undefined,
@@ -440,7 +444,7 @@ function buildActionItems(data: DashboardData): ActionItem[] {
 
   // 3. Overspending categories -> This Month
   const avgMonthly = data.savings_opportunities.length > 0
-    ? data.savings_opportunities.reduce((s, o) => s + o.monthly_avg, 0) / data.savings_opportunities.length
+    ? data.savings_opportunities.reduce((s, o) => s + Number(o.monthly_avg), 0) / data.savings_opportunities.length
     : 0;
 
   for (const opp of data.savings_opportunities.slice(0, 3)) {

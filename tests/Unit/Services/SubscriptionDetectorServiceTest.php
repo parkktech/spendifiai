@@ -39,7 +39,7 @@ it('detects monthly subscriptions from recurring charges', function () {
         ]);
     }
 
-    $service = new SubscriptionDetectorService();
+    $service = new SubscriptionDetectorService;
     $result = $service->detectSubscriptions($user->id);
 
     expect($result['detected'])->toBeGreaterThanOrEqual(1);
@@ -66,7 +66,7 @@ it('detects weekly subscriptions from frequent charges', function () {
         ]);
     }
 
-    $service = new SubscriptionDetectorService();
+    $service = new SubscriptionDetectorService;
     $result = $service->detectSubscriptions($user->id);
 
     expect($result['detected'])->toBeGreaterThanOrEqual(1);
@@ -96,7 +96,7 @@ it('does not detect subscription from inconsistent charges', function () {
         'transaction_date' => '2025-12-20',
     ]);
 
-    $service = new SubscriptionDetectorService();
+    $service = new SubscriptionDetectorService;
     $result = $service->detectSubscriptions($user->id);
 
     expect($result['detected'])->toBe(0);
@@ -113,27 +113,46 @@ it('does not detect subscription from single charge', function () {
         'transaction_date' => '2025-11-15',
     ]);
 
-    $service = new SubscriptionDetectorService();
+    $service = new SubscriptionDetectorService;
     $result = $service->detectSubscriptions($user->id);
 
     expect($result['detected'])->toBe(0);
 });
 
-it('marks subscriptions as unused when no recent activity', function () {
+it('marks subscriptions as unused when no charge in over 2x billing cycle', function () {
     ['user' => $user] = createDetectorTestData();
 
-    // Create a subscription with last_charge_date 45 days ago
+    // Create a monthly subscription with last_charge_date 65 days ago (> 2× monthly = 60 days)
     Subscription::factory()->create([
         'user_id' => $user->id,
         'status' => 'active',
         'is_essential' => false,
-        'last_charge_date' => now()->subDays(45),
-        'last_used_at' => null,
+        'frequency' => 'monthly',
+        'last_charge_date' => now()->subDays(65),
     ]);
 
-    $service = new SubscriptionDetectorService();
+    $service = new SubscriptionDetectorService;
     $service->detectSubscriptions($user->id);
 
     $sub = Subscription::where('user_id', $user->id)->first();
     expect($sub->status->value)->toBe('unused');
+});
+
+it('keeps subscription active when charge is within expected interval', function () {
+    ['user' => $user] = createDetectorTestData();
+
+    // Create a monthly subscription charged 40 days ago (< 2× monthly = 60 days)
+    Subscription::factory()->create([
+        'user_id' => $user->id,
+        'status' => 'active',
+        'is_essential' => false,
+        'frequency' => 'monthly',
+        'last_charge_date' => now()->subDays(40),
+    ]);
+
+    $service = new SubscriptionDetectorService;
+    $service->detectSubscriptions($user->id);
+
+    $sub = Subscription::where('user_id', $user->id)->first();
+    expect($sub->status->value)->toBe('active');
 });
