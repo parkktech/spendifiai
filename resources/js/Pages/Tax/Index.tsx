@@ -1,54 +1,109 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head } from '@inertiajs/react';
-import { FileText, DollarSign, Briefcase, Download, Send, CheckCircle, ChevronDown } from 'lucide-react';
+import {
+  FileText, DollarSign, Briefcase, Download, Send,
+  ChevronDown, ChevronRight, Receipt, Mail, Building2,
+} from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { useApi } from '@/hooks/useApi';
 import StatCard from '@/Components/SpendWise/StatCard';
 import ExportModal from '@/Components/SpendWise/ExportModal';
-import type { TaxSummary } from '@/types/spendwise';
+import type { TaxSummary, TaxLineItem } from '@/types/spendwise';
 
 const fmt = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
 const currentYear = new Date().getFullYear();
+
+function formatDate(dateStr: string): string {
+  const date = new Date(dateStr + 'T00:00:00');
+  return new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' }).format(date);
+}
+
+interface MergedCategory {
+  category: string;
+  total: number;
+  item_count: number;
+  items: TaxLineItem[];
+  scheduleCLine?: string;
+  scheduleCLabel?: string;
+}
 
 export default function TaxIndex() {
   const [year, setYear] = useState(currentYear);
   const [exportOpen, setExportOpen] = useState(false);
   const [exportMode, setExportMode] = useState<'download' | 'email'>('download');
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
 
   const { data: summary, loading, error, refresh } = useApi<TaxSummary>(
     `/api/v1/tax/summary?year=${year}`
   );
 
-  // Re-fetch when year changes
   useEffect(() => {
     refresh();
   }, [year]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Combine transaction and order item categories for the deductions view
-  const txCategories = summary?.transaction_categories ?? [];
-  const orderCategories = summary?.order_item_categories ?? [];
-  const allCategories = [...txCategories, ...orderCategories];
+  // Merge categories from both sources and attach line items
+  const sortedDeductions = useMemo(() => {
+    if (!summary) return [];
 
-  // Merge categories with the same name
-  const categoryMap = new Map<string, { category: string; total: number; item_count: number }>();
-  for (const cat of allCategories) {
-    const existing = categoryMap.get(cat.category);
-    if (existing) {
-      existing.total += cat.total;
-      existing.item_count += cat.item_count;
-    } else {
-      categoryMap.set(cat.category, { ...cat });
+    const txCategories = summary.transaction_categories ?? [];
+    const orderCategories = summary.order_item_categories ?? [];
+    const allDetails: TaxLineItem[] = [
+      ...(summary.transaction_details ?? []),
+      ...(summary.order_item_details ?? []),
+    ];
+    const cMap = summary.schedule_c_map ?? {};
+
+    const catMap = new Map<string, MergedCategory>();
+
+    for (const cat of [...txCategories, ...orderCategories]) {
+      const existing = catMap.get(cat.category);
+      if (existing) {
+        existing.total += cat.total;
+        existing.item_count += cat.item_count;
+      } else {
+        const mapping = cMap[cat.category];
+        catMap.set(cat.category, {
+          ...cat,
+          items: [],
+          scheduleCLine: mapping ? `Line ${mapping.line}` : undefined,
+          scheduleCLabel: mapping?.label,
+        });
+      }
     }
-  }
-  const deductions = Array.from(categoryMap.values());
-  const sortedDeductions = [...deductions].sort((a, b) => b.total - a.total);
 
-  // Top 10 categories for chart data
+    // Attach line items to their categories
+    for (const item of allDetails) {
+      const entry = catMap.get(item.category);
+      if (entry) {
+        entry.items.push(item);
+      }
+    }
+
+    // Sort items within each category by date descending
+    for (const entry of catMap.values()) {
+      entry.items.sort((a, b) => b.date.localeCompare(a.date));
+    }
+
+    return Array.from(catMap.values()).sort((a, b) => b.total - a.total);
+  }, [summary]);
+
   const chartData = sortedDeductions.slice(0, 10).map((d) => ({
     name: d.category.length > 20 ? d.category.substring(0, 18) + '...' : d.category,
     amount: d.total,
   }));
+
+  const toggleCategory = (cat: string) => {
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      if (next.has(cat)) {
+        next.delete(cat);
+      } else {
+        next.add(cat);
+      }
+      return next;
+    });
+  };
 
   const openExportModal = (mode: 'download' | 'email') => {
     setExportMode(mode);
@@ -64,7 +119,6 @@ export default function TaxIndex() {
             <p className="text-xs text-sw-dim mt-0.5">Track deductible expenses for tax season</p>
           </div>
           <div className="flex items-center gap-3 flex-wrap">
-            {/* Year selector */}
             <div className="relative">
               <select
                 value={year}
@@ -112,9 +166,9 @@ export default function TaxIndex() {
           icon={<DollarSign size={18} />}
         />
         <StatCard
-          title="Categories"
-          value={sortedDeductions.length.toString()}
-          subtitle="deductible categories"
+          title="Line Items"
+          value={(summary ? (summary.transaction_details?.length ?? 0) + (summary.order_item_details?.length ?? 0) : 0).toString()}
+          subtitle={`across ${sortedDeductions.length} categories`}
           icon={<FileText size={18} />}
         />
       </div>
@@ -123,10 +177,7 @@ export default function TaxIndex() {
       {error && (
         <div className="rounded-xl border border-sw-danger/30 bg-sw-danger/5 p-6 text-center mb-6">
           <p className="text-sm text-sw-danger mb-2">{error}</p>
-          <button
-            onClick={refresh}
-            className="text-xs text-sw-accent hover:text-sw-accent-hover transition"
-          >
+          <button onClick={refresh} className="text-xs text-sw-accent hover:text-sw-accent-hover transition">
             Try again
           </button>
         </div>
@@ -149,7 +200,7 @@ export default function TaxIndex() {
       )}
 
       {/* Empty state */}
-      {!loading && !error && deductions.length === 0 && (
+      {!loading && !error && sortedDeductions.length === 0 && (
         <div className="rounded-2xl border border-sw-border bg-sw-card p-12 text-center">
           <FileText size={40} className="mx-auto text-sw-dim mb-3" />
           <h3 className="text-sm font-semibold text-sw-text mb-1">No tax data available for {year}</h3>
@@ -198,44 +249,60 @@ export default function TaxIndex() {
         </div>
       )}
 
-      {/* Deductions table */}
+      {/* Expandable deductions table */}
       {!loading && sortedDeductions.length > 0 && (
         <div className="rounded-2xl border border-sw-border bg-sw-card p-6">
-          <h2 className="text-sm font-semibold text-sw-text mb-4">Deductions by Category</h2>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-sm font-semibold text-sw-text">Deductions by Category</h2>
+            <button
+              onClick={() => {
+                if (expanded.size === sortedDeductions.length) {
+                  setExpanded(new Set());
+                } else {
+                  setExpanded(new Set(sortedDeductions.map((d) => d.category)));
+                }
+              }}
+              className="text-[11px] text-sw-muted hover:text-sw-accent transition"
+            >
+              {expanded.size === sortedDeductions.length ? 'Collapse all' : 'Expand all'}
+            </button>
+          </div>
+
           <div className="overflow-x-auto">
             <table aria-label="Tax deductions by category" className="w-full">
               <thead>
                 <tr className="border-b border-sw-border">
+                  <th scope="col" className="w-6" />
                   <th scope="col" className="text-left text-xs text-sw-muted font-medium py-2.5 pr-4">Category</th>
+                  <th scope="col" className="text-left text-xs text-sw-muted font-medium py-2.5 pr-4 hidden sm:table-cell">Schedule C</th>
                   <th scope="col" className="text-right text-xs text-sw-muted font-medium py-2.5 pr-4">Items</th>
                   <th scope="col" className="text-right text-xs text-sw-muted font-medium py-2.5">Total</th>
                 </tr>
               </thead>
               <tbody>
-                {sortedDeductions.map((deduction, i) => (
-                  <tr
-                    key={i}
-                    className="border-b border-sw-border last:border-b-0 hover:bg-sw-card-hover transition-colors cursor-pointer"
-                  >
-                    <td className="py-3 pr-4">
-                      <div className="flex items-center gap-2">
-                        <CheckCircle size={14} className="text-sw-accent shrink-0" />
-                        <span className="text-sm text-sw-text font-medium">{deduction.category}</span>
-                      </div>
-                    </td>
-                    <td className="py-3 pr-4 text-right">
-                      <span className="text-xs text-sw-muted">{deduction.item_count} items</span>
-                    </td>
-                    <td className="py-3 text-right">
-                      <span className="text-sm font-bold text-sw-accent">{fmt.format(deduction.total)}</span>
-                    </td>
-                  </tr>
-                ))}
+                {sortedDeductions.map((deduction) => {
+                  const isExpanded = expanded.has(deduction.category);
+                  return (
+                    <CategoryRow
+                      key={deduction.category}
+                      deduction={deduction}
+                      isExpanded={isExpanded}
+                      onToggle={() => toggleCategory(deduction.category)}
+                    />
+                  );
+                })}
               </tbody>
               <tfoot>
                 <tr className="border-t-2 border-sw-border">
-                  <td colSpan={2} className="py-3 text-sm font-semibold text-sw-text">
+                  <td />
+                  <td colSpan={2} className="py-3 text-sm font-semibold text-sw-text hidden sm:table-cell">
                     Total Deductible
+                  </td>
+                  <td className="py-3 text-sm font-semibold text-sw-text sm:hidden">
+                    Total Deductible
+                  </td>
+                  <td className="py-3 text-right text-xs text-sw-muted">
+                    {sortedDeductions.reduce((sum, d) => sum + d.item_count, 0)} items
                   </td>
                   <td className="py-3 text-right text-sm font-bold text-sw-accent">
                     {fmt.format(sortedDeductions.reduce((sum, d) => sum + d.total, 0))}
@@ -247,7 +314,6 @@ export default function TaxIndex() {
         </div>
       )}
 
-      {/* Export Modal */}
       <ExportModal
         open={exportOpen}
         onClose={() => setExportOpen(false)}
@@ -255,5 +321,87 @@ export default function TaxIndex() {
         mode={exportMode}
       />
     </AuthenticatedLayout>
+  );
+}
+
+/* ─── Category Row with expandable line items ─────────────────────── */
+
+function CategoryRow({
+  deduction,
+  isExpanded,
+  onToggle,
+}: {
+  deduction: MergedCategory;
+  isExpanded: boolean;
+  onToggle: () => void;
+}) {
+  const hasItems = deduction.items.length > 0;
+
+  return (
+    <>
+      <tr
+        onClick={hasItems ? onToggle : undefined}
+        className={`border-b border-sw-border transition-colors ${hasItems ? 'cursor-pointer hover:bg-sw-card-hover' : ''}`}
+      >
+        <td className="py-3 pl-1 w-6">
+          {hasItems && (
+            isExpanded
+              ? <ChevronDown size={14} className="text-sw-accent" />
+              : <ChevronRight size={14} className="text-sw-dim" />
+          )}
+        </td>
+        <td className="py-3 pr-4">
+          <span className="text-sm text-sw-text font-medium">{deduction.category}</span>
+        </td>
+        <td className="py-3 pr-4 hidden sm:table-cell">
+          {deduction.scheduleCLine ? (
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-blue-50 border border-blue-100 text-[10px] font-medium text-blue-700">
+              <Building2 size={10} />
+              {deduction.scheduleCLine}
+              <span className="text-blue-500 font-normal">- {deduction.scheduleCLabel}</span>
+            </span>
+          ) : (
+            <span className="text-[10px] text-sw-dim">Line 27a - Other</span>
+          )}
+        </td>
+        <td className="py-3 pr-4 text-right">
+          <span className="text-xs text-sw-muted">{deduction.item_count}</span>
+        </td>
+        <td className="py-3 text-right">
+          <span className="text-sm font-bold text-sw-accent">{fmt.format(deduction.total)}</span>
+        </td>
+      </tr>
+
+      {/* Expanded line items */}
+      {isExpanded && deduction.items.map((item, i) => (
+        <tr key={`${item.date}-${item.merchant}-${i}`} className="border-b border-sw-border/50 bg-gray-50/50">
+          <td />
+          <td className="py-2 pr-4 pl-2" colSpan={2}>
+            <div className="flex items-center gap-2">
+              {item.source === 'email' ? (
+                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-emerald-50 border border-emerald-200 text-[9px] font-medium text-emerald-700 shrink-0">
+                  <Mail size={8} />
+                  Receipt
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-blue-50 border border-blue-200 text-[9px] font-medium text-blue-700 shrink-0">
+                  <Receipt size={8} />
+                  Bank
+                </span>
+              )}
+              <span className="text-xs text-sw-dim shrink-0">{formatDate(item.date)}</span>
+              <span className="text-xs text-sw-text font-medium truncate">{item.merchant}</span>
+              {item.description && item.description !== item.merchant && (
+                <span className="text-[11px] text-sw-dim truncate hidden md:inline">- {item.description}</span>
+              )}
+            </div>
+          </td>
+          <td />
+          <td className="py-2 text-right">
+            <span className="text-xs font-semibold text-sw-text">{fmt.format(item.amount)}</span>
+          </td>
+        </tr>
+      ))}
+    </>
   );
 }

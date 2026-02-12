@@ -234,6 +234,16 @@ export interface DashboardData {
   savings_history: SavingsHistoryEntry[];
 }
 
+export interface TaxLineItem {
+  date: string;
+  merchant: string;
+  description: string;
+  amount: number;
+  category: string;
+  source: 'bank' | 'email';
+  order_number?: string;
+}
+
 export interface TaxSummary {
   year: number;
   total_deductible: number;
@@ -249,6 +259,9 @@ export interface TaxSummary {
     total: number;
     item_count: number;
   }>;
+  transaction_details: TaxLineItem[];
+  order_item_details: TaxLineItem[];
+  schedule_c_map: Record<string, { line: string; label: string }>;
 }
 
 export interface UserFinancialProfile {

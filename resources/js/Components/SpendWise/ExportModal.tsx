@@ -41,9 +41,15 @@ export default function ExportModal({ open, onClose, year, mode, onExport }: Exp
 
     try {
       if (mode === 'download') {
-        await axios.post('/api/v1/tax/export', { year, formats: selectedFormats });
-        // Trigger download
-        window.open(`/api/v1/tax/export/download?year=${year}`, '_blank');
+        const response = await axios.post('/api/v1/tax/export', { year });
+        // Download each selected format using the API download route
+        const formatMap: Record<string, string> = { excel: 'xlsx', pdf: 'pdf', csv: 'csv' };
+        for (const fmt of selectedFormats) {
+          const type = formatMap[fmt] ?? fmt;
+          if (response.data?.downloads?.[type]) {
+            window.open(`/api/v1/tax/download/${year}/${type}`, '_blank');
+          }
+        }
         setSuccess(true);
         onExport?.();
       } else {
@@ -54,9 +60,8 @@ export default function ExportModal({ open, onClose, year, mode, onExport }: Exp
         }
         await axios.post('/api/v1/tax/send-to-accountant', {
           year,
-          email: email.trim(),
+          accountant_email: email.trim(),
           message: message.trim() || undefined,
-          formats: selectedFormats,
         });
         setSuccess(true);
         onExport?.();

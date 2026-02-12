@@ -28,7 +28,9 @@ def build_styles():
     base.add(ParagraphStyle("DocTitle", parent=base["Title"], fontSize=22, textColor=PRIMARY, spaceAfter=4))
     base.add(ParagraphStyle("DocSubtitle", parent=base["Normal"], fontSize=10, textColor=MUTED, spaceAfter=20))
     base.add(ParagraphStyle("SectionHead", parent=base["Heading2"], fontSize=14, textColor=PRIMARY, spaceBefore=16, spaceAfter=8))
-    base.add(ParagraphStyle("BodyText", parent=base["Normal"], fontSize=10, textColor=TEXT, leading=14))
+    base["BodyText"].fontSize = 10
+    base["BodyText"].textColor = TEXT
+    base["BodyText"].leading = 14
     base.add(ParagraphStyle("SmallMuted", parent=base["Normal"], fontSize=8, textColor=MUTED))
     base.add(ParagraphStyle("BigNumber", parent=base["Normal"], fontSize=28, textColor=GREEN, alignment=TA_CENTER))
     base.add(ParagraphStyle("BigLabel", parent=base["Normal"], fontSize=10, textColor=MUTED, alignment=TA_CENTER))

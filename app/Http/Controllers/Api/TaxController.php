@@ -25,7 +25,7 @@ class TaxController extends Controller
      */
     public function summary(Request $request): JsonResponse
     {
-        $year = $request->input('year', now()->year);
+        $year = (int) $request->input('year', now()->year);
         $userId = auth()->id();
 
         // Deductible transactions by category (toBase avoids model category accessor)
@@ -34,26 +34,68 @@ class TaxController extends Controller
             ->whereYear('transaction_date', $year)
             ->toBase()
             ->select(
-                DB::raw('COALESCE(tax_category, user_category, ai_category) as category'),
+                DB::raw("COALESCE(tax_category, user_category, ai_category, 'Uncategorized') as category"),
                 DB::raw('SUM(amount) as total'),
                 DB::raw('COUNT(*) as item_count')
             )
             ->groupBy('category')
             ->orderByDesc('total')
-            ->get();
+            ->get()
+            ->map(fn ($row) => (object) [
+                'category' => $row->category,
+                'total' => (float) $row->total,
+                'item_count' => (int) $row->item_count,
+            ]);
 
         // Deductible order items (from email parsing)
         $orderItems = OrderItem::where('user_id', $userId)
             ->where('tax_deductible', true)
             ->whereHas('order', fn ($q) => $q->whereYear('order_date', $year))
             ->select(
-                DB::raw('COALESCE(tax_category, ai_category) as category'),
+                DB::raw("COALESCE(tax_category, ai_category, 'Uncategorized') as category"),
                 DB::raw('SUM(total_price) as total'),
                 DB::raw('COUNT(*) as item_count')
             )
             ->groupBy('category')
             ->orderByDesc('total')
-            ->get();
+            ->get()
+            ->map(fn ($row) => (object) [
+                'category' => $row->category,
+                'total' => (float) $row->total,
+                'item_count' => (int) $row->item_count,
+            ]);
+
+        // Individual deductible transactions for drill-down
+        $transactionDetails = Transaction::where('user_id', $userId)
+            ->where('tax_deductible', true)
+            ->whereYear('transaction_date', $year)
+            ->orderBy('transaction_date', 'desc')
+            ->get()
+            ->map(fn (Transaction $tx) => [
+                'date' => $tx->transaction_date->format('Y-m-d'),
+                'merchant' => $tx->merchant_normalized ?? $tx->merchant_name,
+                'description' => $tx->description,
+                'amount' => (float) $tx->amount,
+                'category' => $tx->tax_category ?? $tx->user_category ?? $tx->ai_category ?? 'Uncategorized',
+                'source' => 'bank',
+            ]);
+
+        // Individual deductible order items for drill-down
+        $orderItemDetails = OrderItem::where('user_id', $userId)
+            ->where('tax_deductible', true)
+            ->whereHas('order', fn ($q) => $q->whereYear('order_date', $year))
+            ->with('order:id,merchant,order_number,order_date')
+            ->orderByDesc('created_at')
+            ->get()
+            ->map(fn (OrderItem $item) => [
+                'date' => $item->order->order_date->format('Y-m-d'),
+                'merchant' => $item->order->merchant,
+                'description' => $item->product_name,
+                'amount' => (float) $item->total_price,
+                'category' => $item->tax_category ?? $item->ai_category ?? 'Uncategorized',
+                'source' => 'email',
+                'order_number' => $item->order->order_number,
+            ]);
 
         $totalDeductible = $categories->sum('total') + $orderItems->sum('total');
         $profile = UserFinancialProfile::where('user_id', $userId)->first();
@@ -66,6 +108,9 @@ class TaxController extends Controller
             'effective_rate_used' => $estRate,
             'transaction_categories' => $categories,
             'order_item_categories' => $orderItems,
+            'transaction_details' => $transactionDetails,
+            'order_item_details' => $orderItemDetails,
+            'schedule_c_map' => $this->scheduleCMap(),
         ]);
     }
 
@@ -157,6 +202,40 @@ class TaxController extends Controller
             "LedgerIQ_Tax_{$year}.{$type}",
             ['Content-Type' => $mimeTypes[$type]]
         );
+    }
+
+    /**
+     * Schedule C line mapping for common expense categories.
+     */
+    protected function scheduleCMap(): array
+    {
+        return [
+            'Marketing & Advertising' => ['line' => '8', 'label' => 'Advertising'],
+            'Car Insurance' => ['line' => '9', 'label' => 'Car and truck expenses'],
+            'Auto Maintenance' => ['line' => '9', 'label' => 'Car and truck expenses'],
+            'Gas & Fuel' => ['line' => '9', 'label' => 'Car and truck expenses'],
+            'Transportation' => ['line' => '9', 'label' => 'Car and truck expenses'],
+            'Automotive' => ['line' => '9', 'label' => 'Car and truck expenses'],
+            'Professional Services' => ['line' => '11', 'label' => 'Contract labor'],
+            'Health Insurance' => ['line' => '15', 'label' => 'Insurance (health)'],
+            'Home Insurance' => ['line' => '15', 'label' => 'Insurance (other)'],
+            'Professional Development' => ['line' => '27a', 'label' => 'Other expenses'],
+            'Office Supplies' => ['line' => '18', 'label' => 'Office expense'],
+            'Software & SaaS' => ['line' => '18', 'label' => 'Office expense'],
+            'Software & Digital Services' => ['line' => '18', 'label' => 'Office expense'],
+            'Business Meals' => ['line' => '24b', 'label' => 'Meals (50% deductible)'],
+            'Restaurant & Dining' => ['line' => '24b', 'label' => 'Meals (business)'],
+            'Travel & Hotels' => ['line' => '24a', 'label' => 'Travel'],
+            'Flights' => ['line' => '24a', 'label' => 'Travel'],
+            'Phone & Internet' => ['line' => '25', 'label' => 'Utilities'],
+            'Utilities' => ['line' => '25', 'label' => 'Utilities'],
+            'Home Office' => ['line' => '30', 'label' => 'Business use of home'],
+            'Other' => ['line' => '30', 'label' => 'Business use of home'],
+            'Shipping & Postage' => ['line' => '18', 'label' => 'Office expense'],
+            'Charity & Donations' => ['line' => 'Sch A', 'label' => 'Charitable contributions'],
+            'Medical & Dental' => ['line' => 'Sch A', 'label' => 'Medical expenses'],
+            'Mortgage' => ['line' => 'Sch A', 'label' => 'Mortgage interest'],
+        ];
     }
 
     /**
