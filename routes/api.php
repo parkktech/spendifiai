@@ -178,9 +178,9 @@ Route::middleware(['auth:sanctum'])->group(function () {
             Route::prefix('tax')->middleware('profile.complete')->group(function () {
                 Route::get('/summary', [TaxController::class, 'summary']);
                 Route::post('/export', [TaxController::class, 'export'])
-                    ->middleware('throttle:3,1');
+                    ->middleware('throttle:10,1');
                 Route::post('/send-to-accountant', [TaxController::class, 'sendToAccountant'])
-                    ->middleware('throttle:3,1');
+                    ->middleware('throttle:5,1');
                 Route::get('/download/{year}/{type}', [TaxController::class, 'download'])
                     ->name('tax.download');
             });
