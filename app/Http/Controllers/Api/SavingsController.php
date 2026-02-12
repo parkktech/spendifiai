@@ -73,14 +73,61 @@ class SavingsController extends Controller
     }
 
     /**
-     * Mark a savings recommendation as applied.
+     * Mark a savings recommendation as applied and auto-create a budget goal if applicable.
      */
     public function apply(SavingsRecommendation $rec): JsonResponse
     {
         $this->authorize('update', $rec);
         $rec->update(['status' => 'applied', 'applied_at' => now()]);
 
-        return response()->json(['message' => 'Marked as applied']);
+        // Auto-create a budget goal for the category if one doesn't exist
+        $budgetCreated = false;
+        if ($rec->category && $rec->monthly_savings > 0) {
+            $existing = \App\Models\BudgetGoal::where('user_id', auth()->id())
+                ->where('category', $rec->category)
+                ->first();
+
+            if (! $existing) {
+                // Estimate a reasonable budget: current avg spending minus recommended savings
+                $avgSpending = Transaction::where('user_id', auth()->id())
+                    ->where('amount', '>', 0)
+                    ->where('transaction_date', '>=', now()->subMonths(3))
+                    ->toBase()
+                    ->where(DB::raw('COALESCE(user_category, ai_category)'), $rec->category)
+                    ->avg('amount');
+
+                $monthlySpending = Transaction::where('user_id', auth()->id())
+                    ->where('amount', '>', 0)
+                    ->where('transaction_date', '>=', now()->subMonths(3))
+                    ->toBase()
+                    ->where(DB::raw('COALESCE(user_category, ai_category)'), $rec->category)
+                    ->sum('amount');
+
+                $monthlyAvg = round($monthlySpending / 3, 2);
+                $suggestedBudget = max(round($monthlyAvg - $rec->monthly_savings, 2), 0);
+
+                if ($suggestedBudget > 0) {
+                    \App\Models\BudgetGoal::create([
+                        'user_id' => auth()->id(),
+                        'category' => $rec->category,
+                        'monthly_limit' => $suggestedBudget,
+                        'alert_threshold' => 0.80,
+                    ]);
+                    $budgetCreated = true;
+                }
+            }
+        }
+
+        // Clear dashboard cache
+        $userId = auth()->id();
+        Cache::forget("dashboard:{$userId}:all");
+        Cache::forget("dashboard:{$userId}:personal");
+        Cache::forget("dashboard:{$userId}:business");
+
+        return response()->json([
+            'message' => 'Marked as applied',
+            'budget_created' => $budgetCreated,
+        ]);
     }
 
     /**

@@ -152,6 +152,23 @@ class DashboardController extends Controller
                 ];
             }
 
+            // Applied recommendations this month (for momentum tracker)
+            $appliedThisMonth = SavingsRecommendation::where('user_id', $user->id)
+                ->where('status', 'applied')
+                ->where('applied_at', '>=', $monthStart)
+                ->orderByDesc('monthly_savings')
+                ->select('id', 'title', 'monthly_savings', 'category', 'applied_at')
+                ->get();
+
+            $appliedSavingsTotal = $appliedThisMonth->sum('monthly_savings');
+
+            // Upcoming recurring charges (subscriptions due this month)
+            $upcomingRecurring = Subscription::where('user_id', $user->id)
+                ->where('status', 'active')
+                ->sum('amount');
+
+            $freeToSpend = max(round($thisMonthIncome - $thisMonth - $upcomingRecurring, 2), 0);
+
             // AI stats
             $autoCategorized = $txQuery()
                 ->where('review_status', 'auto_categorized')
@@ -227,6 +244,9 @@ class DashboardController extends Controller
                 'savings_target' => $savingsTargetData,
                 'unused_subscription_details' => $unusedSubDetails,
                 'savings_opportunities' => $savingsOpportunities,
+                'free_to_spend' => $freeToSpend,
+                'applied_this_month' => $appliedThisMonth,
+                'applied_savings_total' => round($appliedSavingsTotal, 2),
                 'ai_stats' => [
                     'auto_categorized' => $autoCategorized,
                     'pending_review' => $pendingReview,

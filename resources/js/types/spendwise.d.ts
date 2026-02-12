@@ -199,6 +199,15 @@ export interface DashboardData {
     transaction_count: number;
     avg_transaction: number;
   }>;
+  free_to_spend: number;
+  applied_this_month: Array<{
+    id: number;
+    title: string;
+    monthly_savings: number;
+    category: string;
+    applied_at: string;
+  }>;
+  applied_savings_total: number;
   ai_stats: {
     auto_categorized: number;
     pending_review: number;
