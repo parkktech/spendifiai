@@ -77,7 +77,7 @@ export default function QuestionsIndex() {
       {/* Header bar */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
-          <HelpCircle size={20} className="text-purple-400" />
+          <HelpCircle size={20} className="text-sw-info" />
           <span className="text-sm font-medium text-sw-text">
             {questions.length} question{questions.length !== 1 ? 's' : ''} need{questions.length === 1 ? 's' : ''} your attention
           </span>
@@ -98,7 +98,7 @@ export default function QuestionsIndex() {
           <p className="text-sm text-sw-text mb-3">{error}</p>
           <button
             onClick={refresh}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-sw-accent text-sw-bg text-sm font-semibold hover:bg-sw-accent-hover transition"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-sw-accent text-white text-sm font-semibold hover:bg-sw-accent-hover transition"
           >
             <RefreshCw size={14} /> Retry
           </button>
@@ -155,9 +155,9 @@ export default function QuestionsIndex() {
                     ${q.transaction ? Math.abs(q.transaction.amount).toFixed(2) : '0.00'}
                   </div>
                 </div>
-                <p className="text-xs text-sw-muted truncate">{q.question_text}</p>
+                <p className="text-xs text-sw-muted truncate">{q.question}</p>
                 <div>
-                  {q.question_type === 'multiple_choice' && q.options ? (
+                  {q.options && q.options.length > 0 ? (
                     <select
                       value={bulkAnswers[q.id] || ''}
                       onChange={(e) =>
@@ -194,7 +194,7 @@ export default function QuestionsIndex() {
             <button
               onClick={handleBulkSubmit}
               disabled={answeredCount === 0 || bulkSubmitting}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-sw-accent text-sw-bg text-sm font-semibold hover:bg-sw-accent-hover transition disabled:opacity-50 disabled:cursor-not-allowed"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-sw-accent text-white text-sm font-semibold hover:bg-sw-accent-hover transition disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {bulkSubmitting ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
               Submit All ({answeredCount})

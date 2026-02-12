@@ -3,14 +3,14 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
-use PragmaRX\Google2FA\Google2FA;
-use BaconQrCode\Renderer\ImageRenderer;
 use BaconQrCode\Renderer\Image\SvgImageBackEnd;
+use BaconQrCode\Renderer\ImageRenderer;
 use BaconQrCode\Renderer\RendererStyle\RendererStyle;
 use BaconQrCode\Writer;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Str;
+use PragmaRX\Google2FA\Google2FA;
 
 class TwoFactorController extends Controller
 {
@@ -26,8 +26,8 @@ class TwoFactorController extends Controller
         $user = $request->user();
 
         return response()->json([
-            'enabled'                => $user->hasTwoFactorEnabled(),
-            'confirmed'              => !is_null($user->two_factor_confirmed_at),
+            'enabled' => $user->hasTwoFactorEnabled(),
+            'confirmed' => ! is_null($user->two_factor_confirmed_at),
             'recovery_codes_remaining' => $user->two_factor_recovery_codes
                 ? count($user->two_factor_recovery_codes)  // encrypted:array cast returns array directly
                 : 0,
@@ -55,29 +55,29 @@ class TwoFactorController extends Controller
 
         // Store encrypted (not yet confirmed)
         $user->update([
-            'two_factor_secret'       => $secret,  // Model cast auto-encrypts
+            'two_factor_secret' => $secret,  // Model cast auto-encrypts
             'two_factor_confirmed_at' => null, // Not active until confirmed
         ]);
 
         // Generate QR code
         $qrCodeUrl = $this->google2fa->getQRCodeUrl(
-            config('spendwise.two_factor.issuer', 'SpendWise'),
+            config('spendwise.two_factor.issuer', 'LedgerIQ'),
             $user->email,
             $secret
         );
 
         $renderer = new ImageRenderer(
             new RendererStyle(300),
-            new SvgImageBackEnd()
+            new SvgImageBackEnd
         );
         $writer = new Writer($renderer);
         $qrCodeSvg = $writer->writeString($qrCodeUrl);
 
         return response()->json([
-            'message'    => 'Scan the QR code with your authenticator app, then confirm with a code.',
-            'secret'     => $secret, // Show for manual entry
-            'qr_code'    => 'data:image/svg+xml;base64,' . base64_encode($qrCodeSvg),
-            'setup_url'  => $qrCodeUrl,
+            'message' => 'Scan the QR code with your authenticator app, then confirm with a code.',
+            'secret' => $secret, // Show for manual entry
+            'qr_code' => 'data:image/svg+xml;base64,'.base64_encode($qrCodeSvg),
+            'setup_url' => $qrCodeUrl,
         ]);
     }
 
@@ -90,27 +90,27 @@ class TwoFactorController extends Controller
     {
         $request->validate(['code' => 'required|string|size:6']);
 
-        $user   = $request->user();
+        $user = $request->user();
         $secret = $user->two_factor_secret;  // Model cast auto-decrypts
 
-        if (!$this->google2fa->verifyKey($secret, $request->code)) {
+        if (! $this->google2fa->verifyKey($secret, $request->code)) {
             return response()->json(['message' => 'Invalid code. Please try again.'], 422);
         }
 
         // Generate recovery codes
         $recoveryCodes = collect(range(1, config('spendwise.two_factor.recovery_codes', 8)))
-            ->map(fn() => Str::random(10) . '-' . Str::random(10))
+            ->map(fn () => Str::random(10).'-'.Str::random(10))
             ->toArray();
 
         $user->update([
-            'two_factor_confirmed_at'   => now(),
+            'two_factor_confirmed_at' => now(),
             'two_factor_recovery_codes' => $recoveryCodes,  // Model encrypted:array cast handles it
         ]);
 
         return response()->json([
-            'message'        => 'Two-factor authentication enabled successfully.',
+            'message' => 'Two-factor authentication enabled successfully.',
             'recovery_codes' => $recoveryCodes,
-            'warning'        => 'Save these recovery codes in a safe place. Each can only be used once.',
+            'warning' => 'Save these recovery codes in a safe place. Each can only be used once.',
         ]);
     }
 
@@ -125,14 +125,14 @@ class TwoFactorController extends Controller
 
         $user = $request->user();
 
-        if (!$user->hasTwoFactorEnabled()) {
+        if (! $user->hasTwoFactorEnabled()) {
             return response()->json(['message' => 'Two-factor authentication is not enabled.'], 422);
         }
 
         $user->update([
-            'two_factor_secret'         => null,
+            'two_factor_secret' => null,
             'two_factor_recovery_codes' => null,
-            'two_factor_confirmed_at'   => null,
+            'two_factor_confirmed_at' => null,
         ]);
 
         return response()->json(['message' => 'Two-factor authentication disabled.']);
@@ -149,12 +149,12 @@ class TwoFactorController extends Controller
 
         $user = $request->user();
 
-        if (!$user->hasTwoFactorEnabled()) {
+        if (! $user->hasTwoFactorEnabled()) {
             return response()->json(['message' => 'Two-factor authentication is not enabled.'], 422);
         }
 
         $recoveryCodes = collect(range(1, config('spendwise.two_factor.recovery_codes', 8)))
-            ->map(fn() => Str::random(10) . '-' . Str::random(10))
+            ->map(fn () => Str::random(10).'-'.Str::random(10))
             ->toArray();
 
         $user->update([
@@ -162,7 +162,7 @@ class TwoFactorController extends Controller
         ]);
 
         return response()->json([
-            'message'        => 'Recovery codes regenerated. Previous codes are now invalid.',
+            'message' => 'Recovery codes regenerated. Previous codes are now invalid.',
             'recovery_codes' => $recoveryCodes,
         ]);
     }

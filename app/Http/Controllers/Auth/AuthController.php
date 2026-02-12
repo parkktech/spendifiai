@@ -23,19 +23,19 @@ class AuthController extends Controller
     public function register(RegisterRequest $request): JsonResponse
     {
         $user = User::create([
-            'name'     => $request->name,
-            'email'    => $request->email,
+            'name' => $request->name,
+            'email' => $request->email,
             'password' => Hash::make($request->password),
         ]);
 
         event(new Registered($user));
 
-        $token = $user->createToken('spendwise')->plainTextToken;
+        $token = $user->createToken('ledgeriq')->plainTextToken;
 
         return response()->json([
             'message' => 'Account created. Please verify your email.',
-            'user'    => $this->userPayload($user),
-            'token'   => $token,
+            'user' => $this->userPayload($user),
+            'token' => $token,
         ], 201);
     }
 
@@ -56,7 +56,7 @@ class AuthController extends Controller
             ]);
         }
 
-        if (!$user || !Hash::check($request->password, $user->password)) {
+        if (! $user || ! Hash::check($request->password, $user->password)) {
             // Increment failed attempts
             if ($user) {
                 $user->increment('failed_login_attempts');
@@ -71,15 +71,15 @@ class AuthController extends Controller
 
         // 2FA check: if user has 2FA enabled, require the code
         if ($user->hasTwoFactorEnabled()) {
-            if (!$request->filled('two_factor_code')) {
+            if (! $request->filled('two_factor_code')) {
                 return response()->json([
                     'two_factor_required' => true,
-                    'message'             => 'Please enter your two-factor authentication code.',
+                    'message' => 'Please enter your two-factor authentication code.',
                 ], 200);
             }
 
             $valid = $this->verifyTwoFactorCode($user, $request->two_factor_code);
-            if (!$valid) {
+            if (! $valid) {
                 throw ValidationException::withMessages([
                     'two_factor_code' => ['Invalid two-factor authentication code.'],
                 ]);
@@ -89,18 +89,18 @@ class AuthController extends Controller
         // Success — reset failed attempts
         $user->update([
             'failed_login_attempts' => 0,
-            'locked_until'          => null,
+            'locked_until' => null,
         ]);
 
         // Revoke old tokens (single active session)
         $user->tokens()->delete();
 
-        $token = $user->createToken('spendwise')->plainTextToken;
+        $token = $user->createToken('ledgeriq')->plainTextToken;
 
         return response()->json([
             'message' => 'Logged in successfully.',
-            'user'    => $this->userPayload($user),
-            'token'   => $token,
+            'user' => $this->userPayload($user),
+            'token' => $token,
         ]);
     }
 
@@ -150,6 +150,7 @@ class AuthController extends Controller
             $user->update([
                 'two_factor_recovery_codes' => $remaining,  // Model cast auto-encrypts + JSON encodes
             ]);
+
             return true;
         }
 
@@ -159,16 +160,16 @@ class AuthController extends Controller
     protected function userPayload(User $user): array
     {
         return [
-            'id'                  => $user->id,
-            'name'                => $user->name,
-            'email'               => $user->email,
-            'avatar_url'          => $user->avatar_url,
-            'email_verified'      => !is_null($user->email_verified_at),
-            'two_factor_enabled'  => $user->hasTwoFactorEnabled(),
-            'is_google_user'      => $user->isGoogleUser(),
-            'has_bank_connected'  => $user->hasBankConnected(),
+            'id' => $user->id,
+            'name' => $user->name,
+            'email' => $user->email,
+            'avatar_url' => $user->avatar_url,
+            'email_verified' => ! is_null($user->email_verified_at),
+            'two_factor_enabled' => $user->hasTwoFactorEnabled(),
+            'is_google_user' => $user->isGoogleUser(),
+            'has_bank_connected' => $user->hasBankConnected(),
             'has_profile_complete' => $user->hasProfileComplete(),
-            'created_at'          => $user->created_at->toIso8601String(),
+            'created_at' => $user->created_at->toIso8601String(),
         ];
     }
 }

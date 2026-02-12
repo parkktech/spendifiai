@@ -6,11 +6,11 @@ interface BadgeProps {
 }
 
 const variantClasses: Record<BadgeProps['variant'], string> = {
-  success: 'text-sw-accent bg-sw-accent/10 border-sw-accent/30',
-  warning: 'text-sw-warning bg-sw-warning/10 border-sw-warning/30',
-  danger: 'text-sw-danger bg-sw-danger/10 border-sw-danger/30',
-  info: 'text-blue-400 bg-blue-400/10 border-blue-400/30',
-  neutral: 'text-sw-muted bg-sw-muted/10 border-sw-muted/30',
+  success: 'text-sw-success bg-sw-success-light border-emerald-200',
+  warning: 'text-sw-warning bg-sw-warning-light border-amber-200',
+  danger: 'text-sw-danger bg-sw-danger-light border-red-200',
+  info: 'text-sw-info bg-sw-info-light border-violet-200',
+  neutral: 'text-sw-muted bg-slate-100 border-slate-200',
 };
 
 export default function Badge({ children, variant }: BadgeProps) {

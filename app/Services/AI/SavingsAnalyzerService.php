@@ -2,23 +2,24 @@
 
 namespace App\Services\AI;
 
-use App\Models\Transaction;
-use App\Models\Subscription;
 use App\Models\SavingsRecommendation;
+use App\Models\Subscription;
+use App\Models\Transaction;
 use App\Models\User;
-use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
 
 class SavingsAnalyzerService
 {
     protected ?string $apiKey;
+
     protected string $model;
 
     public function __construct()
     {
         $this->apiKey = config('services.anthropic.api_key') ?? '';
-        $this->model  = config('services.anthropic.model', 'claude-sonnet-4-20250514');
+        $this->model = config('services.anthropic.model', 'claude-sonnet-4-20250514');
     }
 
     /**
@@ -45,10 +46,10 @@ class SavingsAnalyzerService
         $saved = $this->storeRecommendations($user->id, $analysis);
 
         return [
-            'total_monthly_savings'  => collect($analysis)->sum('monthly_savings'),
-            'total_annual_savings'   => collect($analysis)->sum('annual_savings'),
-            'recommendations_count'  => count($analysis),
-            'new_recommendations'    => $saved,
+            'total_monthly_savings' => collect($analysis)->sum('monthly_savings'),
+            'total_annual_savings' => collect($analysis)->sum('annual_savings'),
+            'recommendations_count' => count($analysis),
+            'new_recommendations' => $saved,
         ];
     }
 
@@ -59,7 +60,8 @@ class SavingsAnalyzerService
     {
         return Transaction::where('user_id', $userId)
             ->where('transaction_date', '>=', $since)
-            ->where('amount', '>', 0) // Only spending
+            ->where('amount', '>', 0)
+            ->toBase()
             ->select(
                 DB::raw("COALESCE(user_category, ai_category, 'Uncategorized') as category"),
                 DB::raw('SUM(amount) as total'),
@@ -81,10 +83,10 @@ class SavingsAnalyzerService
         $subs = Subscription::where('user_id', $userId)->get();
 
         return [
-            'active'       => $subs->where('status', 'active')->values()->toArray(),
-            'unused'       => $subs->where('status', 'unused')->values()->toArray(),
+            'active' => $subs->where('status', 'active')->values()->toArray(),
+            'unused' => $subs->where('status', 'unused')->values()->toArray(),
             'total_monthly' => $subs->where('status', 'active')->sum('amount'),
-            'total_annual'  => $subs->where('status', 'active')->sum('annual_cost'),
+            'total_annual' => $subs->where('status', 'active')->sum('annual_cost'),
             'unused_monthly' => $subs->where('status', 'unused')->sum('amount'),
         ];
     }
@@ -100,8 +102,8 @@ class SavingsAnalyzerService
             ->get();
 
         // Daily averages by day of week
-        $byDayOfWeek = $transactions->groupBy(fn($t) => $t->transaction_date->dayOfWeek)
-            ->map(fn($group) => round($group->avg('amount'), 2));
+        $byDayOfWeek = $transactions->groupBy(fn ($t) => $t->transaction_date->dayOfWeek)
+            ->map(fn ($group) => round($group->avg('amount'), 2));
 
         // Frequent small purchases (impulse buys)
         $impulseBuys = $transactions->where('amount', '<', 20)
@@ -109,26 +111,24 @@ class SavingsAnalyzerService
             ->count();
 
         // Eating out frequency
-        $diningOut = $transactions->filter(fn($t) =>
-            in_array($t->ai_category ?? $t->user_category, ['Restaurant & Dining', 'Coffee & Drinks'])
+        $diningOut = $transactions->filter(fn ($t) => in_array($t->ai_category ?? $t->user_category, ['Restaurant & Dining', 'Coffee & Drinks'])
         );
 
         // Late-night purchases (potential impulse)
-        $lateNight = $transactions->filter(fn($t) =>
-            $t->authorized_date && Carbon::parse($t->authorized_date)->hour >= 22
+        $lateNight = $transactions->filter(fn ($t) => $t->authorized_date && Carbon::parse($t->authorized_date)->hour >= 22
         );
 
         return [
-            'avg_daily_spend'        => round($transactions->sum('amount') / max($since->diffInDays(now()), 1), 2),
-            'spending_by_day'        => $byDayOfWeek->toArray(),
-            'impulse_buy_count'      => $impulseBuys,
-            'impulse_buy_total'      => round($transactions->where('amount', '<', 20)->sum('amount'), 2),
-            'dining_out_count'       => $diningOut->count(),
-            'dining_out_total'       => round($diningOut->sum('amount'), 2),
-            'dining_out_avg'         => $diningOut->count() > 0 ? round($diningOut->avg('amount'), 2) : 0,
-            'late_night_purchases'   => $lateNight->count(),
-            'total_transactions'     => $transactions->count(),
-            'months_analyzed'        => 3,
+            'avg_daily_spend' => round($transactions->sum('amount') / max($since->diffInDays(now()), 1), 2),
+            'spending_by_day' => $byDayOfWeek->toArray(),
+            'impulse_buy_count' => $impulseBuys,
+            'impulse_buy_total' => round($transactions->where('amount', '<', 20)->sum('amount'), 2),
+            'dining_out_count' => $diningOut->count(),
+            'dining_out_total' => round($diningOut->sum('amount'), 2),
+            'dining_out_avg' => $diningOut->count() > 0 ? round($diningOut->avg('amount'), 2) : 0,
+            'late_night_purchases' => $lateNight->count(),
+            'total_transactions' => $transactions->count(),
+            'months_analyzed' => 3,
         ];
     }
 
@@ -179,22 +179,22 @@ PROMPT;
 
         $userData = json_encode([
             'spending_by_category' => $spending,
-            'subscriptions'        => $subscriptions,
-            'spending_patterns'    => $patterns,
-            'monthly_income'       => $profile?->monthly_income,
-            'savings_goal'         => $profile?->monthly_savings_goal,
+            'subscriptions' => $subscriptions,
+            'spending_patterns' => $patterns,
+            'monthly_income' => $profile?->monthly_income,
+            'savings_goal' => $profile?->monthly_savings_goal,
         ], JSON_PRETTY_PRINT);
 
         try {
             $response = Http::withHeaders([
-                'x-api-key'         => $this->apiKey,
+                'x-api-key' => $this->apiKey,
                 'anthropic-version' => '2023-06-01',
-                'content-type'      => 'application/json',
+                'content-type' => 'application/json',
             ])->timeout(45)->post('https://api.anthropic.com/v1/messages', [
-                'model'      => $this->model,
+                'model' => $this->model,
                 'max_tokens' => 4000,
-                'system'     => $system,
-                'messages'   => [['role' => 'user', 'content' => $userData]],
+                'system' => $system,
+                'messages' => [['role' => 'user', 'content' => $userData]],
             ]);
 
             $text = $response->json('content.0.text');
@@ -202,6 +202,7 @@ PROMPT;
             $text = preg_replace('/\s*```$/i', '', $text);
 
             $decoded = json_decode(trim($text), true);
+
             return json_last_error() === JSON_ERROR_NONE ? $decoded : ['error' => 'Invalid JSON'];
 
         } catch (\Exception $e) {
@@ -223,20 +224,22 @@ PROMPT;
                 ->where('title', $rec['title'])
                 ->exists();
 
-            if ($exists) continue;
+            if ($exists) {
+                continue;
+            }
 
             SavingsRecommendation::create([
-                'user_id'                  => $userId,
-                'title'                    => $rec['title'],
-                'description'              => $rec['description'],
-                'monthly_savings'          => $rec['monthly_savings'],
-                'annual_savings'           => $rec['annual_savings'],
-                'difficulty'               => $rec['difficulty'],
-                'category'                 => $rec['category'],
-                'impact'                   => $rec['impact'],
-                'action_steps'             => $rec['action_steps'] ?? null,
-                'related_merchants'        => $rec['related_merchants'] ?? null,
-                'generated_at'             => now(),
+                'user_id' => $userId,
+                'title' => $rec['title'],
+                'description' => $rec['description'],
+                'monthly_savings' => $rec['monthly_savings'],
+                'annual_savings' => $rec['annual_savings'],
+                'difficulty' => $rec['difficulty'],
+                'category' => $rec['category'],
+                'impact' => $rec['impact'],
+                'action_steps' => $rec['action_steps'] ?? null,
+                'related_merchants' => $rec['related_merchants'] ?? null,
+                'generated_at' => now(),
             ]);
             $saved++;
         }

@@ -55,7 +55,7 @@ export default function PlaidLinkButton({ onSuccess, onError, className }: Plaid
     <button
       onClick={() => open()}
       disabled={isDisabled}
-      className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-sw-accent text-sw-bg font-semibold text-sm hover:bg-sw-accent-hover transition disabled:opacity-50 disabled:cursor-not-allowed ${className || ''}`}
+      className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-sw-accent text-white font-semibold text-sm hover:bg-sw-accent-hover transition disabled:opacity-50 disabled:cursor-not-allowed ${className || ''}`}
     >
       {loading || exchanging ? (
         <Loader2 size={16} className="animate-spin" />

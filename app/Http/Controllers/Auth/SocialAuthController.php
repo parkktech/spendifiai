@@ -50,7 +50,7 @@ class SocialAuthController extends Controller
             return $this->errorResponse('Google authentication failed. Please try again.');
         }
 
-        if (!$googleUser->getEmail()) {
+        if (! $googleUser->getEmail()) {
             return $this->errorResponse('Could not retrieve email from Google.');
         }
 
@@ -64,10 +64,10 @@ class SocialAuthController extends Controller
         if ($user) {
             // Existing user: link Google account if not already linked
             $user->update([
-                'google_id'  => $googleUser->getId(),
+                'google_id' => $googleUser->getId(),
                 'avatar_url' => $googleUser->getAvatar(),
                 // Don't overwrite name if user already has one
-                'name'       => $user->name ?: $googleUser->getName(),
+                'name' => $user->name ?: $googleUser->getName(),
             ]);
 
             // Auto-verify email if Google confirms it
@@ -77,11 +77,11 @@ class SocialAuthController extends Controller
         } else {
             // New user: create account
             $user = User::create([
-                'name'              => $googleUser->getName(),
-                'email'             => $googleUser->getEmail(),
-                'google_id'         => $googleUser->getId(),
-                'avatar_url'        => $googleUser->getAvatar(),
-                'password'          => Hash::make(Str::random(32)), // Random pw, login via Google only
+                'name' => $googleUser->getName(),
+                'email' => $googleUser->getEmail(),
+                'google_id' => $googleUser->getId(),
+                'avatar_url' => $googleUser->getAvatar(),
+                'password' => Hash::make(Str::random(32)), // Random pw, login via Google only
                 'email_verified_at' => now(), // Google-verified email
             ]);
 
@@ -91,24 +91,24 @@ class SocialAuthController extends Controller
 
         // Generate API token
         $user->tokens()->delete();
-        $token = $user->createToken('spendwise-google')->plainTextToken;
+        $token = $user->createToken('ledgeriq-google')->plainTextToken;
 
         // For SPA: redirect to frontend with token
         $frontendUrl = config('app.frontend_url', config('app.url'));
 
         if ($request->wantsJson()) {
             return response()->json([
-                'message'  => $isNewUser ? 'Account created via Google.' : 'Logged in via Google.',
-                'user'     => [
-                    'id'                   => $user->id,
-                    'name'                 => $user->name,
-                    'email'                => $user->email,
-                    'avatar_url'           => $user->avatar_url,
-                    'email_verified'       => true,
-                    'is_google_user'       => true,
-                    'has_bank_connected'   => $user->hasBankConnected(),
+                'message' => $isNewUser ? 'Account created via Google.' : 'Logged in via Google.',
+                'user' => [
+                    'id' => $user->id,
+                    'name' => $user->name,
+                    'email' => $user->email,
+                    'avatar_url' => $user->avatar_url,
+                    'email_verified' => true,
+                    'is_google_user' => true,
+                    'has_bank_connected' => $user->hasBankConnected(),
                     'has_profile_complete' => $user->hasProfileComplete(),
-                    'is_new_user'          => $isNewUser,
+                    'is_new_user' => $isNewUser,
                 ],
                 'token' => $token,
             ]);
@@ -131,14 +131,14 @@ class SocialAuthController extends Controller
         $user = $request->user();
 
         // Only allow disconnect if user has a password set
-        if (!$user->password || $user->password === '') {
+        if (! $user->password || $user->password === '') {
             return response()->json([
                 'message' => 'Please set a password before disconnecting Google. Your account currently relies on Google for login.',
             ], 422);
         }
 
         $user->update([
-            'google_id'  => null,
+            'google_id' => null,
             'avatar_url' => null,
         ]);
 
@@ -152,6 +152,7 @@ class SocialAuthController extends Controller
         }
 
         $frontendUrl = config('app.frontend_url', config('app.url'));
-        return redirect("{$frontendUrl}/auth/error?message=" . urlencode($message));
+
+        return redirect("{$frontendUrl}/auth/error?message=".urlencode($message));
     }
 }

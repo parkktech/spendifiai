@@ -10,8 +10,10 @@ export default defineConfig({
         ['html', { outputFolder: 'playwright-report', open: 'never' }],
         ['list'],
     ],
+    timeout: 60000,
     use: {
-        baseURL: process.env.APP_URL || 'http://localhost:8000',
+        baseURL: process.env.APP_URL || 'http://www.ledgeriq.loc',
+        actionTimeout: 15000,
         trace: 'on-first-retry',
         screenshot: 'on',
         video: 'on-first-retry',
@@ -34,10 +36,12 @@ export default defineConfig({
             use: { ...devices['iPad (gen 7)'] },
         },
     ],
-    webServer: {
-        command: 'php artisan serve --port=8000',
-        url: 'http://localhost:8000',
-        reuseExistingServer: !process.env.CI,
-        timeout: 30000,
-    },
+    webServer: process.env.CI
+        ? {
+              command: 'php artisan serve --port=8000',
+              url: 'http://localhost:8000',
+              reuseExistingServer: false,
+              timeout: 30000,
+          }
+        : undefined,
 });

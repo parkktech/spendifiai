@@ -25,7 +25,23 @@ export default function TaxIndex() {
     refresh();
   }, [year]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const deductions = summary?.deductions_by_category ?? [];
+  // Combine transaction and order item categories for the deductions view
+  const txCategories = summary?.transaction_categories ?? [];
+  const orderCategories = summary?.order_item_categories ?? [];
+  const allCategories = [...txCategories, ...orderCategories];
+
+  // Merge categories with the same name
+  const categoryMap = new Map<string, { category: string; total: number; item_count: number }>();
+  for (const cat of allCategories) {
+    const existing = categoryMap.get(cat.category);
+    if (existing) {
+      existing.total += cat.total;
+      existing.item_count += cat.item_count;
+    } else {
+      categoryMap.set(cat.category, { ...cat });
+    }
+  }
+  const deductions = Array.from(categoryMap.values());
   const sortedDeductions = [...deductions].sort((a, b) => b.total - a.total);
 
   // Top 10 categories for chart data
@@ -84,21 +100,21 @@ export default function TaxIndex() {
       {/* Stat cards */}
       <div className="flex gap-4 mb-6 flex-wrap">
         <StatCard
-          title="Business Expenses"
-          value={summary ? fmt.format(summary.total_business_expenses) : '$0.00'}
+          title="Total Deductible"
+          value={summary ? fmt.format(summary.total_deductible) : '$0.00'}
           subtitle={`${year}`}
           icon={<Briefcase size={18} />}
         />
         <StatCard
-          title="Tax Deductible"
-          value={summary ? fmt.format(summary.total_tax_deductible) : '$0.00'}
-          subtitle="Total deductions"
+          title="Estimated Tax Savings"
+          value={summary ? fmt.format(summary.estimated_tax_savings) : '$0.00'}
+          subtitle={`at ${summary ? (summary.effective_rate_used * 100).toFixed(0) : 0}% rate`}
           icon={<DollarSign size={18} />}
         />
         <StatCard
-          title="Personal Expenses"
-          value={summary ? fmt.format(summary.total_personal_expenses) : '$0.00'}
-          subtitle={`${year}`}
+          title="Categories"
+          value={sortedDeductions.length.toString()}
+          subtitle="deductible categories"
           icon={<FileText size={18} />}
         />
       </div>
@@ -149,7 +165,7 @@ export default function TaxIndex() {
           <h2 className="text-sm font-semibold text-sw-text mb-4">Expenses by Category (Top 10)</h2>
           <ResponsiveContainer width="100%" height={280}>
             <BarChart data={chartData} layout="vertical" margin={{ left: 130 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" horizontal={false} />
+              <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" horizontal={false} />
               <XAxis
                 type="number"
                 tick={{ fill: '#64748b', fontSize: 11 }}
@@ -167,15 +183,16 @@ export default function TaxIndex() {
               />
               <Tooltip
                 contentStyle={{
-                  background: '#111827',
-                  border: '1px solid #1e293b',
+                  background: '#ffffff',
+                  border: '1px solid #e2e8f0',
                   borderRadius: 8,
                   fontSize: 12,
-                  color: '#f1f5f9',
+                  color: '#0f172a',
+                  boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
                 }}
                 formatter={(value: number | undefined) => [fmt.format(value ?? 0), 'Amount']}
               />
-              <Bar dataKey="amount" fill="#10b981" radius={[0, 6, 6, 0]} barSize={20} />
+              <Bar dataKey="amount" fill="#2563eb" radius={[0, 6, 6, 0]} barSize={20} />
             </BarChart>
           </ResponsiveContainer>
         </div>
@@ -184,14 +201,13 @@ export default function TaxIndex() {
       {/* Deductions table */}
       {!loading && sortedDeductions.length > 0 && (
         <div className="rounded-2xl border border-sw-border bg-sw-card p-6">
-          <h2 className="text-sm font-semibold text-sw-text mb-4">Deductions by Schedule C Line</h2>
+          <h2 className="text-sm font-semibold text-sw-text mb-4">Deductions by Category</h2>
           <div className="overflow-x-auto">
             <table aria-label="Tax deductions by category" className="w-full">
               <thead>
                 <tr className="border-b border-sw-border">
                   <th scope="col" className="text-left text-xs text-sw-muted font-medium py-2.5 pr-4">Category</th>
-                  <th scope="col" className="text-left text-xs text-sw-muted font-medium py-2.5 pr-4">IRS Tax Line</th>
-                  <th scope="col" className="text-right text-xs text-sw-muted font-medium py-2.5 pr-4">Transactions</th>
+                  <th scope="col" className="text-right text-xs text-sw-muted font-medium py-2.5 pr-4">Items</th>
                   <th scope="col" className="text-right text-xs text-sw-muted font-medium py-2.5">Total</th>
                 </tr>
               </thead>
@@ -207,11 +223,8 @@ export default function TaxIndex() {
                         <span className="text-sm text-sw-text font-medium">{deduction.category}</span>
                       </div>
                     </td>
-                    <td className="py-3 pr-4">
-                      <span className="text-xs text-sw-dim">{deduction.tax_line || 'N/A'}</span>
-                    </td>
                     <td className="py-3 pr-4 text-right">
-                      <span className="text-xs text-sw-muted">{deduction.count} items</span>
+                      <span className="text-xs text-sw-muted">{deduction.item_count} items</span>
                     </td>
                     <td className="py-3 text-right">
                       <span className="text-sm font-bold text-sw-accent">{fmt.format(deduction.total)}</span>
@@ -221,7 +234,7 @@ export default function TaxIndex() {
               </tbody>
               <tfoot>
                 <tr className="border-t-2 border-sw-border">
-                  <td colSpan={3} className="py-3 text-sm font-semibold text-sw-text">
+                  <td colSpan={2} className="py-3 text-sm font-semibold text-sw-text">
                     Total Deductible
                   </td>
                   <td className="py-3 text-right text-sm font-bold text-sw-accent">

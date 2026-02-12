@@ -8,14 +8,14 @@ return [
     |--------------------------------------------------------------------------
     */
     'ai' => [
-        'model'                 => env('ANTHROPIC_MODEL', 'claude-sonnet-4-20250514'),
-        'api_key'               => env('ANTHROPIC_API_KEY'),
-        'batch_size'            => 25,
-        'rate_limit_ms'         => 500,
+        'model' => env('ANTHROPIC_MODEL', 'claude-sonnet-4-20250514'),
+        'api_key' => env('ANTHROPIC_API_KEY'),
+        'batch_size' => 25,
+        'rate_limit_ms' => 500,
         'confidence_thresholds' => [
-            'auto_accept'   => 0.85,  // Auto-categorize silently
-            'flag_review'   => 0.60,  // Categorize but flag
-            'ask_question'  => 0.40,  // Generate question for user
+            'auto_accept' => 0.85,  // Auto-categorize silently
+            'flag_review' => 0.60,  // Categorize but flag
+            'ask_question' => 0.40,  // Generate question for user
             // Below 0.40 → open-ended question
         ],
     ],
@@ -26,17 +26,17 @@ return [
     |--------------------------------------------------------------------------
     */
     'plaid' => [
-        'client_id'   => env('PLAID_CLIENT_ID'),
-        'secret'      => env('PLAID_SECRET'),
-        'env'         => env('PLAID_ENV', 'sandbox'),
-        'base_url'    => match (env('PLAID_ENV', 'sandbox')) {
-            'production'  => 'https://production.plaid.com',
+        'client_id' => env('PLAID_CLIENT_ID'),
+        'secret' => env('PLAID_SECRET'),
+        'env' => env('PLAID_ENV', 'sandbox'),
+        'base_url' => match (env('PLAID_ENV', 'sandbox')) {
+            'production' => 'https://production.plaid.com',
             'development' => 'https://development.plaid.com',
-            default       => 'https://sandbox.plaid.com',
+            default => 'https://sandbox.plaid.com',
         },
-        'products'      => ['transactions'],
+        'products' => ['transactions'],
         'country_codes' => ['US'],
-        'webhook_url'   => env('PLAID_WEBHOOK_URL'),
+        'webhook_url' => env('PLAID_WEBHOOK_URL'),
     ],
 
     /*
@@ -46,10 +46,10 @@ return [
     */
     'sync' => [
         'bank_transactions_hours' => 4,
-        'email_orders_hours'      => 6,
-        'subscription_detection'  => 'daily',
-        'savings_analysis'        => 'weekly',
-        'question_expiry_days'    => 7,
+        'email_orders_hours' => 6,
+        'subscription_detection' => 'daily',
+        'savings_analysis' => 'weekly',
+        'question_expiry_days' => 7,
     ],
 
     /*
@@ -58,10 +58,10 @@ return [
     |--------------------------------------------------------------------------
     */
     'captcha' => [
-        'enabled'    => !empty(env('RECAPTCHA_SITE_KEY')),
-        'site_key'   => env('RECAPTCHA_SITE_KEY'),
+        'enabled' => ! empty(env('RECAPTCHA_SITE_KEY')),
+        'site_key' => env('RECAPTCHA_SITE_KEY'),
         'secret_key' => env('RECAPTCHA_SECRET_KEY'),
-        'threshold'  => (float) env('RECAPTCHA_THRESHOLD', 0.5),
+        'threshold' => (float) env('RECAPTCHA_THRESHOLD', 0.5),
         'verify_url' => 'https://www.google.com/recaptcha/api/siteverify',
     ],
 
@@ -71,11 +71,11 @@ return [
     |--------------------------------------------------------------------------
     */
     'two_factor' => [
-        'enabled'    => env('TWO_FACTOR_ENABLED', true),
-        'issuer'     => env('APP_NAME', 'SpendWise'),
-        'digits'     => 6,
-        'period'     => 30,
-        'algorithm'  => 'sha1',
+        'enabled' => env('TWO_FACTOR_ENABLED', true),
+        'issuer' => env('APP_NAME', 'LedgerIQ'),
+        'digits' => 6,
+        'period' => 30,
+        'algorithm' => 'sha1',
         'recovery_codes' => 8,
     ],
 
@@ -86,7 +86,7 @@ return [
     */
     'tax' => [
         'default_bracket' => 22,
-        'export_dir'      => 'tax-exports',
+        'export_dir' => 'tax-exports',
     ],
 
 ];

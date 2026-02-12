@@ -17,7 +17,7 @@ interface SpendingChartProps {
 }
 
 const CHART_COLORS = [
-  '#10b981', '#3b82f6', '#8b5cf6', '#f59e0b', '#ef4444',
+  '#2563eb', '#7c3aed', '#059669', '#d97706', '#dc2626',
   '#06b6d4', '#ec4899', '#f97316', '#a855f7', '#14b8a6',
 ];
 
@@ -39,11 +39,11 @@ export default function SpendingChart({ data, categories }: SpendingChartProps) 
           <AreaChart data={data}>
             <defs>
               <linearGradient id="gradientAccent" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#10b981" stopOpacity={0.3} />
-                <stop offset="100%" stopColor="#10b981" stopOpacity={0} />
+                <stop offset="0%" stopColor="#2563eb" stopOpacity={0.2} />
+                <stop offset="100%" stopColor="#2563eb" stopOpacity={0} />
               </linearGradient>
             </defs>
-            <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+            <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
             <XAxis
               dataKey="month"
               tick={{ fill: '#64748b', fontSize: 11 }}
@@ -58,18 +58,19 @@ export default function SpendingChart({ data, categories }: SpendingChartProps) 
             />
             <Tooltip
               contentStyle={{
-                background: '#111827',
-                border: '1px solid #1e293b',
+                background: '#ffffff',
+                border: '1px solid #e2e8f0',
                 borderRadius: 10,
                 fontSize: 12,
-                color: '#f1f5f9',
+                color: '#0f172a',
+                boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
               }}
               formatter={(value: number | undefined) => [`$${(value ?? 0).toLocaleString()}`, 'Spending']}
             />
             <Area
               type="monotone"
               dataKey="total"
-              stroke="#10b981"
+              stroke="#2563eb"
               fill="url(#gradientAccent)"
               strokeWidth={2}
             />
@@ -101,11 +102,12 @@ export default function SpendingChart({ data, categories }: SpendingChartProps) 
                   </Pie>
                   <Tooltip
                     contentStyle={{
-                      background: '#111827',
-                      border: '1px solid #1e293b',
+                      background: '#ffffff',
+                      border: '1px solid #e2e8f0',
                       borderRadius: 8,
                       fontSize: 12,
-                      color: '#f1f5f9',
+                      color: '#0f172a',
+                      boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
                     }}
                     formatter={(value: number | undefined) => `$${(value ?? 0).toLocaleString()}`}
                   />
@@ -117,7 +119,7 @@ export default function SpendingChart({ data, categories }: SpendingChartProps) 
                 const maxTotal = categories[0]?.total || 1;
                 const pct = (cat.total / maxTotal) * 100;
                 return (
-                  <div key={cat.category} className="flex items-center gap-2.5 py-1">
+                  <div key={`${cat.category}-${i}`} className="flex items-center gap-2.5 py-1">
                     <div
                       className="w-2.5 h-2.5 rounded-full shrink-0"
                       style={{ backgroundColor: CHART_COLORS[i % CHART_COLORS.length] }}

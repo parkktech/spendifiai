@@ -40,16 +40,16 @@ class User extends Authenticatable implements MustVerifyEmail
     protected function casts(): array
     {
         return [
-            'email_verified_at'         => 'datetime',
-            'locked_until'              => 'datetime',
-            'password'                  => 'hashed',
-            'two_factor_confirmed_at'   => 'datetime',
+            'email_verified_at' => 'datetime',
+            'locked_until' => 'datetime',
+            'password' => 'hashed',
+            'two_factor_confirmed_at' => 'datetime',
             'two_factor_recovery_codes' => 'encrypted:array',  // Auto encrypt + JSON encode/decode
-            'two_factor_secret'         => 'encrypted',
+            'two_factor_secret' => 'encrypted',
         ];
     }
 
-    // ─── SpendWise Relationships ───
+    // ─── LedgerIQ Relationships ───
 
     public function bankConnections(): HasMany
     {
@@ -127,11 +127,11 @@ class User extends Authenticatable implements MustVerifyEmail
 
     public function hasTwoFactorEnabled(): bool
     {
-        return !is_null($this->two_factor_secret) && !is_null($this->two_factor_confirmed_at);
+        return ! is_null($this->two_factor_secret) && ! is_null($this->two_factor_confirmed_at);
     }
 
     public function isGoogleUser(): bool
     {
-        return !is_null($this->google_id);
+        return ! is_null($this->google_id);
     }
 }

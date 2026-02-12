@@ -11,8 +11,8 @@ use App\Models\UserFinancialProfile;
 use App\Services\TaxExportService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Illuminate\Support\Facades\DB;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class TaxController extends Controller
 {
@@ -25,15 +25,16 @@ class TaxController extends Controller
      */
     public function summary(Request $request): JsonResponse
     {
-        $year   = $request->input('year', now()->year);
+        $year = $request->input('year', now()->year);
         $userId = auth()->id();
 
-        // Deductible transactions by category
+        // Deductible transactions by category (toBase avoids model category accessor)
         $categories = Transaction::where('user_id', $userId)
             ->where('tax_deductible', true)
             ->whereYear('transaction_date', $year)
+            ->toBase()
             ->select(
-                DB::raw("COALESCE(tax_category, user_category, ai_category) as category"),
+                DB::raw('COALESCE(tax_category, user_category, ai_category) as category'),
                 DB::raw('SUM(amount) as total'),
                 DB::raw('COUNT(*) as item_count')
             )
@@ -44,9 +45,9 @@ class TaxController extends Controller
         // Deductible order items (from email parsing)
         $orderItems = OrderItem::where('user_id', $userId)
             ->where('tax_deductible', true)
-            ->whereHas('order', fn($q) => $q->whereYear('order_date', $year))
+            ->whereHas('order', fn ($q) => $q->whereYear('order_date', $year))
             ->select(
-                DB::raw("COALESCE(tax_category, ai_category) as category"),
+                DB::raw('COALESCE(tax_category, ai_category) as category'),
                 DB::raw('SUM(total_price) as total'),
                 DB::raw('COUNT(*) as item_count')
             )
@@ -59,12 +60,12 @@ class TaxController extends Controller
         $estRate = ($profile?->estimated_tax_bracket ?? 22) / 100;
 
         return response()->json([
-            'year'                    => $year,
-            'total_deductible'        => round($totalDeductible, 2),
-            'estimated_tax_savings'   => round($totalDeductible * $estRate, 2),
-            'effective_rate_used'     => $estRate,
-            'transaction_categories'  => $categories,
-            'order_item_categories'   => $orderItems,
+            'year' => $year,
+            'total_deductible' => round($totalDeductible, 2),
+            'estimated_tax_savings' => round($totalDeductible * $estRate, 2),
+            'effective_rate_used' => $estRate,
+            'transaction_categories' => $categories,
+            'order_item_categories' => $orderItems,
         ]);
     }
 
@@ -81,7 +82,7 @@ class TaxController extends Controller
             $filename = basename($path);
             $downloadLinks[$type] = [
                 'filename' => $filename,
-                'url'      => route('tax.download', [
+                'url' => route('tax.download', [
                     'year' => $request->validated('year'),
                     'type' => $type,
                 ]),
@@ -90,9 +91,9 @@ class TaxController extends Controller
         }
 
         return response()->json([
-            'message'   => 'Tax package generated successfully',
-            'year'      => $request->validated('year'),
-            'summary'   => $result['summary'],
+            'message' => 'Tax package generated successfully',
+            'year' => $request->validated('year'),
+            'summary' => $result['summary'],
             'downloads' => $downloadLinks,
         ]);
     }
@@ -111,14 +112,14 @@ class TaxController extends Controller
         );
 
         return response()->json([
-            'message'    => "Tax package for {$validated['year']} sent to {$validated['accountant_email']}",
+            'message' => "Tax package for {$validated['year']} sent to {$validated['accountant_email']}",
             'emailed_to' => $validated['accountant_email'],
-            'cc'         => auth()->user()->email,
-            'summary'    => $result['summary'],
+            'cc' => auth()->user()->email,
+            'summary' => $result['summary'],
             'files_sent' => [
-                'SpendWise_Tax_' . $validated['year'] . '.xlsx',
-                'SpendWise_Tax_Summary_' . $validated['year'] . '.pdf',
-                'SpendWise_Transactions_' . $validated['year'] . '.csv',
+                'LedgerIQ_Tax_'.$validated['year'].'.xlsx',
+                'LedgerIQ_Tax_Summary_'.$validated['year'].'.pdf',
+                'LedgerIQ_Transactions_'.$validated['year'].'.csv',
             ],
         ]);
     }
@@ -129,14 +130,14 @@ class TaxController extends Controller
     public function download(Request $request, int $year, string $type): BinaryFileResponse
     {
         $allowedTypes = ['xlsx', 'pdf', 'csv'];
-        if (!in_array($type, $allowedTypes)) {
+        if (! in_array($type, $allowedTypes)) {
             abort(404, 'Invalid file type');
         }
 
         // Find the most recent export for this year
-        $dir     = storage_path("app/tax-exports/" . auth()->id());
-        $pattern = "{$dir}/SpendWise_Tax_{$year}_*.{$type}";
-        $files   = glob($pattern);
+        $dir = storage_path('app/tax-exports/'.auth()->id());
+        $pattern = "{$dir}/LedgerIQ_Tax_{$year}_*.{$type}";
+        $files = glob($pattern);
 
         if (empty($files)) {
             abort(404, 'Tax export not found. Generate it first.');
@@ -147,13 +148,13 @@ class TaxController extends Controller
 
         $mimeTypes = [
             'xlsx' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-            'pdf'  => 'application/pdf',
-            'csv'  => 'text/csv',
+            'pdf' => 'application/pdf',
+            'csv' => 'text/csv',
         ];
 
         return response()->download(
             $latestFile,
-            "SpendWise_Tax_{$year}.{$type}",
+            "LedgerIQ_Tax_{$year}.{$type}",
             ['Content-Type' => $mimeTypes[$type]]
         );
     }
@@ -163,8 +164,13 @@ class TaxController extends Controller
      */
     protected function formatFileSize(int $bytes): string
     {
-        if ($bytes >= 1048576) return round($bytes / 1048576, 1) . ' MB';
-        if ($bytes >= 1024) return round($bytes / 1024, 1) . ' KB';
-        return $bytes . ' B';
+        if ($bytes >= 1048576) {
+            return round($bytes / 1048576, 1).' MB';
+        }
+        if ($bytes >= 1024) {
+            return round($bytes / 1024, 1).' KB';
+        }
+
+        return $bytes.' B';
     }
 }

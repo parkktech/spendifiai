@@ -15,7 +15,7 @@ import {
 import ConfirmDialog from '@/Components/SpendWise/ConfirmDialog';
 import Badge from '@/Components/SpendWise/Badge';
 import { useApi, useApiPost } from '@/hooks/useApi';
-import type { UserFinancialProfile } from '@/types/spendwise';
+import type { UserFinancialProfile, UserFinancialProfileResponse } from '@/types/spendwise';
 import axios from 'axios';
 
 function SuccessToast({ message }: { message: string }) {
@@ -30,16 +30,16 @@ export default function SettingsIndex() {
   const pageProps = usePage().props;
   const authUser = pageProps.auth.user as { name: string; email: string; two_factor_enabled?: boolean; google_connected?: boolean };
 
-  // Financial profile
-  const { data: profile, loading: profileLoading } = useApi<UserFinancialProfile>('/api/v1/profile/financial');
+  // Financial profile - API returns { profile: ... }
+  const { data: profileData, loading: profileLoading } = useApi<UserFinancialProfileResponse>('/api/v1/profile/financial');
+  const profile = profileData?.profile ?? null;
   const { submit: saveProfile, loading: savingProfile } = useApiPost<unknown, Partial<UserFinancialProfile>>('/api/v1/profile/financial', 'POST');
 
   const [profileForm, setProfileForm] = useState({
     employment_type: '',
-    filing_status: '',
+    tax_filing_status: '',
     monthly_income: '',
     business_type: '',
-    tax_year_start: '',
   });
   const [profileSuccess, setProfileSuccess] = useState(false);
 
@@ -47,10 +47,9 @@ export default function SettingsIndex() {
     if (profile) {
       setProfileForm({
         employment_type: profile.employment_type || '',
-        filing_status: profile.filing_status || '',
+        tax_filing_status: profile.tax_filing_status || '',
         monthly_income: profile.monthly_income !== null ? String(profile.monthly_income) : '',
         business_type: profile.business_type || '',
-        tax_year_start: profile.tax_year_start || '',
       });
     }
   }, [profile]);
@@ -58,10 +57,9 @@ export default function SettingsIndex() {
   const handleProfileSave = async () => {
     await saveProfile({
       employment_type: profileForm.employment_type || null,
-      filing_status: profileForm.filing_status || null,
+      tax_filing_status: profileForm.tax_filing_status || null,
       monthly_income: profileForm.monthly_income ? Number(profileForm.monthly_income) : null,
       business_type: profileForm.business_type || null,
-      tax_year_start: profileForm.tax_year_start || null,
     });
     setProfileSuccess(true);
     setTimeout(() => setProfileSuccess(false), 3000);
@@ -81,7 +79,7 @@ export default function SettingsIndex() {
     setPasswordLoading(true);
     setPasswordError('');
     try {
-      await axios.post('/api/v1/auth/change-password', passwordForm);
+      await axios.post('/api/auth/change-password', passwordForm);
       setPasswordSuccess(true);
       setPasswordForm({ current_password: '', password: '', password_confirmation: '' });
       setTimeout(() => setPasswordSuccess(false), 3000);
@@ -101,10 +99,10 @@ export default function SettingsIndex() {
     setTwoFactorLoading(true);
     try {
       if (twoFactorEnabled) {
-        await axios.post('/api/v1/auth/2fa/disable');
+        await axios.post('/api/auth/two-factor/disable');
         setTwoFactorEnabled(false);
       } else {
-        await axios.post('/api/v1/auth/2fa/enable');
+        await axios.post('/api/auth/two-factor/enable');
         setTwoFactorEnabled(true);
       }
     } catch {
@@ -182,14 +180,13 @@ export default function SettingsIndex() {
             <div>
               <label className={labelClasses}>Filing Status</label>
               <select
-                value={profileForm.filing_status}
-                onChange={(e) => setProfileForm({ ...profileForm, filing_status: e.target.value })}
+                value={profileForm.tax_filing_status}
+                onChange={(e) => setProfileForm({ ...profileForm, tax_filing_status: e.target.value })}
                 className={inputClasses}
               >
                 <option value="">Select...</option>
                 <option value="single">Single</option>
-                <option value="married_filing_jointly">Married Filing Jointly</option>
-                <option value="married_filing_separately">Married Filing Separately</option>
+                <option value="married">Married</option>
                 <option value="head_of_household">Head of Household</option>
               </select>
             </div>
@@ -216,22 +213,13 @@ export default function SettingsIndex() {
               />
             </div>
 
-            <div>
-              <label className={labelClasses}>Tax Year Start</label>
-              <input
-                type="date"
-                value={profileForm.tax_year_start}
-                onChange={(e) => setProfileForm({ ...profileForm, tax_year_start: e.target.value })}
-                className={inputClasses}
-              />
-            </div>
           </div>
 
           <div className="mt-5 flex justify-end">
             <button
               onClick={handleProfileSave}
               disabled={savingProfile}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-sw-accent text-sw-bg text-sm font-semibold hover:bg-sw-accent-hover transition disabled:opacity-50"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-sw-accent text-white text-sm font-semibold hover:bg-sw-accent-hover transition disabled:opacity-50"
             >
               {savingProfile ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
               Save Profile
@@ -242,8 +230,8 @@ export default function SettingsIndex() {
         {/* Section 2: Security */}
         <div className="rounded-2xl border border-sw-border bg-sw-card p-6">
           <div className="flex items-center gap-3 mb-5">
-            <div className="w-9 h-9 rounded-lg bg-blue-400/10 border border-blue-400/20 flex items-center justify-center">
-              <Shield size={18} className="text-blue-400" />
+            <div className="w-9 h-9 rounded-lg bg-sw-accent-light border border-blue-200 flex items-center justify-center">
+              <Shield size={18} className="text-sw-accent" />
             </div>
             <div>
               <h3 className="text-[15px] font-semibold text-sw-text">Security</h3>
@@ -292,7 +280,7 @@ export default function SettingsIndex() {
               <button
                 onClick={handlePasswordChange}
                 disabled={passwordLoading || !passwordForm.current_password || !passwordForm.password}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-sw-accent text-sw-bg text-sm font-semibold hover:bg-sw-accent-hover transition disabled:opacity-50"
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-sw-accent text-white text-sm font-semibold hover:bg-sw-accent-hover transition disabled:opacity-50"
               >
                 {passwordLoading ? <Loader2 size={14} className="animate-spin" /> : <Lock size={14} />}
                 Update Password
@@ -322,7 +310,7 @@ export default function SettingsIndex() {
                   className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
                     twoFactorEnabled
                       ? 'border border-sw-danger/30 text-sw-danger hover:bg-sw-danger/10'
-                      : 'bg-sw-accent text-sw-bg hover:bg-sw-accent-hover'
+                      : 'bg-sw-accent text-white hover:bg-sw-accent-hover'
                   }`}
                 >
                   {twoFactorLoading ? <Loader2 size={12} className="animate-spin" /> : twoFactorEnabled ? 'Disable' : 'Enable'}

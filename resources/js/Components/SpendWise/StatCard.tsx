@@ -11,16 +11,12 @@ interface StatCardProps {
 
 export default function StatCard({ title, value, subtitle, trend, icon }: StatCardProps) {
   const trendPositive = trend !== undefined && trend > 0;
-  const trendNegative = trend !== undefined && trend < 0;
 
   return (
-    <div className="relative overflow-hidden rounded-2xl border border-sw-border bg-sw-card p-5 flex-1 sm:min-w-[200px] min-w-0">
-      {/* Background glow */}
-      <div className="absolute -top-5 -right-5 w-20 h-20 rounded-full bg-sw-accent/5 blur-xl" />
-
+    <div className="relative overflow-hidden rounded-xl border border-sw-border bg-sw-card p-5 shadow-sm flex-1 sm:min-w-[200px] min-w-0">
       <div className="flex items-center gap-2.5 mb-3.5">
         {icon && (
-          <div className="w-9 h-9 rounded-lg flex items-center justify-center bg-sw-accent/10 border border-sw-accent/20 text-sw-accent">
+          <div className="w-9 h-9 rounded-lg flex items-center justify-center bg-sw-accent-light text-sw-accent">
             {icon}
           </div>
         )}
@@ -31,7 +27,7 @@ export default function StatCard({ title, value, subtitle, trend, icon }: StatCa
 
       <div className="flex items-center gap-2 mt-1.5">
         {trend !== undefined && trend !== 0 && (
-          <span className={`inline-flex items-center gap-0.5 text-xs font-semibold ${trendPositive ? 'text-sw-danger' : 'text-sw-accent'}`}>
+          <span className={`inline-flex items-center gap-0.5 text-xs font-semibold ${trendPositive ? 'text-sw-danger' : 'text-sw-success'}`}>
             {trendPositive ? <ArrowUpRight size={13} /> : <ArrowDownRight size={13} />}
             {Math.abs(trend).toFixed(1)}%
           </span>

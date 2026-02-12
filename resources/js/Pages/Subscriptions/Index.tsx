@@ -6,26 +6,26 @@ import { useApi, useApiPost } from '@/hooks/useApi';
 import StatCard from '@/Components/SpendWise/StatCard';
 import SubscriptionCard from '@/Components/SpendWise/SubscriptionCard';
 import ViewModeToggle from '@/Components/SpendWise/ViewModeToggle';
-import type { Subscription } from '@/types/spendwise';
+import type { SubscriptionsResponse } from '@/types/spendwise';
 
 const fmt = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
 
 export default function SubscriptionsIndex() {
   const [viewMode, setViewMode] = useState<'all' | 'personal' | 'business'>('all');
-  const { data: subscriptions, loading, error, refresh } = useApi<Subscription[]>('/api/v1/subscriptions');
+  const { data, loading, error, refresh } = useApi<SubscriptionsResponse>('/api/v1/subscriptions');
   const detect = useApiPost('/api/v1/subscriptions/detect');
 
-  const items = subscriptions ?? [];
+  const items = data?.subscriptions ?? [];
 
   // Filter by view mode if subscriptions have account_purpose-like data
   const filtered = items;
 
-  // Calculate summary stats
-  const active = filtered.filter((s) => s.is_active);
-  const totalMonthly = active.reduce((sum, s) => sum + s.amount, 0);
-  const totalAnnual = active.reduce((sum, s) => sum + s.annual_cost, 0);
+  // Use pre-computed stats from the API, with local filtering as fallback
+  const totalMonthly = data?.total_monthly ?? 0;
+  const totalAnnual = data?.total_annual ?? 0;
   const unused = filtered.filter((s) => s.status === 'inactive' || s.status === 'unused');
-  const unusedMonthly = unused.reduce((sum, s) => sum + s.amount, 0);
+  const unusedMonthly = data?.unused_monthly ?? unused.reduce((sum, s) => sum + s.amount, 0);
+  const active = filtered.filter((s) => s.status === 'active');
 
   const handleDetect = async () => {
     await detect.submit();
@@ -116,7 +116,7 @@ export default function SubscriptionsIndex() {
       )}
 
       {/* Loading skeleton */}
-      {loading && !subscriptions && (
+      {loading && !data && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {Array.from({ length: 6 }).map((_, i) => (
             <div key={i} className="rounded-lg border border-sw-border bg-sw-card p-4 animate-pulse">

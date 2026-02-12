@@ -41,9 +41,9 @@ class PlaidController extends Controller
         BankConnected::dispatch($connection, $request->user());
 
         return response()->json([
-            'message'     => 'Bank connected successfully',
+            'message' => 'Bank connected successfully',
             'institution' => $connection->institution_name,
-            'accounts'    => $connection->accounts()->count(),
+            'accounts' => $connection->accounts()->count(),
         ]);
     }
 
@@ -61,9 +61,9 @@ class PlaidController extends Controller
 
         $result = $this->plaidService->syncTransactions($connection);
 
-        // Categorize any new transactions
+        // Categorize any new transactions synchronously so user sees results immediately
         if ($result['added'] > 0) {
-            CategorizePendingTransactions::dispatch(auth()->id());
+            CategorizePendingTransactions::dispatchSync(auth()->id());
         }
 
         return response()->json([

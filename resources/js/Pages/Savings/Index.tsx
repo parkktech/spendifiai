@@ -5,30 +5,31 @@ import { PiggyBank, Target, Zap, Loader2, Activity, Calendar } from 'lucide-reac
 import { useApi, useApiPost } from '@/hooks/useApi';
 import StatCard from '@/Components/SpendWise/StatCard';
 import RecommendationCard from '@/Components/SpendWise/RecommendationCard';
-import type { SavingsRecommendation, SavingsTarget } from '@/types/spendwise';
+import type { RecommendationsResponse, SavingsTargetResponse } from '@/types/spendwise';
 
 const fmt = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
 
 export default function SavingsIndex() {
-  const { data: recommendations, loading: recsLoading, error: recsError, refresh: refreshRecs } =
-    useApi<SavingsRecommendation[]>('/api/v1/savings/recommendations');
-  const { data: target, loading: targetLoading, refresh: refreshTarget } =
-    useApi<SavingsTarget>('/api/v1/savings/target');
+  const { data: recsData, loading: recsLoading, error: recsError, refresh: refreshRecs } =
+    useApi<RecommendationsResponse>('/api/v1/savings');
+  const { data: targetData, loading: targetLoading, refresh: refreshTarget } =
+    useApi<SavingsTargetResponse>('/api/v1/savings/target');
 
   const analyze = useApiPost('/api/v1/savings/analyze');
-  const dismiss = useApiPost('/api/v1/savings/recommendations');
-  const apply = useApiPost('/api/v1/savings/recommendations');
-  const setTargetPost = useApiPost<SavingsTarget>('/api/v1/savings/target');
-  const pulseCheck = useApiPost('/api/v1/savings/pulse-check', 'GET');
+  const dismiss = useApiPost('/api/v1/savings');
+  const apply = useApiPost('/api/v1/savings');
+  const setTargetPost = useApiPost<unknown>('/api/v1/savings/target');
+  const pulseCheck = useApiPost('/api/v1/savings/pulse', 'GET');
 
   const [pulseResult, setPulseResult] = useState<string | null>(null);
   const [showTargetForm, setShowTargetForm] = useState(false);
   const [targetForm, setTargetForm] = useState({ name: '', target_amount: '', deadline: '' });
 
-  const recs = recommendations ?? [];
-  const totalPotential = recs.reduce((sum, r) => sum + r.potential_savings, 0);
-  const highPriority = recs.filter((r) => r.priority === 'high');
-  const highTotal = highPriority.reduce((sum, r) => sum + r.potential_savings, 0);
+  const recs = recsData?.recommendations ?? [];
+  const totalPotential = recsData?.total_monthly ?? recs.reduce((sum, r) => sum + r.monthly_savings, 0);
+  const highPriority = recs.filter((r) => r.difficulty === 'easy');
+  const highTotal = recsData?.easy_wins_monthly ?? highPriority.reduce((sum, r) => sum + r.monthly_savings, 0);
+  const target = targetData?.has_target ? targetData.target : null;
 
   const handleAnalyze = async () => {
     await analyze.submit();
@@ -36,12 +37,12 @@ export default function SavingsIndex() {
   };
 
   const handleDismiss = async (id: number) => {
-    await dismiss.submit(undefined, { url: `/api/v1/savings/recommendations/${id}/dismiss`, method: 'POST' });
+    await dismiss.submit(undefined, { url: `/api/v1/savings/${id}/dismiss`, method: 'POST' });
     refreshRecs();
   };
 
   const handleApply = async (id: number) => {
-    await apply.submit(undefined, { url: `/api/v1/savings/recommendations/${id}/apply`, method: 'POST' });
+    await apply.submit(undefined, { url: `/api/v1/savings/${id}/apply`, method: 'POST' });
     refreshRecs();
   };
 
@@ -59,17 +60,17 @@ export default function SavingsIndex() {
   const handleSetTarget = async (e: React.FormEvent) => {
     e.preventDefault();
     await setTargetPost.submit({
-      name: targetForm.name,
-      target_amount: parseFloat(targetForm.target_amount),
-      deadline: targetForm.deadline || undefined,
+      monthly_target: parseFloat(targetForm.target_amount),
+      motivation: targetForm.name || undefined,
+      goal_total: targetForm.deadline ? parseFloat(targetForm.target_amount) * 12 : undefined,
     } as never);
     setShowTargetForm(false);
     setTargetForm({ name: '', target_amount: '', deadline: '' });
     refreshTarget();
   };
 
-  // Progress percentage
-  const progress = target ? Math.min((target.current_amount / target.target_amount) * 100, 100) : 0;
+  // Progress percentage based on time_to_goal or current_month data
+  const progress = targetData?.time_to_goal?.pct_complete ?? 0;
 
   return (
     <AuthenticatedLayout
@@ -112,8 +113,8 @@ export default function SavingsIndex() {
         />
         <StatCard
           title="Savings Goal"
-          value={target ? fmt.format(target.target_amount) : 'Not set'}
-          subtitle={target ? `${fmt.format(target.monthly_target)}/mo target` : 'Set a target to track progress'}
+          value={target ? `${fmt.format(target.monthly_target)}/mo` : 'Not set'}
+          subtitle={target?.goal_total ? `${fmt.format(target.goal_total)} total goal` : 'Set a target to track progress'}
           icon={<Target size={18} />}
         />
       </div>
@@ -137,63 +138,80 @@ export default function SavingsIndex() {
           <div>
             <div className="flex items-center justify-between mb-2">
               <div>
-                <h3 className="text-base font-semibold text-sw-text">{target.name}</h3>
+                <h3 className="text-base font-semibold text-sw-text">{target.motivation || 'Savings Target'}</h3>
                 <div className="flex items-center gap-3 mt-1 text-xs text-sw-dim">
-                  {target.deadline && (
+                  {target.target_end_date && (
                     <span className="inline-flex items-center gap-1">
                       <Calendar size={12} />
-                      Deadline: {target.deadline}
+                      Deadline: {target.target_end_date}
                     </span>
                   )}
                   <span>Monthly target: {fmt.format(target.monthly_target)}</span>
                 </div>
               </div>
               <div className="text-right">
-                <div className="text-lg font-bold text-sw-accent">{fmt.format(target.current_amount)}</div>
-                <div className="text-xs text-sw-dim">of {fmt.format(target.target_amount)}</div>
+                {targetData?.current_month && (
+                  <div className="text-lg font-bold text-sw-accent">{fmt.format(targetData.current_month.cumulative_saved)}</div>
+                )}
+                {target.goal_total && (
+                  <div className="text-xs text-sw-dim">of {fmt.format(target.goal_total)}</div>
+                )}
               </div>
             </div>
 
             {/* Progress bar */}
-            <div className="w-full h-3 bg-sw-border rounded-full overflow-hidden mt-3">
-              <div
-                role="progressbar"
-                aria-valuenow={Math.round(progress)}
-                aria-valuemin={0}
-                aria-valuemax={100}
-                className="h-full bg-sw-accent rounded-full transition-all duration-500"
-                style={{ width: `${progress}%` }}
-              />
-            </div>
-            <div className="text-xs text-sw-dim mt-1 text-right">{progress.toFixed(1)}%</div>
+            {target.goal_total && (
+              <>
+                <div className="w-full h-3 bg-sw-border rounded-full overflow-hidden mt-3">
+                  <div
+                    role="progressbar"
+                    aria-valuenow={Math.round(progress)}
+                    aria-valuemin={0}
+                    aria-valuemax={100}
+                    className="h-full bg-sw-accent rounded-full transition-all duration-500"
+                    style={{ width: `${progress}%` }}
+                  />
+                </div>
+                <div className="text-xs text-sw-dim mt-1 text-right">{progress.toFixed(1)}%</div>
+              </>
+            )}
 
-            {/* Actions list */}
-            {target.actions && target.actions.length > 0 && (
+            {/* Time to goal */}
+            {targetData?.time_to_goal && (
+              <div className="mt-3 flex items-center gap-3 text-xs text-sw-dim">
+                <span>{targetData.time_to_goal.on_pace ? 'On pace' : 'Behind pace'}</span>
+                <span>Projected: {targetData.time_to_goal.projected_date}</span>
+                <span>{targetData.time_to_goal.months_remaining} months remaining</span>
+              </div>
+            )}
+
+            {/* Actions list from plan */}
+            {targetData?.plan && (targetData.plan.accepted_actions.length > 0 || targetData.plan.suggested_actions.length > 0) && (
               <div className="mt-4 space-y-2">
                 <h4 className="text-xs font-medium text-sw-muted">Action Plan</h4>
-                {target.actions.map((action) => (
+                {[...targetData.plan.accepted_actions, ...targetData.plan.suggested_actions].map((action) => (
                   <div
                     key={action.id}
                     className="flex items-center gap-3 p-2 rounded-lg bg-sw-bg/50 border border-sw-border"
                   >
                     <div
                       className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 ${
-                        action.status === 'completed'
+                        action.status === 'accepted'
                           ? 'border-sw-accent bg-sw-accent/20'
                           : 'border-sw-border'
                       }`}
                     >
-                      {action.status === 'completed' && (
+                      {action.status === 'accepted' && (
                         <div className="w-2 h-2 rounded-full bg-sw-accent" />
                       )}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className={`text-xs font-medium ${action.status === 'completed' ? 'text-sw-muted line-through' : 'text-sw-text'}`}>
+                      <div className={`text-xs font-medium ${action.status === 'accepted' ? 'text-sw-accent' : 'text-sw-text'}`}>
                         {action.title}
                       </div>
-                      {action.estimated_savings > 0 && (
+                      {action.monthly_savings > 0 && (
                         <div className="text-[10px] text-sw-dim">
-                          Save {fmt.format(action.estimated_savings)}{action.frequency ? `/${action.frequency}` : ''}
+                          Save {fmt.format(action.monthly_savings)}/mo
                         </div>
                       )}
                     </div>
@@ -301,7 +319,7 @@ export default function SavingsIndex() {
           </div>
         )}
 
-        {recsLoading && !recommendations && (
+        {recsLoading && !recsData && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             {Array.from({ length: 4 }).map((_, i) => (
               <div key={i} className="rounded-lg border border-sw-border bg-sw-card p-4 animate-pulse">

@@ -2,28 +2,29 @@
 
 namespace App\Services;
 
-use App\Models\BankConnection;
 use App\Models\BankAccount;
+use App\Models\BankConnection;
 use App\Models\Transaction;
 use App\Models\User;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
-use Carbon\Carbon;
 
 class PlaidService
 {
     protected string $clientId;
+
     protected string $secret;
+
     protected string $baseUrl;
 
     public function __construct()
     {
         $this->clientId = config('services.plaid.client_id') ?? '';
-        $this->secret   = config('services.plaid.secret') ?? '';
-        $this->baseUrl  = match (config('services.plaid.env')) {
-            'production'  => 'https://production.plaid.com',
+        $this->secret = config('services.plaid.secret') ?? '';
+        $this->baseUrl = match (config('services.plaid.env')) {
+            'production' => 'https://production.plaid.com',
             'development' => 'https://development.plaid.com',
-            default       => 'https://sandbox.plaid.com',
+            default => 'https://sandbox.plaid.com',
         };
     }
 
@@ -33,11 +34,16 @@ class PlaidService
     public function createLinkToken(User $user): array
     {
         $params = [
-            'user'           => ['client_user_id' => (string) $user->id],
-            'client_name'    => config('app.name', 'SpendWise'),
-            'products'       => config('spendwise.plaid.products', ['transactions']),
-            'country_codes'  => config('spendwise.plaid.country_codes', ['US']),
-            'language'       => 'en',
+            'user' => [
+                'client_user_id' => (string) $user->id,
+                'email_address' => $user->email,
+                'email_address_verified_time' => $user->email_verified_at?->toIso8601String() ?? now()->toIso8601String(),
+                'phone_number_verified_time' => now()->toIso8601String(),
+            ],
+            'client_name' => config('app.name', 'LedgerIQ'),
+            'products' => config('spendwise.plaid.products', ['transactions']),
+            'country_codes' => config('spendwise.plaid.country_codes', ['US']),
+            'language' => 'en',
         ];
 
         // Webhook is required in production, optional in sandbox
@@ -59,12 +65,12 @@ class PlaidService
         ]);
 
         $connection = BankConnection::create([
-            'user_id'            => $user->id,
-            'plaid_item_id'      => $response['item_id'],
+            'user_id' => $user->id,
+            'plaid_item_id' => $response['item_id'],
             'plaid_access_token' => $response['access_token'],  // Model cast auto-encrypts
-            'institution_name'   => 'Pending', // Will be updated below
-            'institution_id'     => '',
-            'status'             => 'active',
+            'institution_name' => 'Pending', // Will be updated below
+            'institution_id' => '',
+            'status' => 'active',
         ]);
 
         // Fetch institution details
@@ -75,11 +81,11 @@ class PlaidService
         if (isset($item['item']['institution_id'])) {
             $inst = $this->post('/institutions/get_by_id', [
                 'institution_id' => $item['item']['institution_id'],
-                'country_codes'  => ['US'],
+                'country_codes' => ['US'],
             ]);
             $connection->update([
                 'institution_name' => $inst['institution']['name'] ?? 'Unknown Bank',
-                'institution_id'   => $item['item']['institution_id'],
+                'institution_id' => $item['item']['institution_id'],
             ]);
         }
 
@@ -102,15 +108,15 @@ class PlaidService
             BankAccount::updateOrCreate(
                 ['plaid_account_id' => $account['account_id']],
                 [
-                    'user_id'            => $connection->user_id,
+                    'user_id' => $connection->user_id,
                     'bank_connection_id' => $connection->id,
-                    'name'               => $account['name'],
-                    'official_name'      => $account['official_name'] ?? null,
-                    'type'               => $account['type'],
-                    'subtype'            => $account['subtype'] ?? null,
-                    'mask'               => $account['mask'] ?? null,
-                    'current_balance'    => $account['balances']['current'] ?? null,
-                    'available_balance'  => $account['balances']['available'] ?? null,
+                    'name' => $account['name'],
+                    'official_name' => $account['official_name'] ?? null,
+                    'type' => $account['type'],
+                    'subtype' => $account['subtype'] ?? null,
+                    'mask' => $account['mask'] ?? null,
+                    'current_balance' => $account['balances']['current'] ?? null,
+                    'available_balance' => $account['balances']['available'] ?? null,
                 ]
             );
         }
@@ -141,7 +147,9 @@ class PlaidService
             // Process added transactions
             foreach ($response['added'] ?? [] as $tx) {
                 $bankAccount = BankAccount::where('plaid_account_id', $tx['account_id'])->first();
-                if (!$bankAccount) continue;
+                if (! $bankAccount) {
+                    continue;
+                }
 
                 // Inherit the account's purpose so the AI categorizer knows context
                 $accountPurpose = $bankAccount->purpose ?? 'personal';
@@ -149,8 +157,8 @@ class PlaidService
                 // Pre-set expense_type based on which account it came from
                 $defaultExpenseType = match ($accountPurpose) {
                     'business' => 'business',
-                    'mixed'    => 'mixed',
-                    default    => 'personal',
+                    'mixed' => 'mixed',
+                    default => 'personal',
                 };
 
                 // Business accounts: default tax_deductible to true
@@ -159,24 +167,24 @@ class PlaidService
                 Transaction::updateOrCreate(
                     ['plaid_transaction_id' => $tx['transaction_id']],
                     [
-                        'user_id'                 => $connection->user_id,
-                        'bank_account_id'         => $bankAccount->id,
-                        'account_purpose'         => $accountPurpose,
-                        'merchant_name'           => $tx['merchant_name'] ?? $tx['name'] ?? 'Unknown',
-                        'description'             => $tx['name'],
-                        'amount'                  => $tx['amount'], // Plaid: positive = spend
-                        'transaction_date'        => $tx['date'],
-                        'authorized_date'         => $tx['authorized_date'] ?? null,
-                        'payment_channel'         => $tx['payment_channel'] ?? null,
-                        'plaid_category'          => $tx['personal_finance_category']['primary'] ?? null,
+                        'user_id' => $connection->user_id,
+                        'bank_account_id' => $bankAccount->id,
+                        'account_purpose' => $accountPurpose,
+                        'merchant_name' => $tx['merchant_name'] ?? $tx['name'] ?? 'Unknown',
+                        'description' => $tx['name'],
+                        'amount' => $tx['amount'], // Plaid: positive = spend
+                        'transaction_date' => $tx['date'],
+                        'authorized_date' => $tx['authorized_date'] ?? null,
+                        'payment_channel' => $tx['payment_channel'] ?? null,
+                        'plaid_category' => $tx['personal_finance_category']['primary'] ?? null,
                         'plaid_detailed_category' => $tx['personal_finance_category']['detailed'] ?? null,
-                        'expense_type'            => $defaultExpenseType,
-                        'tax_deductible'          => $defaultDeductible,
-                        'plaid_metadata'          => [
-                            'logo_url'       => $tx['logo_url'] ?? null,
-                            'website'        => $tx['website'] ?? null,
-                            'location'       => $tx['location'] ?? null,
-                            'iso_currency'   => $tx['iso_currency_code'] ?? 'USD',
+                        'expense_type' => $defaultExpenseType,
+                        'tax_deductible' => $defaultDeductible,
+                        'plaid_metadata' => [
+                            'logo_url' => $tx['logo_url'] ?? null,
+                            'website' => $tx['website'] ?? null,
+                            'location' => $tx['location'] ?? null,
+                            'iso_currency' => $tx['iso_currency_code'] ?? 'USD',
                         ],
                         'review_status' => 'pending_ai', // Will be categorized by AI
                     ]
@@ -188,9 +196,9 @@ class PlaidService
             foreach ($response['modified'] ?? [] as $tx) {
                 Transaction::where('plaid_transaction_id', $tx['transaction_id'])
                     ->update([
-                        'merchant_name'  => $tx['merchant_name'] ?? $tx['name'],
-                        'amount'         => $tx['amount'],
-                        'description'    => $tx['name'],
+                        'merchant_name' => $tx['merchant_name'] ?? $tx['name'],
+                        'amount' => $tx['amount'],
+                        'description' => $tx['name'],
                     ]);
                 $modified++;
             }
@@ -201,12 +209,12 @@ class PlaidService
                 $removed++;
             }
 
-            $cursor  = $response['next_cursor'];
+            $cursor = $response['next_cursor'];
             $hasMore = $response['has_more'] ?? false;
         }
 
         $connection->update([
-            'sync_cursor'    => $cursor,
+            'sync_cursor' => $cursor,
             'last_synced_at' => now(),
         ]);
 
@@ -226,14 +234,14 @@ class PlaidService
         foreach ($response['accounts'] ?? [] as $account) {
             BankAccount::where('plaid_account_id', $account['account_id'])
                 ->update([
-                    'current_balance'   => $account['balances']['current'],
+                    'current_balance' => $account['balances']['current'],
                     'available_balance' => $account['balances']['available'],
                 ]);
 
             $balances[] = [
-                'name'      => $account['name'],
-                'type'      => $account['subtype'] ?? $account['type'],
-                'current'   => $account['balances']['current'],
+                'name' => $account['name'],
+                'type' => $account['subtype'] ?? $account['type'],
+                'current' => $account['balances']['current'],
                 'available' => $account['balances']['available'],
             ];
         }
@@ -259,7 +267,7 @@ class PlaidService
             ]);
 
             Log::info('Plaid item removed', [
-                'user_id'          => $connection->user_id,
+                'user_id' => $connection->user_id,
                 'institution_name' => $connection->institution_name,
             ]);
 
@@ -269,7 +277,7 @@ class PlaidService
             // even if Plaid's revocation fails (e.g., token already expired)
             Log::warning('Plaid item removal failed', [
                 'user_id' => $connection->user_id,
-                'error'   => $e->getMessage(),
+                'error' => $e->getMessage(),
             ]);
 
             return false;
@@ -295,7 +303,7 @@ class PlaidService
         $connection->delete();
 
         Log::info('Bank disconnected', [
-            'user_id'          => $connection->user_id,
+            'user_id' => $connection->user_id,
             'institution_name' => $connection->institution_name,
         ]);
     }
@@ -306,19 +314,19 @@ class PlaidService
     protected function post(string $endpoint, array $data): array
     {
         $data['client_id'] = $this->clientId;
-        $data['secret']    = $this->secret;
+        $data['secret'] = $this->secret;
 
         $response = Http::timeout(30)
-            ->post($this->baseUrl . $endpoint, $data);
+            ->post($this->baseUrl.$endpoint, $data);
 
-        if (!$response->successful()) {
+        if (! $response->successful()) {
             Log::error('Plaid API error', [
                 'endpoint' => $endpoint,
-                'status'   => $response->status(),
-                'error'    => $response->json(),
+                'status' => $response->status(),
+                'error' => $response->json(),
             ]);
             throw new \RuntimeException(
-                'Plaid error: ' . ($response->json('error_message') ?? 'Unknown error')
+                'Plaid error: '.($response->json('error_message') ?? 'Unknown error')
             );
         }
 

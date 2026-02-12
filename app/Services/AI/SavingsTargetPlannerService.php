@@ -2,25 +2,26 @@
 
 namespace App\Services\AI;
 
-use App\Models\Transaction;
-use App\Models\Subscription;
-use App\Models\SavingsTarget;
 use App\Models\SavingsPlanAction;
 use App\Models\SavingsProgress;
+use App\Models\SavingsTarget;
+use App\Models\Subscription;
+use App\Models\Transaction;
 use App\Models\User;
-use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
 
 class SavingsTargetPlannerService
 {
     protected ?string $apiKey;
+
     protected string $model;
 
     public function __construct()
     {
         $this->apiKey = config('services.anthropic.api_key') ?? '';
-        $this->model  = config('services.anthropic.model', 'claude-sonnet-4-20250514');
+        $this->model = config('services.anthropic.model', 'claude-sonnet-4-20250514');
     }
 
     /**
@@ -32,23 +33,23 @@ class SavingsTargetPlannerService
         $since = Carbon::now()->subMonths(3);
 
         // Pull comprehensive spending data
-        $categorySpending  = $this->getCategoryAverages($user->id, $since);
-        $subscriptions     = $this->getActiveSubscriptions($user->id);
+        $categorySpending = $this->getCategoryAverages($user->id, $since);
+        $subscriptions = $this->getActiveSubscriptions($user->id);
         $merchantFrequency = $this->getTopMerchants($user->id, $since);
-        $incomeEstimate    = $this->estimateMonthlyIncome($user->id, $since);
-        $currentSavings    = $incomeEstimate - collect($categorySpending)->sum('monthly_avg');
+        $incomeEstimate = $this->estimateMonthlyIncome($user->id, $since);
+        $currentSavings = $incomeEstimate - collect($categorySpending)->sum('monthly_avg');
 
         $gap = $target->monthly_target - max($currentSavings, 0);
 
         // If they're already saving more than target, congrats
         if ($gap <= 0) {
             return [
-                'status'          => 'on_track',
+                'status' => 'on_track',
                 'current_savings' => round($currentSavings, 2),
-                'target'          => $target->monthly_target,
-                'surplus'         => round(abs($gap), 2),
-                'message'         => "You're already saving \${$currentSavings}/mo — \$" . abs(round($gap)) . " above your target!",
-                'actions'         => [],
+                'target' => $target->monthly_target,
+                'surplus' => round(abs($gap), 2),
+                'message' => "You're already saving \${$currentSavings}/mo — \$".abs(round($gap)).' above your target!',
+                'actions' => [],
             ];
         }
 
@@ -76,16 +77,16 @@ class SavingsTargetPlannerService
         $easyWins = collect($plan)->where('difficulty', 'easy')->sum('monthly_savings');
 
         return [
-            'status'             => $gap > $totalPlanSavings ? 'challenging' : 'achievable',
-            'current_savings'    => round(max($currentSavings, 0), 2),
-            'target'             => $target->monthly_target,
-            'gap_to_close'       => round($gap, 2),
+            'status' => $gap > $totalPlanSavings ? 'challenging' : 'achievable',
+            'current_savings' => round(max($currentSavings, 0), 2),
+            'target' => $target->monthly_target,
+            'gap_to_close' => round($gap, 2),
             'plan_total_savings' => round($totalPlanSavings, 2),
-            'easy_wins'          => round($easyWins, 2),
-            'coverage_pct'       => round(min(($totalPlanSavings / $gap) * 100, 100), 1),
-            'estimated_income'   => round($incomeEstimate, 2),
-            'actions_count'      => count($plan),
-            'message'            => $this->buildSummaryMessage($gap, $totalPlanSavings, $easyWins),
+            'easy_wins' => round($easyWins, 2),
+            'coverage_pct' => round(min(($totalPlanSavings / $gap) * 100, 100), 1),
+            'estimated_income' => round($incomeEstimate, 2),
+            'actions_count' => count($plan),
+            'message' => $this->buildSummaryMessage($gap, $totalPlanSavings, $easyWins),
         ];
     }
 
@@ -99,6 +100,7 @@ class SavingsTargetPlannerService
         return Transaction::where('user_id', $userId)
             ->where('amount', '>', 0)
             ->where('transaction_date', '>=', $since)
+            ->toBase()
             ->select(
                 DB::raw("COALESCE(user_category, ai_category, 'Uncategorized') as category"),
                 DB::raw('SUM(amount) as total'),
@@ -111,6 +113,7 @@ class SavingsTargetPlannerService
             ->groupBy('category')
             ->orderByDesc('monthly_avg')
             ->get()
+            ->map(fn ($row) => (array) $row)
             ->toArray();
     }
 
@@ -123,13 +126,13 @@ class SavingsTargetPlannerService
             ->whereIn('status', ['active', 'unused'])
             ->orderByDesc('amount')
             ->get()
-            ->map(fn($s) => [
-                'name'        => $s->merchant_normalized,
-                'amount'      => $s->amount,
-                'frequency'   => $s->frequency,
+            ->map(fn ($s) => [
+                'name' => $s->merchant_normalized,
+                'amount' => $s->amount,
+                'frequency' => $s->frequency,
                 'annual_cost' => $s->annual_cost,
-                'category'    => $s->category,
-                'is_unused'   => $s->status === 'unused',
+                'category' => $s->category,
+                'is_unused' => $s->status === 'unused',
                 'is_essential' => $s->is_essential,
             ])
             ->toArray();
@@ -146,7 +149,7 @@ class SavingsTargetPlannerService
             ->where('amount', '>', 0)
             ->where('transaction_date', '>=', $since)
             ->select(
-                DB::raw("COALESCE(merchant_normalized, merchant_name) as merchant"),
+                DB::raw('COALESCE(merchant_normalized, merchant_name) as merchant'),
                 DB::raw('SUM(amount) as total'),
                 DB::raw("ROUND(SUM(amount) / {$months}, 2) as monthly_avg"),
                 DB::raw('COUNT(*) as visits'),
@@ -245,28 +248,28 @@ Respond with ONLY a JSON array. No markdown.
 PROMPT;
 
         $userData = json_encode([
-            'savings_target'      => $target->monthly_target,
-            'target_motivation'   => $target->motivation,
-            'goal_total'          => $target->goal_total,
-            'gap_to_close'        => round($gap, 2),
-            'estimated_income'    => round($income, 2),
-            'current_savings'     => round(max($currentSavings, 0), 2),
+            'savings_target' => $target->monthly_target,
+            'target_motivation' => $target->motivation,
+            'goal_total' => $target->goal_total,
+            'gap_to_close' => round($gap, 2),
+            'estimated_income' => round($income, 2),
+            'current_savings' => round(max($currentSavings, 0), 2),
             'spending_by_category' => $categorySpending,
-            'subscriptions'        => $subscriptions,
-            'top_merchants'        => $merchantFrequency,
-            'employment_type'      => $profile?->employment_type,
+            'subscriptions' => $subscriptions,
+            'top_merchants' => $merchantFrequency,
+            'employment_type' => $profile?->employment_type,
         ], JSON_PRETTY_PRINT);
 
         try {
             $response = Http::withHeaders([
-                'x-api-key'         => $this->apiKey,
+                'x-api-key' => $this->apiKey,
                 'anthropic-version' => '2023-06-01',
-                'content-type'      => 'application/json',
+                'content-type' => 'application/json',
             ])->timeout(60)->post('https://api.anthropic.com/v1/messages', [
-                'model'      => $this->model,
+                'model' => $this->model,
                 'max_tokens' => 4000,
-                'system'     => $system,
-                'messages'   => [['role' => 'user', 'content' => $userData]],
+                'system' => $system,
+                'messages' => [['role' => 'user', 'content' => $userData]],
             ]);
 
             $text = $response->json('content.0.text');
@@ -274,6 +277,7 @@ PROMPT;
             $text = preg_replace('/\s*```$/i', '', $text);
 
             $decoded = json_decode(trim($text), true);
+
             return json_last_error() === JSON_ERROR_NONE ? $decoded : ['error' => 'Invalid JSON'];
 
         } catch (\Exception $e) {
@@ -293,22 +297,22 @@ PROMPT;
 
         foreach ($actions as $action) {
             SavingsPlanAction::create([
-                'user_id'                  => $userId,
-                'savings_target_id'        => $targetId,
-                'title'                    => $action['title'],
-                'description'              => $action['description'],
-                'how_to'                   => $action['how_to'] ?? '',
-                'monthly_savings'          => $action['monthly_savings'],
-                'current_spending'         => $action['current_spending'],
-                'recommended_spending'     => $action['recommended_spending'],
-                'category'                 => $action['category'],
-                'difficulty'               => $action['difficulty'] ?? 'medium',
-                'impact'                   => $action['impact'] ?? 'medium',
-                'priority'                 => $action['priority'] ?? 99,
-                'is_essential_cut'         => $action['is_essential_cut'] ?? false,
-                'related_merchants'        => $action['related_merchants'] ?? null,
+                'user_id' => $userId,
+                'savings_target_id' => $targetId,
+                'title' => $action['title'],
+                'description' => $action['description'],
+                'how_to' => $action['how_to'] ?? '',
+                'monthly_savings' => $action['monthly_savings'],
+                'current_spending' => $action['current_spending'],
+                'recommended_spending' => $action['recommended_spending'],
+                'category' => $action['category'],
+                'difficulty' => $action['difficulty'] ?? 'medium',
+                'impact' => $action['impact'] ?? 'medium',
+                'priority' => $action['priority'] ?? 99,
+                'is_essential_cut' => $action['is_essential_cut'] ?? false,
+                'related_merchants' => $action['related_merchants'] ?? null,
                 'related_subscription_ids' => $action['related_subscription_ids'] ?? null,
-                'status'                   => 'suggested',
+                'status' => 'suggested',
             ]);
         }
     }
@@ -319,9 +323,9 @@ PROMPT;
      */
     public function calculateProgress(User $user, SavingsTarget $target, ?string $month = null): SavingsProgress
     {
-        $month     = $month ?? Carbon::now()->format('Y-m');
-        $monthStart = Carbon::parse($month . '-01')->startOfMonth();
-        $monthEnd   = Carbon::parse($month . '-01')->endOfMonth();
+        $month = $month ?? Carbon::now()->format('Y-m');
+        $monthStart = Carbon::parse($month.'-01')->startOfMonth();
+        $monthEnd = Carbon::parse($month.'-01')->endOfMonth();
 
         // Income this month
         $income = Transaction::where('user_id', $user->id)
@@ -336,10 +340,11 @@ PROMPT;
             ->whereBetween('transaction_date', [$monthStart, $monthEnd])
             ->sum('amount');
 
-        // Spending by category
+        // Spending by category (toBase avoids model category accessor)
         $categoryBreakdown = Transaction::where('user_id', $user->id)
             ->where('amount', '>', 0)
             ->whereBetween('transaction_date', [$monthStart, $monthEnd])
+            ->toBase()
             ->select(
                 DB::raw("COALESCE(user_category, ai_category, 'Uncategorized') as category"),
                 DB::raw('SUM(amount) as total')
@@ -361,26 +366,26 @@ PROMPT;
             ->orderByDesc('month')
             ->first();
 
-        $cumulativeSaved  = ($priorProgress?->cumulative_saved ?? 0) + max($actualSavings, 0);
+        $cumulativeSaved = ($priorProgress?->cumulative_saved ?? 0) + max($actualSavings, 0);
         $cumulativeTarget = ($priorProgress?->cumulative_target ?? 0) + $target->monthly_target;
 
         return SavingsProgress::updateOrCreate(
             [
-                'user_id'           => $user->id,
+                'user_id' => $user->id,
                 'savings_target_id' => $target->id,
-                'month'             => $month,
+                'month' => $month,
             ],
             [
-                'income'             => round($income, 2),
-                'total_spending'     => round($spending, 2),
-                'actual_savings'     => round($actualSavings, 2),
-                'target_savings'     => $target->monthly_target,
-                'gap'                => round(max($gap, 0), 2),
-                'cumulative_saved'   => round($cumulativeSaved, 2),
-                'cumulative_target'  => round($cumulativeTarget, 2),
-                'target_met'         => $actualSavings >= $target->monthly_target,
+                'income' => round($income, 2),
+                'total_spending' => round($spending, 2),
+                'actual_savings' => round($actualSavings, 2),
+                'target_savings' => $target->monthly_target,
+                'gap' => round(max($gap, 0), 2),
+                'cumulative_saved' => round($cumulativeSaved, 2),
+                'cumulative_target' => round($cumulativeTarget, 2),
+                'target_met' => $actualSavings >= $target->monthly_target,
                 'category_breakdown' => $categoryBreakdown,
-                'plan_adherence'     => $planAdherence,
+                'plan_adherence' => $planAdherence,
             ]
         );
     }
@@ -399,18 +404,18 @@ PROMPT;
 
         foreach ($acceptedActions as $action) {
             $actualSpend = $categoryBreakdown[$action->category] ?? 0;
-            $onTrack     = $actualSpend <= $action->recommended_spending;
-            $overBy      = max($actualSpend - $action->recommended_spending, 0);
+            $onTrack = $actualSpend <= $action->recommended_spending;
+            $overBy = max($actualSpend - $action->recommended_spending, 0);
 
             $adherence[] = [
-                'action_id'            => $action->id,
-                'title'                => $action->title,
-                'category'             => $action->category,
+                'action_id' => $action->id,
+                'title' => $action->title,
+                'category' => $action->category,
                 'recommended_spending' => $action->recommended_spending,
-                'actual_spending'      => round($actualSpend, 2),
-                'on_track'             => $onTrack,
-                'over_by'              => round($overBy, 2),
-                'savings_captured'     => $onTrack
+                'actual_spending' => round($actualSpend, 2),
+                'on_track' => $onTrack,
+                'over_by' => round($overBy, 2),
+                'savings_captured' => $onTrack
                     ? $action->monthly_savings
                     : max($action->current_spending - $actualSpend, 0),
             ];
@@ -432,11 +437,13 @@ PROMPT;
             } else {
                 $msg .= " with \${$buffer} buffer. Start with the easy wins (\${$easyWins}/mo) first.";
             }
+
             return $msg;
         }
 
         $shortfall = round($gap - $planTotal);
+
         return "The plan saves \${$planTotal}/mo but you're still \${$shortfall}/mo short. "
-             . "Consider increasing income or adjusting your target.";
+             .'Consider increasing income or adjusting your target.';
     }
 }

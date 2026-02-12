@@ -25,7 +25,7 @@ class AIQuestionController extends Controller
     {
         $questions = AIQuestion::where('user_id', auth()->id())
             ->where('status', 'pending')
-            ->with('transaction:id,merchant_name,amount,transaction_date,description')
+            ->with('transaction:id,merchant_name,merchant_normalized,amount,transaction_date,description,ai_category,user_category,ai_confidence,review_status,expense_type,account_purpose,tax_deductible,is_subscription')
             ->orderByDesc('created_at')
             ->get();
 
@@ -42,7 +42,7 @@ class AIQuestionController extends Controller
         UserAnsweredQuestion::dispatch($question->fresh(), $request->user());
 
         return response()->json([
-            'message'     => 'Answer recorded',
+            'message' => 'Answer recorded',
             'transaction' => new TransactionResource($question->transaction->fresh()),
         ]);
     }

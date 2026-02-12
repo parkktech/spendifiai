@@ -2,28 +2,32 @@
 
 namespace App\Services\AI;
 
-use App\Models\Transaction;
 use App\Models\AIQuestion;
+use App\Models\Transaction;
 use App\Models\UserFinancialProfile;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Collection;
 
 class TransactionCategorizerService
 {
     protected ?string $apiKey;
+
     protected string $model;
 
     // Confidence thresholds
-    const CONFIDENCE_AUTO     = 0.85; // Auto-categorize without asking
-    const CONFIDENCE_CONFIRM  = 0.60; // Suggest but ask user to confirm
-    const CONFIDENCE_ASK      = 0.40; // Not sure — ask user with options
-    const CONFIDENCE_UNKNOWN  = 0.00; // No clue — open-ended question
+    const CONFIDENCE_AUTO = 0.85; // Auto-categorize without asking
+
+    const CONFIDENCE_CONFIRM = 0.60; // Suggest but ask user to confirm
+
+    const CONFIDENCE_ASK = 0.40; // Not sure — ask user with options
+
+    const CONFIDENCE_UNKNOWN = 0.00; // No clue — open-ended question
 
     public function __construct()
     {
         $this->apiKey = config('services.anthropic.api_key') ?? '';
-        $this->model  = config('services.anthropic.model', 'claude-sonnet-4-20250514');
+        $this->model = config('services.anthropic.model', 'claude-sonnet-4-20250514');
     }
 
     /**
@@ -37,22 +41,23 @@ class TransactionCategorizerService
         $systemPrompt = $this->buildCategorizationPrompt($profile);
 
         // Prepare transaction data for Claude
-        $txData = $transactions->map(fn(Transaction $tx) => [
-            'id'              => $tx->id,
-            'merchant'        => $tx->merchant_name,
-            'amount'          => $tx->amount,
-            'date'            => $tx->transaction_date->format('Y-m-d'),
-            'description'     => $tx->description,
-            'channel'         => $tx->payment_channel,
-            'plaid_cat'       => $tx->plaid_category,
+        $txData = $transactions->map(fn (Transaction $tx) => [
+            'id' => $tx->id,
+            'merchant' => $tx->merchant_name,
+            'amount' => $tx->amount,
+            'date' => $tx->transaction_date->format('Y-m-d'),
+            'description' => $tx->description,
+            'channel' => $tx->payment_channel,
+            'plaid_cat' => $tx->plaid_category,
             'account_purpose' => $tx->account_purpose, // personal, business, mixed
-            'account_name'    => $tx->bankAccount?->nickname ?? $tx->bankAccount?->name,
+            'account_name' => $tx->bankAccount?->nickname ?? $tx->bankAccount?->name,
         ])->toArray();
 
         $response = $this->callClaude($systemPrompt, json_encode($txData));
 
         if (isset($response['error'])) {
             Log::error('Transaction categorization failed', $response);
+
             return ['error' => $response['error'], 'processed' => 0];
         }
 
@@ -78,7 +83,7 @@ class TransactionCategorizerService
                 ? "- Filing status: {$profile->tax_filing_status}\n" : '';
 
             if ($profile->custom_rules) {
-                $profileContext .= "- Custom rules: " . json_encode($profile->custom_rules) . "\n";
+                $profileContext .= '- Custom rules: '.json_encode($profile->custom_rules)."\n";
             }
         }
 
@@ -211,20 +216,22 @@ PROMPT;
 
         foreach ($results as $result) {
             $transaction = $transactions->firstWhere('id', $result['id']);
-            if (!$transaction) continue;
+            if (! $transaction) {
+                continue;
+            }
 
             $confidence = $result['confidence'] ?? 0;
 
             // Update transaction with AI results
             $transaction->update([
-                'ai_category'          => $result['category'] ?? 'Uncategorized',
-                'ai_confidence'        => $confidence,
-                'merchant_normalized'  => $result['merchant_normalized'] ?? $transaction->merchant_name,
-                'expense_type'         => $result['expense_type'] ?? 'personal',
-                'tax_deductible'       => $result['tax_deductible'] ?? false,
-                'tax_category'         => $result['tax_category'] ?? null,
-                'is_subscription'      => $result['is_subscription'] ?? false,
-                'review_status'        => $confidence >= self::CONFIDENCE_AUTO
+                'ai_category' => $result['category'] ?? 'Uncategorized',
+                'ai_confidence' => $confidence,
+                'merchant_normalized' => $result['merchant_normalized'] ?? $transaction->merchant_name,
+                'expense_type' => $result['expense_type'] ?? 'personal',
+                'tax_deductible' => $result['tax_deductible'] ?? false,
+                'tax_category' => $result['tax_category'] ?? null,
+                'is_subscription' => $result['is_subscription'] ?? false,
+                'review_status' => $confidence >= self::CONFIDENCE_AUTO
                     ? 'auto_categorized'
                     : 'needs_review',
             ]);
@@ -235,16 +242,16 @@ PROMPT;
                 $stats['needs_review']++;
 
                 // Generate a question for the user
-                if (!empty($result['suggested_question'])) {
+                if (! empty($result['suggested_question'])) {
                     AIQuestion::create([
-                        'user_id'        => $userId,
+                        'user_id' => $userId,
                         'transaction_id' => $transaction->id,
-                        'question'       => $result['suggested_question'],
-                        'options'        => $result['question_options'] ?? ['Personal', 'Business', 'Skip'],
-                        'ai_confidence'  => $confidence,
-                        'ai_best_guess'  => $result['category'],
-                        'question_type'  => $result['question_type'] ?? 'category',
-                        'status'         => 'pending',
+                        'question' => $result['suggested_question'],
+                        'options' => $result['question_options'] ?? ['Personal', 'Business', 'Skip'],
+                        'ai_confidence' => $confidence,
+                        'ai_best_guess' => $result['category'],
+                        'question_type' => $result['question_type'] ?? 'category',
+                        'status' => 'pending',
                     ]);
                     $stats['questions_generated']++;
                 }
@@ -262,11 +269,13 @@ PROMPT;
     {
         $question->update([
             'user_answer' => $answer,
-            'status'      => $answer === 'Skip' ? 'skipped' : 'answered',
+            'status' => $answer === 'Skip' ? 'skipped' : 'answered',
             'answered_at' => now(),
         ]);
 
-        if ($answer === 'Skip') return;
+        if ($answer === 'Skip') {
+            return;
+        }
 
         $transaction = $question->transaction;
 
@@ -284,17 +293,17 @@ PROMPT;
                     default => 'personal',
                 };
                 $transaction->update([
-                    'expense_type'    => $expenseType,
-                    'tax_deductible'  => $expenseType !== 'personal',
-                    'user_category'   => $transaction->ai_category,
-                    'review_status'   => 'user_confirmed',
+                    'expense_type' => $expenseType,
+                    'tax_deductible' => $expenseType !== 'personal',
+                    'user_category' => $transaction->ai_category,
+                    'review_status' => 'user_confirmed',
                 ]);
                 break;
 
             case 'category':
                 $transaction->update([
-                    'user_category'  => $answer,
-                    'review_status'  => 'user_confirmed',
+                    'user_category' => $answer,
+                    'review_status' => 'user_confirmed',
                 ]);
                 break;
 
@@ -312,10 +321,49 @@ PROMPT;
                 // Handle split transactions (e.g., Costco with mixed categories)
                 $transaction->update([
                     'user_category' => $answer,
-                    'expense_type'  => str_contains(strtolower($answer), 'mixed') ? 'mixed' : 'personal',
+                    'expense_type' => str_contains(strtolower($answer), 'mixed') ? 'mixed' : 'personal',
                     'review_status' => 'user_confirmed',
                 ]);
                 break;
+        }
+
+        // Apply same categorization to all matching merchant transactions not yet user-confirmed
+        $transaction->refresh();
+        $merchantName = $transaction->merchant_normalized ?? $transaction->merchant_name;
+
+        if ($merchantName) {
+            Transaction::where('user_id', $transaction->user_id)
+                ->where('id', '!=', $transaction->id)
+                ->where(function ($q) use ($merchantName) {
+                    $q->where('merchant_normalized', $merchantName)
+                        ->orWhere('merchant_name', $merchantName);
+                })
+                ->where('review_status', '!=', 'user_confirmed')
+                ->update([
+                    'user_category' => $transaction->user_category,
+                    'expense_type' => $transaction->expense_type,
+                    'tax_deductible' => $transaction->tax_deductible,
+                    'review_status' => 'user_confirmed',
+                ]);
+
+            // Also mark duplicate AI questions for the same merchant as answered
+            $siblingTransactionIds = Transaction::where('user_id', $transaction->user_id)
+                ->where('id', '!=', $transaction->id)
+                ->where(function ($q) use ($merchantName) {
+                    $q->where('merchant_normalized', $merchantName)
+                        ->orWhere('merchant_name', $merchantName);
+                })
+                ->pluck('id');
+
+            if ($siblingTransactionIds->isNotEmpty()) {
+                \App\Models\AIQuestion::whereIn('transaction_id', $siblingTransactionIds)
+                    ->where('status', 'pending')
+                    ->update([
+                        'user_answer' => $answer,
+                        'status' => 'answered',
+                        'answered_at' => now(),
+                    ]);
+            }
         }
     }
 
@@ -329,18 +377,23 @@ PROMPT;
         for ($attempt = 0; $attempt <= $maxRetries; $attempt++) {
             try {
                 $response = Http::withHeaders([
-                    'x-api-key'          => $this->apiKey,
-                    'anthropic-version'  => '2023-06-01',
-                    'content-type'       => 'application/json',
+                    'x-api-key' => $this->apiKey,
+                    'anthropic-version' => '2023-06-01',
+                    'content-type' => 'application/json',
                 ])->timeout(45)->post('https://api.anthropic.com/v1/messages', [
-                    'model'      => $this->model,
+                    'model' => $this->model,
                     'max_tokens' => 4000,
-                    'system'     => $system,
-                    'messages'   => [['role' => 'user', 'content' => $userMessage]],
+                    'system' => $system,
+                    'messages' => [['role' => 'user', 'content' => $userMessage]],
                 ]);
 
-                if (!$response->successful()) {
-                    if ($attempt < $maxRetries) { sleep(2); continue; }
+                if (! $response->successful()) {
+                    if ($attempt < $maxRetries) {
+                        sleep(2);
+
+                        continue;
+                    }
+
                     return ['error' => "API error: {$response->status()}"];
                 }
 
@@ -350,13 +403,18 @@ PROMPT;
 
                 $decoded = json_decode(trim($text), true);
                 if (json_last_error() !== JSON_ERROR_NONE) {
-                    return ['error' => 'Invalid JSON: ' . json_last_error_msg()];
+                    return ['error' => 'Invalid JSON: '.json_last_error_msg()];
                 }
 
                 return $decoded;
 
             } catch (\Exception $e) {
-                if ($attempt < $maxRetries) { sleep(2); continue; }
+                if ($attempt < $maxRetries) {
+                    sleep(2);
+
+                    continue;
+                }
+
                 return ['error' => $e->getMessage()];
             }
         }

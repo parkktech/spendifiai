@@ -42,24 +42,36 @@ export interface BankConnection {
 export interface Subscription {
   id: number;
   merchant_name: string;
+  merchant_normalized: string | null;
   amount: number;
   frequency: string;
   status: string;
   category: string | null;
+  is_essential: boolean | null;
   last_charge_date: string | null;
   next_expected_date: string | null;
+  last_used_at: string | null;
   annual_cost: number;
-  is_active: boolean;
+  charge_history: unknown[] | null;
+}
+
+export interface SubscriptionsResponse {
+  subscriptions: Subscription[];
+  total_monthly: number;
+  total_annual: number;
+  unused_monthly: number;
+  unused_count: number;
 }
 
 export interface AIQuestion {
   id: number;
-  transaction_id: number;
-  question_text: string;
+  question: string;
   question_type: string;
   status: string;
   options: string[] | null;
+  ai_confidence: number | null;
   user_answer: string | null;
+  answered_at: string | null;
   created_at: string;
   transaction?: Transaction;
 }
@@ -68,40 +80,79 @@ export interface SavingsRecommendation {
   id: number;
   title: string;
   description: string;
-  potential_savings: number;
-  priority: string;
+  monthly_savings: number;
+  annual_savings: number;
+  difficulty: string;
   category: string;
+  impact: string | null;
   status: string;
   action_steps: string[] | null;
   related_merchants: string[] | null;
+  created_at: string;
+}
+
+export interface RecommendationsResponse {
+  recommendations: SavingsRecommendation[];
+  total_monthly: number;
+  total_annual: number;
+  easy_wins_monthly: number;
 }
 
 export interface SavingsTarget {
   id: number;
-  name: string;
-  target_amount: number;
-  current_amount: number;
-  deadline: string | null;
   monthly_target: number;
-  status: string;
+  motivation: string | null;
+  target_start_date: string | null;
+  target_end_date: string | null;
+  goal_total: number | null;
+  is_active: boolean;
+  created_at: string;
   actions?: SavingsPlanAction[];
+  progress?: unknown;
+}
+
+export interface SavingsTargetResponse {
+  has_target: boolean;
+  message?: string;
+  target?: SavingsTarget;
+  current_month?: {
+    cumulative_saved: number;
+    [key: string]: unknown;
+  };
+  progress_history?: unknown[];
+  time_to_goal?: {
+    months_remaining: number;
+    projected_date: string;
+    on_pace: boolean;
+    pct_complete: number;
+  } | null;
+  plan?: {
+    accepted_actions: SavingsPlanAction[];
+    suggested_actions: SavingsPlanAction[];
+    accepted_total_savings: number;
+    suggested_total_savings: number;
+    full_plan_savings: number;
+  };
 }
 
 export interface SavingsPlanAction {
   id: number;
   title: string;
   description: string;
-  estimated_savings: number;
+  monthly_savings: number;
+  category: string | null;
+  recommended_spending: number | null;
   status: string;
-  frequency: string | null;
+  priority: number | null;
+  accepted_at: string | null;
+  rejected_at: string | null;
+  rejection_reason: string | null;
 }
 
 export interface ExpenseCategory {
   id: number;
   name: string;
   slug: string;
-  irs_category: string | null;
-  tax_line: string | null;
 }
 
 export interface DashboardData {
@@ -120,28 +171,58 @@ export interface DashboardData {
   recent: Transaction[];
   spending_trend: Array<{ month: string; total: number }>;
   sync_status: { status: string; last_synced_at: string; institution_name: string } | null;
-  accounts_summary: { personal: number; business: number; mixed: number };
+  accounts_summary: Record<string, number>;
+  savings_recommendations: SavingsRecommendation[];
+  savings_target: {
+    monthly_target: number;
+    motivation: string | null;
+    goal_total: number | null;
+    current_month: { cumulative_saved: number; [key: string]: unknown } | null;
+  } | null;
+  unused_subscription_details: Array<{
+    id: number;
+    merchant_name: string;
+    merchant_normalized: string | null;
+    amount: number;
+    last_charge_date: string | null;
+    last_used_at: string | null;
+    annual_cost: number;
+  }>;
+  ai_stats: {
+    auto_categorized: number;
+    pending_review: number;
+    questions_generated: number;
+  };
 }
 
 export interface TaxSummary {
   year: number;
-  total_business_expenses: number;
-  total_personal_expenses: number;
-  total_tax_deductible: number;
-  deductions_by_category: Array<{
+  total_deductible: number;
+  estimated_tax_savings: number;
+  effective_rate_used: number;
+  transaction_categories: Array<{
     category: string;
-    tax_line: string;
     total: number;
-    count: number;
+    item_count: number;
+  }>;
+  order_item_categories: Array<{
+    category: string;
+    total: number;
+    item_count: number;
   }>;
 }
 
 export interface UserFinancialProfile {
   employment_type: string | null;
-  filing_status: string | null;
+  tax_filing_status: string | null;
   monthly_income: number | null;
   business_type: string | null;
-  tax_year_start: string | null;
+  has_home_office: boolean | null;
+}
+
+export interface UserFinancialProfileResponse {
+  message?: string;
+  profile: UserFinancialProfile | null;
 }
 
 export interface PaginatedResponse<T> {

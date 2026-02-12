@@ -24,7 +24,7 @@ export default function ConfirmDialog({
 
   return (
     <Dialog open={open} onClose={onCancel} className="relative z-50">
-      <DialogBackdrop className="fixed inset-0 bg-black/60 backdrop-blur-sm" />
+      <DialogBackdrop className="fixed inset-0 bg-black/20 backdrop-blur-sm" />
 
       <div className="fixed inset-0 flex items-center justify-center p-4">
         <DialogPanel className="w-full max-w-md rounded-2xl border border-sw-border bg-sw-card p-6 shadow-xl">
@@ -52,7 +52,7 @@ export default function ConfirmDialog({
               className={`px-4 py-2 rounded-lg border-0 text-sm font-semibold transition ${
                 isDanger
                   ? 'bg-sw-danger text-white hover:bg-red-600'
-                  : 'bg-sw-accent text-sw-bg hover:bg-sw-accent-hover'
+                  : 'bg-sw-accent text-white hover:bg-sw-accent-hover'
               }`}
             >
               {confirmText}

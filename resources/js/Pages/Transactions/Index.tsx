@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head } from '@inertiajs/react';
 import {
@@ -9,12 +9,14 @@ import {
   ChevronRight,
   Loader2,
   Inbox,
+  Sparkles,
+  AlertCircle,
 } from 'lucide-react';
 import TransactionRow from '@/Components/SpendWise/TransactionRow';
 import FilterBar, { FilterState } from '@/Components/SpendWise/FilterBar';
 import StatCard from '@/Components/SpendWise/StatCard';
 import { useApi, useApiPost } from '@/hooks/useApi';
-import type { PaginatedResponse, Transaction } from '@/types/spendwise';
+import type { PaginatedResponse, Transaction, ExpenseCategory } from '@/types/spendwise';
 
 function buildUrl(filters: FilterState, page: number): string {
   const params = new URLSearchParams();
@@ -32,7 +34,56 @@ export default function TransactionsIndex() {
   const [page, setPage] = useState(1);
   const url = buildUrl(filters, page);
   const { data, loading, error, refresh, mutate } = useApi<PaginatedResponse<Transaction>>(url);
+  const { data: categoriesData } = useApi<ExpenseCategory[]>('/api/v1/categories');
   const { submit: updateCategory } = useApiPost<unknown, { category: string }>('', 'PATCH');
+  const { submit: categorizeNow, loading: categorizing } = useApiPost<{
+    message: string;
+    auto_categorized?: number;
+    needs_review?: number;
+    still_pending?: number;
+    processed?: number;
+  }>('/api/v1/transactions/categorize');
+  const [categorizationResult, setCategorizationResult] = useState<string | null>(null);
+  const autoCategorizedRef = useRef(false);
+
+  const categoryNames = useMemo(
+    () => (categoriesData || []).map((c) => c.name).sort(),
+    [categoriesData]
+  );
+
+  const transactions = data?.data || [];
+  const meta = data?.meta;
+  const reviewCount = transactions.filter((tx) => tx.review_status === 'needs_review').length;
+
+  // Auto-categorize pending transactions on first load
+  useEffect(() => {
+    if (!data || autoCategorizedRef.current) return;
+
+    const hasPending = transactions.some(
+      (tx) => tx.review_status === 'pending_ai' || tx.review_status === 'needs_review'
+    );
+
+    if (hasPending) {
+      autoCategorizedRef.current = true;
+      (async () => {
+        const result = await categorizeNow();
+        if (result && (result.auto_categorized || result.needs_review)) {
+          setCategorizationResult(
+            `AI categorized ${result.auto_categorized ?? 0} transactions automatically, ${result.needs_review ?? 0} need review.`
+          );
+          refresh();
+        }
+      })();
+    }
+  }, [data]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleCategorize = async () => {
+    const result = await categorizeNow();
+    if (result) {
+      setCategorizationResult(result.message);
+    }
+    refresh();
+  };
 
   const handleFilterChange = useCallback((newFilters: FilterState) => {
     setFilters(newFilters);
@@ -41,14 +92,28 @@ export default function TransactionsIndex() {
 
   const handleCategoryChange = useCallback(
     async (id: number, category: string) => {
-      await updateCategory({ category }, { url: `/api/v1/transactions/${id}/category`, method: 'PATCH' } as never);
+      const result = await updateCategory({ category }, { url: `/api/v1/transactions/${id}/category`, method: 'PATCH' } as never) as { message?: string; matched?: number } | undefined;
+      if (result?.matched && result.matched > 0) {
+        setCategorizationResult(result.message ?? `Also updated ${result.matched} matching transaction${result.matched !== 1 ? 's' : ''}`);
+      }
       refresh();
     },
     [updateCategory, refresh]
   );
 
-  const transactions = data?.data || [];
-  const meta = data?.meta;
+  const handleConfirm = useCallback(
+    async (id: number) => {
+      const tx = transactions.find((t) => t.id === id);
+      if (!tx) return;
+      const category = tx.category || tx.ai_category || 'Uncategorized';
+      const result = await updateCategory({ category }, { url: `/api/v1/transactions/${id}/category`, method: 'PATCH' } as never) as { message?: string; matched?: number } | undefined;
+      if (result?.matched && result.matched > 0) {
+        setCategorizationResult(result.message ?? `Also updated ${result.matched} matching transaction${result.matched !== 1 ? 's' : ''}`);
+      }
+      refresh();
+    },
+    [updateCategory, refresh, transactions]
+  );
 
   // Compute summary stats
   const totalAmount = transactions.reduce((sum, tx) => sum + Math.abs(tx.amount), 0);
@@ -58,9 +123,19 @@ export default function TransactionsIndex() {
   return (
     <AuthenticatedLayout
       header={
-        <div>
-          <h1 className="text-xl font-bold text-sw-text tracking-tight">Transactions</h1>
-          <p className="text-xs text-sw-dim mt-0.5">View and manage all your transactions</p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-xl font-bold text-sw-text tracking-tight">Transactions</h1>
+            <p className="text-xs text-sw-dim mt-0.5">View and manage all your transactions</p>
+          </div>
+          <button
+            onClick={handleCategorize}
+            disabled={categorizing}
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-sw-accent text-white text-sm font-semibold hover:bg-sw-accent-hover transition disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {categorizing ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
+            {categorizing ? 'Categorizing...' : 'AI Categorize'}
+          </button>
         </div>
       }
     >
@@ -87,6 +162,47 @@ export default function TransactionsIndex() {
         </div>
       )}
 
+      {/* Auto-categorization banner */}
+      {categorizing && (
+        <div className="flex items-center gap-3 rounded-xl border border-violet-200 bg-sw-info-light p-4 mb-4">
+          <Loader2 size={18} className="animate-spin text-sw-info shrink-0" />
+          <div>
+            <div className="text-sm font-semibold text-sw-text">AI is categorizing your transactions...</div>
+            <div className="text-xs text-sw-muted mt-0.5">This may take 15-30 seconds depending on volume.</div>
+          </div>
+        </div>
+      )}
+
+      {categorizationResult && !categorizing && (
+        <div className="flex items-center justify-between rounded-xl border border-emerald-200 bg-emerald-50 p-4 mb-4">
+          <div className="flex items-center gap-3">
+            <Sparkles size={18} className="text-emerald-600 shrink-0" />
+            <span className="text-sm text-emerald-800">{categorizationResult}</span>
+          </div>
+          <button
+            onClick={() => setCategorizationResult(null)}
+            className="text-xs text-emerald-600 hover:text-emerald-800 transition"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
+
+      {/* Needs review banner */}
+      {reviewCount > 0 && !categorizing && (
+        <div className="flex items-center gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4 mb-4">
+          <AlertCircle size={18} className="text-amber-600 shrink-0" />
+          <div className="flex-1">
+            <div className="text-sm font-semibold text-sw-text">
+              {reviewCount} transaction{reviewCount !== 1 ? 's' : ''} need{reviewCount === 1 ? 's' : ''} review
+            </div>
+            <div className="text-xs text-sw-muted mt-0.5">
+              AI categorized these with moderate confidence. Click <strong>Confirm</strong> to accept, or change the category.
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Filter bar */}
       <FilterBar filters={filters} onChange={handleFilterChange} />
 
@@ -97,7 +213,7 @@ export default function TransactionsIndex() {
           <p className="text-sm text-sw-text mb-3">{error}</p>
           <button
             onClick={refresh}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-sw-accent text-sw-bg text-sm font-semibold hover:bg-sw-accent-hover transition"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-sw-accent text-white text-sm font-semibold hover:bg-sw-accent-hover transition"
           >
             <RefreshCw size={14} /> Retry
           </button>
@@ -118,7 +234,9 @@ export default function TransactionsIndex() {
             <TransactionRow
               key={tx.id}
               transaction={tx}
+              categories={categoryNames}
               onCategoryChange={handleCategoryChange}
+              onConfirm={handleConfirm}
             />
           ))}
         </div>
@@ -166,7 +284,7 @@ export default function TransactionsIndex() {
                 onClick={() => setPage(pageNum)}
                 className={`w-9 h-9 rounded-lg text-xs font-medium transition ${
                   pageNum === page
-                    ? 'bg-sw-accent text-sw-bg'
+                    ? 'bg-sw-accent text-white'
                     : 'border border-sw-border text-sw-muted hover:text-sw-text'
                 }`}
               >

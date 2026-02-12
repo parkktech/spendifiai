@@ -1,25 +1,25 @@
 <?php
 
+use App\Http\Controllers\Api\AIQuestionController;
+use App\Http\Controllers\Api\BankAccountController;
+use App\Http\Controllers\Api\DashboardController;
+use App\Http\Controllers\Api\EmailConnectionController;
+use App\Http\Controllers\Api\PlaidController;
+use App\Http\Controllers\Api\SavingsController;
+use App\Http\Controllers\Api\SubscriptionController;
+use App\Http\Controllers\Api\TaxController;
+use App\Http\Controllers\Api\TransactionController;
+use App\Http\Controllers\Api\UserProfileController;
 use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\Auth\EmailVerificationController;
 use App\Http\Controllers\Auth\PasswordResetController;
 use App\Http\Controllers\Auth\SocialAuthController;
 use App\Http\Controllers\Auth\TwoFactorController;
-use App\Http\Controllers\Api\DashboardController;
-use App\Http\Controllers\Api\TransactionController;
-use App\Http\Controllers\Api\PlaidController;
-use App\Http\Controllers\Api\BankAccountController;
-use App\Http\Controllers\Api\SubscriptionController;
-use App\Http\Controllers\Api\SavingsController;
-use App\Http\Controllers\Api\TaxController;
-use App\Http\Controllers\Api\AIQuestionController;
-use App\Http\Controllers\Api\EmailConnectionController;
-use App\Http\Controllers\Api\UserProfileController;
 use Illuminate\Support\Facades\Route;
 
 /*
 |--------------------------------------------------------------------------
-| API Routes — SpendWise
+| API Routes — LedgerIQ
 |--------------------------------------------------------------------------
 |
 | All routes are prefixed with /api automatically.
@@ -54,12 +54,11 @@ Route::prefix('auth')->group(function () {
     // reCAPTCHA config for frontend
     Route::get('/captcha-config', function () {
         return response()->json([
-            'enabled'  => config('spendwise.captcha.enabled'),
+            'enabled' => config('spendwise.captcha.enabled'),
             'site_key' => config('spendwise.captcha.site_key'),
         ]);
     });
 });
-
 
 // ══════════════════════════════════════════════════════════
 // WEBHOOKS (no auth — verified by provider signatures)
@@ -100,11 +99,18 @@ Route::middleware(['auth:sanctum'])->group(function () {
         });
     });
 
-    // ─── SpendWise API v1 ───
+    // ─── LedgerIQ API v1 ───
     Route::prefix('v1')->middleware('throttle:120,1')->group(function () {
 
         // Dashboard
         Route::get('/dashboard', [DashboardController::class, 'index']);
+
+        // Expense Categories (reference data)
+        Route::get('/categories', function () {
+            return \App\Models\ExpenseCategory::orderBy('name')
+                ->select('id', 'name', 'slug')
+                ->get();
+        });
 
         // Plaid Bank Linking
         Route::prefix('plaid')->group(function () {
@@ -129,6 +135,8 @@ Route::middleware(['auth:sanctum'])->group(function () {
             // Transactions
             Route::get('/transactions', [TransactionController::class, 'index']);
             Route::patch('/transactions/{transaction}/category', [TransactionController::class, 'updateCategory']);
+            Route::post('/transactions/categorize', [TransactionController::class, 'categorize'])
+                ->middleware('throttle:5,1');
 
             // Subscriptions
             Route::get('/subscriptions', [SubscriptionController::class, 'index']);
@@ -165,10 +173,14 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
         // Email Connections
         Route::prefix('email')->group(function () {
+            Route::get('/connections', [EmailConnectionController::class, 'index']);
             Route::post('/connect/{provider}', [EmailConnectionController::class, 'connect']);
+            Route::post('/connect-imap', [EmailConnectionController::class, 'connectImap']);
+            Route::post('/test', [EmailConnectionController::class, 'testConnection']);
+            Route::post('/setup-instructions', [EmailConnectionController::class, 'setupInstructions']);
             Route::get('/callback/{provider}', [EmailConnectionController::class, 'callback']);
             Route::post('/sync', [EmailConnectionController::class, 'sync']);
-            Route::delete('/{connection}', [EmailConnectionController::class, 'disconnect']);
+            Route::delete('/{emailConnection}', [EmailConnectionController::class, 'disconnect']);
         });
 
         // User Profile

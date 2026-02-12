@@ -19,7 +19,7 @@ export default function QuestionCard({ question, onAnswer }: QuestionCardProps) 
   const [submitting, setSubmitting] = useState(false);
   const [answered, setAnswered] = useState(false);
 
-  const isMultipleChoice = question.question_type === 'multiple_choice';
+  const hasOptions = question.options && question.options.length > 0;
   const tx = question.transaction;
 
   const handleAnswer = async (answer: string) => {
@@ -47,8 +47,8 @@ export default function QuestionCard({ question, onAnswer }: QuestionCardProps) 
     >
       {/* Header */}
       <div className="flex items-start gap-3 mb-4">
-        <div className="w-8 h-8 rounded-lg bg-purple-500/10 border border-purple-500/20 flex items-center justify-center shrink-0">
-          <Sparkles size={15} className="text-purple-400" />
+        <div className="w-8 h-8 rounded-lg bg-sw-info-light border border-violet-200 flex items-center justify-center shrink-0">
+          <Sparkles size={15} className="text-sw-info" />
         </div>
         <div className="flex-1 min-w-0">
           {tx && (
@@ -64,14 +64,14 @@ export default function QuestionCard({ question, onAnswer }: QuestionCardProps) 
               )}
             </div>
           )}
-          <p className="text-[13px] text-sw-text leading-relaxed">{question.question_text}</p>
+          <p className="text-[13px] text-sw-text leading-relaxed">{question.question}</p>
         </div>
       </div>
 
       {/* Answer Options */}
-      {isMultipleChoice && question.options ? (
+      {hasOptions ? (
         <div className="flex gap-2 flex-wrap">
-          {question.options.map((opt) => (
+          {question.options!.map((opt) => (
             <button
               key={opt}
               onClick={() => !answered && handleAnswer(opt)}
@@ -101,7 +101,7 @@ export default function QuestionCard({ question, onAnswer }: QuestionCardProps) 
           <button
             onClick={handleFreeTextSubmit}
             disabled={!freeText.trim() || answered || submitting}
-            className="px-3 py-2 rounded-lg bg-sw-accent text-sw-bg text-xs font-semibold hover:bg-sw-accent-hover transition disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-3 py-2 rounded-lg bg-sw-accent text-white text-xs font-semibold hover:bg-sw-accent-hover transition disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {submitting ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
           </button>

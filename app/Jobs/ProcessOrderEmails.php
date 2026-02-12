@@ -3,11 +3,11 @@
 namespace App\Jobs;
 
 use App\Models\EmailConnection;
-use App\Models\ParsedEmail;
 use App\Models\Order;
 use App\Models\OrderItem;
-use App\Services\Email\GmailService;
+use App\Models\ParsedEmail;
 use App\Services\AI\EmailParserService;
+use App\Services\Email\GmailService;
 use Carbon\Carbon;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -22,16 +22,17 @@ class ProcessOrderEmails implements ShouldQueue
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     public int $tries = 3;
+
     public int $timeout = 300;
 
     public function __construct(
-        protected EmailConnection $connection,
+        protected EmailConnection $emailConnection,
         protected ?string $sinceDate = null
     ) {}
 
     public function handle(GmailService $gmailService, EmailParserService $parser): void
     {
-        $connection = $this->connection;
+        $connection = $this->emailConnection;
         $connection->update(['sync_status' => 'syncing']);
 
         try {
@@ -75,16 +76,18 @@ class ProcessOrderEmails implements ShouldQueue
                             'parse_error' => $parsed['error'],
                             'raw_parsed_data' => $parsed,
                         ]);
+
                         continue;
                     }
 
                     // Step 5: Store results
-                    if (!($parsed['is_purchase'] ?? false)) {
+                    if (! ($parsed['is_purchase'] ?? false)) {
                         $parsedEmail->update([
                             'parse_status' => 'skipped',
                             'is_purchase' => false,
                             'raw_parsed_data' => $parsed,
                         ]);
+
                         continue;
                     }
 
@@ -161,7 +164,7 @@ class ProcessOrderEmails implements ShouldQueue
                 'last_synced_at' => now(),
             ]);
 
-            Log::info("Email sync completed", [
+            Log::info('Email sync completed', [
                 'connection_id' => $connection->id,
                 'processed' => $processed,
                 'orders_created' => $orders_created,

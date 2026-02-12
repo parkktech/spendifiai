@@ -9,16 +9,16 @@ interface RecommendationCardProps {
   onApply: (id: number) => void;
 }
 
-const priorityBorder: Record<string, string> = {
-  high: 'border-l-sw-danger',
+const difficultyBorder: Record<string, string> = {
+  hard: 'border-l-sw-danger',
   medium: 'border-l-sw-warning',
-  low: 'border-l-sw-accent',
+  easy: 'border-l-sw-success',
 };
 
-const priorityVariant: Record<string, 'danger' | 'warning' | 'success'> = {
-  high: 'danger',
+const difficultyVariant: Record<string, 'danger' | 'warning' | 'success'> = {
+  hard: 'danger',
   medium: 'warning',
-  low: 'success',
+  easy: 'success',
 };
 
 const fmt = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
@@ -26,8 +26,8 @@ const fmt = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' 
 export default function RecommendationCard({ recommendation, onDismiss, onApply }: RecommendationCardProps) {
   const [expanded, setExpanded] = useState(false);
   const isApplied = recommendation.status === 'applied';
-  const borderClass = priorityBorder[recommendation.priority] ?? 'border-l-sw-border';
-  const variant = priorityVariant[recommendation.priority] ?? 'neutral';
+  const borderClass = difficultyBorder[recommendation.difficulty] ?? 'border-l-sw-border';
+  const variant = difficultyVariant[recommendation.difficulty] ?? 'neutral';
 
   return (
     <div
@@ -47,15 +47,15 @@ export default function RecommendationCard({ recommendation, onDismiss, onApply 
           <p className="text-xs text-sw-muted leading-relaxed">{recommendation.description}</p>
         </div>
         <div className="text-right shrink-0">
-          <div className="text-lg font-bold text-sw-accent">{fmt.format(recommendation.potential_savings)}</div>
-          <div className="text-[10px] text-sw-dim">potential savings</div>
+          <div className="text-lg font-bold text-sw-accent">{fmt.format(recommendation.monthly_savings)}/mo</div>
+          <div className="text-[10px] text-sw-dim">{fmt.format(recommendation.annual_savings)}/yr</div>
         </div>
       </div>
 
       {/* Category + priority badges */}
       <div className="flex items-center gap-2 mb-3">
         <Badge variant={variant as 'success' | 'warning' | 'danger'}>
-          {recommendation.priority}
+          {recommendation.difficulty}
         </Badge>
         <Badge variant="info">{recommendation.category}</Badge>
       </div>

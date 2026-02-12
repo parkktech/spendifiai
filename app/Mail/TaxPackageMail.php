@@ -5,9 +5,9 @@ namespace App\Mail;
 use App\Models\User;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
+use Illuminate\Mail\Mailables\Attachment;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
-use Illuminate\Mail\Mailables\Attachment;
 use Illuminate\Queue\SerializesModels;
 
 class TaxPackageMail extends Mailable
@@ -24,7 +24,7 @@ class TaxPackageMail extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: "SpendWise Tax Export — {$this->year} for {$this->user->name}",
+            subject: config('app.name')." Tax Export — {$this->year} for {$this->user->name}",
             replyTo: [$this->user->email],
         );
     }
@@ -42,19 +42,19 @@ class TaxPackageMail extends Mailable
 
         if (isset($this->files['xlsx']) && file_exists($this->files['xlsx'])) {
             $attachments[] = Attachment::fromPath($this->files['xlsx'])
-                ->as("SpendWise_Tax_{$this->year}.xlsx")
+                ->as("LedgerIQ_Tax_{$this->year}.xlsx")
                 ->withMime('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
         }
 
         if (isset($this->files['pdf']) && file_exists($this->files['pdf'])) {
             $attachments[] = Attachment::fromPath($this->files['pdf'])
-                ->as("SpendWise_Tax_Summary_{$this->year}.pdf")
+                ->as("LedgerIQ_Tax_Summary_{$this->year}.pdf")
                 ->withMime('application/pdf');
         }
 
         if (isset($this->files['csv']) && file_exists($this->files['csv'])) {
             $attachments[] = Attachment::fromPath($this->files['csv'])
-                ->as("SpendWise_Transactions_{$this->year}.csv")
+                ->as("LedgerIQ_Transactions_{$this->year}.csv")
                 ->withMime('text/csv');
         }
 

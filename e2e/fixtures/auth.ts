@@ -6,16 +6,13 @@ type AuthFixtures = {
 
 export const test = base.extend<AuthFixtures>({
     authenticatedPage: async ({ page }, use) => {
-        const uniqueEmail = `e2e-${Date.now()}@test.com`;
+        // Login with pre-created demo user (email already verified)
+        await page.goto('/login');
+        await page.fill('[name="email"]', 'demo@ledgeriq.loc');
+        await page.fill('[name="password"]', 'Demo1234!');
+        await page.getByRole('button', { name: /log in/i }).click();
 
-        await page.goto('/register');
-        await page.fill('[name="name"]', 'E2E Test User');
-        await page.fill('[name="email"]', uniqueEmail);
-        await page.fill('[name="password"]', 'TestPassword123!');
-        await page.fill('[name="password_confirmation"]', 'TestPassword123!');
-        await page.click('button[type="submit"]');
-
-        await page.waitForURL('**/dashboard', { timeout: 10000 });
+        await page.waitForURL('**/dashboard', { timeout: 15000 });
 
         await use(page);
     },

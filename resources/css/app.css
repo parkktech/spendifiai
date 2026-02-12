@@ -1,19 +1,44 @@
 @import "tailwindcss";
 
 @theme {
-  --color-sw-bg: #0B0F1A;
-  --color-sw-sidebar: #0F1629;
-  --color-sw-card: #111827;
-  --color-sw-card-hover: #1a2332;
-  --color-sw-border: #1e293b;
-  --color-sw-accent: #10b981;
-  --color-sw-accent-hover: #059669;
-  --color-sw-danger: #ef4444;
-  --color-sw-warning: #f59e0b;
-  --color-sw-text: #f1f5f9;
-  --color-sw-muted: #94a3b8;
-  --color-sw-dim: #64748b;
-  --font-sans: 'Figtree', ui-sans-serif, system-ui, sans-serif;
+  /* Backgrounds */
+  --color-sw-bg: #f8fafc;
+  --color-sw-sidebar: #ffffff;
+  --color-sw-card: #ffffff;
+  --color-sw-card-hover: #f1f5f9;
+  --color-sw-surface: #f1f5f9;
+
+  /* Borders */
+  --color-sw-border: #e2e8f0;
+  --color-sw-border-strong: #cbd5e1;
+
+  /* Primary accent — blue */
+  --color-sw-accent: #2563eb;
+  --color-sw-accent-hover: #1d4ed8;
+  --color-sw-accent-light: #eff6ff;
+  --color-sw-accent-muted: #dbeafe;
+
+  /* Secondary — success/emerald */
+  --color-sw-success: #059669;
+  --color-sw-success-light: #ecfdf5;
+
+  /* Status colors */
+  --color-sw-danger: #dc2626;
+  --color-sw-danger-light: #fef2f2;
+  --color-sw-warning: #d97706;
+  --color-sw-warning-light: #fffbeb;
+  --color-sw-info: #7c3aed;
+  --color-sw-info-light: #f5f3ff;
+
+  /* Text */
+  --color-sw-text: #0f172a;
+  --color-sw-text-secondary: #334155;
+  --color-sw-muted: #64748b;
+  --color-sw-dim: #94a3b8;
+  --color-sw-placeholder: #cbd5e1;
+
+  /* Font */
+  --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
 }
 
 body {

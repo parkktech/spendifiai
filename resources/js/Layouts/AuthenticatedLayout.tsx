@@ -91,15 +91,31 @@ export default function AuthenticatedLayout({
     <>
       {/* Logo */}
       <div className="flex items-center gap-3 px-5 py-5 border-b border-sw-border">
-        <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-sw-accent to-blue-500 flex items-center justify-center text-sw-bg font-extrabold text-base shrink-0">
-          $
-        </div>
-        {!collapsed && (
-          <div>
-            <div className="text-[15px] font-bold text-sw-text tracking-tight">LedgerIQ</div>
-            <div className="text-[10px] text-sw-dim uppercase tracking-wider">AI Expense Tracker</div>
-          </div>
-        )}
+        <Link href="/dashboard" className="flex items-center gap-2">
+          <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" className="h-9 w-9 shrink-0">
+            <rect width="40" height="40" rx="10" fill="url(#sidebar-logo-gradient)" />
+            <path d="M8 28.5 Q20 31 32 28.5" stroke="white" strokeWidth="2.2" strokeLinecap="round" fill="none" />
+            <rect x="12.5" y="22" width="3.5" height="6.5" rx="1.5" fill="white" fillOpacity="0.55" />
+            <rect x="18" y="17" width="3.5" height="11.5" rx="1.5" fill="white" fillOpacity="0.75" />
+            <rect x="23.5" y="12" width="3.5" height="16.5" rx="1.5" fill="white" />
+            <circle cx="25.25" cy="9.5" r="1.6" fill="white" fillOpacity="0.9" />
+            <line x1="25.25" y1="6" x2="25.25" y2="7.5" stroke="white" strokeWidth="1" strokeLinecap="round" opacity="0.7" />
+            <line x1="22.5" y1="9.5" x2="23.2" y2="9.5" stroke="white" strokeWidth="1" strokeLinecap="round" opacity="0.7" />
+            <line x1="27.3" y1="9.5" x2="28" y2="9.5" stroke="white" strokeWidth="1" strokeLinecap="round" opacity="0.7" />
+            <defs>
+              <linearGradient id="sidebar-logo-gradient" x1="0" y1="0" x2="40" y2="40" gradientUnits="userSpaceOnUse">
+                <stop stopColor="#2563eb" />
+                <stop offset="1" stopColor="#7c3aed" />
+              </linearGradient>
+            </defs>
+          </svg>
+          {!collapsed && (
+            <div>
+              <div className="text-[15px] font-bold text-sw-text tracking-tight">Ledger<span className="text-sw-accent">IQ</span></div>
+              <div className="text-[10px] text-sw-dim font-medium tracking-wide">AI-Powered Financial Intelligence</div>
+            </div>
+          )}
+        </Link>
       </div>
 
       {/* Nav */}
@@ -142,7 +158,7 @@ export default function AuthenticatedLayout({
       {/* Mobile sidebar overlay */}
       {mobileOpen && (
         <div className="sm:hidden fixed inset-0 z-40">
-          <div className="absolute inset-0 bg-black/60" onClick={() => setMobileOpen(false)} />
+          <div className="absolute inset-0 bg-black/20" onClick={() => setMobileOpen(false)} />
           <aside className="relative w-64 h-full bg-sw-sidebar border-r border-sw-border flex flex-col z-50">
             <button
               onClick={() => setMobileOpen(false)}
@@ -159,7 +175,7 @@ export default function AuthenticatedLayout({
       {/* Main content area */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Top bar */}
-        <header className="shrink-0 h-16 flex items-center justify-between px-6 border-b border-sw-border bg-sw-card">
+        <header className="shrink-0 h-16 flex items-center justify-between px-6 border-b border-sw-border bg-sw-card shadow-sm">
           <div className="flex items-center gap-4">
             {/* Mobile hamburger */}
             <button
