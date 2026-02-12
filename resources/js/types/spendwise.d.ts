@@ -14,6 +14,8 @@ export interface Transaction {
   account_purpose: string;
   tax_deductible: boolean;
   is_subscription: boolean;
+  is_reconciled: boolean;
+  matched_order_id: number | null;
   category: string;
   account?: BankAccount;
 }

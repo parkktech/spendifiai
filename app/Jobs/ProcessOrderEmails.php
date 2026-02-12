@@ -8,6 +8,7 @@ use App\Models\OrderItem;
 use App\Models\ParsedEmail;
 use App\Services\AI\EmailParserService;
 use App\Services\Email\GmailService;
+use App\Services\Email\ImapEmailService;
 use Carbon\Carbon;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -30,7 +31,7 @@ class ProcessOrderEmails implements ShouldQueue
         protected ?string $sinceDate = null
     ) {}
 
-    public function handle(GmailService $gmailService, EmailParserService $parser): void
+    public function handle(GmailService $gmailService, ImapEmailService $imapService, EmailParserService $parser): void
     {
         $connection = $this->emailConnection;
         $connection->update(['sync_status' => 'syncing']);
@@ -40,10 +41,12 @@ class ProcessOrderEmails implements ShouldQueue
                 ? Carbon::parse($this->sinceDate)
                 : null;
 
-            // Step 1: Fetch new email IDs from Gmail
-            $messageIds = $gmailService->fetchOrderEmails($connection, $since);
+            // Step 1: Fetch emails — route to correct service based on connection type
+            $emails = $connection->connection_type === 'imap'
+                ? $this->fetchViaImap($imapService, $connection, $since)
+                : $this->fetchViaGmail($gmailService, $connection, $since);
 
-            $count = count($messageIds);
+            $count = count($emails);
             Log::info("Found {$count} new potential order emails", [
                 'count' => $count,
                 'connection_id' => $connection->id,
@@ -52,23 +55,20 @@ class ProcessOrderEmails implements ShouldQueue
             $processed = 0;
             $orders_created = 0;
 
-            foreach ($messageIds as $messageId) {
+            foreach ($emails as $emailData) {
                 try {
-                    // Step 2: Get full email content
-                    $emailContent = $gmailService->getEmailContent($messageId);
-
-                    // Step 3: Create parsed email record (uses correct column names)
+                    // Step 2: Create parsed email record
                     $parsedEmail = ParsedEmail::create([
                         'user_id' => $connection->user_id,
                         'email_connection_id' => $connection->id,
-                        'email_message_id' => $messageId,
-                        'email_thread_id' => $emailContent['thread_id'],
-                        'email_date' => Carbon::parse($emailContent['date']),
+                        'email_message_id' => $emailData['message_id'],
+                        'email_thread_id' => $emailData['thread_id'] ?? null,
+                        'email_date' => Carbon::parse($emailData['date']),
                         'parse_status' => 'pending',
                     ]);
 
-                    // Step 4: Send to Claude for parsing
-                    $parsed = $parser->parseOrderEmail($emailContent);
+                    // Step 3: Send to Claude for parsing
+                    $parsed = $parser->parseOrderEmail($emailData);
 
                     if (isset($parsed['error'])) {
                         $parsedEmail->update([
@@ -80,7 +80,7 @@ class ProcessOrderEmails implements ShouldQueue
                         continue;
                     }
 
-                    // Step 5: Store results
+                    // Step 4: Store results
                     if (! ($parsed['is_purchase'] ?? false)) {
                         $parsedEmail->update([
                             'parse_status' => 'skipped',
@@ -91,7 +91,7 @@ class ProcessOrderEmails implements ShouldQueue
                         continue;
                     }
 
-                    // Step 6: Create order with individual items in a transaction
+                    // Step 5: Create order with individual items in a transaction
                     DB::transaction(function () use ($parsedEmail, $parsed, $connection, &$orders_created) {
                         $order = Order::create([
                             'user_id' => $connection->user_id,
@@ -107,7 +107,6 @@ class ProcessOrderEmails implements ShouldQueue
                             'currency' => $parsed['currency'] ?? 'USD',
                         ]);
 
-                        // THE KEY PART — individual products
                         foreach ($parsed['items'] ?? [] as $item) {
                             OrderItem::create([
                                 'order_id' => $order->id,
@@ -141,11 +140,11 @@ class ProcessOrderEmails implements ShouldQueue
 
                     $processed++;
 
-                    // Rate limiting — don't hammer Gmail or Claude API
+                    // Rate limiting — don't hammer email provider or Claude API
                     usleep(500000); // 0.5 second between emails
 
                 } catch (\Exception $e) {
-                    Log::error("Failed to process email {$messageId}", [
+                    Log::error("Failed to process email {$emailData['message_id']}", [
                         'error' => $e->getMessage(),
                         'connection_id' => $connection->id,
                     ]);
@@ -178,6 +177,45 @@ class ProcessOrderEmails implements ShouldQueue
             ]);
             throw $e;
         }
+    }
+
+    /**
+     * Fetch emails via IMAP — returns full email data directly.
+     */
+    protected function fetchViaImap(ImapEmailService $imapService, EmailConnection $connection, ?Carbon $since): array
+    {
+        return $imapService->fetchOrderEmails($connection, $since);
+    }
+
+    /**
+     * Fetch emails via Gmail OAuth API — returns message IDs, then fetches full content.
+     */
+    protected function fetchViaGmail(GmailService $gmailService, EmailConnection $connection, ?Carbon $since): array
+    {
+        $messageIds = $gmailService->fetchOrderEmails($connection, $since);
+
+        $emails = [];
+        foreach ($messageIds as $messageId) {
+            try {
+                $emailContent = $gmailService->getEmailContent($messageId);
+                $emails[] = [
+                    'message_id' => $messageId,
+                    'thread_id' => $emailContent['thread_id'] ?? null,
+                    'subject' => $emailContent['subject'] ?? '',
+                    'from' => $emailContent['from'] ?? '',
+                    'date' => $emailContent['date'] ?? '',
+                    'body' => $emailContent['body'] ?? '',
+                    'snippet' => $emailContent['snippet'] ?? '',
+                ];
+            } catch (\Exception $e) {
+                Log::error("Failed to fetch Gmail content for {$messageId}", [
+                    'error' => $e->getMessage(),
+                    'connection_id' => $connection->id,
+                ]);
+            }
+        }
+
+        return $emails;
     }
 
     /**

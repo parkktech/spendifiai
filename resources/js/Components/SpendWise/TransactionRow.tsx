@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Receipt, Check, ChevronDown, CheckCircle, Search } from 'lucide-react';
+import { Receipt, Check, ChevronDown, CheckCircle, Search, Mail } from 'lucide-react';
 import Badge from './Badge';
 import type { Transaction } from '@/types/spendwise';
 
@@ -55,10 +55,16 @@ export default function TransactionRow({
         className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${
           needsReview
             ? 'bg-sw-warning-light border border-amber-200'
-            : 'bg-sw-accent-light border border-blue-200'
+            : transaction.is_reconciled
+              ? 'bg-emerald-50 border border-emerald-200'
+              : 'bg-sw-accent-light border border-blue-200'
         }`}
       >
-        <Receipt size={16} className={needsReview ? 'text-sw-warning' : 'text-sw-accent'} />
+        {transaction.is_reconciled ? (
+          <Mail size={16} className="text-emerald-600" />
+        ) : (
+          <Receipt size={16} className={needsReview ? 'text-sw-warning' : 'text-sw-accent'} />
+        )}
       </div>
 
       {/* Info */}
@@ -120,6 +126,11 @@ export default function TransactionRow({
           {needsReview && (
             <Badge variant="warning">
               Review{transaction.ai_confidence ? ` (${confidenceLabel(transaction.ai_confidence)})` : ''}
+            </Badge>
+          )}
+          {transaction.is_reconciled && (
+            <Badge variant="info">
+              <Mail size={9} className="inline -mt-px mr-0.5" />Receipt
             </Badge>
           )}
           {transaction.tax_deductible && <Badge variant="success">Tax</Badge>}
