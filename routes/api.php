@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\EmailConnectionController;
 use App\Http\Controllers\Api\PlaidController;
 use App\Http\Controllers\Api\SavingsController;
+use App\Http\Controllers\Api\StatementUploadController;
 use App\Http\Controllers\Api\SubscriptionController;
 use App\Http\Controllers\Api\TaxController;
 use App\Http\Controllers\Api\TransactionController;
@@ -124,12 +125,20 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::get('/accounts', [BankAccountController::class, 'index']);
         Route::patch('/accounts/{account}/purpose', [BankAccountController::class, 'updatePurpose']);
 
+        // Statement Uploads (no bank.connected requirement)
+        Route::prefix('statements')->group(function () {
+            Route::post('/upload', [StatementUploadController::class, 'upload']);
+            Route::post('/import', [StatementUploadController::class, 'import']);
+            Route::get('/history', [StatementUploadController::class, 'history']);
+        });
+
         // ── Routes requiring a linked bank account ──
         Route::middleware('bank.connected')->group(function () {
 
             // AI Questions
             Route::get('/questions', [AIQuestionController::class, 'index']);
             Route::post('/questions/{question}/answer', [AIQuestionController::class, 'answer']);
+            Route::post('/questions/{question}/chat', [AIQuestionController::class, 'chat']);
             Route::post('/questions/bulk-answer', [AIQuestionController::class, 'bulkAnswer']);
 
             // Transactions

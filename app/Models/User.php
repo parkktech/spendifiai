@@ -111,11 +111,17 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->hasMany(SavingsProgress::class);
     }
 
+    public function statementUploads(): HasMany
+    {
+        return $this->hasMany(StatementUpload::class);
+    }
+
     // ─── Helpers ───
 
     public function hasBankConnected(): bool
     {
-        return $this->bankConnections()->where('status', 'active')->exists();
+        return $this->bankConnections()->where('status', 'active')->exists()
+            || $this->statementUploads()->where('status', 'complete')->exists();
     }
 
     public function hasProfileComplete(): bool
