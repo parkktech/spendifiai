@@ -241,20 +241,29 @@ PROMPT;
             } else {
                 $stats['needs_review']++;
 
-                // Generate a question for the user
+                // Generate a question for the user (skip if one already exists)
                 if (! empty($result['suggested_question'])) {
-                    AIQuestion::create([
-                        'user_id' => $userId,
-                        'transaction_id' => $transaction->id,
-                        'question' => $result['suggested_question'],
-                        'options' => $result['question_options'] ?? ['Personal', 'Business', 'Skip'],
-                        'ai_confidence' => $confidence,
-                        'ai_best_guess' => $result['category'],
-                        'question_type' => $result['question_type'] ?? 'category',
-                        'status' => 'pending',
-                    ]);
-                    $stats['questions_generated']++;
+                    $existingQuestion = AIQuestion::where('transaction_id', $transaction->id)
+                        ->where('status', 'pending')
+                        ->exists();
+
+                    if (! $existingQuestion) {
+                        AIQuestion::create([
+                            'user_id' => $userId,
+                            'transaction_id' => $transaction->id,
+                            'question' => $result['suggested_question'],
+                            'options' => $result['question_options'] ?? ['Personal', 'Business', 'Skip'],
+                            'ai_confidence' => $confidence,
+                            'ai_best_guess' => $result['category'],
+                            'question_type' => $result['question_type'] ?? 'category',
+                            'status' => 'pending',
+                        ]);
+                        $stats['questions_generated']++;
+                    }
                 }
+
+                // Mark as ai_uncertain so it won't be re-processed
+                $transaction->update(['review_status' => 'ai_uncertain']);
             }
         }
 

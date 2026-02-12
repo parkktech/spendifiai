@@ -89,7 +89,7 @@ it('flags transactions for review with confidence 0.60-0.84', function () {
     $result = $service->categorizeBatch(collect([$tx]), $user->id);
 
     expect($result['needs_review'])->toBe(1);
-    expect($tx->fresh()->review_status->value)->toBe('needs_review');
+    expect($tx->fresh()->review_status->value)->toBe('ai_uncertain');
     expect(AIQuestion::where('transaction_id', $tx->id)->count())->toBe(1);
 });
 

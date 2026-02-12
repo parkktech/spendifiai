@@ -88,13 +88,17 @@ class DashboardController extends Controller
                 ->orderByDesc('total')
                 ->get();
 
-            // Pending AI questions
-            $questions = AIQuestion::where('user_id', $user->id)
+            // Pending AI questions (total count + limited preview)
+            $questionsQuery = AIQuestion::where('user_id', $user->id)
                 ->where('status', 'pending')
-                ->with('transaction:id,merchant_name,amount,transaction_date,account_purpose')
                 ->when($viewMode !== 'all', function ($q) use ($viewMode) {
                     $q->whereHas('transaction', fn ($tq) => $tq->where('account_purpose', $viewMode));
-                })
+                });
+
+            $pendingQuestionsCount = (clone $questionsQuery)->count();
+
+            $questions = $questionsQuery
+                ->with('transaction:id,merchant_name,amount,transaction_date,account_purpose')
                 ->orderByDesc('created_at')
                 ->limit(10)
                 ->get();
@@ -228,7 +232,7 @@ class DashboardController extends Controller
                     'tax_deductible_ytd' => round($taxDeductible, 2),
                     'needs_review' => $needsReview,
                     'unused_subscriptions' => $unusedSubs,
-                    'pending_questions' => $questions->count(),
+                    'pending_questions' => $pendingQuestionsCount,
                 ],
                 'categories' => $categories,
                 'questions' => $questions,
@@ -250,7 +254,7 @@ class DashboardController extends Controller
                 'ai_stats' => [
                     'auto_categorized' => $autoCategorized,
                     'pending_review' => $pendingReview,
-                    'questions_generated' => $questions->count(),
+                    'questions_generated' => $pendingQuestionsCount,
                 ],
             ];
         }));

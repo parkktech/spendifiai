@@ -18,13 +18,13 @@ import type { AIQuestion } from '@/types/spendwise';
 import axios from 'axios';
 
 export default function QuestionsIndex() {
-  const { data, loading, error, refresh } = useApi<{ data: AIQuestion[] }>('/api/v1/questions?status=pending');
+  const { data, loading, error, refresh } = useApi<AIQuestion[]>('/api/v1/questions?status=pending');
   const [bulkMode, setBulkMode] = useState(false);
   const [bulkAnswers, setBulkAnswers] = useState<Record<number, string>>({});
   const [bulkSubmitting, setBulkSubmitting] = useState(false);
   const [answeredIds, setAnsweredIds] = useState<Set<number>>(new Set());
 
-  const questions = (data?.data || []).filter((q) => !answeredIds.has(q.id));
+  const questions = (data || []).filter((q) => !answeredIds.has(q.id));
 
   const handleAnswer = useCallback(
     async (id: number, answer: string) => {
