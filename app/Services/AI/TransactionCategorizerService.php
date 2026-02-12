@@ -377,6 +377,86 @@ PROMPT;
     }
 
     /**
+     * Interpret a user's free-text response to an AI question.
+     * Returns a suggested category and explanation.
+     */
+    public function interpretUserResponse(AIQuestion $question, string $userMessage): array
+    {
+        $transaction = $question->transaction;
+
+        $categories = \App\Models\ExpenseCategory::whereNull('user_id')
+            ->orderBy('name')
+            ->pluck('name')
+            ->implode(', ');
+
+        $system = <<<PROMPT
+You are a financial categorization assistant. A user has a transaction that needs categorizing.
+They've been asked a question and are providing additional context instead of picking from the predefined options.
+
+Your job: interpret their response and suggest the best expense category.
+
+Available categories: {$categories}
+
+Return ONLY valid JSON (no markdown):
+{
+  "category": "the best matching category name from the list above",
+  "expense_type": "personal" or "business" or "mixed",
+  "tax_deductible": true or false,
+  "explanation": "A brief 1-2 sentence explanation of why this category fits, acknowledging what the user told you"
+}
+
+Rules:
+- Pick the single best category from the available list
+- If no category fits well, use the closest match
+- Set tax_deductible based on whether a reasonable person would claim this as a business deduction
+- Keep the explanation friendly and concise
+PROMPT;
+
+        $userPrompt = <<<MSG
+Transaction:
+- Merchant: {$transaction->merchant_name}
+- Amount: \${$transaction->amount}
+- Date: {$transaction->transaction_date->format('M j, Y')}
+- Description: {$transaction->description}
+- Account type: {$transaction->account_purpose}
+
+Original question: {$question->question}
+Predefined options: {$this->formatOptions($question->options)}
+
+User's response: {$userMessage}
+MSG;
+
+        $result = $this->callClaude($system, $userPrompt);
+
+        if (isset($result['error'])) {
+            Log::error('AI question chat failed', $result);
+
+            return [
+                'category' => $question->ai_best_guess ?? 'Uncategorized',
+                'expense_type' => 'personal',
+                'tax_deductible' => false,
+                'explanation' => 'Sorry, I had trouble processing that. You can pick from the options above or try again.',
+            ];
+        }
+
+        return [
+            'category' => $result['category'] ?? 'Uncategorized',
+            'expense_type' => $result['expense_type'] ?? 'personal',
+            'tax_deductible' => $result['tax_deductible'] ?? false,
+            'explanation' => $result['explanation'] ?? 'Category updated based on your input.',
+        ];
+    }
+
+    private function formatOptions(?array $options): string
+    {
+        if (! $options || empty($options)) {
+            return 'None';
+        }
+
+        return implode(', ', $options);
+    }
+
+    /**
      * Call Claude API with retry logic.
      */
     protected function callClaude(string $system, string $userMessage): array

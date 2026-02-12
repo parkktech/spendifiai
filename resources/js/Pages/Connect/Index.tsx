@@ -17,13 +17,18 @@ import {
   EyeOff,
   Info,
   ArrowRight,
+  Upload,
+  FileText,
 } from 'lucide-react';
 import PlaidLinkButton from '@/Components/SpendWise/PlaidLinkButton';
 import Badge from '@/Components/SpendWise/Badge';
 import ConfirmDialog from '@/Components/SpendWise/ConfirmDialog';
 import StatCard from '@/Components/SpendWise/StatCard';
+import ConnectionMethodChooser from '@/Components/SpendWise/ConnectionMethodChooser';
+import StatementUploadWizard from '@/Components/SpendWise/StatementUploadWizard';
+import UploadHistory from '@/Components/SpendWise/UploadHistory';
 import { useApi, useApiPost } from '@/hooks/useApi';
-import type { BankAccount } from '@/types/spendwise';
+import type { BankAccount, StatementUploadHistory } from '@/types/spendwise';
 import { usePage } from '@inertiajs/react';
 
 interface EmailConnection {
@@ -165,9 +170,16 @@ export default function ConnectIndex() {
   const [testResult, setTestResult] = useState<{ success: boolean; error?: string; folders?: string[] } | null>(null);
   const [connectError, setConnectError] = useState<string | null>(null);
 
+  // Statement uploads
+  const { data: uploadHistoryData, refresh: refreshUploads } = useApi<{ uploads: StatementUploadHistory[] }>('/api/v1/statements/history');
+  const [showUploadWizard, setShowUploadWizard] = useState(false);
+  const [connectionMode, setConnectionMode] = useState<'choose' | 'plaid' | 'upload' | null>(null);
+
   const accountsList = accounts?.accounts || [];
   const emailConnections = emailData?.connections || [];
+  const uploadHistory = uploadHistoryData?.uploads || [];
   const connectedCount = accountsList.length;
+  const uploadedCount = uploadHistory.length;
   const providerInfo = PROVIDER_INSTRUCTIONS[selectedProvider];
 
   const handleSync = async () => {
@@ -272,12 +284,18 @@ export default function ConnectIndex() {
       <Head title="Connect" />
 
       {/* Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-6">
         <StatCard
           title="Bank Accounts"
           value={connectedCount}
-          subtitle={`${connectedCount} account${connectedCount !== 1 ? 's' : ''} linked`}
+          subtitle={`${connectedCount} account${connectedCount !== 1 ? 's' : ''} linked via Plaid`}
           icon={<Link2 size={18} />}
+        />
+        <StatCard
+          title="Uploaded Statements"
+          value={uploadedCount}
+          subtitle={uploadedCount > 0 ? `${uploadHistory.reduce((s, u) => s + u.transactions_imported, 0)} transactions` : 'Upload PDF or CSV'}
+          icon={<FileText size={18} />}
         />
         <StatCard
           title="Email Connections"
@@ -293,37 +311,111 @@ export default function ConnectIndex() {
         />
       </div>
 
-      {/* Section 1: Connect Your Bank */}
-      <div className="rounded-2xl border border-sw-border bg-sw-card p-6 mb-6">
-        <h3 className="text-[15px] font-semibold text-sw-text mb-2">Connect Your Bank</h3>
-        <p className="text-xs text-sw-muted mb-4 leading-relaxed">
-          Securely link your bank accounts through Plaid to automatically import transactions.
-          We use bank-level encryption and never store your banking credentials.
-        </p>
-        <div className="flex items-center gap-3">
-          <PlaidLinkButton onSuccess={refresh} />
-          <button
-            onClick={handleSync}
-            disabled={syncing || connectedCount === 0}
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg border border-sw-border text-sw-muted text-sm font-medium hover:text-sw-text hover:bg-sw-card-hover transition disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {syncing ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
-            Sync Now
-          </button>
+      {/* Section 1: Add Bank Data (Smart Chooser or Upload Wizard) */}
+      {showUploadWizard ? (
+        <div className="rounded-2xl border border-sw-border bg-sw-card p-6 mb-6">
+          <StatementUploadWizard
+            onComplete={() => {
+              setShowUploadWizard(false);
+              setConnectionMode(null);
+              refresh();
+              refreshUploads();
+            }}
+            onCancel={() => {
+              setShowUploadWizard(false);
+              setConnectionMode(null);
+            }}
+          />
         </div>
-
-        {plaid_env === 'sandbox' && (
-          <div className="mt-4 rounded-xl border border-amber-500/30 bg-amber-500/5 p-4">
-            <p className="text-xs font-semibold text-sw-warning mb-2">Sandbox Mode — Test Credentials</p>
-            <div className="text-xs text-sw-muted space-y-1 leading-relaxed">
-              <p>1. Select <strong className="text-sw-text">First Platypus Bank</strong> from the institution list</p>
-              <p>2. Username: <code className="px-1.5 py-0.5 rounded bg-sw-bg text-sw-accent font-mono">user_good</code></p>
-              <p>3. Password: <code className="px-1.5 py-0.5 rounded bg-sw-bg text-sw-accent font-mono">pass_good</code></p>
-              <p>4. If asked for phone verification, enter any code (e.g. <code className="px-1.5 py-0.5 rounded bg-sw-bg text-sw-accent font-mono">123456</code>)</p>
+      ) : connectionMode === 'plaid' ? (
+        <div className="rounded-2xl border border-sw-border bg-sw-card p-6 mb-6">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h3 className="text-[15px] font-semibold text-sw-text">Connect Your Bank via Plaid</h3>
+              <p className="text-xs text-sw-muted mt-0.5">
+                Securely link your bank accounts for automatic transaction syncing.
+              </p>
             </div>
+            <button
+              onClick={() => setConnectionMode(null)}
+              className="text-xs text-sw-muted hover:text-sw-text transition"
+            >
+              Back to options
+            </button>
           </div>
-        )}
-      </div>
+          <div className="flex items-center gap-3">
+            <PlaidLinkButton onSuccess={() => { refresh(); setConnectionMode(null); }} />
+            <button
+              onClick={handleSync}
+              disabled={syncing || connectedCount === 0}
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg border border-sw-border text-sw-muted text-sm font-medium hover:text-sw-text hover:bg-sw-card-hover transition disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {syncing ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
+              Sync Now
+            </button>
+          </div>
+
+          {plaid_env === 'sandbox' && (
+            <div className="mt-4 rounded-xl border border-amber-500/30 bg-amber-500/5 p-4">
+              <p className="text-xs font-semibold text-sw-warning mb-2">Sandbox Mode -- Test Credentials</p>
+              <div className="text-xs text-sw-muted space-y-1 leading-relaxed">
+                <p>1. Select <strong className="text-sw-text">First Platypus Bank</strong> from the institution list</p>
+                <p>2. Username: <code className="px-1.5 py-0.5 rounded bg-sw-bg text-sw-accent font-mono">user_good</code></p>
+                <p>3. Password: <code className="px-1.5 py-0.5 rounded bg-sw-bg text-sw-accent font-mono">pass_good</code></p>
+                <p>4. If asked for phone verification, enter any code (e.g. <code className="px-1.5 py-0.5 rounded bg-sw-bg text-sw-accent font-mono">123456</code>)</p>
+              </div>
+            </div>
+          )}
+        </div>
+      ) : (
+        <div className="rounded-2xl border border-sw-border bg-sw-card p-6 mb-6">
+          {connectedCount === 0 && uploadedCount === 0 ? (
+            /* First-time experience: equal-weight choice */
+            <ConnectionMethodChooser
+              onChoosePlaid={() => setConnectionMode('plaid')}
+              onChooseUpload={() => setShowUploadWizard(true)}
+            />
+          ) : (
+            /* Returning user: compact actions */
+            <div>
+              <h3 className="text-[15px] font-semibold text-sw-text mb-2">Add More Data</h3>
+              <p className="text-xs text-sw-muted mb-4 leading-relaxed">
+                Connect another bank account or upload additional statements to get more complete analysis.
+              </p>
+              <div className="flex flex-wrap items-center gap-3">
+                <PlaidLinkButton onSuccess={refresh} />
+                <button
+                  onClick={() => setShowUploadWizard(true)}
+                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg border border-sw-border text-sw-text text-sm font-semibold hover:bg-sw-card-hover hover:border-sw-border-strong transition"
+                >
+                  <Upload size={16} />
+                  Upload Statement
+                </button>
+                <button
+                  onClick={handleSync}
+                  disabled={syncing || connectedCount === 0}
+                  className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg border border-sw-border text-sw-muted text-sm font-medium hover:text-sw-text hover:bg-sw-card-hover transition disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {syncing ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
+                  Sync Now
+                </button>
+              </div>
+
+              {plaid_env === 'sandbox' && (
+                <div className="mt-4 rounded-xl border border-amber-500/30 bg-amber-500/5 p-4">
+                  <p className="text-xs font-semibold text-sw-warning mb-2">Sandbox Mode -- Test Credentials</p>
+                  <div className="text-xs text-sw-muted space-y-1 leading-relaxed">
+                    <p>1. Select <strong className="text-sw-text">First Platypus Bank</strong> from the institution list</p>
+                    <p>2. Username: <code className="px-1.5 py-0.5 rounded bg-sw-bg text-sw-accent font-mono">user_good</code></p>
+                    <p>3. Password: <code className="px-1.5 py-0.5 rounded bg-sw-bg text-sw-accent font-mono">pass_good</code></p>
+                    <p>4. If asked for phone verification, enter any code (e.g. <code className="px-1.5 py-0.5 rounded bg-sw-bg text-sw-accent font-mono">123456</code>)</p>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Section 2: Connected Bank Accounts */}
       {loading && (
@@ -406,17 +498,27 @@ export default function ConnectIndex() {
         </div>
       )}
 
-      {!loading && accountsList.length === 0 && !error && (
+      {!loading && accountsList.length === 0 && uploadedCount === 0 && !error && (
         <div className="rounded-2xl border border-sw-border bg-sw-card p-12 text-center mb-6">
           <WifiOff size={40} className="mx-auto text-sw-dim mb-3" />
           <h3 className="text-sm font-semibold text-sw-text mb-1">No accounts connected</h3>
           <p className="text-xs text-sw-muted">
-            Use the "Connect Your Bank" button above to get started
+            Use the options above to link your bank or upload a statement
           </p>
         </div>
       )}
 
-      {/* Section 3: Email Connections */}
+      {/* Section 3: Upload History */}
+      {!showUploadWizard && (
+        <div className="mb-6">
+          <UploadHistory
+            uploads={uploadHistory}
+            onUploadMore={() => setShowUploadWizard(true)}
+          />
+        </div>
+      )}
+
+      {/* Section 4: Email Connections */}
       <div className="rounded-2xl border border-sw-border bg-sw-card p-6 mb-6">
         <div className="flex items-center justify-between mb-2">
           <h3 className="text-[15px] font-semibold text-sw-text">Connect Your Email</h3>

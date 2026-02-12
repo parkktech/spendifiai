@@ -6,6 +6,7 @@ use App\Events\UserAnsweredQuestion;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\AnswerQuestionRequest;
 use App\Http\Requests\BulkAnswerRequest;
+use App\Http\Requests\ChatQuestionRequest;
 use App\Http\Resources\AIQuestionResource;
 use App\Http\Resources\TransactionResource;
 use App\Models\AIQuestion;
@@ -45,6 +46,21 @@ class AIQuestionController extends Controller
             'message' => 'Answer recorded',
             'transaction' => new TransactionResource($question->transaction->fresh()),
         ]);
+    }
+
+    /**
+     * Chat with AI about a question — get a suggested category from free-text context.
+     */
+    public function chat(ChatQuestionRequest $request, AIQuestion $question): JsonResponse
+    {
+        $this->authorize('update', $question);
+
+        $suggestion = $this->categorizer->interpretUserResponse(
+            $question,
+            $request->validated('message')
+        );
+
+        return response()->json($suggestion);
     }
 
     /**
