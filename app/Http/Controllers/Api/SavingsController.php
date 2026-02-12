@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\RespondToPlanActionRequest;
+use App\Http\Requests\RespondToRecommendationRequest;
 use App\Http\Requests\SetSavingsTargetRequest;
 use App\Http\Resources\SavingsPlanActionResource;
 use App\Http\Resources\SavingsRecommendationResource;
@@ -13,8 +14,10 @@ use App\Models\SavingsProgress;
 use App\Models\SavingsRecommendation;
 use App\Models\SavingsTarget;
 use App\Models\Transaction;
+use App\Services\AI\AlternativeSuggestionService;
 use App\Services\AI\SavingsAnalyzerService;
 use App\Services\AI\SavingsTargetPlannerService;
+use App\Services\SavingsTrackingService;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Cache;
@@ -25,6 +28,8 @@ class SavingsController extends Controller
     public function __construct(
         private readonly SavingsAnalyzerService $analyzer,
         private readonly SavingsTargetPlannerService $planner,
+        private readonly AlternativeSuggestionService $alternativeService,
+        private readonly SavingsTrackingService $trackingService,
     ) {}
 
     /**
@@ -367,5 +372,107 @@ class SavingsController extends Controller
                 2
             ),
         ]);
+    }
+
+    /**
+     * Respond to a savings recommendation (cancelled, reduced, or kept).
+     */
+    public function respond(RespondToRecommendationRequest $request, SavingsRecommendation $rec): JsonResponse
+    {
+        $this->authorize('update', $rec);
+
+        $validated = $request->validated();
+        $responseType = $validated['response_type'];
+
+        switch ($responseType) {
+            case 'cancelled':
+                $rec->update([
+                    'status' => 'applied',
+                    'applied_at' => now(),
+                    'response_type' => 'cancelled',
+                    'actual_monthly_savings' => $rec->monthly_savings,
+                ]);
+                break;
+
+            case 'reduced':
+                $newAmount = (float) $validated['new_amount'];
+                $actualSavings = max((float) $rec->monthly_savings - $newAmount, 0);
+                $rec->update([
+                    'status' => 'applied',
+                    'applied_at' => now(),
+                    'response_type' => 'reduced',
+                    'response_data' => ['new_amount' => $newAmount],
+                    'actual_monthly_savings' => $actualSavings,
+                ]);
+                break;
+
+            case 'kept':
+                $rec->update([
+                    'status' => 'dismissed',
+                    'dismissed_at' => now(),
+                    'response_type' => 'kept',
+                    'response_data' => ['reason' => $validated['reason'] ?? null],
+                    'actual_monthly_savings' => 0,
+                ]);
+                break;
+        }
+
+        // Record in savings ledger if there are actual savings
+        $actualSavings = (float) $rec->actual_monthly_savings;
+        if ($actualSavings > 0) {
+            $this->trackingService->recordSavings(
+                userId: auth()->id(),
+                sourceType: 'recommendation',
+                sourceId: $rec->id,
+                actionTaken: $responseType,
+                monthlySavings: $actualSavings,
+                notes: $rec->title,
+            );
+        }
+
+        // Clear dashboard cache
+        $userId = auth()->id();
+        Cache::forget("dashboard:{$userId}:all");
+        Cache::forget("dashboard:{$userId}:personal");
+        Cache::forget("dashboard:{$userId}:business");
+
+        return response()->json([
+            'recommendation' => new SavingsRecommendationResource($rec->fresh()),
+            'projected_savings' => $this->trackingService->getProjectedSavings($userId),
+        ]);
+    }
+
+    /**
+     * Get AI-generated alternatives for a savings recommendation.
+     */
+    public function alternatives(SavingsRecommendation $rec): JsonResponse
+    {
+        $this->authorize('view', $rec);
+
+        $alternatives = $this->alternativeService->getRecommendationAlternatives($rec);
+
+        return response()->json([
+            'alternatives' => $alternatives,
+        ]);
+    }
+
+    /**
+     * Get projected savings totals from all responded actions.
+     */
+    public function projected(): JsonResponse
+    {
+        return response()->json(
+            $this->trackingService->getProjectedSavings(auth()->id())
+        );
+    }
+
+    /**
+     * Get savings tracking history grouped by month.
+     */
+    public function savingsHistory(): JsonResponse
+    {
+        return response()->json(
+            $this->trackingService->getSavingsHistory(auth()->id())
+        );
     }
 }

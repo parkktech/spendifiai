@@ -111,6 +111,11 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->hasMany(SavingsProgress::class);
     }
 
+    public function savingsLedger(): HasMany
+    {
+        return $this->hasMany(SavingsLedger::class);
+    }
+
     public function statementUploads(): HasMany
     {
         return $this->hasMany(StatementUpload::class);

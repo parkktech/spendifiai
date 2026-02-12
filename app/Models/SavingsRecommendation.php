@@ -15,6 +15,8 @@ class SavingsRecommendation extends Model
         'difficulty', 'impact', 'category', 'status',
         'action_steps', 'related_merchants',
         'generated_at', 'applied_at', 'dismissed_at',
+        'response_type', 'response_data', 'actual_monthly_savings',
+        'ai_alternatives', 'alternatives_generated_at',
     ];
 
     protected function casts(): array
@@ -22,11 +24,15 @@ class SavingsRecommendation extends Model
         return [
             'monthly_savings' => 'decimal:2',
             'annual_savings' => 'decimal:2',
+            'actual_monthly_savings' => 'decimal:2',
             'action_steps' => 'array',
             'related_merchants' => 'array',
+            'response_data' => 'array',
+            'ai_alternatives' => 'array',
             'generated_at' => 'datetime',
             'applied_at' => 'datetime',
             'dismissed_at' => 'datetime',
+            'alternatives_generated_at' => 'datetime',
         ];
     }
 

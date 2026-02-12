@@ -1,3 +1,5 @@
+export type ActionResponseType = 'cancelled' | 'reduced' | 'kept';
+
 export interface Transaction {
   id: number;
   merchant_name: string;
@@ -53,6 +55,11 @@ export interface Subscription {
   last_used_at: string | null;
   annual_cost: number;
   charge_history: unknown[] | null;
+  response_type: ActionResponseType | null;
+  previous_amount: number | null;
+  response_reason: string | null;
+  has_alternatives: boolean;
+  responded_at: string | null;
 }
 
 export interface SubscriptionsResponse {
@@ -89,6 +96,10 @@ export interface SavingsRecommendation {
   action_steps: string[] | null;
   related_merchants: string[] | null;
   created_at: string;
+  response_type: ActionResponseType | null;
+  response_data: { new_amount?: number; reason?: string; responded_at?: string } | null;
+  actual_monthly_savings: number | null;
+  has_alternatives: boolean;
 }
 
 export interface RecommendationsResponse {
@@ -213,6 +224,12 @@ export interface DashboardData {
     pending_review: number;
     questions_generated: number;
   };
+  recurring_bills: RecurringBill[];
+  total_monthly_bills: number;
+  budget_waterfall: BudgetWaterfall;
+  home_affordability: HomeAffordability;
+  projected_savings: ProjectedSavings;
+  savings_history: SavingsHistoryEntry[];
 }
 
 export interface TaxSummary {
@@ -259,4 +276,132 @@ export interface PaginatedResponse<T> {
     prev: string | null;
     next: string | null;
   };
+}
+
+// --- Statement Upload Types ---
+
+export interface ParsedTransaction {
+  row_index: number;
+  date: string;
+  description: string;
+  amount: number;
+  merchant_name: string;
+  is_income: boolean;
+  is_duplicate: boolean;
+  confidence: number;
+  original_text?: string;
+}
+
+export interface StatementUploadResult {
+  upload_id: number;
+  file_name: string;
+  total_extracted: number;
+  duplicates_found: number;
+  transactions: ParsedTransaction[];
+  date_range: { from: string; to: string };
+  processing_notes: string[];
+}
+
+export interface StatementUploadHistory {
+  id: number;
+  file_name: string;
+  bank_name: string;
+  account_type: string;
+  transactions_imported: number;
+  duplicates_skipped: number;
+  uploaded_at: string;
+  date_range: { from: string; to: string };
+}
+
+export interface StatementProcessingStatus {
+  upload_id: number;
+  status: 'uploading' | 'parsing' | 'extracting' | 'analyzing' | 'complete' | 'error';
+  progress: number;
+  current_page?: number;
+  total_pages?: number;
+  message: string;
+  transactions_found?: number;
+}
+
+export interface StatementImportResult {
+  imported: number;
+  skipped: number;
+  errors: number;
+  message: string;
+}
+
+// --- Recurring Bills & Budget Analysis ---
+
+export interface RecurringBill {
+  id: number;
+  merchant_name: string;
+  merchant_normalized: string | null;
+  amount: number;
+  frequency: string;
+  status: string;
+  is_essential: boolean | null;
+  last_charge_date: string | null;
+  next_expected_date: string | null;
+  annual_cost: number;
+}
+
+export interface BudgetWaterfall {
+  monthly_income: number;
+  essential_bills: number;
+  non_essential_subscriptions: number;
+  discretionary_spending: number;
+  total_spending: number;
+  monthly_surplus: number;
+  can_save: boolean;
+  savings_rate: number;
+}
+
+export interface HomeAffordability {
+  monthly_income: number;
+  monthly_debt: number;
+  current_dti: number;
+  down_payment: number;
+  interest_rate: number;
+  max_monthly_payment: number;
+  max_loan_amount: number;
+  max_home_price: number;
+  estimated_monthly_mortgage: number;
+  loan_term_years: number;
+}
+
+// --- Savings Action Response Types ---
+
+export interface AlternativeSuggestion {
+  name: string;
+  provider: string;
+  cost: number;
+  savings_vs_current: number;
+  description: string;
+  switch_effort: 'easy' | 'medium' | 'hard';
+  trade_offs: string;
+}
+
+export interface ProjectedSavings {
+  projected_monthly_savings: number;
+  projected_annual_savings: number;
+  breakdown: {
+    recommendations: number;
+    cancelled_subscriptions: number;
+    reduced_subscriptions: number;
+  };
+  verification: {
+    total_actions: number;
+    verified: number;
+    pending_verification: number;
+    verified_savings: number;
+  };
+}
+
+export interface SavingsHistoryEntry {
+  month: string;
+  total_savings: number;
+  actions_count: number;
+  verified_savings: number;
+  subscription_savings: number;
+  recommendation_savings: number;
 }

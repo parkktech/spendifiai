@@ -151,6 +151,8 @@ Route::middleware(['auth:sanctum'])->group(function () {
             Route::get('/subscriptions', [SubscriptionController::class, 'index']);
             Route::post('/subscriptions/detect', [SubscriptionController::class, 'detect'])
                 ->middleware('throttle:5,1');
+            Route::post('/subscriptions/{subscription}/respond', [SubscriptionController::class, 'respond']);
+            Route::get('/subscriptions/{subscription}/alternatives', [SubscriptionController::class, 'alternatives']);
 
             // Savings
             Route::prefix('savings')->group(function () {
@@ -159,6 +161,10 @@ Route::middleware(['auth:sanctum'])->group(function () {
                     ->middleware('throttle:5,1');
                 Route::post('/{rec}/dismiss', [SavingsController::class, 'dismiss']);
                 Route::post('/{rec}/apply', [SavingsController::class, 'apply']);
+                Route::post('/{rec}/respond', [SavingsController::class, 'respond']);
+                Route::get('/{rec}/alternatives', [SavingsController::class, 'alternatives']);
+                Route::get('/projected', [SavingsController::class, 'projected']);
+                Route::get('/tracking', [SavingsController::class, 'savingsHistory']);
                 Route::post('/target', [SavingsController::class, 'setTarget']);
                 Route::get('/target', [SavingsController::class, 'getTarget']);
                 Route::post('/target/regenerate', [SavingsController::class, 'regeneratePlan'])

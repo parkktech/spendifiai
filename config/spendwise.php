@@ -18,6 +18,10 @@ return [
             'ask_question' => 0.40,  // Generate question for user
             // Below 0.40 → open-ended question
         ],
+        'alternatives' => [
+            'cache_days' => 7,
+            'max_per_item' => 4,
+        ],
     ],
 
     /*

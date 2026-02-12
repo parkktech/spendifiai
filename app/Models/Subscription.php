@@ -16,25 +16,45 @@ class Subscription extends Model
         'frequency', 'category', 'status', 'is_essential',
         'last_charge_date', 'next_expected_date', 'last_used_at',
         'annual_cost', 'charge_history',
+        'response_type', 'previous_amount', 'response_reason',
+        'ai_alternatives', 'responded_at', 'alternatives_generated_at',
     ];
 
     protected function casts(): array
     {
         return [
-            'amount'          => 'decimal:2',
-            'annual_cost'     => 'decimal:2',
-            'status'          => SubscriptionStatus::class,
-            'is_essential'    => 'boolean',
-            'charge_history'  => 'array',
-            'last_charge_date'   => 'date',
+            'amount' => 'decimal:2',
+            'annual_cost' => 'decimal:2',
+            'previous_amount' => 'decimal:2',
+            'status' => SubscriptionStatus::class,
+            'is_essential' => 'boolean',
+            'charge_history' => 'array',
+            'ai_alternatives' => 'array',
+            'last_charge_date' => 'date',
             'next_expected_date' => 'date',
-            'last_used_at'    => 'datetime',
+            'last_used_at' => 'datetime',
+            'responded_at' => 'datetime',
+            'alternatives_generated_at' => 'datetime',
         ];
     }
 
-    public function user(): BelongsTo { return $this->belongsTo(User::class); }
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
+    }
 
-    public function scopeActive($q) { return $q->where('status', SubscriptionStatus::Active); }
-    public function scopeUnused($q) { return $q->where('status', SubscriptionStatus::Unused); }
-    public function scopeEssential($q) { return $q->where('is_essential', true); }
+    public function scopeActive($q)
+    {
+        return $q->where('status', SubscriptionStatus::Active);
+    }
+
+    public function scopeUnused($q)
+    {
+        return $q->where('status', SubscriptionStatus::Unused);
+    }
+
+    public function scopeEssential($q)
+    {
+        return $q->where('is_essential', true);
+    }
 }

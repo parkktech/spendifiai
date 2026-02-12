@@ -13,6 +13,7 @@ use App\Models\SavingsTarget;
 use App\Models\Subscription;
 use App\Models\Transaction;
 use App\Services\AI\SavingsTargetPlannerService;
+use App\Services\SavingsTrackingService;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -219,6 +220,80 @@ class DashboardController extends Controller
                 ->limit(10)
                 ->get();
 
+            // --- All Recurring Bills (active + unused) ---
+            $allRecurringBills = Subscription::where('user_id', $user->id)
+                ->whereIn('status', ['active', 'unused'])
+                ->orderByDesc('amount')
+                ->select('id', 'merchant_name', 'merchant_normalized', 'amount', 'frequency', 'status', 'is_essential', 'last_charge_date', 'next_expected_date', 'annual_cost')
+                ->get();
+
+            $totalMonthlyBills = $allRecurringBills->sum('amount');
+
+            // --- Monthly Budget Waterfall ---
+            $essentialBills = $allRecurringBills->where('is_essential', true)->sum('amount');
+            $nonEssentialBills = $allRecurringBills->where('is_essential', false)->sum('amount');
+
+            // Discretionary = total spending minus recurring bills
+            $discretionarySpending = max(round($thisMonth - $totalMonthlyBills, 2), 0);
+
+            $monthlySurplus = round($thisMonthIncome - $thisMonth, 2);
+
+            $budgetWaterfall = [
+                'monthly_income' => round($thisMonthIncome, 2),
+                'essential_bills' => round($essentialBills, 2),
+                'non_essential_subscriptions' => round($nonEssentialBills, 2),
+                'discretionary_spending' => $discretionarySpending,
+                'total_spending' => round($thisMonth, 2),
+                'monthly_surplus' => $monthlySurplus,
+                'can_save' => $monthlySurplus > 0,
+                'savings_rate' => $thisMonthIncome > 0 ? round(($monthlySurplus / $thisMonthIncome) * 100, 1) : 0,
+            ];
+
+            // --- Home Affordability Calculator ---
+            $monthlyIncome = $thisMonthIncome > 0 ? $thisMonthIncome : ($lastMonthIncome > 0 ? $lastMonthIncome : 0);
+            $monthlyDebt = $totalMonthlyBills; // All recurring obligations
+            $downPayment = 100000; // Default $100k, could be configurable
+            $interestRate = 0.0685; // ~6.85% current avg 30yr fixed
+            $loanTermYears = 30;
+
+            $monthlyRate = $interestRate / 12;
+            $numPayments = $loanTermYears * 12;
+
+            // Max housing payment: 28% of gross income (front-end DTI)
+            $maxHousingFrontEnd = $monthlyIncome * 0.28;
+
+            // Max total debt payments: 43% of gross income (back-end DTI)
+            $maxTotalDebtPayment = $monthlyIncome * 0.43;
+            $maxHousingBackEnd = $maxTotalDebtPayment - $monthlyDebt;
+
+            // Use the more conservative (lower) of the two
+            $maxMonthlyPayment = max(min($maxHousingFrontEnd, $maxHousingBackEnd), 0);
+
+            // Calculate max loan from payment using mortgage formula: P = M * [(1+r)^n - 1] / [r(1+r)^n]
+            $maxLoanAmount = 0;
+            if ($maxMonthlyPayment > 0 && $monthlyRate > 0) {
+                $factor = pow(1 + $monthlyRate, $numPayments);
+                $maxLoanAmount = round($maxMonthlyPayment * ($factor - 1) / ($monthlyRate * $factor), 0);
+            }
+
+            $maxHomePrice = $maxLoanAmount + $downPayment;
+
+            // Current DTI
+            $currentDti = $monthlyIncome > 0 ? round(($monthlyDebt / $monthlyIncome) * 100, 1) : 0;
+
+            $homeAffordability = [
+                'monthly_income' => round($monthlyIncome, 2),
+                'monthly_debt' => round($monthlyDebt, 2),
+                'current_dti' => $currentDti,
+                'down_payment' => $downPayment,
+                'interest_rate' => round($interestRate * 100, 2),
+                'max_monthly_payment' => round($maxMonthlyPayment, 2),
+                'max_loan_amount' => $maxLoanAmount,
+                'max_home_price' => $maxHomePrice,
+                'estimated_monthly_mortgage' => round($maxMonthlyPayment, 2),
+                'loan_term_years' => $loanTermYears,
+            ];
+
             return [
                 'view_mode' => $viewMode,
                 'summary' => [
@@ -256,6 +331,12 @@ class DashboardController extends Controller
                     'pending_review' => $pendingReview,
                     'questions_generated' => $pendingQuestionsCount,
                 ],
+                'recurring_bills' => $allRecurringBills,
+                'total_monthly_bills' => round($totalMonthlyBills, 2),
+                'budget_waterfall' => $budgetWaterfall,
+                'home_affordability' => $homeAffordability,
+                'projected_savings' => app(SavingsTrackingService::class)->getProjectedSavings($user->id),
+                'savings_history' => app(SavingsTrackingService::class)->getSavingsHistory($user->id, 6),
             ];
         }));
     }
