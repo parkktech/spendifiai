@@ -26,3 +26,18 @@ existing-code
 /playwright-report/
 /test-results/
 /blob-report/
+
+# AI tool configs (local per-developer)
+.agents/
+.ai/
+.codex/
+.gemini/
+.junie/
+.mcp.json
+AGENTS.md
+GEMINI.md
+boost.json
+.claude/settings.local.json
+
+# Source design files
+graphics/
