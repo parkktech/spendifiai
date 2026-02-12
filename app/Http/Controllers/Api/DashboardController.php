@@ -42,17 +42,31 @@ class DashboardController extends Controller
                 ->when($viewMode === 'personal', fn ($q) => $q->where('account_purpose', 'personal'))
                 ->when($viewMode === 'business', fn ($q) => $q->where('account_purpose', 'business'));
 
-            // This month's spending
+            // This month's spending (outgoing)
             $thisMonth = $txQuery()
                 ->where('amount', '>', 0)
                 ->where('transaction_date', '>=', $monthStart)
                 ->sum('amount');
+
+            // This month's income (incoming — negative amounts, excluding transfers)
+            $thisMonthIncome = $txQuery()
+                ->where('amount', '<', 0)
+                ->where('transaction_date', '>=', $monthStart)
+                ->whereNotIn('plaid_category', ['TRANSFER_IN', 'TRANSFER_OUT'])
+                ->sum(DB::raw('ABS(amount)'));
 
             // Last month's spending
             $lastMonth = $txQuery()
                 ->where('amount', '>', 0)
                 ->whereBetween('transaction_date', [$lastMonthStart, $lastMonthEnd])
                 ->sum('amount');
+
+            // Last month's income
+            $lastMonthIncome = $txQuery()
+                ->where('amount', '<', 0)
+                ->whereBetween('transaction_date', [$lastMonthStart, $lastMonthEnd])
+                ->whereNotIn('plaid_category', ['TRANSFER_IN', 'TRANSFER_OUT'])
+                ->sum(DB::raw('ABS(amount)'));
 
             $monthOverMonth = $lastMonth > 0
                 ? round((($thisMonth - $lastMonth) / $lastMonth) * 100, 1)
@@ -153,23 +167,45 @@ class DashboardController extends Controller
                 ->limit(20)
                 ->get();
 
-            // Monthly spending trend (6 months)
+            // Monthly spending trend (6 months) — includes income + expenses
             $trend = $txQuery()
-                ->where('amount', '>', 0)
                 ->where('transaction_date', '>=', $now->copy()->subMonths(6)->startOfMonth())
+                ->whereNotIn('plaid_category', ['TRANSFER_IN', 'TRANSFER_OUT'])
                 ->select(
                     DB::raw("TO_CHAR(transaction_date, 'Mon') as month"),
                     DB::raw("DATE_TRUNC('month', transaction_date) as month_start"),
-                    DB::raw('SUM(amount) as total')
+                    DB::raw('SUM(CASE WHEN amount > 0 THEN amount ELSE 0 END) as expenses'),
+                    DB::raw('SUM(CASE WHEN amount < 0 THEN ABS(amount) ELSE 0 END) as income')
                 )
                 ->groupBy('month', 'month_start')
                 ->orderBy('month_start')
+                ->get();
+
+            // Top savings opportunity categories — highest discretionary spending
+            $savingsOpportunities = $txQuery()
+                ->where('amount', '>', 0)
+                ->where('transaction_date', '>=', $now->copy()->subMonths(3)->startOfMonth())
+                ->toBase()
+                ->select(
+                    DB::raw("COALESCE(user_category, ai_category, 'Uncategorized') as category"),
+                    DB::raw('SUM(amount) as total_3mo'),
+                    DB::raw('ROUND(SUM(amount) / 3, 2) as monthly_avg'),
+                    DB::raw('COUNT(*) as transaction_count'),
+                    DB::raw('ROUND(AVG(amount), 2) as avg_transaction')
+                )
+                ->groupBy('category')
+                ->orderByDesc('total_3mo')
+                ->limit(10)
                 ->get();
 
             return [
                 'view_mode' => $viewMode,
                 'summary' => [
                     'this_month_spending' => round($thisMonth, 2),
+                    'this_month_income' => round($thisMonthIncome, 2),
+                    'last_month_spending' => round($lastMonth, 2),
+                    'last_month_income' => round($lastMonthIncome, 2),
+                    'net_this_month' => round($thisMonthIncome - $thisMonth, 2),
                     'month_over_month' => $monthOverMonth,
                     'potential_savings' => round($savingsTotal, 2),
                     'tax_deductible_ytd' => round($taxDeductible, 2),
@@ -190,6 +226,7 @@ class DashboardController extends Controller
                 'savings_recommendations' => SavingsRecommendationResource::collection($savingsRecs),
                 'savings_target' => $savingsTargetData,
                 'unused_subscription_details' => $unusedSubDetails,
+                'savings_opportunities' => $savingsOpportunities,
                 'ai_stats' => [
                     'auto_categorized' => $autoCategorized,
                     'pending_review' => $pendingReview,

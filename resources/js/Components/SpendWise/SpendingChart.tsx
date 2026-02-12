@@ -1,6 +1,6 @@
 import {
-  AreaChart,
-  Area,
+  BarChart,
+  Bar,
   PieChart,
   Pie,
   Cell,
@@ -9,10 +9,11 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
+  Legend,
 } from 'recharts';
 
 interface SpendingChartProps {
-  data: Array<{ month: string; total: number }>;
+  data: Array<{ month: string; expenses: number; income: number }>;
   categories?: Array<{ category: string; total: number }>;
 }
 
@@ -29,20 +30,14 @@ function formatCurrency(value: number): string {
 export default function SpendingChart({ data, categories }: SpendingChartProps) {
   return (
     <div aria-label="Monthly spending chart" role="img" className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-      {/* Spending Trend - Area Chart */}
+      {/* Income vs Expenses - Bar Chart */}
       <div className="rounded-2xl border border-sw-border bg-sw-card p-6">
         <div className="mb-5">
-          <h3 className="text-[15px] font-semibold text-sw-text">Spending Trends</h3>
+          <h3 className="text-[15px] font-semibold text-sw-text">Income vs Expenses</h3>
           <p className="text-xs text-sw-dim mt-1">{data.length}-month overview</p>
         </div>
         <ResponsiveContainer width="100%" height={220}>
-          <AreaChart data={data}>
-            <defs>
-              <linearGradient id="gradientAccent" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#2563eb" stopOpacity={0.2} />
-                <stop offset="100%" stopColor="#2563eb" stopOpacity={0} />
-              </linearGradient>
-            </defs>
+          <BarChart data={data} barGap={2}>
             <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
             <XAxis
               dataKey="month"
@@ -65,16 +60,20 @@ export default function SpendingChart({ data, categories }: SpendingChartProps) 
                 color: '#0f172a',
                 boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
               }}
-              formatter={(value: number | undefined) => [`$${(value ?? 0).toLocaleString()}`, 'Spending']}
+              formatter={(value: number | undefined, name?: string) => [
+                `$${(value ?? 0).toLocaleString()}`,
+                name === 'income' ? 'Income' : 'Expenses',
+              ]}
             />
-            <Area
-              type="monotone"
-              dataKey="total"
-              stroke="#2563eb"
-              fill="url(#gradientAccent)"
-              strokeWidth={2}
+            <Legend
+              iconType="circle"
+              iconSize={8}
+              wrapperStyle={{ fontSize: 11, color: '#64748b' }}
+              formatter={(value: string) => (value === 'income' ? 'Income' : 'Expenses')}
             />
-          </AreaChart>
+            <Bar dataKey="income" fill="#059669" radius={[4, 4, 0, 0]} maxBarSize={32} />
+            <Bar dataKey="expenses" fill="#dc2626" radius={[4, 4, 0, 0]} maxBarSize={32} />
+          </BarChart>
         </ResponsiveContainer>
       </div>
 

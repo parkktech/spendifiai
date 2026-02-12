@@ -159,6 +159,10 @@ export interface DashboardData {
   view_mode: 'all' | 'personal' | 'business';
   summary: {
     this_month_spending: number;
+    this_month_income: number;
+    last_month_spending: number;
+    last_month_income: number;
+    net_this_month: number;
     month_over_month: number;
     potential_savings: number;
     tax_deductible_ytd: number;
@@ -169,7 +173,7 @@ export interface DashboardData {
   categories: Array<{ category: string; total: number; count: number }>;
   questions: AIQuestion[];
   recent: Transaction[];
-  spending_trend: Array<{ month: string; total: number }>;
+  spending_trend: Array<{ month: string; expenses: number; income: number }>;
   sync_status: { status: string; last_synced_at: string; institution_name: string } | null;
   accounts_summary: Record<string, number>;
   savings_recommendations: SavingsRecommendation[];
@@ -187,6 +191,13 @@ export interface DashboardData {
     last_charge_date: string | null;
     last_used_at: string | null;
     annual_cost: number;
+  }>;
+  savings_opportunities: Array<{
+    category: string;
+    total_3mo: number;
+    monthly_avg: number;
+    transaction_count: number;
+    avg_transaction: number;
   }>;
   ai_stats: {
     auto_categorized: number;

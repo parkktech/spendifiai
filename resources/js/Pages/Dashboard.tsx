@@ -3,6 +3,7 @@ import { Head, Link } from '@inertiajs/react';
 import {
   DollarSign,
   TrendingDown,
+  TrendingUp,
   PiggyBank,
   Receipt,
   AlertTriangle,
@@ -12,6 +13,9 @@ import {
   Target,
   Zap,
   CreditCard,
+  ArrowDownLeft,
+  ArrowUpRight,
+  Scissors,
 } from 'lucide-react';
 import StatCard from '@/Components/SpendWise/StatCard';
 import SpendingChart from '@/Components/SpendWise/SpendingChart';
@@ -111,21 +115,75 @@ export default function Dashboard() {
             </div>
           )}
 
-          {/* Stat Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <StatCard
-              title="This Month"
-              value={formatCurrency(data.summary.this_month_spending)}
-              trend={data.summary.month_over_month}
-              subtitle="vs last month"
-              icon={<DollarSign size={18} />}
-            />
-            <StatCard
-              title="Month over Month"
-              value={`${data.summary.month_over_month > 0 ? '+' : ''}${data.summary.month_over_month.toFixed(1)}%`}
-              subtitle="spending change"
-              icon={<TrendingDown size={18} />}
-            />
+          {/* Income & Expenses Overview */}
+          <div className="rounded-2xl border border-sw-border bg-sw-card p-6">
+            <h2 className="text-[15px] font-semibold text-sw-text mb-4">This Month's Cash Flow</h2>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              {/* Income */}
+              <div className="flex items-center gap-3 rounded-xl bg-emerald-50 border border-emerald-200 p-4">
+                <div className="w-10 h-10 rounded-lg bg-emerald-100 border border-emerald-200 flex items-center justify-center shrink-0">
+                  <ArrowDownLeft size={20} className="text-emerald-600" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-xs text-emerald-700/70 font-medium">Income</p>
+                  <p className="text-xl font-bold text-emerald-700 tracking-tight">{formatCurrency(data.summary.this_month_income)}</p>
+                  {data.summary.last_month_income > 0 && (
+                    <p className="text-[11px] text-emerald-600/60">Last month: {formatCurrency(data.summary.last_month_income)}</p>
+                  )}
+                </div>
+              </div>
+
+              {/* Expenses */}
+              <div className="flex items-center gap-3 rounded-xl bg-red-50 border border-red-200 p-4">
+                <div className="w-10 h-10 rounded-lg bg-red-100 border border-red-200 flex items-center justify-center shrink-0">
+                  <ArrowUpRight size={20} className="text-red-600" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-xs text-red-700/70 font-medium">Expenses</p>
+                  <p className="text-xl font-bold text-red-700 tracking-tight">{formatCurrency(data.summary.this_month_spending)}</p>
+                  {data.summary.month_over_month !== 0 && (
+                    <p className={`text-[11px] ${data.summary.month_over_month > 0 ? 'text-red-500' : 'text-emerald-600'}`}>
+                      {data.summary.month_over_month > 0 ? '+' : ''}{data.summary.month_over_month.toFixed(1)}% vs last month
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {/* Net */}
+              <div className={`flex items-center gap-3 rounded-xl p-4 ${
+                data.summary.net_this_month >= 0
+                  ? 'bg-blue-50 border border-blue-200'
+                  : 'bg-amber-50 border border-amber-200'
+              }`}>
+                <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${
+                  data.summary.net_this_month >= 0
+                    ? 'bg-blue-100 border border-blue-200'
+                    : 'bg-amber-100 border border-amber-200'
+                }`}>
+                  {data.summary.net_this_month >= 0
+                    ? <TrendingUp size={20} className="text-blue-600" />
+                    : <TrendingDown size={20} className="text-amber-600" />
+                  }
+                </div>
+                <div className="min-w-0">
+                  <p className={`text-xs font-medium ${data.summary.net_this_month >= 0 ? 'text-blue-700/70' : 'text-amber-700/70'}`}>
+                    Net {data.summary.net_this_month >= 0 ? 'Saved' : 'Over Budget'}
+                  </p>
+                  <p className={`text-xl font-bold tracking-tight ${data.summary.net_this_month >= 0 ? 'text-blue-700' : 'text-amber-700'}`}>
+                    {formatCurrency(data.summary.net_this_month)}
+                  </p>
+                  {data.summary.this_month_income > 0 && (
+                    <p className={`text-[11px] ${data.summary.net_this_month >= 0 ? 'text-blue-600/60' : 'text-amber-600/60'}`}>
+                      {Math.round((data.summary.this_month_spending / data.summary.this_month_income) * 100)}% of income spent
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Quick Stats Row */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <StatCard
               title="Potential Savings"
               value={formatCurrency(data.summary.potential_savings)}
@@ -137,6 +195,13 @@ export default function Dashboard() {
               value={formatCurrency(data.summary.tax_deductible_ytd)}
               subtitle="YTD"
               icon={<Receipt size={18} />}
+            />
+            <StatCard
+              title="Spending Change"
+              value={`${data.summary.month_over_month > 0 ? '+' : ''}${data.summary.month_over_month.toFixed(1)}%`}
+              trend={data.summary.month_over_month}
+              subtitle="vs last month"
+              icon={<DollarSign size={18} />}
             />
           </div>
 
@@ -317,6 +382,62 @@ export default function Dashboard() {
 
           {/* Spending Charts */}
           <SpendingChart data={data.spending_trend} categories={data.categories} />
+
+          {/* Top Savings Opportunities */}
+          {data.savings_opportunities && data.savings_opportunities.length > 0 && (
+            <div className="rounded-2xl border border-sw-border bg-sw-card p-6">
+              <div className="flex items-center justify-between mb-5">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-lg bg-amber-50 border border-amber-200 flex items-center justify-center">
+                    <Scissors size={18} className="text-amber-600" />
+                  </div>
+                  <div>
+                    <h3 className="text-[15px] font-semibold text-sw-text">Where You Can Save</h3>
+                    <p className="text-xs text-sw-dim">Categories with the highest spending over the last 3 months</p>
+                  </div>
+                </div>
+                <Link
+                  href="/savings"
+                  className="text-xs text-sw-accent hover:text-sw-accent-hover transition font-medium"
+                >
+                  Get AI Tips
+                </Link>
+              </div>
+
+              <div className="space-y-3">
+                {data.savings_opportunities.slice(0, 6).map((opp, i) => {
+                  const maxMonthly = data.savings_opportunities[0]?.monthly_avg || 1;
+                  const pct = (opp.monthly_avg / maxMonthly) * 100;
+                  return (
+                    <div key={`${opp.category}-${i}`} className="group">
+                      <div className="flex items-center justify-between mb-1">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm text-sw-text font-medium">{opp.category}</span>
+                          <span className="text-[11px] text-sw-dim">
+                            {opp.transaction_count} transactions
+                          </span>
+                        </div>
+                        <div className="text-right">
+                          <span className="text-sm font-bold text-sw-text">{fmt.format(opp.monthly_avg)}</span>
+                          <span className="text-[11px] text-sw-dim">/mo avg</span>
+                        </div>
+                      </div>
+                      <div className="h-2 bg-sw-border rounded-full overflow-hidden">
+                        <div
+                          className="h-full rounded-full transition-all duration-700 bg-gradient-to-r from-amber-400 to-amber-500"
+                          style={{ width: `${pct}%` }}
+                        />
+                      </div>
+                      <div className="flex items-center justify-between mt-0.5">
+                        <span className="text-[11px] text-sw-dim">~{fmt.format(opp.avg_transaction)} per transaction</span>
+                        <span className="text-[11px] text-sw-dim">{fmt.format(opp.total_3mo)} over 3 months</span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           {/* AI Questions Alert */}
           {data.summary.pending_questions > 0 && (
