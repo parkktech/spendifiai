@@ -8,7 +8,7 @@
     <link rel="canonical" href="@yield('canonical')">
 
     <!-- Open Graph -->
-    <meta property="og:type" content="article">
+    <meta property="og:type" content="@yield('og_type', 'article')">
     <meta property="og:site_name" content="LedgerIQ">
     <meta property="og:title" content="@yield('title'){{ str_contains(View::yieldContent('title'), 'LedgerIQ') ? '' : ' - LedgerIQ' }}">
     <meta property="og:description" content="@yield('description')">

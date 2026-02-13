@@ -3,6 +3,7 @@
 @section('title', ($categoryTitle ?? 'Blog') . ' - AI Expense Tracking Guides & Tips')
 @section('description', $categoryDescription ?? 'Free guides on expense tracking, tax deductions, subscription management, and personal finance. Expert tips for freelancers and small business owners.')
 @section('canonical', 'https://ledgeriq.com/blog' . ($currentCategory ? '/' . $currentCategory : ''))
+@section('og_type', 'website')
 
 @section('jsonld')
 <script type="application/ld+json">

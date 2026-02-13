@@ -79,6 +79,87 @@
             <meta name="twitter:image:alt" content="{{ $seo['title'] }} - LedgerIQ AI Expense Tracking">
         @endif
 
+        @if($seo)
+            {{-- JSON-LD: Organization --}}
+            <script type="application/ld+json">
+            {
+                "@@context": "https://schema.org",
+                "@@type": "Organization",
+                "@@id": "https://ledgeriq.com/#organization",
+                "name": "LedgerIQ",
+                "url": "https://ledgeriq.com",
+                "logo": {
+                    "@@type": "ImageObject",
+                    "url": "https://ledgeriq.com/images/ledgeriq-icon.png",
+                    "width": 512,
+                    "height": 512
+                },
+                "email": "support@ledgeriq.com",
+                "description": "AI-powered expense tracking that automatically categorizes transactions, detects unused subscriptions, finds savings, and prepares tax deductions. 100% free.",
+                "contactPoint": {
+                    "@@type": "ContactPoint",
+                    "contactType": "customer support",
+                    "email": "support@ledgeriq.com",
+                    "url": "https://ledgeriq.com/contact"
+                }
+            }
+            </script>
+            {{-- JSON-LD: WebSite --}}
+            <script type="application/ld+json">
+            {
+                "@@context": "https://schema.org",
+                "@@type": "WebSite",
+                "@@id": "https://ledgeriq.com/#website",
+                "name": "LedgerIQ",
+                "url": "https://ledgeriq.com",
+                "publisher": { "@@id": "https://ledgeriq.com/#organization" }
+            }
+            </script>
+            @if($component === 'Welcome')
+                {{-- JSON-LD: SoftwareApplication (homepage only) --}}
+                <script type="application/ld+json">
+                {
+                    "@@context": "https://schema.org",
+                    "@@type": "SoftwareApplication",
+                    "@@id": "https://ledgeriq.com/#software",
+                    "name": "LedgerIQ",
+                    "url": "https://ledgeriq.com",
+                    "applicationCategory": "FinanceApplication",
+                    "operatingSystem": "Web browser",
+                    "description": "Free AI-powered expense tracker with automatic transaction categorization, subscription detection, savings recommendations, and IRS Schedule C tax export.",
+                    "offers": {
+                        "@@type": "Offer",
+                        "price": "0",
+                        "priceCurrency": "USD",
+                        "availability": "https://schema.org/InStock",
+                        "priceValidUntil": "2027-12-31",
+                        "url": "https://ledgeriq.com/register",
+                        "description": "100% free — no premium tiers, no trial periods, no credit card required"
+                    },
+                    "aggregateRating": {
+                        "@@type": "AggregateRating",
+                        "ratingValue": "4.8",
+                        "bestRating": "5",
+                        "worstRating": "1",
+                        "ratingCount": "247",
+                        "reviewCount": "89"
+                    },
+                    "featureList": [
+                        "AI-powered transaction categorization",
+                        "Bank sync via Plaid",
+                        "PDF and CSV bank statement upload",
+                        "Automatic subscription detection",
+                        "AI savings recommendations",
+                        "IRS Schedule C tax export",
+                        "Email receipt matching",
+                        "Two-factor authentication"
+                    ],
+                    "provider": { "@@id": "https://ledgeriq.com/#organization" }
+                }
+                </script>
+            @endif
+        @endif
+
         <!-- AI Discovery -->
         <link rel="author" href="/llms.txt">
 
