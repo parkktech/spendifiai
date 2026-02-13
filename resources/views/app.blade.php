@@ -62,6 +62,7 @@
 
             {{-- Open Graph --}}
             <meta property="og:type" content="website">
+            <meta property="og:locale" content="en_US">
             <meta property="og:site_name" content="LedgerIQ">
             <meta property="og:title" content="{{ $seoTitle }}">
             <meta property="og:description" content="{{ $seoDescription }}">
@@ -73,6 +74,7 @@
 
             {{-- Twitter Card --}}
             <meta name="twitter:card" content="summary_large_image">
+            <meta name="twitter:site" content="@ledgeriq">
             <meta name="twitter:title" content="{{ $seoTitle }}">
             <meta name="twitter:description" content="{{ $seoDescription }}">
             <meta name="twitter:image" content="{{ $seoOgImage }}">
@@ -274,6 +276,35 @@
                 }
                 </script>
             @endif
+            {{-- JSON-LD: BreadcrumbList --}}
+                @php
+                    $breadcrumbMap = [
+                        'Welcome' => [],
+                        'Features' => [['name' => 'Features', 'url' => '/features']],
+                        'HowItWorks' => [['name' => 'How It Works', 'url' => '/how-it-works']],
+                        'About' => [['name' => 'About', 'url' => '/about']],
+                        'FAQ' => [['name' => 'FAQ', 'url' => '/faq']],
+                        'Contact' => [['name' => 'Contact', 'url' => '/contact']],
+                        'Legal/PrivacyPolicy' => [['name' => 'Privacy Policy', 'url' => '/privacy']],
+                        'Legal/TermsOfService' => [['name' => 'Terms of Service', 'url' => '/terms']],
+                        'Legal/DataRetention' => [['name' => 'Data Retention', 'url' => '/data-retention']],
+                        'Legal/Security' => [['name' => 'Security', 'url' => '/security-policy']],
+                    ];
+                    $crumbs = $breadcrumbMap[$component] ?? [];
+                @endphp
+                @if(!empty($crumbs))
+                <script type="application/ld+json">
+                {
+                    "@@context": "https://schema.org",
+                    "@@type": "BreadcrumbList",
+                    "itemListElement": [
+                        { "@@type": "ListItem", "position": 1, "name": "Home", "item": "https://ledgeriq.com" }@foreach($crumbs as $i => $crumb),
+                        { "@@type": "ListItem", "position": {{ $i + 2 }}, "name": "{{ $crumb['name'] }}", "item": "https://ledgeriq.com{{ $crumb['url'] }}" }@endforeach
+
+                    ]
+                }
+                </script>
+                @endif
             @if($component === 'HowItWorks')
                 {{-- JSON-LD: HowTo (server-side for crawlers) --}}
                 <script type="application/ld+json">
@@ -324,6 +355,7 @@
 
         <!-- Fonts -->
         <link rel="preconnect" href="https://fonts.bunny.net">
+        <link rel="preconnect" href="https://fonts.bunny.net" crossorigin>
         <link href="https://fonts.bunny.net/css?family=inter:300,400,500,600,700,800&display=swap" rel="stylesheet" />
 
         <!-- Scripts -->

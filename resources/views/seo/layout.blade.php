@@ -9,6 +9,7 @@
 
     <!-- Open Graph -->
     <meta property="og:type" content="@yield('og_type', 'article')">
+    <meta property="og:locale" content="en_US">
     <meta property="og:site_name" content="LedgerIQ">
     <meta property="og:title" content="@yield('title'){{ str_contains(View::yieldContent('title'), 'LedgerIQ') ? '' : ' - LedgerIQ' }}">
     <meta property="og:description" content="@yield('description')">
@@ -25,6 +26,7 @@
 
     <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:site" content="@ledgeriq">
     <meta name="twitter:title" content="@yield('title'){{ str_contains(View::yieldContent('title'), 'LedgerIQ') ? '' : ' - LedgerIQ' }}">
     <meta name="twitter:description" content="@yield('description')">
     @hasSection('og_image')
@@ -44,6 +46,7 @@
 
     <!-- Fonts: Inter + Source Serif 4 -->
     <link rel="preconnect" href="https://fonts.bunny.net">
+    <link rel="preconnect" href="https://fonts.bunny.net" crossorigin>
     <link href="https://fonts.bunny.net/css?family=inter:400,500,600,700|source-serif-4:400,600,700&display=swap" rel="stylesheet">
 
     @vite(['resources/js/app.tsx'])

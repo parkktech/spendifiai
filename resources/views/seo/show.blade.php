@@ -133,6 +133,8 @@
             src="{{ $heroImage }}"
             alt="{{ $page->featured_image_alt ?? $page->h1 }}"
             class="h-full w-full object-cover"
+            width="1200"
+            height="400"
             loading="eager"
         >
         <div class="gradient-overlay absolute inset-0"></div>
@@ -266,7 +268,7 @@
                             $relImg = $article->featured_image ?? ($defaultImages[$article->category] ?? $defaultImages['guide']);
                         @endphp
                         <div class="relative aspect-[16/10] overflow-hidden">
-                            <img src="{{ $relImg }}" alt="{{ $article->featured_image_alt ?? $article->title }}" class="image-zoom h-full w-full object-cover" loading="lazy">
+                            <img src="{{ $relImg }}" alt="{{ $article->featured_image_alt ?? $article->title }}" class="image-zoom h-full w-full object-cover" width="600" height="375" loading="lazy">
                         </div>
                         <div class="p-4">
                             <div class="category-{{ $article->category }} mb-2">
@@ -298,7 +300,7 @@
                             $crossImg = $article->featured_image ?? ($defaultImages[$article->category] ?? $defaultImages['guide']);
                         @endphp
                         <div class="relative aspect-[16/10] overflow-hidden">
-                            <img src="{{ $crossImg }}" alt="{{ $article->featured_image_alt ?? $article->title }}" class="image-zoom h-full w-full object-cover" loading="lazy">
+                            <img src="{{ $crossImg }}" alt="{{ $article->featured_image_alt ?? $article->title }}" class="image-zoom h-full w-full object-cover" width="600" height="375" loading="lazy">
                         </div>
                         <div class="p-4">
                             <div class="category-{{ $article->category }} mb-2">

@@ -13,6 +13,10 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         // Inertia middleware (from Breeze React starter kit)
+        $middleware->web(prepend: [
+            \App\Http\Middleware\RemoveTrailingSlash::class,
+        ]);
+
         $middleware->web(append: [
             \App\Http\Middleware\HandleInertiaRequests::class,
             \Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets::class,
