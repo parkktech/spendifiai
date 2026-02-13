@@ -1,7 +1,7 @@
 @extends('seo.layout')
 
 @section('title', ($categoryTitle ?? 'Blog') . ' - AI Expense Tracking Guides & Tips')
-@section('description', 'Free guides on expense tracking, tax deductions, subscription management, and personal finance. Expert tips for freelancers and small business owners.')
+@section('description', $categoryDescription ?? 'Free guides on expense tracking, tax deductions, subscription management, and personal finance. Expert tips for freelancers and small business owners.')
 @section('canonical', 'https://ledgeriq.com/blog' . ($currentCategory ? '/' . $currentCategory : ''))
 
 @section('jsonld')
@@ -11,8 +11,35 @@
     "@@type": "CollectionPage",
     "name": "{{ $categoryTitle ?? 'LedgerIQ Blog' }}",
     "url": "https://ledgeriq.com/blog{{ $currentCategory ? '/' . $currentCategory : '' }}",
-    "description": "Free guides on expense tracking, tax deductions, and personal finance for freelancers and small business owners.",
-    "isPartOf": { "@@id": "https://ledgeriq.com/#website" }
+    "description": @json($categoryDescription ?? 'Free guides on expense tracking, tax deductions, and personal finance for freelancers and small business owners.'),
+    "isPartOf": { "@@id": "https://ledgeriq.com/#website" },
+    "mainEntity": {
+        "@@type": "ItemList",
+        "numberOfItems": {{ $pages->total() }},
+        "itemListElement": [
+            @foreach($pages->take(10) as $i => $item)
+            {
+                "@@type": "ListItem",
+                "position": {{ $i + 1 }},
+                "url": "https://ledgeriq.com/blog/{{ $item->slug }}",
+                "name": @json($item->title)
+            }{{ $i < min($pages->count(), 10) - 1 ? ',' : '' }}
+            @endforeach
+        ]
+    }
+}
+</script>
+<script type="application/ld+json">
+{
+    "@@context": "https://schema.org",
+    "@@type": "BreadcrumbList",
+    "itemListElement": [
+        { "@@type": "ListItem", "position": 1, "name": "Home", "item": "https://ledgeriq.com" },
+        { "@@type": "ListItem", "position": 2, "name": "Blog", "item": "https://ledgeriq.com/blog" }
+        @if($currentCategory)
+        ,{ "@@type": "ListItem", "position": 3, "name": "{{ $categoryTitle }}", "item": "https://ledgeriq.com/blog/{{ $currentCategory }}" }
+        @endif
+    ]
 }
 </script>
 @endsection

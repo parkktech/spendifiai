@@ -8,18 +8,20 @@ class SitemapController extends Controller
 {
     public function index()
     {
+        $now = now()->toW3cString();
+
         $staticPages = [
-            ['url' => '/', 'priority' => '1.0', 'changefreq' => 'weekly'],
-            ['url' => '/features', 'priority' => '0.9', 'changefreq' => 'monthly'],
-            ['url' => '/how-it-works', 'priority' => '0.8', 'changefreq' => 'monthly'],
-            ['url' => '/about', 'priority' => '0.7', 'changefreq' => 'monthly'],
-            ['url' => '/faq', 'priority' => '0.8', 'changefreq' => 'monthly'],
-            ['url' => '/contact', 'priority' => '0.6', 'changefreq' => 'yearly'],
-            ['url' => '/blog', 'priority' => '0.8', 'changefreq' => 'daily'],
-            ['url' => '/privacy', 'priority' => '0.3', 'changefreq' => 'yearly'],
-            ['url' => '/terms', 'priority' => '0.3', 'changefreq' => 'yearly'],
-            ['url' => '/data-retention', 'priority' => '0.3', 'changefreq' => 'yearly'],
-            ['url' => '/security-policy', 'priority' => '0.3', 'changefreq' => 'yearly'],
+            ['url' => '/', 'priority' => '1.0', 'changefreq' => 'weekly', 'lastmod' => $now],
+            ['url' => '/features', 'priority' => '0.9', 'changefreq' => 'monthly', 'lastmod' => $now],
+            ['url' => '/how-it-works', 'priority' => '0.8', 'changefreq' => 'monthly', 'lastmod' => $now],
+            ['url' => '/about', 'priority' => '0.7', 'changefreq' => 'monthly', 'lastmod' => $now],
+            ['url' => '/faq', 'priority' => '0.8', 'changefreq' => 'monthly', 'lastmod' => $now],
+            ['url' => '/contact', 'priority' => '0.6', 'changefreq' => 'yearly', 'lastmod' => $now],
+            ['url' => '/blog', 'priority' => '0.8', 'changefreq' => 'daily', 'lastmod' => $now],
+            ['url' => '/privacy', 'priority' => '0.3', 'changefreq' => 'yearly', 'lastmod' => $now],
+            ['url' => '/terms', 'priority' => '0.3', 'changefreq' => 'yearly', 'lastmod' => $now],
+            ['url' => '/data-retention', 'priority' => '0.3', 'changefreq' => 'yearly', 'lastmod' => $now],
+            ['url' => '/security-policy', 'priority' => '0.3', 'changefreq' => 'yearly', 'lastmod' => $now],
         ];
 
         $blogCategories = SeoPage::published()
@@ -30,6 +32,7 @@ class SitemapController extends Controller
                 'url' => '/blog/'.$cat,
                 'priority' => '0.6',
                 'changefreq' => 'weekly',
+                'lastmod' => $now,
             ])
             ->all();
 

@@ -3,6 +3,9 @@
     @foreach($staticPages as $page)
     <url>
         <loc>https://ledgeriq.com{{ $page['url'] }}</loc>
+        @if(!empty($page['lastmod']))
+        <lastmod>{{ $page['lastmod'] }}</lastmod>
+        @endif
         <changefreq>{{ $page['changefreq'] }}</changefreq>
         <priority>{{ $page['priority'] }}</priority>
     </url>
