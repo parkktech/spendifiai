@@ -191,6 +191,8 @@ export default function Welcome() {
                         <img
                             src="https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=800&auto=format&fit=crop&q=80"
                             alt="Financial analytics dashboard showing charts and data visualizations"
+                            width={800}
+                            height={533}
                             loading="eager"
                             className="w-full"
                         />

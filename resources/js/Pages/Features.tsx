@@ -49,6 +49,8 @@ function FeatureDetail({ icon, title, description, bullets, reversed, image, ima
                     <img
                         src={image}
                         alt={imageAlt}
+                        width={800}
+                        height={533}
                         loading="lazy"
                         className="w-full"
                     />
