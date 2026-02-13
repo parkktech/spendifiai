@@ -13,7 +13,11 @@ const sections = [
 
 export default function DataRetention() {
     return (
-        <PublicLayout title="Data Retention Policy">
+        <PublicLayout
+            title="Data Retention Policy"
+            description="LedgerIQ data retention policy. How long we keep your financial data, transaction records, AI analysis results, and what happens when you delete your account."
+            breadcrumbs={[{ name: 'Legal', url: '/data-retention' }, { name: 'Data Retention', url: '/data-retention' }]}
+        >
             <div className="bg-gradient-to-b from-white to-sw-accent-light px-6 py-16">
                 <div className="mx-auto max-w-3xl text-center">
                     <h1 className="text-4xl font-bold tracking-tight text-sw-text">Data Retention Policy</h1>

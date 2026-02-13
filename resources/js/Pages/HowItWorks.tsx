@@ -2,6 +2,7 @@ import PublicLayout from '@/Layouts/PublicLayout';
 import HeroSection from '@/Components/Marketing/HeroSection';
 import CTASection from '@/Components/Marketing/CTASection';
 import SectionHeading from '@/Components/Marketing/SectionHeading';
+import JsonLd from '@/Components/JsonLd';
 import {
     UserPlus,
     Building2,
@@ -109,7 +110,58 @@ const steps: StepProps[] = [
 
 export default function HowItWorks() {
     return (
-        <PublicLayout title="How It Works">
+        <PublicLayout
+            title="How It Works - Set Up AI Expense Tracking in 5 Minutes"
+            description="Get started with LedgerIQ in under 5 minutes. Create an account, connect your bank via Plaid or upload statements, and let AI categorize your transactions automatically."
+            breadcrumbs={[{ name: 'How It Works', url: '/how-it-works' }]}
+        >
+            <JsonLd
+                data={{
+                    '@context': 'https://schema.org',
+                    '@type': 'HowTo',
+                    name: 'How to Set Up AI Expense Tracking with LedgerIQ',
+                    description: 'Get started with free AI-powered expense tracking in under 5 minutes. Connect your bank, let AI categorize transactions, and export tax deductions.',
+                    totalTime: 'PT5M',
+                    tool: { '@type': 'SoftwareApplication', '@id': 'https://ledgeriq.com/#software' },
+                    step: [
+                        {
+                            '@type': 'HowToStep',
+                            position: 1,
+                            name: 'Create Your Free Account',
+                            text: 'Sign up with email or Google OAuth. No credit card or payment information required.',
+                            url: 'https://ledgeriq.com/register',
+                        },
+                        {
+                            '@type': 'HowToStep',
+                            position: 2,
+                            name: 'Connect Your Bank',
+                            text: 'Link your bank accounts securely through Plaid, or upload PDF/CSV bank statements manually.',
+                            url: 'https://ledgeriq.com/how-it-works',
+                        },
+                        {
+                            '@type': 'HowToStep',
+                            position: 3,
+                            name: 'Set Account Purposes',
+                            text: 'Mark each account as personal, business, or mixed. This helps AI accurately categorize transactions.',
+                            url: 'https://ledgeriq.com/how-it-works',
+                        },
+                        {
+                            '@type': 'HowToStep',
+                            position: 4,
+                            name: 'AI Categorizes Everything',
+                            text: 'Claude AI processes your transactions, auto-categorizing at 85%+ confidence. Lower confidence items generate questions for you to answer.',
+                            url: 'https://ledgeriq.com/how-it-works',
+                        },
+                        {
+                            '@type': 'HowToStep',
+                            position: 5,
+                            name: 'Track, Save, and Export Taxes',
+                            text: 'View spending insights, get AI savings recommendations, detect unused subscriptions, and export IRS Schedule C tax-ready reports.',
+                            url: 'https://ledgeriq.com/how-it-works',
+                        },
+                    ],
+                }}
+            />
             <HeroSection
                 title="Get Set Up in Under 5 Minutes"
                 subtitle="From signup to AI-powered insights in five simple steps. No learning curve, no complex configuration."

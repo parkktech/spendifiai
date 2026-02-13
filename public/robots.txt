@@ -1,2 +1,66 @@
+# LedgerIQ — AI-Powered Expense Tracking
+# https://ledgeriq.com
+
 User-agent: *
-Disallow:
+Allow: /
+Allow: /features
+Allow: /how-it-works
+Allow: /about
+Allow: /faq
+Allow: /contact
+Allow: /blog
+Allow: /blog/*
+Allow: /privacy
+Allow: /terms
+Allow: /data-retention
+Allow: /security-policy
+Allow: /llms.txt
+
+Disallow: /dashboard
+Disallow: /transactions
+Disallow: /subscriptions
+Disallow: /savings
+Disallow: /tax
+Disallow: /connect
+Disallow: /settings
+Disallow: /questions
+Disallow: /profile
+Disallow: /api/
+Disallow: /login
+Disallow: /register
+Disallow: /forgot-password
+Disallow: /reset-password
+Disallow: /verify-email
+Disallow: /confirm-password
+
+# AI Crawlers — explicitly allowed
+User-agent: GPTBot
+Allow: /
+Disallow: /dashboard
+Disallow: /api/
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
+User-agent: Amazonbot
+Allow: /
+
+User-agent: anthropic-ai
+Allow: /
+
+User-agent: Bytespider
+Allow: /
+
+User-agent: cohere-ai
+Allow: /
+
+Sitemap: https://ledgeriq.com/sitemap.xml

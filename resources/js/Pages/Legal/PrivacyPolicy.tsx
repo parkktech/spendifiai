@@ -17,7 +17,11 @@ const sections = [
 
 export default function PrivacyPolicy() {
     return (
-        <PublicLayout title="Privacy Policy">
+        <PublicLayout
+            title="Privacy Policy"
+            description="LedgerIQ privacy policy. Learn how we collect, use, and protect your personal and financial data. Plaid integration disclosures, data retention, and your rights explained."
+            breadcrumbs={[{ name: 'Legal', url: '/privacy' }, { name: 'Privacy Policy', url: '/privacy' }]}
+        >
             <div className="bg-gradient-to-b from-white to-sw-accent-light px-6 py-16">
                 <div className="mx-auto max-w-3xl text-center">
                     <h1 className="text-4xl font-bold tracking-tight text-sw-text">Privacy Policy</h1>

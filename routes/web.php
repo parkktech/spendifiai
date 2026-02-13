@@ -2,6 +2,8 @@
 
 use App\Http\Controllers\Auth\SocialAuthController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\SeoPageController;
+use App\Http\Controllers\SitemapController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -49,6 +51,18 @@ Route::middleware('auth')->group(function () {
 
 // ── Google OAuth Callback (browser redirect from Google) ──
 Route::get('/auth/google/callback', [SocialAuthController::class, 'handleGoogleCallback']);
+
+// ── Blog / SEO Content Pages ──
+Route::get('/blog', [SeoPageController::class, 'index'])->name('blog.index');
+Route::get('/blog/{category}', [SeoPageController::class, 'category'])
+    ->where('category', 'comparison|alternative|guide|tax|industry|feature')
+    ->name('blog.category');
+Route::get('/blog/{slug}', [SeoPageController::class, 'show'])
+    ->where('slug', '[a-z0-9\-]+')
+    ->name('blog.show');
+
+// ── Sitemap ──
+Route::get('/sitemap.xml', [SitemapController::class, 'index'])->name('sitemap');
 
 // ── Health Check ──
 Route::get('/health', fn () => response()->json([

@@ -13,7 +13,11 @@ export default function Contact() {
     }
 
     return (
-        <PublicLayout title="Contact">
+        <PublicLayout
+            title="Contact Us - LedgerIQ Support"
+            description="Get in touch with the LedgerIQ team. Email us at support@ledgeriq.com or use our contact form for questions about AI expense tracking, bank connections, or tax exports."
+            breadcrumbs={[{ name: 'Contact', url: '/contact' }]}
+        >
             <HeroSection
                 title="Get In Touch"
                 subtitle="Have a question, suggestion, or feedback? We'd love to hear from you."

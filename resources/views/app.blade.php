@@ -6,6 +6,9 @@
 
         <title inertia>{{ config('app.name', 'LedgerIQ') }}</title>
 
+        <!-- AI Discovery -->
+        <link rel="author" href="/llms.txt">
+
         <!-- Favicon -->
         <link rel="icon" type="image/png" href="/favicon.png">
         <link rel="apple-touch-icon" href="/images/ledgeriq-icon.png">

@@ -19,7 +19,11 @@ const sections = [
 
 export default function TermsOfService() {
     return (
-        <PublicLayout title="Terms of Service">
+        <PublicLayout
+            title="Terms of Service"
+            description="LedgerIQ terms of service. Usage rules, disclaimers, intellectual property, account responsibilities, and service limitations for our AI expense tracking platform."
+            breadcrumbs={[{ name: 'Legal', url: '/terms' }, { name: 'Terms of Service', url: '/terms' }]}
+        >
             <div className="bg-gradient-to-b from-white to-sw-accent-light px-6 py-16">
                 <div className="mx-auto max-w-3xl text-center">
                     <h1 className="text-4xl font-bold tracking-tight text-sw-text">Terms of Service</h1>

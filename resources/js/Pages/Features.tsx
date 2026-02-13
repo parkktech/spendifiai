@@ -2,6 +2,7 @@ import { Link } from '@inertiajs/react';
 import PublicLayout from '@/Layouts/PublicLayout';
 import HeroSection from '@/Components/Marketing/HeroSection';
 import CTASection from '@/Components/Marketing/CTASection';
+import JsonLd from '@/Components/JsonLd';
 import {
     Brain,
     Building2,
@@ -143,7 +144,31 @@ const featureDetails: FeatureDetailProps[] = [
 
 export default function Features() {
     return (
-        <PublicLayout title="Features">
+        <PublicLayout
+            title="AI Expense Tracking Features - Bank Sync, Tax Export & More"
+            description="Explore LedgerIQ features: AI transaction categorization, Plaid bank sync, subscription detection, savings recommendations, IRS Schedule C tax export, and email receipt parsing. All free."
+            breadcrumbs={[{ name: 'Features', url: '/features' }]}
+        >
+            <JsonLd
+                data={{
+                    '@context': 'https://schema.org',
+                    '@type': 'ItemList',
+                    name: 'LedgerIQ Features',
+                    description: 'Complete list of AI expense tracking features available for free',
+                    numberOfItems: 9,
+                    itemListElement: [
+                        { '@type': 'ListItem', position: 1, name: 'AI Transaction Categorization', description: 'Claude AI automatically categorizes transactions with 85%+ accuracy' },
+                        { '@type': 'ListItem', position: 2, name: 'Plaid Bank Sync', description: 'Connect 12,000+ banks securely via Plaid SOC 2 Type II' },
+                        { '@type': 'ListItem', position: 3, name: 'Bank Statement Upload', description: 'Upload PDF or CSV statements when Plaid is unavailable' },
+                        { '@type': 'ListItem', position: 4, name: 'Subscription Detection', description: 'Find recurring charges and unused subscriptions automatically' },
+                        { '@type': 'ListItem', position: 5, name: 'AI Savings Recommendations', description: 'Personalized tips to save money based on spending analysis' },
+                        { '@type': 'ListItem', position: 6, name: 'Tax Deduction Export', description: 'IRS Schedule C mapped reports in Excel, PDF, and CSV' },
+                        { '@type': 'ListItem', position: 7, name: 'Email Receipt Matching', description: 'Gmail and IMAP integration for automatic receipt matching' },
+                        { '@type': 'ListItem', position: 8, name: 'Business/Personal Split', description: 'Tag accounts as business, personal, mixed, or investment' },
+                        { '@type': 'ListItem', position: 9, name: 'Budget Dashboard', description: 'Waterfall charts, monthly bills, home affordability, where to cut' },
+                    ],
+                }}
+            />
             <HeroSection
                 title="Powerful Features, Zero Cost"
                 subtitle="Everything you need to track expenses, find savings, and prepare for tax season — all powered by AI and completely free."

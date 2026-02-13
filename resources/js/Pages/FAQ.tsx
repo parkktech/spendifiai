@@ -2,6 +2,7 @@ import { Link } from '@inertiajs/react';
 import PublicLayout from '@/Layouts/PublicLayout';
 import HeroSection from '@/Components/Marketing/HeroSection';
 import FAQAccordion from '@/Components/Marketing/FAQAccordion';
+import JsonLd from '@/Components/JsonLd';
 import { ArrowRight } from 'lucide-react';
 
 const faqGroups = [
@@ -91,9 +92,50 @@ const faqGroups = [
     },
 ];
 
+// Build FAQPage JSON-LD from all Q&A items
+const allFaqItems = faqGroups.flatMap((g) => g.items);
+const faqSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    mainEntity: allFaqItems.map((item) => ({
+        '@type': 'Question',
+        name: item.question,
+        acceptedAnswer: {
+            '@type': 'Answer',
+            text: item.answer,
+        },
+    })),
+};
+
+const softwareSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'SoftwareApplication',
+    name: 'LedgerIQ',
+    applicationCategory: 'FinanceApplication',
+    operatingSystem: 'Web browser',
+    offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
+    description: 'Free AI-powered expense tracker with automatic categorization, subscription detection, savings recommendations, and IRS Schedule C tax export.',
+    featureList: [
+        'AI-powered transaction categorization',
+        'Plaid bank sync',
+        'Subscription detection',
+        'Savings recommendations',
+        'IRS Schedule C tax export',
+        'Bank statement upload (PDF/CSV)',
+        'Email receipt parsing',
+        'Two-factor authentication',
+    ],
+};
+
 export default function FAQ() {
     return (
-        <PublicLayout title="FAQ">
+        <PublicLayout
+            title="FAQ - AI Expense Tracking Questions Answered"
+            description="Answers to common questions about LedgerIQ: security, AI categorization accuracy, bank connections, tax exports, Plaid integration, subscription detection, and account management."
+            breadcrumbs={[{ name: 'FAQ', url: '/faq' }]}
+        >
+            <JsonLd data={faqSchema} />
+            <JsonLd data={softwareSchema} />
             <HeroSection
                 title="Frequently Asked Questions"
                 subtitle="Find answers to common questions about LedgerIQ, security, features, and your account."

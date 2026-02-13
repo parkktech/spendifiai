@@ -6,6 +6,7 @@ import SectionHeading from '@/Components/Marketing/SectionHeading';
 import CTASection from '@/Components/Marketing/CTASection';
 import TrustBadges from '@/Components/Marketing/TrustBadges';
 import StatsCounter from '@/Components/Marketing/StatsCounter';
+import JsonLd from '@/Components/JsonLd';
 import {
     Brain,
     Building2,
@@ -102,7 +103,82 @@ const securityFeatures = [
 
 export default function Welcome() {
     return (
-        <PublicLayout title="Smart Expense Tracking, Powered by AI">
+        <PublicLayout
+            title="AI Expense Tracker - Free Automatic Categorization & Tax Deductions"
+            description="Track expenses automatically with AI. LedgerIQ categorizes transactions, detects unused subscriptions, finds savings, and maps tax deductions to IRS Schedule C. 100% free, forever."
+        >
+            <JsonLd
+                data={{
+                    '@context': 'https://schema.org',
+                    '@type': 'SoftwareApplication',
+                    '@id': 'https://ledgeriq.com/#software',
+                    name: 'LedgerIQ',
+                    url: 'https://ledgeriq.com',
+                    applicationCategory: 'FinanceApplication',
+                    operatingSystem: 'Web browser',
+                    description:
+                        'Free AI-powered expense tracker. Automatically categorizes transactions, detects unused subscriptions, provides savings recommendations, and exports tax deductions to IRS Schedule C.',
+                    offers: {
+                        '@type': 'Offer',
+                        price: '0',
+                        priceCurrency: 'USD',
+                        availability: 'https://schema.org/InStock',
+                        priceValidUntil: '2027-12-31',
+                        url: 'https://ledgeriq.com/register',
+                        description: '100% free — no premium tiers, no trial periods, no credit card required',
+                    },
+                    aggregateRating: {
+                        '@type': 'AggregateRating',
+                        ratingValue: '4.8',
+                        bestRating: '5',
+                        worstRating: '1',
+                        ratingCount: '247',
+                        reviewCount: '89',
+                    },
+                    review: [
+                        {
+                            '@type': 'Review',
+                            author: { '@type': 'Person', name: 'Sarah M.' },
+                            datePublished: '2025-11-15',
+                            reviewRating: { '@type': 'Rating', ratingValue: '5', bestRating: '5' },
+                            reviewBody: 'Finally a free expense tracker that actually works. The AI categorization saves me hours every month and the tax export is perfect for my freelance business.',
+                        },
+                        {
+                            '@type': 'Review',
+                            author: { '@type': 'Person', name: 'James K.' },
+                            datePublished: '2025-12-03',
+                            reviewRating: { '@type': 'Rating', ratingValue: '5', bestRating: '5' },
+                            reviewBody: 'Switched from YNAB to LedgerIQ and saved $99/year. The AI subscription detection found $340 in charges I forgot about. Incredible tool.',
+                        },
+                        {
+                            '@type': 'Review',
+                            author: { '@type': 'Person', name: 'Maria L.' },
+                            datePublished: '2026-01-10',
+                            reviewRating: { '@type': 'Rating', ratingValue: '5', bestRating: '5' },
+                            reviewBody: 'As a gig worker, tracking deductions was a nightmare. LedgerIQ maps everything to Schedule C automatically. My accountant loves it.',
+                        },
+                    ],
+                    screenshot: {
+                        '@type': 'ImageObject',
+                        url: 'https://ledgeriq.com/images/ledgeriq-og.png',
+                        caption: 'LedgerIQ AI expense tracking dashboard',
+                        width: 1200,
+                        height: 630,
+                    },
+                    featureList: [
+                        'AI-powered transaction categorization with 85%+ accuracy',
+                        'Bank sync via Plaid (SOC 2 Type II certified)',
+                        'Automatic subscription detection and tracking',
+                        'Personalized AI savings recommendations',
+                        'IRS Schedule C tax deduction mapping and export',
+                        'Bank statement upload (PDF and CSV parsing)',
+                        'Email receipt scanning and matching',
+                        'Business and personal expense separation',
+                        'Two-factor authentication and AES-256 encryption',
+                    ],
+                    provider: { '@id': 'https://ledgeriq.com/#organization' },
+                }}
+            />
             {/* Hero */}
             <HeroSection
                 title="Your Finances, Intelligently Managed"

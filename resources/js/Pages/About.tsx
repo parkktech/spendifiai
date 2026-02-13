@@ -42,7 +42,11 @@ const techStack = [
 
 export default function About() {
     return (
-        <PublicLayout title="About">
+        <PublicLayout
+            title="About LedgerIQ - AI-Powered Personal Finance for Everyone"
+            description="LedgerIQ is a free AI-powered personal finance platform built for freelancers, small business owners, and individuals. Automatic expense tracking, tax deductions, and savings insights."
+            breadcrumbs={[{ name: 'About', url: '/about' }]}
+        >
             <HeroSection
                 title="Built for People Who Want Smarter Money Management"
                 subtitle="LedgerIQ was created with a simple belief: everyone deserves intelligent financial tools, regardless of their budget."

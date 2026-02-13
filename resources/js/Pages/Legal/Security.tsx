@@ -16,7 +16,11 @@ const sections = [
 
 export default function Security() {
     return (
-        <PublicLayout title="Security Policy">
+        <PublicLayout
+            title="Security Policy - Bank-Level Encryption & Data Protection"
+            description="LedgerIQ security: AES-256 encryption, Plaid SOC 2 Type II, bcrypt password hashing, TLS 1.2+, two-factor authentication, and responsible disclosure program."
+            breadcrumbs={[{ name: 'Legal', url: '/security-policy' }, { name: 'Security', url: '/security-policy' }]}
+        >
             <div className="bg-gradient-to-b from-white to-sw-accent-light px-6 py-16">
                 <div className="mx-auto max-w-3xl text-center">
                     <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-sw-accent text-white">

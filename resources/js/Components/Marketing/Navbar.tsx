@@ -6,8 +6,8 @@ import ApplicationLogo from '@/Components/ApplicationLogo';
 const navLinks = [
     { label: 'Features', href: '/features' },
     { label: 'How It Works', href: '/how-it-works' },
+    { label: 'Blog', href: '/blog', external: true },
     { label: 'FAQ', href: '/faq' },
-    { label: 'About', href: '/about' },
 ];
 
 export default function Navbar() {
@@ -23,15 +23,25 @@ export default function Navbar() {
 
                 {/* Desktop nav */}
                 <div className="hidden items-center gap-8 md:flex">
-                    {navLinks.map((link) => (
-                        <Link
-                            key={link.href}
-                            href={link.href}
-                            className="text-sm font-medium text-sw-muted transition-colors hover:text-sw-text"
-                        >
-                            {link.label}
-                        </Link>
-                    ))}
+                    {navLinks.map((link) =>
+                        link.external ? (
+                            <a
+                                key={link.href}
+                                href={link.href}
+                                className="text-sm font-medium text-sw-muted transition-colors hover:text-sw-text"
+                            >
+                                {link.label}
+                            </a>
+                        ) : (
+                            <Link
+                                key={link.href}
+                                href={link.href}
+                                className="text-sm font-medium text-sw-muted transition-colors hover:text-sw-text"
+                            >
+                                {link.label}
+                            </Link>
+                        ),
+                    )}
                 </div>
 
                 <div className="hidden items-center gap-3 md:flex">
@@ -74,16 +84,27 @@ export default function Navbar() {
             {mobileOpen && (
                 <div className="border-t border-sw-border bg-white px-6 pb-6 pt-4 md:hidden">
                     <div className="flex flex-col gap-4">
-                        {navLinks.map((link) => (
-                            <Link
-                                key={link.href}
-                                href={link.href}
-                                className="text-base font-medium text-sw-muted transition-colors hover:text-sw-text"
-                                onClick={() => setMobileOpen(false)}
-                            >
-                                {link.label}
-                            </Link>
-                        ))}
+                        {navLinks.map((link) =>
+                            link.external ? (
+                                <a
+                                    key={link.href}
+                                    href={link.href}
+                                    className="text-base font-medium text-sw-muted transition-colors hover:text-sw-text"
+                                    onClick={() => setMobileOpen(false)}
+                                >
+                                    {link.label}
+                                </a>
+                            ) : (
+                                <Link
+                                    key={link.href}
+                                    href={link.href}
+                                    className="text-base font-medium text-sw-muted transition-colors hover:text-sw-text"
+                                    onClick={() => setMobileOpen(false)}
+                                >
+                                    {link.label}
+                                </Link>
+                            ),
+                        )}
                         <hr className="border-sw-border" />
                         {auth?.user ? (
                             <Link
