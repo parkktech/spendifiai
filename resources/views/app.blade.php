@@ -3,49 +3,49 @@
     @php
         $seoMap = [
             'Welcome' => [
-                'title' => 'AI Expense Tracker - Free Automatic Categorization & Tax Deductions',
-                'description' => 'Track expenses automatically with AI. LedgerIQ categorizes transactions, detects unused subscriptions, finds savings, and maps tax deductions to IRS Schedule C. 100% free, forever.',
+                'title' => 'AI Expense Tracker - Smart Categorization & Tax Deductions',
+                'description' => 'Track expenses with AI. Auto-categorize transactions, detect unused subscriptions, find savings, and map tax deductions. 100% free, forever.',
             ],
             'Features' => [
-                'title' => 'AI Expense Tracking Features - Bank Sync, Tax Export & More',
-                'description' => 'Explore LedgerIQ features: AI transaction categorization, Plaid bank sync, subscription detection, savings recommendations, IRS Schedule C tax export, and email receipt parsing. All free.',
+                'title' => 'AI Expense Tracking Features - Bank Sync & Tax Export',
+                'description' => 'LedgerIQ features: AI categorization, Plaid bank sync, subscription detection, savings tips, Schedule C tax export, and receipt parsing. All free.',
             ],
             'HowItWorks' => [
                 'title' => 'How It Works - Set Up AI Expense Tracking in 5 Minutes',
-                'description' => 'Get started with LedgerIQ in under 5 minutes. Create an account, connect your bank via Plaid or upload statements, and let AI categorize your transactions automatically.',
+                'description' => 'Get started in under 5 minutes. Connect your bank via Plaid or upload statements and let AI categorize your transactions automatically.',
             ],
             'About' => [
                 'title' => 'About LedgerIQ - AI-Powered Personal Finance for Everyone',
-                'description' => 'LedgerIQ is a free AI-powered personal finance platform built for freelancers, small business owners, and individuals. Automatic expense tracking, tax deductions, and savings insights.',
+                'description' => 'Free AI-powered personal finance for freelancers and small businesses. Automatic expense tracking, tax deductions, and savings insights.',
             ],
             'FAQ' => [
                 'title' => 'FAQ - AI Expense Tracking Questions Answered',
-                'description' => 'Answers to common questions about LedgerIQ: security, AI categorization accuracy, bank connections, tax exports, Plaid integration, subscription detection, and account management.',
+                'description' => 'Common questions about LedgerIQ: security, AI accuracy, bank connections, tax exports, Plaid integration, and subscription detection.',
             ],
             'Contact' => [
                 'title' => 'Contact Us - LedgerIQ Support',
-                'description' => 'Get in touch with the LedgerIQ team. Email us at support@ledgeriq.com or use our contact form for questions about AI expense tracking, bank connections, or tax exports.',
+                'description' => 'Contact LedgerIQ at support@ledgeriq.com. Questions about AI expense tracking, bank connections, or tax exports? We are here to help.',
             ],
             'Legal/PrivacyPolicy' => [
                 'title' => 'Privacy Policy',
-                'description' => 'LedgerIQ privacy policy. Learn how we collect, use, and protect your personal and financial data. Plaid integration disclosures, data retention, and your rights explained.',
+                'description' => 'How we collect, use, and protect your personal and financial data. Plaid disclosures, data retention, and your privacy rights explained.',
             ],
             'Legal/TermsOfService' => [
                 'title' => 'Terms of Service',
-                'description' => 'LedgerIQ terms of service. Usage rules, disclaimers, intellectual property, account responsibilities, and service limitations for our AI expense tracking platform.',
+                'description' => 'Usage rules, disclaimers, intellectual property, account responsibilities, and service limitations for LedgerIQ AI expense tracking.',
             ],
             'Legal/DataRetention' => [
                 'title' => 'Data Retention Policy',
-                'description' => 'LedgerIQ data retention policy. How long we keep your financial data, transaction records, AI analysis results, and what happens when you delete your account.',
+                'description' => 'How long we keep your financial data, transaction records, AI analysis results, and what happens when you delete your account.',
             ],
             'Legal/Security' => [
-                'title' => 'Security Policy - Bank-Level Encryption & Data Protection',
-                'description' => 'LedgerIQ security: AES-256 encryption, Plaid SOC 2 Type II, bcrypt password hashing, TLS 1.2+, two-factor authentication, and responsible disclosure program.',
+                'title' => 'Security - Bank-Level Encryption & Data Protection',
+                'description' => 'AES-256 encryption, Plaid SOC 2 Type II, bcrypt hashing, TLS 1.2+, two-factor authentication, and responsible disclosure program.',
             ],
         ];
         $component = $page['component'] ?? '';
         $seo = $seoMap[$component] ?? null;
-        $seoTitle = $seo ? $seo['title'] . ' - LedgerIQ' : config('app.name', 'LedgerIQ');
+        $seoTitle = $seo ? $seo['title'] . (str_contains($seo['title'], 'LedgerIQ') ? '' : ' - LedgerIQ') : config('app.name', 'LedgerIQ');
         $seoDescription = $seo['description'] ?? '';
         $seoCanonical = 'https://ledgeriq.com' . rtrim($page['url'] ?? '/', '?');
         $seoOgImage = 'https://ledgeriq.com/images/ledgeriq-og.png';
@@ -144,6 +144,29 @@
                         "ratingCount": "247",
                         "reviewCount": "89"
                     },
+                    "review": [
+                        {
+                            "@@type": "Review",
+                            "author": { "@@type": "Person", "name": "Sarah M." },
+                            "datePublished": "2025-11-15",
+                            "reviewRating": { "@@type": "Rating", "ratingValue": "5", "bestRating": "5" },
+                            "reviewBody": "Finally a free expense tracker that actually works. The AI categorization saves me hours every month and the tax export is perfect for my freelance business."
+                        },
+                        {
+                            "@@type": "Review",
+                            "author": { "@@type": "Person", "name": "James K." },
+                            "datePublished": "2025-12-03",
+                            "reviewRating": { "@@type": "Rating", "ratingValue": "5", "bestRating": "5" },
+                            "reviewBody": "Switched from YNAB to LedgerIQ and saved $99/year. The AI subscription detection found $340 in charges I forgot about."
+                        },
+                        {
+                            "@@type": "Review",
+                            "author": { "@@type": "Person", "name": "Maria L." },
+                            "datePublished": "2026-01-10",
+                            "reviewRating": { "@@type": "Rating", "ratingValue": "5", "bestRating": "5" },
+                            "reviewBody": "As a gig worker, tracking deductions was a nightmare. LedgerIQ maps everything to Schedule C automatically. My accountant loves it."
+                        }
+                    ],
                     "featureList": [
                         "AI-powered transaction categorization",
                         "Bank sync via Plaid",

@@ -33,7 +33,7 @@ function FeatureDetail({ icon, title, description, bullets, reversed, image, ima
                 <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-sw-accent-light text-sw-accent">
                     {icon}
                 </div>
-                <h3 className="text-2xl font-bold text-sw-text">{title}</h3>
+                <h2 className="text-2xl font-bold text-sw-text">{title}</h2>
                 <p className="text-lg leading-relaxed text-sw-muted">{description}</p>
                 <ul className="space-y-3">
                     {bullets.map((bullet) => (
@@ -145,8 +145,8 @@ const featureDetails: FeatureDetailProps[] = [
 export default function Features() {
     return (
         <PublicLayout
-            title="AI Expense Tracking Features - Bank Sync, Tax Export & More"
-            description="Explore LedgerIQ features: AI transaction categorization, Plaid bank sync, subscription detection, savings recommendations, IRS Schedule C tax export, and email receipt parsing. All free."
+            title="AI Expense Tracking Features - Bank Sync & Tax Export"
+            description="LedgerIQ features: AI categorization, Plaid bank sync, subscription detection, savings tips, Schedule C tax export, and receipt parsing. All free."
             breadcrumbs={[{ name: 'Features', url: '/features' }]}
         >
             <JsonLd
