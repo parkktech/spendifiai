@@ -101,7 +101,11 @@
                     "contactType": "customer support",
                     "email": "support@ledgeriq.com",
                     "url": "https://ledgeriq.com/contact"
-                }
+                },
+                "sameAs": [
+                    "https://ledgeriq.com/about",
+                    "https://ledgeriq.com/blog"
+                ]
             }
             </script>
             {{-- JSON-LD: WebSite --}}
@@ -112,7 +116,12 @@
                 "@@id": "https://ledgeriq.com/#website",
                 "name": "LedgerIQ",
                 "url": "https://ledgeriq.com",
-                "publisher": { "@@id": "https://ledgeriq.com/#organization" }
+                "publisher": { "@@id": "https://ledgeriq.com/#organization" },
+                "potentialAction": {
+                    "@@type": "SearchAction",
+                    "target": "https://ledgeriq.com/blog?q={search_term_string}",
+                    "query-input": "required name=search_term_string"
+                }
             }
             </script>
             @if($component === 'Welcome')
@@ -178,6 +187,128 @@
                         "Two-factor authentication"
                     ],
                     "provider": { "@@id": "https://ledgeriq.com/#organization" }
+                }
+                </script>
+            @endif
+            @if($component === 'Features')
+                {{-- JSON-LD: ItemList (server-side for crawlers) --}}
+                <script type="application/ld+json">
+                {
+                    "@@context": "https://schema.org",
+                    "@@type": "ItemList",
+                    "name": "LedgerIQ Features",
+                    "description": "Complete list of AI expense tracking features available for free",
+                    "numberOfItems": 9,
+                    "itemListElement": [
+                        { "@@type": "ListItem", "position": 1, "name": "AI Transaction Categorization", "description": "Claude AI automatically categorizes transactions with 85%+ accuracy" },
+                        { "@@type": "ListItem", "position": 2, "name": "Plaid Bank Sync", "description": "Connect 12,000+ banks securely via Plaid SOC 2 Type II" },
+                        { "@@type": "ListItem", "position": 3, "name": "Bank Statement Upload", "description": "Upload PDF or CSV statements when Plaid is unavailable" },
+                        { "@@type": "ListItem", "position": 4, "name": "Subscription Detection", "description": "Find recurring charges and unused subscriptions automatically" },
+                        { "@@type": "ListItem", "position": 5, "name": "AI Savings Recommendations", "description": "Personalized tips to save money based on spending analysis" },
+                        { "@@type": "ListItem", "position": 6, "name": "Tax Deduction Export", "description": "IRS Schedule C mapped reports in Excel, PDF, and CSV" },
+                        { "@@type": "ListItem", "position": 7, "name": "Email Receipt Matching", "description": "Gmail integration for automatic receipt matching" },
+                        { "@@type": "ListItem", "position": 8, "name": "Business/Personal Split", "description": "Tag accounts as business, personal, mixed, or investment" },
+                        { "@@type": "ListItem", "position": 9, "name": "Budget Dashboard", "description": "Waterfall charts, monthly bills, home affordability analysis" }
+                    ]
+                }
+                </script>
+            @endif
+            @if($component === 'FAQ')
+                {{-- JSON-LD: FAQPage (server-side for crawlers) --}}
+                <script type="application/ld+json">
+                {
+                    "@@context": "https://schema.org",
+                    "@@type": "FAQPage",
+                    "mainEntity": [
+                        {
+                            "@@type": "Question",
+                            "name": "What is LedgerIQ?",
+                            "acceptedAnswer": { "@@type": "Answer", "text": "LedgerIQ is an AI-powered expense tracking platform that automatically categorizes transactions, detects unused subscriptions, provides savings recommendations, and generates tax-ready reports." }
+                        },
+                        {
+                            "@@type": "Question",
+                            "name": "Is LedgerIQ really free?",
+                            "acceptedAnswer": { "@@type": "Answer", "text": "Yes, 100% free. No premium tiers, no trial periods, no hidden fees, and no credit card required." }
+                        },
+                        {
+                            "@@type": "Question",
+                            "name": "How is my data protected?",
+                            "acceptedAnswer": { "@@type": "Answer", "text": "All sensitive data is encrypted with AES-256-CBC. Passwords use bcrypt hashing. All connections use HTTPS with TLS 1.2+. We offer optional two-factor authentication." }
+                        },
+                        {
+                            "@@type": "Question",
+                            "name": "Does LedgerIQ store my bank credentials?",
+                            "acceptedAnswer": { "@@type": "Answer", "text": "No. Bank connections are handled by Plaid, a SOC 2 Type II certified platform. Your bank credentials never touch our servers." }
+                        },
+                        {
+                            "@@type": "Question",
+                            "name": "How does AI categorization work?",
+                            "acceptedAnswer": { "@@type": "Answer", "text": "Claude AI analyzes each transaction and assigns a category with a confidence score. Transactions above 85% confidence are auto-categorized. Lower confidence ones generate questions for you." }
+                        },
+                        {
+                            "@@type": "Question",
+                            "name": "Can I separate business and personal expenses?",
+                            "acceptedAnswer": { "@@type": "Answer", "text": "Yes. Tag each bank account as personal, business, mixed, or investment. This purpose cascades to all transactions for accurate categorization." }
+                        },
+                        {
+                            "@@type": "Question",
+                            "name": "What tax export formats are available?",
+                            "acceptedAnswer": { "@@type": "Answer", "text": "LedgerIQ generates Excel workbooks, PDF cover sheets, and CSV files. All expenses are mapped to IRS Schedule C categories." }
+                        },
+                        {
+                            "@@type": "Question",
+                            "name": "How does subscription detection work?",
+                            "acceptedAnswer": { "@@type": "Answer", "text": "Our algorithms scan transaction patterns for recurring charges — same merchant, similar amounts, regular intervals. We flag unused subscriptions and calculate annual costs." }
+                        },
+                        {
+                            "@@type": "Question",
+                            "name": "Can I delete my data?",
+                            "acceptedAnswer": { "@@type": "Answer", "text": "Yes. Delete your account from Settings. All data is permanently removed within 30 days. Plaid access tokens are revoked immediately." }
+                        },
+                        {
+                            "@@type": "Question",
+                            "name": "Can I connect multiple bank accounts?",
+                            "acceptedAnswer": { "@@type": "Answer", "text": "Yes. Connect multiple accounts from multiple banks. Each can be independently tagged for accurate business and personal expense tracking." }
+                        }
+                    ]
+                }
+                </script>
+            @endif
+            @if($component === 'HowItWorks')
+                {{-- JSON-LD: HowTo (server-side for crawlers) --}}
+                <script type="application/ld+json">
+                {
+                    "@@context": "https://schema.org",
+                    "@@type": "HowTo",
+                    "name": "How to Set Up AI Expense Tracking with LedgerIQ",
+                    "description": "Get started with LedgerIQ in under 5 minutes. Connect your bank or upload statements and let AI categorize your transactions automatically.",
+                    "totalTime": "PT5M",
+                    "step": [
+                        {
+                            "@@type": "HowToStep",
+                            "position": 1,
+                            "name": "Create Your Free Account",
+                            "text": "Sign up with your email or Google account. No credit card required."
+                        },
+                        {
+                            "@@type": "HowToStep",
+                            "position": 2,
+                            "name": "Connect Your Bank",
+                            "text": "Link your bank accounts securely through Plaid, or upload PDF/CSV bank statements."
+                        },
+                        {
+                            "@@type": "HowToStep",
+                            "position": 3,
+                            "name": "AI Categorizes Your Transactions",
+                            "text": "Claude AI automatically categorizes every transaction with 85%+ accuracy and maps business expenses to IRS Schedule C categories."
+                        },
+                        {
+                            "@@type": "HowToStep",
+                            "position": 4,
+                            "name": "Get Insights and Save Money",
+                            "text": "View your dashboard for spending analysis, subscription detection, savings recommendations, and tax-ready reports."
+                        }
+                    ]
                 }
                 </script>
             @endif

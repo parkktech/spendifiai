@@ -34,7 +34,7 @@ function Step({ number, icon, title, description, details }: StepProps) {
                 <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-lg bg-sw-accent-light text-sw-accent">
                     {icon}
                 </div>
-                <h3 className="text-xl font-bold text-sw-text">{title}</h3>
+                <h2 className="text-xl font-bold text-sw-text">{title}</h2>
                 <p className="mt-2 text-lg leading-relaxed text-sw-muted">{description}</p>
                 <ul className="mt-4 space-y-2">
                     {details.map((detail) => (

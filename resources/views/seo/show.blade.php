@@ -7,6 +7,13 @@
     @section('og_image', $page->featured_image)
 @endif
 
+@section('og_article')
+    <meta property="article:published_time" content="{{ $page->published_at?->toIso8601String() }}">
+    <meta property="article:modified_time" content="{{ $page->updated_at->toIso8601String() }}">
+    <meta property="article:author" content="https://ledgeriq.com/about">
+    <meta property="article:section" content="{{ ucfirst($page->category) }}">
+@endsection
+
 @php
     $defaultImages = [
         'comparison' => 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=1200&auto=format&fit=crop&q=80',
@@ -38,9 +45,9 @@
     "datePublished": "{{ $page->published_at?->toIso8601String() }}",
     "dateModified": "{{ $page->updated_at->toIso8601String() }}",
     "author": {
-        "@@type": "Organization",
-        "name": "LedgerIQ",
-        "@@id": "https://ledgeriq.com/#organization"
+        "@@type": "Person",
+        "name": "LedgerIQ Team",
+        "url": "https://ledgeriq.com/about"
     },
     "publisher": {
         "@@id": "https://ledgeriq.com/#organization"

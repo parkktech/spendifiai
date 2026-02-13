@@ -32,7 +32,7 @@ export default function Contact() {
                                 <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-sw-success text-white">
                                     <Mail className="h-8 w-8" />
                                 </div>
-                                <h3 className="text-xl font-bold text-sw-text">Message Sent!</h3>
+                                <h2 className="text-xl font-bold text-sw-text">Message Sent!</h2>
                                 <p className="mt-2 text-sw-muted">
                                     Thank you for reaching out. We&apos;ll get back to you within 24 hours.
                                 </p>
@@ -102,14 +102,14 @@ export default function Contact() {
                             <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-lg bg-sw-accent-light text-sw-accent">
                                 <Mail className="h-5 w-5" />
                             </div>
-                            <h3 className="font-semibold text-sw-text">Email Us</h3>
+                            <h2 className="font-semibold text-sw-text">Email Us</h2>
                             <p className="mt-1 text-sm text-sw-muted">support@ledgeriq.com</p>
                         </div>
                         <div className="rounded-2xl border border-sw-border bg-white p-6 shadow-sm">
                             <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-lg bg-sw-accent-light text-sw-accent">
                                 <MessageSquare className="h-5 w-5" />
                             </div>
-                            <h3 className="font-semibold text-sw-text">Check Our FAQ</h3>
+                            <h2 className="font-semibold text-sw-text">Check Our FAQ</h2>
                             <p className="mt-1 text-sm text-sw-muted">
                                 Find quick answers to common questions.
                             </p>

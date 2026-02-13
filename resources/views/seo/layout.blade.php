@@ -21,6 +21,7 @@
     <meta property="og:image:width" content="1200">
     <meta property="og:image:height" content="630">
     <meta property="og:image:alt" content="@yield('title') - LedgerIQ AI Expense Tracking">
+    @yield('og_article')
 
     <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image">
@@ -220,7 +221,11 @@
             "contactType": "customer support",
             "email": "support@ledgeriq.com",
             "url": "https://ledgeriq.com/contact"
-        }
+        },
+        "sameAs": [
+            "https://ledgeriq.com/about",
+            "https://ledgeriq.com/blog"
+        ]
     }
     </script>
     <!-- JSON-LD: WebSite -->
@@ -231,7 +236,12 @@
         "@@id": "https://ledgeriq.com/#website",
         "name": "LedgerIQ",
         "url": "https://ledgeriq.com",
-        "publisher": { "@@id": "https://ledgeriq.com/#organization" }
+        "publisher": { "@@id": "https://ledgeriq.com/#organization" },
+        "potentialAction": {
+            "@@type": "SearchAction",
+            "target": "https://ledgeriq.com/blog?q={search_term_string}",
+            "query-input": "required name=search_term_string"
+        }
     }
     </script>
     <!-- JSON-LD: SoftwareApplication -->
