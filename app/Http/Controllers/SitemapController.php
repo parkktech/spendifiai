@@ -22,6 +22,17 @@ class SitemapController extends Controller
             ['url' => '/security-policy', 'priority' => '0.3', 'changefreq' => 'yearly'],
         ];
 
+        $blogCategories = SeoPage::published()
+            ->select('category')
+            ->distinct()
+            ->pluck('category')
+            ->map(fn ($cat) => [
+                'url' => '/blog/'.$cat,
+                'priority' => '0.6',
+                'changefreq' => 'weekly',
+            ])
+            ->all();
+
         $blogPages = SeoPage::published()
             ->select('slug', 'updated_at')
             ->orderByDesc('updated_at')
@@ -29,7 +40,7 @@ class SitemapController extends Controller
 
         return response()
             ->view('seo.sitemap', [
-                'staticPages' => $staticPages,
+                'staticPages' => array_merge($staticPages, $blogCategories),
                 'blogPages' => $blogPages,
             ])
             ->header('Content-Type', 'application/xml');

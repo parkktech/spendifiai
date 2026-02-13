@@ -3,14 +3,14 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>@yield('title') - LedgerIQ</title>
+    <title>@yield('title'){{ str_contains(View::yieldContent('title'), 'LedgerIQ') ? '' : ' - LedgerIQ' }}</title>
     <meta name="description" content="@yield('description')">
     <link rel="canonical" href="@yield('canonical')">
 
     <!-- Open Graph -->
     <meta property="og:type" content="article">
     <meta property="og:site_name" content="LedgerIQ">
-    <meta property="og:title" content="@yield('title') - LedgerIQ">
+    <meta property="og:title" content="@yield('title'){{ str_contains(View::yieldContent('title'), 'LedgerIQ') ? '' : ' - LedgerIQ' }}">
     <meta property="og:description" content="@yield('description')">
     <meta property="og:url" content="@yield('canonical')">
     @hasSection('og_image')
@@ -24,7 +24,7 @@
 
     <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="@yield('title') - LedgerIQ">
+    <meta name="twitter:title" content="@yield('title'){{ str_contains(View::yieldContent('title'), 'LedgerIQ') ? '' : ' - LedgerIQ' }}">
     <meta name="twitter:description" content="@yield('description')">
     @hasSection('og_image')
         <meta name="twitter:image" content="@yield('og_image')">
