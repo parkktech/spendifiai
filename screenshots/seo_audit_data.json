@@ -1,0 +1,37 @@
+[
+  {
+    "error": "Page.goto: net::ERR_NAME_NOT_RESOLVED at http://www.ledgeriq.loc/\nCall log:\n  - navigating to \"http://www.ledgeriq.loc/\", waiting until \"networkidle\"\n",
+    "url": "http://www.ledgeriq.loc/",
+    "name": "homepage"
+  },
+  {
+    "error": "Page.goto: net::ERR_NAME_NOT_RESOLVED at http://www.ledgeriq.loc/features\nCall log:\n  - navigating to \"http://www.ledgeriq.loc/features\", waiting until \"networkidle\"\n",
+    "url": "http://www.ledgeriq.loc/features",
+    "name": "features"
+  },
+  {
+    "error": "Page.goto: net::ERR_NAME_NOT_RESOLVED at http://www.ledgeriq.loc/how-it-works\nCall log:\n  - navigating to \"http://www.ledgeriq.loc/how-it-works\", waiting until \"networkidle\"\n",
+    "url": "http://www.ledgeriq.loc/how-it-works",
+    "name": "how-it-works"
+  },
+  {
+    "error": "Page.goto: net::ERR_NAME_NOT_RESOLVED at http://www.ledgeriq.loc/about\nCall log:\n  - navigating to \"http://www.ledgeriq.loc/about\", waiting until \"networkidle\"\n",
+    "url": "http://www.ledgeriq.loc/about",
+    "name": "about"
+  },
+  {
+    "error": "Page.goto: net::ERR_NAME_NOT_RESOLVED at http://www.ledgeriq.loc/faq\nCall log:\n  - navigating to \"http://www.ledgeriq.loc/faq\", waiting until \"networkidle\"\n",
+    "url": "http://www.ledgeriq.loc/faq",
+    "name": "faq"
+  },
+  {
+    "error": "Page.goto: net::ERR_NAME_NOT_RESOLVED at http://www.ledgeriq.loc/blog\nCall log:\n  - navigating to \"http://www.ledgeriq.loc/blog\", waiting until \"networkidle\"\n",
+    "url": "http://www.ledgeriq.loc/blog",
+    "name": "blog-index"
+  },
+  {
+    "error": "Page.goto: net::ERR_NAME_NOT_RESOLVED at http://www.ledgeriq.loc/blog/tax\nCall log:\n  - navigating to \"http://www.ledgeriq.loc/blog/tax\", waiting until \"networkidle\"\n",
+    "url": "http://www.ledgeriq.loc/blog/tax",
+    "name": "blog-tax"
+  }
+]

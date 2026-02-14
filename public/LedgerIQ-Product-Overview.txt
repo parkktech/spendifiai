@@ -1,0 +1,713 @@
+================================================================================
+                              LEDGERIQ
+                AI-Powered Personal Finance Platform
+                   Comprehensive Product Overview
+              For Prospective Partners & Stakeholders
+
+                      Prepared: February 2026
+                    Version 1.0 | Confidential
+================================================================================
+
+
+================================================================================
+EXECUTIVE SUMMARY
+================================================================================
+
+LedgerIQ is a free, AI-powered personal finance platform that helps
+individuals, freelancers, and small business owners take complete control of
+their financial lives. By combining bank-grade security, intelligent
+automation, and the power of Claude AI, LedgerIQ eliminates the tedious
+manual work of expense tracking, subscription management, savings
+optimization, and tax preparation.
+
+Unlike competitors that charge $8-15/month (Mint, YNAB, Copilot), LedgerIQ
+is 100% free with no premium tiers, no trial periods, and no credit card
+required. This is not a loss leader - it is a deliberate strategy to capture
+market share in the rapidly growing personal finance management sector.
+
+
+CORE VALUE PROPOSITIONS
+-----------------------
+
+  * Automatic AI Categorization - Claude AI categorizes every transaction
+    with 85%+ accuracy, learns from corrections, and cascades intelligence
+    across merchants
+
+  * Bank Connectivity - Secure Plaid integration (12,000+ institutions,
+    SOC 2 Type II) plus manual statement upload for banks not on Plaid
+
+  * Subscription Detection - Pattern-based detection of all recurring
+    charges, with "stopped billing" alerts for unused services
+
+  * AI Savings Recommendations - Personalized, actionable plans based on
+    90 days of real spending data, prioritized by ease of implementation
+
+  * Tax Deduction Optimization - Automatic IRS Schedule C mapping with
+    one-click export (Excel, PDF, CSV) and email-to-accountant
+
+  * Comprehensive Dashboard - 8-widget financial command center: budget
+    waterfall, monthly bills, home affordability, where to cut, savings
+    tracking, and more
+
+
+TECHNOLOGY STACK
+----------------
+
+Built on Laravel 12 (PHP 8.3), React 19, TypeScript, Tailwind CSS v4,
+PostgreSQL, and Redis. AI powered by Anthropic Claude Sonnet 4. Bank
+integration via Plaid API. 142 automated tests ensure reliability across
+all features.
+
+
+================================================================================
+BANK CONNECTIVITY & DATA INGESTION
+================================================================================
+
+LedgerIQ provides two complementary methods for importing financial data,
+ensuring every user can participate regardless of their bank or technical
+comfort level.
+
+
+PLAID BANK INTEGRATION
+-----------------------
+
+Through Plaid - the same infrastructure trusted by Venmo, Robinhood,
+Coinbase, and thousands of financial applications - users can securely
+connect their bank accounts in under 60 seconds. Their banking credentials
+never touch LedgerIQ's servers.
+
+How It Works:
+
+  * User clicks "Connect Bank" and authenticates directly with their bank
+    through Plaid's secure modal
+  * Plaid returns an encrypted access token - LedgerIQ stores it with
+    AES-256 encryption at rest
+  * Transactions sync automatically in real-time via webhooks
+  * Account balances, types, and metadata are imported alongside transactions
+  * Users can disconnect at any time with one click - the encrypted token
+    is immediately destroyed
+
+Security Credentials:
+
+  * SOC 2 Type II certified infrastructure
+  * End-to-end TLS encryption for all data in transit
+  * Plaid access tokens encrypted with AES-256 at rest in PostgreSQL
+  * Webhook signature verification prevents tampering
+  * Idempotency logging prevents duplicate transaction processing
+
+Multi-Account Support:
+
+Users can link multiple banks and multiple account types (checking, savings,
+credit card, investment). Each account can be tagged with a purpose -
+personal, business, mixed, or investment - which becomes the strongest
+signal for AI categorization accuracy.
+
+
+BANK STATEMENT UPLOAD
+---------------------
+
+For users whose banks are not supported by Plaid, or who prefer not to link
+their accounts electronically, LedgerIQ offers intelligent statement parsing.
+Users simply upload a PDF or CSV bank statement, and Claude AI extracts every
+transaction automatically.
+
+PDF Statement Processing:
+
+  * User uploads a PDF bank statement (up to 10 MB)
+  * The system extracts raw text using spatie/pdf-to-text (pdftotext binary)
+  * Extracted text is sent to Claude AI with context about the bank name
+    and account type
+  * AI identifies and extracts each transaction: date, description, amount,
+    deposit/withdrawal
+  * Merchant names are cleaned - card numbers, reference IDs, and city/state
+    suffixes are stripped
+  * Example: "AMAZON.COM*RT3K2 AMZN.COM/BIL WA" becomes "Amazon"
+
+CSV Statement Processing:
+
+  * User uploads a CSV file from any bank
+  * System reads the first 5 rows and sends them to Claude AI for column
+    detection
+  * AI identifies which columns contain the date, description, amount (or
+    separate debit/credit), and balance
+  * AI determines the date format and number of header rows to skip
+  * The entire CSV is then parsed using the detected column mapping
+  * This approach works with any CSV format from any institution - no
+    pre-configured templates needed
+
+Duplicate Detection:
+
+Before importing, LedgerIQ automatically checks each parsed transaction
+against existing records. Matches are identified using amount (within $0.01
+tolerance), date (exact match), and merchant name (Levenshtein distance
+threshold). Flagged duplicates are shown to the user for review before
+import, preventing double-counting.
+
+Post-Import Pipeline:
+
+After the user reviews and confirms the parsed transactions, they are
+imported into the same pipeline as Plaid transactions. The AI categorization
+engine processes them identically - there is no second-class treatment for
+uploaded data.
+
+
+================================================================================
+AI-POWERED TRANSACTION CATEGORIZATION
+================================================================================
+
+At the heart of LedgerIQ is Claude AI's ability to understand and categorize
+financial transactions with human-like accuracy. This is not simple keyword
+matching - the AI considers context, account purpose, merchant patterns, and
+user history to make intelligent decisions.
+
+
+WHAT THE AI CONSIDERS
+---------------------
+
+  * Merchant name and normalized merchant identifier
+  * Transaction amount and date
+  * Description and payment channel (card, ACH, wire, etc.)
+  * Plaid's baseline automated category (when available)
+  * Account purpose: personal, business, mixed, or investment - the single
+    strongest categorization signal
+  * Account nickname (e.g., "Business Checking" provides strong context)
+  * User's employment type (W-2, self-employed, freelancer)
+  * Business type and home office status
+  * Tax filing status and custom categorization rules
+
+
+CONFIDENCE-BASED ROUTING
+-------------------------
+
+The AI assigns a confidence score (0.0 to 1.0) to every categorization.
+This score determines the user experience:
+
+  Confidence   | Action            | User Experience
+  -------------|-------------------|------------------------------------------
+  85%+         | Auto-categorize   | Silently categorized. User sees it done.
+  60-84%       | Flag for review   | Category applied, marked for verification.
+  40-59%       | Multiple-choice   | AI generates 3-4 options for user to pick.
+  Below 40%    | Open-ended Q      | AI asks free-text; user can chat back.
+
+
+LEARNING FROM CORRECTIONS
+--------------------------
+
+When a user corrects a categorization or answers an AI question, the system
+doesn't just update that one transaction:
+
+  * The correction is applied to the target transaction immediately
+  * All other transactions from the same merchant are updated to match
+    (unless already user-confirmed)
+  * Pending AI questions for the same merchant are automatically resolved
+  * Future transactions from that merchant inherit the user's preference
+  * This "cascade" behavior means answering one question can resolve dozens
+    of transactions simultaneously
+
+
+56 EXPENSE CATEGORIES
+---------------------
+
+LedgerIQ uses 56 expense categories (46 top-level, 10 subcategories)
+organized into logical groups: Housing & Utilities, Transportation, Food &
+Dining, Business Expenses, Personal & Health, Subscriptions & Entertainment,
+Household & Personal, Education & Wealth, and Transfer/Income categories.
+Of these, 12 categories have direct IRS Schedule C line mappings for tax
+export.
+
+
+AI QUESTION TYPES
+-----------------
+
+  * Category     - "What category best describes this $47.99 charge at COSTCO?"
+  * Bus/Personal - "Is this $129 charge at Staples for business or personal?"
+  * Split        - "Was this $200 Costco purchase all groceries, or mixed?"
+  * Confirm      - "Is this $15.99 charge correctly categorized as Streaming?"
+
+
+================================================================================
+SUBSCRIPTION DETECTION & MANAGEMENT
+================================================================================
+
+The average American spends $219/month on subscriptions, with studies showing
+that most people underestimate their recurring charges by 2-3x. LedgerIQ's
+Subscription Detective scans 6 months of transaction history to surface every
+recurring charge - especially the ones users have forgotten about.
+
+
+DETECTION ALGORITHM
+-------------------
+
+  * All transactions from the past 6 months are grouped by normalized
+    merchant name
+  * Merchants with 2+ transactions are analyzed for recurrence patterns
+  * The system measures intervals between charges and checks amount
+    consistency (within 20% tolerance)
+  * Charges are classified by frequency: weekly, monthly, quarterly, annual
+  * A pre-populated registry of 49 known subscription merchants enhances
+    accuracy
+
+
+"STOPPED BILLING" DETECTION - FINDING UNUSED SUBSCRIPTIONS
+-----------------------------------------------------------
+
+This is where LedgerIQ provides immediate, concrete value. The system
+compares each subscription's last charge date against its expected billing
+cycle:
+
+  Frequency  | Flagged As Unused After         | Logic
+  -----------|---------------------------------|----------------------------
+  Weekly     | 21+ days without a charge       | 3x the weekly interval
+  Monthly    | 60+ days without a charge       | 2x the monthly interval
+  Quarterly  | 180+ days without a charge      | 2x the quarterly interval
+  Annual     | 400+ days without a charge      | ~13 months since last charge
+
+When a subscription is flagged as "stopped billing," it receives a prominent
+red badge on both the Subscriptions page and the Dashboard's monthly bills
+widget. This immediately draws the user's attention to services they may be
+paying for but not using.
+
+
+USER RESPONSE SYSTEM
+--------------------
+
+For each subscription, users can take one of three actions:
+
+  * Cancel - Mark the subscription for cancellation. LedgerIQ provides
+    direct links to cancellation pages and tracks the projected savings.
+  * Reduce - Downgrade to a cheaper plan. The AI suggests alternative tiers
+    and calculates the savings difference.
+  * Keep - Acknowledge the subscription and dismiss the alert. This prevents
+    future nagging about services the user values.
+
+
+AI-POWERED ALTERNATIVES
+-----------------------
+
+When a user considers canceling or reducing a subscription, LedgerIQ's AI
+can suggest cheaper alternatives. For example, if a user is paying
+$15.99/month for a streaming service, the AI might suggest a competitor at
+$7.99/month or a bundle that combines multiple services for less. Alternative
+suggestions are cached for 7 days to minimize API calls.
+
+
+================================================================================
+AI SAVINGS RECOMMENDATIONS & GOAL TRACKING
+================================================================================
+
+LedgerIQ's savings engine goes beyond simple "spend less" advice. It analyzes
+90 days of actual spending data - broken down by category, merchant, timing,
+and pattern - to generate specific, actionable recommendations with real
+dollar amounts pulled from the user's own transactions.
+
+
+90-DAY SPENDING ANALYSIS
+-------------------------
+
+The AI receives a comprehensive spending profile including:
+
+  * Total spending by category with transaction counts and averages
+  * Active and unused subscriptions with monthly costs
+  * Daily spending averages and day-of-week patterns
+  * Impulse purchase frequency (transactions under $20)
+  * Dining out frequency and totals
+  * Late-night purchasing patterns (potential impulse indicator)
+  * Total transaction volume for context
+
+
+RECOMMENDATION QUALITY
+-----------------------
+
+Each AI recommendation includes:
+
+  Field             | Description
+  ------------------|----------------------------------------------------
+  Title             | Short, actionable headline (e.g., "Cancel Paramount+
+                    | and Crunchyroll")
+  Description       | Specific explanation using REAL merchant names and
+                    | amounts from user data
+  Monthly Savings   | Estimated monthly dollar savings
+  Annual Savings    | Projected annual impact (monthly x 12)
+  Difficulty        | Easy (no lifestyle change), Medium (behavior change),
+                    | Hard (sacrifice)
+  Impact            | High ($50+/mo), Medium ($15-50/mo), Low (under $15)
+  Action Steps      | Numbered instructions (e.g., "Go to
+                    | paramountplus.com/account, click Cancel")
+  Related Merchants | The specific merchants this recommendation affects
+
+
+SAVINGS GOAL PLANNING
+---------------------
+
+Users can set a concrete savings target (e.g., "Save $500/month for an
+emergency fund by December"). The AI then generates a personalized action
+plan:
+
+  * Calculates the gap between current spending and the savings target
+  * Prioritizes easy wins first (unused subscriptions, plan downgrades)
+  * Then targets discretionary spending (dining, entertainment, impulse)
+  * Only suggests cutting essentials as a last resort, with clear warnings
+  * Each action includes specific "how-to" steps using real merchants
+  * Actions are priority-ordered (1 = do first) for maximum impact
+  * Progress is tracked with a visual progress bar and on-track indicators
+
+
+RESPONSE & TRACKING SYSTEM
+---------------------------
+
+For each recommendation, users can respond with Cancel (they'll stop the
+service), Reduce (they'll downgrade), or Keep (they value it). Responses are
+tracked over time, and the projected savings banner updates in real-time as
+users commit to changes. Monthly pulse checks compare actual spending against
+commitments.
+
+
+================================================================================
+TAX DEDUCTION OPTIMIZATION & EXPORT
+================================================================================
+
+For freelancers, self-employed individuals, and small business owners, tax
+deduction tracking is one of LedgerIQ's most valuable features. The AI
+automatically identifies tax-deductible expenses and maps them to IRS
+Schedule C line items, then exports accountant-ready reports in multiple
+formats.
+
+
+AUTOMATIC TAX DEDUCTIBILITY DETECTION
+--------------------------------------
+
+During categorization, Claude AI evaluates each transaction for tax
+deductibility based on the user's employment type and the expense category.
+
+Self-Employed / Freelancer Deductions:
+
+  * Office supplies and equipment
+  * Software and SaaS subscriptions used for business
+  * Business meals (50% deductible per IRS rules)
+  * Home office expenses
+  * Professional development and training
+  * Business travel (flights, hotels, transportation)
+  * Marketing and advertising
+  * Health insurance premiums (self-employed deduction)
+  * Professional services (legal, accounting)
+  * Shipping and postage
+
+Universal Deductions:
+
+  * Charitable donations (Schedule A)
+  * Medical expenses above AGI threshold (Schedule A)
+  * Mortgage interest (Schedule A)
+  * State and local taxes - SALT (Schedule A)
+
+
+IRS SCHEDULE C LINE MAPPING
+----------------------------
+
+LedgerIQ maps 12 expense categories directly to IRS Schedule C lines:
+
+  Schedule C Line | Description         | LedgerIQ Categories
+  ----------------|---------------------|----------------------------------
+  Line 8          | Advertising         | Marketing & Advertising
+  Line 9          | Car & Truck         | Gas, Auto Maintenance, Transport
+  Line 15         | Insurance           | Health Insurance, Home Insurance
+  Line 17         | Legal & Professional| Professional Services
+  Line 18         | Office Expense      | Office Supplies, Software, Ship
+  Line 24a        | Travel              | Flights, Travel & Hotels
+  Line 24b        | Meals (50%)         | Business Meals
+  Line 25         | Utilities           | Phone & Internet, Utilities
+  Line 27a        | Other Expenses      | Professional Development
+  Line 30         | Home Office         | Home Office
+  Schedule A      | Charitable          | Charity & Donations
+  Schedule A      | Medical             | Medical & Dental
+
+
+EXPORT FORMATS
+--------------
+
+Excel Workbook (5 Tabs):
+
+  * Tax Summary - Taxpayer profile, deduction totals, estimated tax savings
+    by bracket, linked accounts
+  * Schedule C Mapping - Line-by-line IRS form mapping with amounts and
+    item counts
+  * Deductions by Category - Aggregated totals per tax category with
+    transaction counts and date ranges
+  * All Deductible Transactions - Full detail: date, merchant, amount,
+    category, tax line, AI confidence, verification status
+  * Business Subscriptions - Recurring business expenses with annual
+    projections
+
+PDF Cover Sheet:
+
+Executive summary designed for accountants - key statistics, taxpayer
+profile, and deduction totals in a clean, professional format.
+
+CSV Export:
+
+Universal flat-file format importable into TurboTax, QuickBooks, and any
+CPA software. Same columns as the Excel detail tab.
+
+Email to Accountant:
+
+One-click delivery of all three export files directly to the user's
+accountant via email, with a summary in the email body and CC to the user.
+
+
+================================================================================
+COMPREHENSIVE FINANCIAL DASHBOARD
+================================================================================
+
+The LedgerIQ dashboard is an 8-widget financial command center that gives
+users a complete picture of their financial health at a glance. Data is
+cached for 60 seconds per user and can be filtered by account type.
+
+
+1. Smart Greeting & Hero Metrics
+
+   A dynamic greeting adapts to financial health ("You can save $X/mo" vs.
+   "$X/mo over budget"). Live income/expense indicators with directional
+   arrows, savings rate badge, and bank sync status.
+
+2. Budget Reality Check (Waterfall Analysis)
+
+   A visual stacked bar chart breaks down monthly cash flow into Essential
+   Bills (red), Non-Essential Subscriptions (amber), Discretionary Spending
+   (orange), and Monthly Surplus (green). Detailed breakdown with exact
+   amounts, percentages, and a color-coded verdict.
+
+3. Your Monthly Bills
+
+   All recurring charges consolidated with total monthly cost, annual
+   projection, essential vs. non-essential split, next expected charge
+   dates, and "Stopped Billing" badges for unused subscriptions.
+
+4. Home Affordability Calculator
+
+   Calculates maximum home price based on actual income and debt. Shows
+   monthly mortgage estimate, interest rate, DTI ratio, and loan term.
+   Color-coded DTI: green (under 28%), amber (28-36%), red (over 36%).
+
+5. Where to Cut - Action Feed
+
+   Three-tab system (Quick Wins, This Week, This Month) surfaces actionable
+   savings. Each card shows savings potential, action steps, and
+   respond/dismiss buttons. Types: unused subscriptions, AI recommendations,
+   overspending categories, pending AI questions.
+
+6. Savings Progress & Goals
+
+   6-month tracking chart, applied recommendations list, savings goal
+   progress bar with motivation text and on-track indicators.
+
+7. Spending Trend
+
+   6-month income vs. expense trend with category breakdown by month,
+   helping identify seasonal spending patterns.
+
+8. Recent Activity
+
+   Last 20 transactions with inline category badges and quick link to
+   the full Transactions page.
+
+
+================================================================================
+SECURITY ARCHITECTURE
+================================================================================
+
+LedgerIQ treats security as a foundational requirement, not an afterthought.
+The platform implements defense-in-depth across every layer of the stack.
+
+
+ENCRYPTION
+----------
+
+  * AES-256 encryption at rest for all sensitive data (Plaid tokens, bank
+    account EINs, email credentials, 2FA secrets, transaction metadata)
+  * Laravel model-level encryption casts - sensitive fields are never
+    stored in plaintext
+  * TLS/HTTPS for all data in transit
+  * HSTS header with 1-year max-age, includeSubDomains, and preload
+
+
+AUTHENTICATION & ACCESS CONTROL
+--------------------------------
+
+  * bcrypt password hashing (Laravel default)
+  * Sanctum bearer token authentication for API endpoints
+  * Rate limiting on all authentication endpoints
+  * Optional TOTP two-factor authentication with encrypted backup codes
+  * Google OAuth social login as an alternative
+  * Password reset via signed email links
+  * Email verification for new accounts
+  * Account lockout protection after failed attempts
+
+
+SECURITY HEADERS
+----------------
+
+  * Content-Security-Policy - Restricts script, style, font, image, and
+    frame sources
+  * X-Content-Type-Options: nosniff - Prevents MIME-type sniffing
+  * X-Frame-Options: DENY - Prevents clickjacking
+  * Referrer-Policy: strict-origin-when-cross-origin
+  * Permissions-Policy - Disables camera, microphone, geolocation
+  * Strict-Transport-Security - Forces HTTPS with preload
+
+
+DATA PROTECTION
+---------------
+
+  * Every model with sensitive data uses $hidden arrays to prevent API leak
+  * Plaid access tokens encrypted and never exposed to the frontend
+  * Webhook signature verification prevents request tampering
+  * Idempotency logging prevents duplicate webhook processing
+  * Users can disconnect banks and delete accounts at any time
+
+
+================================================================================
+ADDITIONAL FEATURES
+================================================================================
+
+Email Receipt Parsing (In Development):
+
+Users can connect their Gmail (via OAuth) or any IMAP email account.
+LedgerIQ scans for order confirmations and receipts, extracts product-level
+detail using Claude AI, and matches them to bank transactions. This provides
+itemized purchase tracking - for example, knowing that a $147.32 Amazon
+charge was specifically for office supplies and a printer cartridge, enabling
+more accurate tax categorization at the product level.
+
+AI Question Chat System:
+
+When the AI is uncertain about a transaction's category, it asks the user.
+Users interact through a dedicated Questions page where they can answer
+multiple-choice questions, provide free-text explanations, or engage in a
+back-and-forth chat with the AI for nuanced situations. Bulk answer mode
+lets users resolve multiple questions at once.
+
+Transaction Management:
+
+A full-featured transaction table with filtering by date range, category,
+amount range, merchant, account, and review status. Users can inline-edit
+categories and mark transactions as deductible. Eight query scopes provide
+efficient data retrieval across the application.
+
+Financial Profile & Settings:
+
+Users can configure their employment type, business type, home office
+status, tax filing status, and income details. This profile data enhances
+AI categorization accuracy and tax deduction detection. Settings also
+include 2FA management and account deletion.
+
+
+================================================================================
+COMPETITIVE LANDSCAPE
+================================================================================
+
+LedgerIQ competes in the personal finance management space with a unique
+combination of AI intelligence and zero-cost pricing:
+
+  Feature          | LedgerIQ  | Mint     | YNAB      | Copilot   | Quicken
+  -----------------|-----------|----------|-----------|-----------|----------
+  Price            | FREE      | Free*    | $14.99/mo | $10.99/mo | $5.99/mo
+  AI Categorize    | Yes       | Basic    | Manual    | Yes       | Rules
+  Bank Sync        | Plaid     | Plaid    | Plaid     | Plaid     | Plaid
+  Statement Upload | PDF + CSV | No       | Manual    | No        | CSV only
+  Sub Detection    | Auto + AI | Basic    | No        | Auto      | No
+  Savings Tips     | AI-Powered| Basic    | No        | No        | No
+  Tax Export       | Sched C   | No       | No        | No        | Basic
+  2FA Support      | TOTP      | No       | No        | No        | No
+
+* Mint (now Credit Karma) shifted to a credit-focused product in 2024,
+  reducing its expense tracking capabilities.
+
+
+================================================================================
+TECHNICAL ARCHITECTURE SUMMARY
+================================================================================
+
+  Layer               | Technology              | Version
+  --------------------|-------------------------|------------------
+  Backend Framework   | Laravel                 | 12.51.0
+  Language            | PHP                     | 8.3.29
+  Database            | PostgreSQL              | 15+
+  Cache / Queue       | Redis                   | 7+
+  Frontend Framework  | React                   | 19.2.4
+  Frontend Bridge     | Inertia.js              | 2.0.19
+  Type System         | TypeScript              | Latest
+  CSS Framework       | Tailwind CSS            | 4.1.18
+  AI Engine           | Anthropic Claude API    | Sonnet 4
+  Bank Integration    | Plaid API               | Sandbox
+  Authentication      | Laravel Sanctum+Fortify | 4.3.1
+  Social OAuth        | Laravel Socialite       | 5.24.2
+  Testing             | Pest PHP                | 3.8.5
+  Code Style          | Laravel Pint            | 1.27.1
+  PDF Parsing         | spatie/pdf-to-text      | Latest
+  Excel Export        | PhpSpreadsheet          | Latest
+  PDF Export          | DomPDF                  | Latest
+
+
+TEST COVERAGE
+-------------
+
+142 automated tests with 524 assertions covering: authentication
+(registration, login, 2FA, OAuth, password reset), Plaid integration (link,
+sync, webhooks), transactions (categorization, filtering), subscriptions
+(detection, responses), savings (recommendations, tracking, goals),
+statement uploads (parse, import, history), dashboard (all financial
+widgets), and AI questions (answer, bulk, chat).
+
+
+APPLICATION SCALE
+-----------------
+
+  Metric                | Count
+  ----------------------|--------------------------------------
+  Eloquent Models       | 18
+  API Controllers       | 12
+  Auth Controllers      | 5
+  Service Classes       | 10
+  Frontend Pages        | 16 (8 app + 8 marketing/legal)
+  Frontend Components   | 40+
+  Database Migrations   | 11
+  Expense Categories    | 56 (12 with IRS mapping)
+  Automated Tests       | 142 tests, 524 assertions
+  Known Subscriptions   | 49 pre-populated merchants
+  SEO Blog Articles     | 109 content pages
+
+
+================================================================================
+SUMMARY
+================================================================================
+
+LedgerIQ represents a significant opportunity in the personal finance
+management space. By combining AI-powered intelligence with bank-grade
+security and a completely free pricing model, the platform is positioned to
+capture users who are currently underserved by expensive, feature-limited
+alternatives.
+
+The platform's key differentiators are:
+
+  * True AI Intelligence - Not rules-based, not keyword matching. Claude AI
+    understands context, learns from corrections, and improves with every
+    interaction.
+
+  * Dual Data Ingestion - Both Plaid connectivity and statement upload
+    ensure universal access regardless of bank support.
+
+  * Immediate Financial Value - Subscription detection and savings
+    recommendations deliver measurable savings from day one.
+
+  * Tax Season Ready - Automatic IRS Schedule C mapping eliminates hours
+    of manual tax preparation for freelancers and small business owners.
+
+  * Production Quality - 142 automated tests, comprehensive security, and
+    modern architecture ensure reliability and maintainability.
+
+  * Zero Cost Barrier - Free forever with no premium tiers removes all
+    friction from user acquisition.
+
+
+For questions or a live demonstration, please contact the LedgerIQ team.
+
+================================================================================

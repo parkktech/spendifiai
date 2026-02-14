@@ -1,0 +1,649 @@
+{\rtf1\ansi\ansicpg1252\deff0{\fonttbl{\f0\fswiss\fcharset0 Calibri;}{\f1\fswiss\fcharset0 Arial;}}{\colortbl;\red26\green86\blue219;\red51\green51\blue51;\red85\green85\blue85;\red136\green136\blue136;\red22\green163\blue74;\red255\green255\blue255;\red204\green204\blue204;\red240\green240\blue240;\red170\green170\blue170;}\widowctrl\ftnbj\aenddoc\formshade\viewkind1\viewscale100\pgwsxn12240\pghsxn15840\margl1440\margr1440\margt1440\margb1440\pard\sb0\sa0\par
+\pard\sb0\sa0\par
+\pard\sb0\sa0\par
+\pard\sb0\sa0\par
+\pard\sb0\sa0\par
+\pard\qc\sb0\sa300{\f0\b\fs52\cf1 LedgerIQ}\par
+\pard\qc\sb0\sa120{\f0\fs32\cf3 AI-Powered Personal Finance Platform}\par
+\pard\sb0\sa0\par
+\pard\qc\sb0\sa120{\f0\fs28\cf1 Comprehensive Product Overview}\par
+\pard\qc\sb0\sa120{\f0\fs24\cf4 For Prospective Partners & Stakeholders}\par
+\pard\sb0\sa0\par
+\pard\sb0\sa0\par
+\pard\sb0\sa0\par
+\pard\sb0\sa0\par
+\pard\sb0\sa0\par
+\pard\sb0\sa0\par
+\pard\sb0\sa0\par
+\pard\sb0\sa0\par
+\pard\qc\sb0\sa120{\f0\fs22\cf4 Prepared: February 2026}\par
+\pard\qc\sb0\sa120{\f0\fs20\cf9 Version 1.0 | Confidential}\par
+\pard\page
+\pard\keepn\sb480\sa200{\f0\b\fs36\cf1 Executive Summary}\par
+\pard\sb0\sa180\sl360\slmult1{\f0\fs22 LedgerIQ is a free, AI-powered personal finance platform that helps individuals, freelancers, and small business owners take complete control of their financial lives. By combining bank-grade security, intelligent automation, and the power of Claude AI, LedgerIQ eliminates the tedious manual work of expense tracking, subscription management, savings optimization, and tax preparation.}\par
+\pard\sb0\sa180\sl360\slmult1{\f0\fs22 Unlike competitors that charge $8-15/month (Mint, YNAB, Copilot), LedgerIQ is 100% free with no premium tiers, no trial periods, and no credit card required. This is not a loss leader - it is a deliberate strategy to capture market share in the rapidly growing personal finance management sector.}\par
+\pard\keepn\sb360\sa120{\f0\b\fs28\cf2 Core Value Propositions}\par
+\pard\li720\fi-360\sb0\sa100\sl320\slmult1{\f0\fs22 \u8226  Automatic AI Categorization - Claude AI categorizes every transaction with 85%+ accuracy, learns from corrections, and cascades intelligence across merchants}\par
+\pard\li720\fi-360\sb0\sa100\sl320\slmult1{\f0\fs22 \u8226  Bank Connectivity - Secure Plaid integration (12,000+ institutions, SOC 2 Type II) plus manual statement upload for banks not on Plaid}\par
+\pard\li720\fi-360\sb0\sa100\sl320\slmult1{\f0\fs22 \u8226  Subscription Detection - Pattern-based detection of all recurring charges, with "stopped billing" alerts for unused services}\par
+\pard\li720\fi-360\sb0\sa100\sl320\slmult1{\f0\fs22 \u8226  AI Savings Recommendations - Personalized, actionable plans based on 90 days of real spending data, prioritized by ease of implementation}\par
+\pard\li720\fi-360\sb0\sa100\sl320\slmult1{\f0\fs22 \u8226  Tax Deduction Optimization - Automatic IRS Schedule C mapping with one-click export (Excel, PDF, CSV) and email-to-accountant}\par
+\pard\li720\fi-360\sb0\sa100\sl320\slmult1{\f0\fs22 \u8226  Comprehensive Dashboard - 8-widget financial command center: budget waterfall, monthly bills, home affordability, where to cut, savings tracking, and more}\par
+\pard\keepn\sb360\sa120{\f0\b\fs28\cf2 Technology Stack}\par
+\pard\sb0\sa180\sl360\slmult1{\f0\fs22 Built on Laravel 12 (PHP 8.3), React 19, TypeScript, Tailwind CSS v4, PostgreSQL, and Redis. AI powered by Anthropic Claude Sonnet 4. Bank integration via Plaid API. 142 automated tests ensure reliability across all features.}\par
+\pard\page
+\pard\keepn\sb480\sa200{\f0\b\fs36\cf1 Bank Connectivity & Data Ingestion}\par
+\pard\sb0\sa180\sl360\slmult1{\f0\fs22 LedgerIQ provides two complementary methods for importing financial data, ensuring every user can participate regardless of their bank or technical comfort level.}\par
+\pard\keepn\sb360\sa120{\f0\b\fs28\cf2 Plaid Bank Integration}\par
+\pard\sb0\sa180\sl360\slmult1{\f0\fs22 Through Plaid - the same infrastructure trusted by Venmo, Robinhood, Coinbase, and thousands of financial applications - users can securely connect their bank accounts in under 60 seconds. Their banking credentials never touch LedgerIQ's servers.}\par
+\pard\keepn\sb240\sa80{\f0\b\fs24\cf3 How It Works}\par
+\pard\li720\fi-360\sb0\sa100\sl320\slmult1{\f0\fs22 \u8226  User clicks "Connect Bank" and authenticates directly with their bank through Plaid's secure modal}\par
+\pard\li720\fi-360\sb0\sa100\sl320\slmult1{\f0\fs22 \u8226  Plaid returns an encrypted access token - LedgerIQ stores it with AES-256 encryption at rest}\par
+\pard\li720\fi-360\sb0\sa100\sl320\slmult1{\f0\fs22 \u8226  Transactions sync automatically in real-time via webhooks (SYNC_UPDATES_AVAILABLE events)}\par
+\pard\li720\fi-360\sb0\sa100\sl320\slmult1{\f0\fs22 \u8226  Account balances, types, and metadata are imported alongside transactions}\par
+\pard\li720\fi-360\sb0\sa100\sl320\slmult1{\f0\fs22 \u8226  Users can disconnect at any time with one click - the encrypted token is immediately destroyed}\par
+\pard\keepn\sb240\sa80{\f0\b\fs24\cf3 Security Credentials}\par
+\pard\li720\fi-360\sb0\sa100\sl320\slmult1{\f0\fs22 \u8226  SOC 2 Type II certified infrastructure}\par
+\pard\li720\fi-360\sb0\sa100\sl320\slmult1{\f0\fs22 \u8226  End-to-end TLS encryption for all data in transit}\par
+\pard\li720\fi-360\sb0\sa100\sl320\slmult1{\f0\fs22 \u8226  Plaid access tokens encrypted with AES-256 at rest in PostgreSQL}\par
+\pard\li720\fi-360\sb0\sa100\sl320\slmult1{\f0\fs22 \u8226  Webhook signature verification prevents tampering}\par
+\pard\li720\fi-360\sb0\sa100\sl320\slmult1{\f0\fs22 \u8226  Idempotency logging prevents duplicate transaction processing}\par
+\pard\keepn\sb240\sa80{\f0\b\fs24\cf3 Multi-Account Support}\par
+\pard\sb0\sa180\sl360\slmult1{\f0\fs22 Users can link multiple banks and multiple account types (checking, savings, credit card, investment). Each account can be tagged with a purpose - personal, business, mixed, or investment - which becomes the strongest signal for AI categorization accuracy.}\par
+\pard\keepn\sb360\sa120{\f0\b\fs28\cf2 Bank Statement Upload}\par
+\pard\sb0\sa180\sl360\slmult1{\f0\fs22 For users whose banks are not supported by Plaid, or who prefer not to link their accounts electronically, LedgerIQ offers intelligent statement parsing. Users simply upload a PDF or CSV bank statement, and Claude AI extracts every transaction automatically.}\par
+\pard\keepn\sb240\sa80{\f0\b\fs24\cf3 PDF Statement Processing}\par
+\pard\li720\fi-360\sb0\sa100\sl320\slmult1{\f0\fs22 \u8226  User uploads a PDF bank statement (up to 10 MB)}\par
+\pard\li720\fi-360\sb0\sa100\sl320\slmult1{\f0\fs22 \u8226  The system extracts raw text using spatie/pdf-to-text (pdftotext binary)}\par
+\pard\li720\fi-360\sb0\sa100\sl320\slmult1{\f0\fs22 \u8226  Extracted text is sent to Claude AI with context about the bank name and account type}\par
+\pard\li720\fi-360\sb0\sa100\sl320\slmult1{\f0\fs22 \u8226  AI identifies and extracts each transaction: date, description, amount, deposit/withdrawal}\par
+\pard\li720\fi-360\sb0\sa100\sl320\slmult1{\f0\fs22 \u8226  Merchant names are cleaned - card numbers, reference IDs, and city/state suffixes are stripped}\par
+\pard\li720\fi-360\sb0\sa100\sl320\slmult1{\f0\fs22 \u8226  Example: "AMAZON.COM*RT3K2 AMZN.COM/BIL WA" becomes "Amazon"}\par
+\pard\keepn\sb240\sa80{\f0\b\fs24\cf3 CSV Statement Processing}\par
+\pard\li720\fi-360\sb0\sa100\sl320\slmult1{\f0\fs22 \u8226  User uploads a CSV file from any bank}\par
+\pard\li720\fi-360\sb0\sa100\sl320\slmult1{\f0\fs22 \u8226  System reads the first 5 rows and sends them to Claude AI for column detection}\par
+\pard\li720\fi-360\sb0\sa100\sl320\slmult1{\f0\fs22 \u8226  AI identifies which columns contain the date, description, amount (or separate debit/credit), and balance}\par
+\pard\li720\fi-360\sb0\sa100\sl320\slmult1{\f0\fs22 \u8226  AI determines the date format and number of header rows to skip}\par
+\pard\li720\fi-360\sb0\sa100\sl320\slmult1{\f0\fs22 \u8226  The entire CSV is then parsed using the detected column mapping}\par
+\pard\li720\fi-360\sb0\sa100\sl320\slmult1{\f0\fs22 \u8226  This approach works with any CSV format from any institution - no pre-configured templates needed}\par
+\pard\keepn\sb240\sa80{\f0\b\fs24\cf3 Duplicate Detection}\par
+\pard\sb0\sa180\sl360\slmult1{\f0\fs22 Before importing, LedgerIQ automatically checks each parsed transaction against existing records. Matches are identified using amount (within $0.01 tolerance), date (exact match), and merchant name (Levenshtein distance threshold). Flagged duplicates are shown to the user for review before import, preventing double-counting.}\par
+\pard\keepn\sb240\sa80{\f0\b\fs24\cf3 Post-Import Pipeline}\par
+\pard\sb0\sa180\sl360\slmult1{\f0\fs22 After the user reviews and confirms the parsed transactions, they are imported into the same pipeline as Plaid transactions. The AI categorization engine processes them identically - there is no second-class treatment for uploaded data.}\par
+\pard\page
+\pard\keepn\sb480\sa200{\f0\b\fs36\cf1 AI-Powered Transaction Categorization}\par
+\pard\sb0\sa180\sl360\slmult1{\f0\fs22 At the heart of LedgerIQ is Claude AI's ability to understand and categorize financial transactions with human-like accuracy. This is not simple keyword matching - the AI considers context, account purpose, merchant patterns, and user history to make intelligent decisions.}\par
+\pard\keepn\sb360\sa120{\f0\b\fs28\cf2 What the AI Considers}\par
+\pard\li720\fi-360\sb0\sa100\sl320\slmult1{\f0\fs22 \u8226  Merchant name and normalized merchant identifier}\par
+\pard\li720\fi-360\sb0\sa100\sl320\slmult1{\f0\fs22 \u8226  Transaction amount and date}\par
+\pard\li720\fi-360\sb0\sa100\sl320\slmult1{\f0\fs22 \u8226  Description and payment channel (card, ACH, wire, etc.)}\par
+\pard\li720\fi-360\sb0\sa100\sl320\slmult1{\f0\fs22 \u8226  Plaid's baseline automated category (when available)}\par
+\pard\li720\fi-360\sb0\sa100\sl320\slmult1{\f0\fs22 \u8226  Account purpose: personal, business, mixed, or investment - the single strongest categorization signal}\par
+\pard\li720\fi-360\sb0\sa100\sl320\slmult1{\f0\fs22 \u8226  Account nickname (e.g., "Business Checking" provides strong context)}\par
+\pard\li720\fi-360\sb0\sa100\sl320\slmult1{\f0\fs22 \u8226  User's employment type (W-2, self-employed, freelancer)}\par
+\pard\li720\fi-360\sb0\sa100\sl320\slmult1{\f0\fs22 \u8226  Business type and home office status}\par
+\pard\li720\fi-360\sb0\sa100\sl320\slmult1{\f0\fs22 \u8226  Tax filing status and custom categorization rules}\par
+\pard\keepn\sb360\sa120{\f0\b\fs28\cf2 Confidence-Based Routing}\par
+\pard\sb0\sa180\sl360\slmult1{\f0\fs22 The AI assigns a confidence score (0.0 to 1.0) to every categorization. This score determines the user experience:}\par
+\pard\sb200\sa200
+\trowd\trqc\trgaph108\trleft0\clcbpat1\clbrdrt\brdrs\brdrw10\clbrdrb\brdrs\brdrw10\clbrdrl\brdrs\brdrw10\clbrdrr\brdrs\brdrw10\cellx2000\clcbpat1\clbrdrt\brdrs\brdrw10\clbrdrb\brdrs\brdrw10\clbrdrl\brdrs\brdrw10\clbrdrr\brdrs\brdrw10\cellx6200\clcbpat1\clbrdrt\brdrs\brdrw10\clbrdrb\brdrs\brdrw10\clbrdrl\brdrs\brdrw10\clbrdrr\brdrs\brdrw10\cellx16000
+\pard\intbl\qc{\f0\b\fs20\cf6 Confidence}\cell
+\pard\intbl\qc{\f0\b\fs20\cf6 Action}\cell
+\pard\intbl\qc{\f0\b\fs20\cf6 User Experience}\cell
+\row
+\trowd\trqc\trgaph108\trleft0\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx2000\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx6200\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx16000
+\pard\intbl{\f0\b\fs20 85%+}\cell
+\pard\intbl{\f0\fs20 Auto-categorize}\cell
+\pard\intbl{\f0\fs20 Transaction is silently categorized. User sees it fully processed.}\cell
+\row
+\trowd\trqc\trgaph108\trleft0\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx2000\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx6200\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx16000
+\pard\intbl{\f0\b\fs20 60-84%}\cell
+\pard\intbl{\f0\fs20 Flag for review}\cell
+\pard\intbl{\f0\fs20 Category applied but marked for optional human verification.}\cell
+\row
+\trowd\trqc\trgaph108\trleft0\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx2000\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx6200\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx16000
+\pard\intbl{\f0\b\fs20 40-59%}\cell
+\pard\intbl{\f0\fs20 Multiple-choice}\cell
+\pard\intbl{\f0\fs20 AI generates 3-4 options and asks the user to choose.}\cell
+\row
+\trowd\trqc\trgaph108\trleft0\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx2000\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx6200\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx16000
+\pard\intbl{\f0\b\fs20 Below 40%}\cell
+\pard\intbl{\f0\fs20 Open-ended Q}\cell
+\pard\intbl{\f0\fs20 AI asks a free-text question; user can chat for clarification.}\cell
+\row
+\pard\keepn\sb360\sa120{\f0\b\fs28\cf2 Learning from Corrections}\par
+\pard\sb0\sa180\sl360\slmult1{\f0\fs22 When a user corrects a categorization or answers an AI question, the system doesn't just update that one transaction:}\par
+\pard\li720\fi-360\sb0\sa100\sl320\slmult1{\f0\fs22 \u8226  The correction is applied to the target transaction immediately}\par
+\pard\li720\fi-360\sb0\sa100\sl320\slmult1{\f0\fs22 \u8226  All other transactions from the same merchant are updated to match (unless already user-confirmed)}\par
+\pard\li720\fi-360\sb0\sa100\sl320\slmult1{\f0\fs22 \u8226  Pending AI questions for the same merchant are automatically resolved}\par
+\pard\li720\fi-360\sb0\sa100\sl320\slmult1{\f0\fs22 \u8226  Future transactions from that merchant inherit the user's preference}\par
+\pard\li720\fi-360\sb0\sa100\sl320\slmult1{\f0\fs22 \u8226  This "cascade" behavior means answering one question can resolve dozens of transactions simultaneously}\par
+\pard\keepn\sb360\sa120{\f0\b\fs28\cf2 56 Expense Categories}\par
+\pard\sb0\sa180\sl360\slmult1{\f0\fs22 LedgerIQ uses 56 expense categories (46 top-level, 10 subcategories) organized into logical groups: Housing & Utilities, Transportation, Food & Dining, Business Expenses, Personal & Health, Subscriptions & Entertainment, Household & Personal, Education & Wealth, and Transfer/Income categories. Of these, 12 categories have direct IRS Schedule C line mappings for tax export.}\par
+\pard\keepn\sb360\sa120{\f0\b\fs28\cf2 AI Question Types}\par
+\pard\sb200\sa200
+\trowd\trqc\trgaph108\trleft0\clcbpat1\clbrdrt\brdrs\brdrw10\clbrdrb\brdrs\brdrw10\clbrdrl\brdrs\brdrw10\clbrdrr\brdrs\brdrw10\cellx2800\clcbpat1\clbrdrt\brdrs\brdrw10\clbrdrb\brdrs\brdrw10\clbrdrl\brdrs\brdrw10\clbrdrr\brdrs\brdrw10\cellx16000
+\pard\intbl\qc{\f0\b\fs20\cf6 Question Type}\cell
+\pard\intbl\qc{\f0\b\fs20\cf6 Example}\cell
+\row
+\trowd\trqc\trgaph108\trleft0\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx2800\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx16000
+\pard\intbl{\f0\b\fs20 Category}\cell
+\pard\intbl{\f0\fs20 "What category best describes this $47.99 charge at COSTCO?"}\cell
+\row
+\trowd\trqc\trgaph108\trleft0\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx2800\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx16000
+\pard\intbl{\f0\b\fs20 Business/Personal}\cell
+\pard\intbl{\f0\fs20 "Is this $129 charge at Staples for business or personal use?"}\cell
+\row
+\trowd\trqc\trgaph108\trleft0\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx2800\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx16000
+\pard\intbl{\f0\b\fs20 Split}\cell
+\pard\intbl{\f0\fs20 "Was this $200 Costco purchase all groceries, or mixed categories?"}\cell
+\row
+\trowd\trqc\trgaph108\trleft0\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx2800\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx16000
+\pard\intbl{\f0\b\fs20 Confirm}\cell
+\pard\intbl{\f0\fs20 "Is this $15.99 charge correctly categorized as Streaming?"}\cell
+\row
+\pard\page
+\pard\keepn\sb480\sa200{\f0\b\fs36\cf1 Subscription Detection & Management}\par
+\pard\sb0\sa180\sl360\slmult1{\f0\fs22 The average American spends $219/month on subscriptions, with studies showing that most people underestimate their recurring charges by 2-3x. LedgerIQ's Subscription Detective scans 6 months of transaction history to surface every recurring charge - especially the ones users have forgotten about.}\par
+\pard\keepn\sb360\sa120{\f0\b\fs28\cf2 Detection Algorithm}\par
+\pard\li720\fi-360\sb0\sa100\sl320\slmult1{\f0\fs22 \u8226  All transactions from the past 6 months are grouped by normalized merchant name}\par
+\pard\li720\fi-360\sb0\sa100\sl320\slmult1{\f0\fs22 \u8226  Merchants with 2+ transactions are analyzed for recurrence patterns}\par
+\pard\li720\fi-360\sb0\sa100\sl320\slmult1{\f0\fs22 \u8226  The system measures intervals between charges and checks amount consistency (within 20% tolerance)}\par
+\pard\li720\fi-360\sb0\sa100\sl320\slmult1{\f0\fs22 \u8226  Charges are classified by frequency: weekly, monthly, quarterly, or annual}\par
+\pard\li720\fi-360\sb0\sa100\sl320\slmult1{\f0\fs22 \u8226  A pre-populated registry of 49 known subscription merchants enhances accuracy}\par
+\pard\keepn\sb360\sa120{\f0\b\fs28\cf2 "Stopped Billing" Detection - Finding Unused Subscriptions}\par
+\pard\sb0\sa180\sl360\slmult1{\f0\fs22 This is where LedgerIQ provides immediate, concrete value. The system compares each subscription's last charge date against its expected billing cycle:}\par
+\pard\sb200\sa200
+\trowd\trqc\trgaph108\trleft0\clcbpat1\clbrdrt\brdrs\brdrw10\clbrdrb\brdrs\brdrw10\clbrdrl\brdrs\brdrw10\clbrdrr\brdrs\brdrw10\cellx2800\clcbpat1\clbrdrt\brdrs\brdrw10\clbrdrb\brdrs\brdrw10\clbrdrl\brdrs\brdrw10\clbrdrr\brdrs\brdrw10\cellx8000\clcbpat1\clbrdrt\brdrs\brdrw10\clbrdrb\brdrs\brdrw10\clbrdrl\brdrs\brdrw10\clbrdrr\brdrs\brdrw10\cellx16000
+\pard\intbl\qc{\f0\b\fs20\cf6 Frequency}\cell
+\pard\intbl\qc{\f0\b\fs20\cf6 Flagged As Unused After}\cell
+\pard\intbl\qc{\f0\b\fs20\cf6 Logic}\cell
+\row
+\trowd\trqc\trgaph108\trleft0\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx2800\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx8000\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx16000
+\pard\intbl{\f0\b\fs20 Weekly}\cell
+\pard\intbl{\f0\fs20 21+ days without a charge}\cell
+\pard\intbl{\f0\fs20 3x the weekly interval}\cell
+\row
+\trowd\trqc\trgaph108\trleft0\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx2800\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx8000\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx16000
+\pard\intbl{\f0\b\fs20 Monthly}\cell
+\pard\intbl{\f0\fs20 60+ days without a charge}\cell
+\pard\intbl{\f0\fs20 2x the monthly interval}\cell
+\row
+\trowd\trqc\trgaph108\trleft0\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx2800\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx8000\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx16000
+\pard\intbl{\f0\b\fs20 Quarterly}\cell
+\pard\intbl{\f0\fs20 180+ days without a charge}\cell
+\pard\intbl{\f0\fs20 2x the quarterly interval}\cell
+\row
+\trowd\trqc\trgaph108\trleft0\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx2800\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx8000\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx16000
+\pard\intbl{\f0\b\fs20 Annual}\cell
+\pard\intbl{\f0\fs20 400+ days without a charge}\cell
+\pard\intbl{\f0\fs20 About 13 months since last charge}\cell
+\row
+\pard\sb0\sa180\sl360\slmult1{\f0\fs22 When a subscription is flagged as "stopped billing," it receives a prominent red badge on both the Subscriptions page and the Dashboard's monthly bills widget. This immediately draws the user's attention to services they may be paying for but not using.}\par
+\pard\keepn\sb360\sa120{\f0\b\fs28\cf2 User Response System}\par
+\pard\sb0\sa180\sl360\slmult1{\f0\fs22 For each subscription, users can take one of three actions:}\par
+\pard\li720\fi-360\sb0\sa100\sl320\slmult1{\f0\fs22 \u8226  Cancel - Mark the subscription for cancellation. LedgerIQ provides direct links to cancellation pages and tracks the projected savings.}\par
+\pard\li720\fi-360\sb0\sa100\sl320\slmult1{\f0\fs22 \u8226  Reduce - Downgrade to a cheaper plan. The AI suggests alternative tiers and calculates the savings difference.}\par
+\pard\li720\fi-360\sb0\sa100\sl320\slmult1{\f0\fs22 \u8226  Keep - Acknowledge the subscription and dismiss the alert. This prevents future nagging about services the user values.}\par
+\pard\keepn\sb360\sa120{\f0\b\fs28\cf2 AI-Powered Alternatives}\par
+\pard\sb0\sa180\sl360\slmult1{\f0\fs22 When a user considers canceling or reducing a subscription, LedgerIQ's AI can suggest cheaper alternatives. For example, if a user is paying $15.99/month for a streaming service, the AI might suggest a competitor at $7.99/month or a bundle that combines multiple services for less. Alternative suggestions are cached for 7 days to minimize API calls.}\par
+\pard\page
+\pard\keepn\sb480\sa200{\f0\b\fs36\cf1 AI Savings Recommendations & Goal Tracking}\par
+\pard\sb0\sa180\sl360\slmult1{\f0\fs22 LedgerIQ's savings engine goes beyond simple "spend less" advice. It analyzes 90 days of actual spending data - broken down by category, merchant, timing, and pattern - to generate specific, actionable recommendations with real dollar amounts pulled from the user's own transactions.}\par
+\pard\keepn\sb360\sa120{\f0\b\fs28\cf2 90-Day Spending Analysis}\par
+\pard\sb0\sa180\sl360\slmult1{\f0\fs22 The AI receives a comprehensive spending profile including:}\par
+\pard\li720\fi-360\sb0\sa100\sl320\slmult1{\f0\fs22 \u8226  Total spending by category with transaction counts and averages}\par
+\pard\li720\fi-360\sb0\sa100\sl320\slmult1{\f0\fs22 \u8226  Active and unused subscriptions with monthly costs}\par
+\pard\li720\fi-360\sb0\sa100\sl320\slmult1{\f0\fs22 \u8226  Daily spending averages and day-of-week patterns}\par
+\pard\li720\fi-360\sb0\sa100\sl320\slmult1{\f0\fs22 \u8226  Impulse purchase frequency (transactions under $20)}\par
+\pard\li720\fi-360\sb0\sa100\sl320\slmult1{\f0\fs22 \u8226  Dining out frequency and totals}\par
+\pard\li720\fi-360\sb0\sa100\sl320\slmult1{\f0\fs22 \u8226  Late-night purchasing patterns (potential impulse indicator)}\par
+\pard\li720\fi-360\sb0\sa100\sl320\slmult1{\f0\fs22 \u8226  Total transaction volume for context}\par
+\pard\keepn\sb360\sa120{\f0\b\fs28\cf2 Recommendation Quality}\par
+\pard\sb0\sa180\sl360\slmult1{\f0\fs22 Each AI recommendation includes:}\par
+\pard\sb200\sa200
+\trowd\trqc\trgaph108\trleft0\clcbpat1\clbrdrt\brdrs\brdrw10\clbrdrb\brdrs\brdrw10\clbrdrl\brdrs\brdrw10\clbrdrr\brdrs\brdrw10\cellx2800\clcbpat1\clbrdrt\brdrs\brdrw10\clbrdrb\brdrs\brdrw10\clbrdrl\brdrs\brdrw10\clbrdrr\brdrs\brdrw10\cellx16000
+\pard\intbl\qc{\f0\b\fs20\cf6 Field}\cell
+\pard\intbl\qc{\f0\b\fs20\cf6 Description}\cell
+\row
+\trowd\trqc\trgaph108\trleft0\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx2800\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx16000
+\pard\intbl{\f0\b\fs20 Title}\cell
+\pard\intbl{\f0\fs20 Short, actionable headline (e.g., "Cancel Paramount+ and Crunchyroll")}\cell
+\row
+\trowd\trqc\trgaph108\trleft0\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx2800\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx16000
+\pard\intbl{\f0\b\fs20 Description}\cell
+\pard\intbl{\f0\fs20 Specific explanation using REAL merchant names and amounts from user data}\cell
+\row
+\trowd\trqc\trgaph108\trleft0\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx2800\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx16000
+\pard\intbl{\f0\b\fs20 Monthly Savings}\cell
+\pard\intbl{\f0\fs20 Estimated monthly dollar savings}\cell
+\row
+\trowd\trqc\trgaph108\trleft0\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx2800\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx16000
+\pard\intbl{\f0\b\fs20 Annual Savings}\cell
+\pard\intbl{\f0\fs20 Projected annual impact (monthly x 12)}\cell
+\row
+\trowd\trqc\trgaph108\trleft0\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx2800\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx16000
+\pard\intbl{\f0\b\fs20 Difficulty}\cell
+\pard\intbl{\f0\fs20 Easy (no lifestyle change), Medium (behavior change), Hard (sacrifice)}\cell
+\row
+\trowd\trqc\trgaph108\trleft0\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx2800\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx16000
+\pard\intbl{\f0\b\fs20 Impact}\cell
+\pard\intbl{\f0\fs20 High ($50+/mo), Medium ($15-50/mo), Low (under $15/mo)}\cell
+\row
+\trowd\trqc\trgaph108\trleft0\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx2800\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx16000
+\pard\intbl{\f0\b\fs20 Action Steps}\cell
+\pard\intbl{\f0\fs20 Numbered instructions (e.g., "Go to paramountplus.com/account, click Cancel")}\cell
+\row
+\trowd\trqc\trgaph108\trleft0\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx2800\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx16000
+\pard\intbl{\f0\b\fs20 Related Merchants}\cell
+\pard\intbl{\f0\fs20 The specific merchants/services this recommendation affects}\cell
+\row
+\pard\keepn\sb360\sa120{\f0\b\fs28\cf2 Savings Goal Planning}\par
+\pard\sb0\sa180\sl360\slmult1{\f0\fs22 Users can set a concrete savings target (e.g., "Save $500/month for an emergency fund by December"). The AI then generates a personalized action plan:}\par
+\pard\li720\fi-360\sb0\sa100\sl320\slmult1{\f0\fs22 \u8226  Calculates the gap between current spending and the savings target}\par
+\pard\li720\fi-360\sb0\sa100\sl320\slmult1{\f0\fs22 \u8226  Prioritizes easy wins first (unused subscriptions, plan downgrades)}\par
+\pard\li720\fi-360\sb0\sa100\sl320\slmult1{\f0\fs22 \u8226  Then targets discretionary spending (dining, entertainment, impulse buys)}\par
+\pard\li720\fi-360\sb0\sa100\sl320\slmult1{\f0\fs22 \u8226  Only suggests cutting essentials as a last resort, with clear warnings}\par
+\pard\li720\fi-360\sb0\sa100\sl320\slmult1{\f0\fs22 \u8226  Each action includes specific "how-to" steps using real merchants and amounts}\par
+\pard\li720\fi-360\sb0\sa100\sl320\slmult1{\f0\fs22 \u8226  Actions are priority-ordered (1 = do first) for maximum impact}\par
+\pard\li720\fi-360\sb0\sa100\sl320\slmult1{\f0\fs22 \u8226  Progress is tracked with a visual progress bar and on-track indicators}\par
+\pard\keepn\sb360\sa120{\f0\b\fs28\cf2 Response & Tracking System}\par
+\pard\sb0\sa180\sl360\slmult1{\f0\fs22 For each recommendation, users can respond with Cancel (they'll stop the service), Reduce (they'll downgrade), or Keep (they value it). Responses are tracked over time, and the projected savings banner updates in real-time as users commit to changes. Monthly pulse checks compare actual spending against commitments.}\par
+\pard\page
+\pard\keepn\sb480\sa200{\f0\b\fs36\cf1 Tax Deduction Optimization & Export}\par
+\pard\sb0\sa180\sl360\slmult1{\f0\fs22 For freelancers, self-employed individuals, and small business owners, tax deduction tracking is one of LedgerIQ's most valuable features. The AI automatically identifies tax-deductible expenses and maps them to IRS Schedule C line items, then exports accountant-ready reports in multiple formats.}\par
+\pard\keepn\sb360\sa120{\f0\b\fs28\cf2 Automatic Tax Deductibility Detection}\par
+\pard\sb0\sa180\sl360\slmult1{\f0\fs22 During categorization, Claude AI evaluates each transaction for tax deductibility based on the user's employment type and the expense category:}\par
+\pard\keepn\sb240\sa80{\f0\b\fs24\cf3 Self-Employed / Freelancer Deductions}\par
+\pard\li720\fi-360\sb0\sa100\sl320\slmult1{\f0\fs22 \u8226  Office supplies and equipment}\par
+\pard\li720\fi-360\sb0\sa100\sl320\slmult1{\f0\fs22 \u8226  Software and SaaS subscriptions used for business}\par
+\pard\li720\fi-360\sb0\sa100\sl320\slmult1{\f0\fs22 \u8226  Business meals (50% deductible per IRS rules)}\par
+\pard\li720\fi-360\sb0\sa100\sl320\slmult1{\f0\fs22 \u8226  Home office expenses}\par
+\pard\li720\fi-360\sb0\sa100\sl320\slmult1{\f0\fs22 \u8226  Professional development and training}\par
+\pard\li720\fi-360\sb0\sa100\sl320\slmult1{\f0\fs22 \u8226  Business travel (flights, hotels, transportation)}\par
+\pard\li720\fi-360\sb0\sa100\sl320\slmult1{\f0\fs22 \u8226  Marketing and advertising}\par
+\pard\li720\fi-360\sb0\sa100\sl320\slmult1{\f0\fs22 \u8226  Health insurance premiums (self-employed deduction)}\par
+\pard\li720\fi-360\sb0\sa100\sl320\slmult1{\f0\fs22 \u8226  Professional services (legal, accounting)}\par
+\pard\li720\fi-360\sb0\sa100\sl320\slmult1{\f0\fs22 \u8226  Shipping and postage}\par
+\pard\keepn\sb240\sa80{\f0\b\fs24\cf3 Universal Deductions}\par
+\pard\li720\fi-360\sb0\sa100\sl320\slmult1{\f0\fs22 \u8226  Charitable donations (Schedule A)}\par
+\pard\li720\fi-360\sb0\sa100\sl320\slmult1{\f0\fs22 \u8226  Medical expenses above AGI threshold (Schedule A)}\par
+\pard\li720\fi-360\sb0\sa100\sl320\slmult1{\f0\fs22 \u8226  Mortgage interest (Schedule A)}\par
+\pard\li720\fi-360\sb0\sa100\sl320\slmult1{\f0\fs22 \u8226  State and local taxes - SALT (Schedule A)}\par
+\pard\keepn\sb360\sa120{\f0\b\fs28\cf2 IRS Schedule C Line Mapping}\par
+\pard\sb0\sa180\sl360\slmult1{\f0\fs22 LedgerIQ maps 12 expense categories directly to IRS Schedule C lines:}\par
+\pard\sb200\sa200
+\trowd\trqc\trgaph108\trleft0\clcbpat1\clbrdrt\brdrs\brdrw10\clbrdrb\brdrs\brdrw10\clbrdrl\brdrs\brdrw10\clbrdrr\brdrs\brdrw10\cellx2800\clcbpat1\clbrdrt\brdrs\brdrw10\clbrdrb\brdrs\brdrw10\clbrdrl\brdrs\brdrw10\clbrdrr\brdrs\brdrw10\cellx6800\clcbpat1\clbrdrt\brdrs\brdrw10\clbrdrb\brdrs\brdrw10\clbrdrl\brdrs\brdrw10\clbrdrr\brdrs\brdrw10\cellx16000
+\pard\intbl\qc{\f0\b\fs20\cf6 Schedule C Line}\cell
+\pard\intbl\qc{\f0\b\fs20\cf6 Description}\cell
+\pard\intbl\qc{\f0\b\fs20\cf6 LedgerIQ Categories}\cell
+\row
+\trowd\trqc\trgaph108\trleft0\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx2800\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx6800\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx16000
+\pard\intbl{\f0\b\fs20 Line 8}\cell
+\pard\intbl{\f0\fs20 Advertising}\cell
+\pard\intbl{\f0\fs20 Marketing & Advertising}\cell
+\row
+\trowd\trqc\trgaph108\trleft0\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx2800\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx6800\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx16000
+\pard\intbl{\f0\b\fs20 Line 9}\cell
+\pard\intbl{\f0\fs20 Car & Truck}\cell
+\pard\intbl{\f0\fs20 Gas & Fuel, Auto Maintenance, Transportation}\cell
+\row
+\trowd\trqc\trgaph108\trleft0\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx2800\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx6800\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx16000
+\pard\intbl{\f0\b\fs20 Line 15}\cell
+\pard\intbl{\f0\fs20 Insurance}\cell
+\pard\intbl{\f0\fs20 Health Insurance, Home Insurance}\cell
+\row
+\trowd\trqc\trgaph108\trleft0\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx2800\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx6800\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx16000
+\pard\intbl{\f0\b\fs20 Line 17}\cell
+\pard\intbl{\f0\fs20 Legal & Professional}\cell
+\pard\intbl{\f0\fs20 Professional Services}\cell
+\row
+\trowd\trqc\trgaph108\trleft0\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx2800\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx6800\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx16000
+\pard\intbl{\f0\b\fs20 Line 18}\cell
+\pard\intbl{\f0\fs20 Office Expense}\cell
+\pard\intbl{\f0\fs20 Office Supplies, Software & SaaS, Shipping}\cell
+\row
+\trowd\trqc\trgaph108\trleft0\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx2800\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx6800\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx16000
+\pard\intbl{\f0\b\fs20 Line 24a}\cell
+\pard\intbl{\f0\fs20 Travel}\cell
+\pard\intbl{\f0\fs20 Flights, Travel & Hotels}\cell
+\row
+\trowd\trqc\trgaph108\trleft0\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx2800\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx6800\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx16000
+\pard\intbl{\f0\b\fs20 Line 24b}\cell
+\pard\intbl{\f0\fs20 Meals (50%)}\cell
+\pard\intbl{\f0\fs20 Business Meals}\cell
+\row
+\trowd\trqc\trgaph108\trleft0\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx2800\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx6800\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx16000
+\pard\intbl{\f0\b\fs20 Line 25}\cell
+\pard\intbl{\f0\fs20 Utilities}\cell
+\pard\intbl{\f0\fs20 Phone & Internet, Utilities}\cell
+\row
+\trowd\trqc\trgaph108\trleft0\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx2800\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx6800\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx16000
+\pard\intbl{\f0\b\fs20 Line 27a}\cell
+\pard\intbl{\f0\fs20 Other Expenses}\cell
+\pard\intbl{\f0\fs20 Professional Development}\cell
+\row
+\trowd\trqc\trgaph108\trleft0\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx2800\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx6800\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx16000
+\pard\intbl{\f0\b\fs20 Line 30}\cell
+\pard\intbl{\f0\fs20 Home Office}\cell
+\pard\intbl{\f0\fs20 Home Office}\cell
+\row
+\trowd\trqc\trgaph108\trleft0\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx2800\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx6800\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx16000
+\pard\intbl{\f0\b\fs20 Schedule A}\cell
+\pard\intbl{\f0\fs20 Charitable}\cell
+\pard\intbl{\f0\fs20 Charity & Donations}\cell
+\row
+\trowd\trqc\trgaph108\trleft0\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx2800\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx6800\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx16000
+\pard\intbl{\f0\b\fs20 Schedule A}\cell
+\pard\intbl{\f0\fs20 Medical}\cell
+\pard\intbl{\f0\fs20 Medical & Dental}\cell
+\row
+\pard\keepn\sb360\sa120{\f0\b\fs28\cf2 Export Formats}\par
+\pard\keepn\sb240\sa80{\f0\b\fs24\cf3 Excel Workbook (5 Tabs)}\par
+\pard\li720\fi-360\sb0\sa100\sl320\slmult1{\f0\fs22 \u8226  Tax Summary - Taxpayer profile, deduction totals, estimated tax savings by bracket, linked accounts}\par
+\pard\li720\fi-360\sb0\sa100\sl320\slmult1{\f0\fs22 \u8226  Schedule C Mapping - Line-by-line IRS form mapping with amounts and item counts}\par
+\pard\li720\fi-360\sb0\sa100\sl320\slmult1{\f0\fs22 \u8226  Deductions by Category - Aggregated totals per tax category with transaction counts and date ranges}\par
+\pard\li720\fi-360\sb0\sa100\sl320\slmult1{\f0\fs22 \u8226  All Deductible Transactions - Full detail: date, merchant, amount, category, tax line, AI confidence, verification status}\par
+\pard\li720\fi-360\sb0\sa100\sl320\slmult1{\f0\fs22 \u8226  Business Subscriptions - Recurring business expenses with annual projections}\par
+\pard\keepn\sb240\sa80{\f0\b\fs24\cf3 PDF Cover Sheet}\par
+\pard\sb0\sa180\sl360\slmult1{\f0\fs22 Executive summary designed for accountants - key statistics, taxpayer profile, and deduction totals in a clean, professional format.}\par
+\pard\keepn\sb240\sa80{\f0\b\fs24\cf3 CSV Export}\par
+\pard\sb0\sa180\sl360\slmult1{\f0\fs22 Universal flat-file format importable into TurboTax, QuickBooks, and any CPA software. Same columns as the Excel detail tab.}\par
+\pard\keepn\sb240\sa80{\f0\b\fs24\cf3 Email to Accountant}\par
+\pard\sb0\sa180\sl360\slmult1{\f0\fs22 One-click delivery of all three export files directly to the user's accountant via email, with a summary in the email body and CC to the user for records.}\par
+\pard\page
+\pard\keepn\sb480\sa200{\f0\b\fs36\cf1 Comprehensive Financial Dashboard}\par
+\pard\sb0\sa180\sl360\slmult1{\f0\fs22 The LedgerIQ dashboard is an 8-widget financial command center that gives users a complete picture of their financial health at a glance. Data is cached for 60 seconds per user and can be filtered by account type (personal/business).}\par
+\pard\keepn\sb360\sa120{\f0\b\fs28\cf2 1. Smart Greeting & Hero Metrics}\par
+\pard\sb0\sa180\sl360\slmult1{\f0\fs22 A dynamic greeting adapts to financial health ("You can save $X/mo" vs. "$X/mo over budget"). Live income/expense indicators with directional arrows, savings rate badge (green if positive, red if deficit), and bank sync status.}\par
+\pard\keepn\sb360\sa120{\f0\b\fs28\cf2 2. Budget Reality Check (Waterfall Analysis)}\par
+\pard\sb0\sa180\sl360\slmult1{\f0\fs22 A visual stacked bar chart breaks down monthly cash flow into Essential Bills (red), Non-Essential Subscriptions (amber), Discretionary Spending (orange), and Monthly Surplus (green). Detailed breakdown rows show exact amounts and percentages. The color-coded verdict tells users whether they can save or are over budget, with the savings rate as a percentage of income.}\par
+\pard\keepn\sb360\sa120{\f0\b\fs28\cf2 3. Your Monthly Bills}\par
+\pard\sb0\sa180\sl360\slmult1{\f0\fs22 All recurring charges consolidated with total monthly cost, annual projection, and essential vs. non-essential split. Each bill shows the merchant, frequency, next expected charge, and a "Stopped Billing" badge for unused subscriptions.}\par
+\pard\keepn\sb360\sa120{\f0\b\fs28\cf2 4. Home Affordability Calculator}\par
+\pard\sb0\sa180\sl360\slmult1{\f0\fs22 Calculates maximum home price based on actual income and debt. Shows estimated monthly mortgage payment, interest rate, current debt-to-income ratio (DTI), and loan term. Color-coded DTI analysis: green (under 28%, excellent), amber (28-36%, moderate), red (over 36%, exceeds lender maximums).}\par
+\pard\keepn\sb360\sa120{\f0\b\fs28\cf2 5. Where to Cut - Action Feed}\par
+\pard\sb0\sa180\sl360\slmult1{\f0\fs22 A three-tab system (Quick Wins, This Week, This Month) surfaces actionable savings. Each card shows title, monthly/annual savings potential, color-coded type icon, expandable action steps, and respond/dismiss buttons. Card types include unused subscriptions, AI savings recommendations, overspending categories, and pending AI questions.}\par
+\pard\keepn\sb360\sa120{\f0\b\fs28\cf2 6. Savings Progress & Goals}\par
+\pard\sb0\sa180\sl360\slmult1{\f0\fs22 6-month savings tracking chart and applied recommendations list alongside savings goal progress bar with motivation text and cumulative vs. target comparison.}\par
+\pard\keepn\sb360\sa120{\f0\b\fs28\cf2 7. Spending Trend}\par
+\pard\sb0\sa180\sl360\slmult1{\f0\fs22 6-month income vs. expense trend chart with category breakdown by month, helping users identify seasonal spending patterns.}\par
+\pard\keepn\sb360\sa120{\f0\b\fs28\cf2 8. Recent Activity}\par
+\pard\sb0\sa180\sl360\slmult1{\f0\fs22 Last 20 transactions with inline category badges and quick link to the full Transactions page.}\par
+\pard\page
+\pard\keepn\sb480\sa200{\f0\b\fs36\cf1 Security Architecture}\par
+\pard\sb0\sa180\sl360\slmult1{\f0\fs22 LedgerIQ treats security as a foundational requirement, not an afterthought. The platform implements defense-in-depth across every layer of the stack.}\par
+\pard\keepn\sb360\sa120{\f0\b\fs28\cf2 Encryption}\par
+\pard\li720\fi-360\sb0\sa100\sl320\slmult1{\f0\fs22 \u8226  AES-256 encryption at rest for all sensitive data (Plaid tokens, bank account EINs, email credentials, 2FA secrets, transaction metadata)}\par
+\pard\li720\fi-360\sb0\sa100\sl320\slmult1{\f0\fs22 \u8226  Laravel model-level encryption casts - sensitive fields are never stored in plaintext}\par
+\pard\li720\fi-360\sb0\sa100\sl320\slmult1{\f0\fs22 \u8226  TLS/HTTPS for all data in transit}\par
+\pard\li720\fi-360\sb0\sa100\sl320\slmult1{\f0\fs22 \u8226  HSTS header with 1-year max-age, includeSubDomains, and preload directive}\par
+\pard\keepn\sb360\sa120{\f0\b\fs28\cf2 Authentication & Access Control}\par
+\pard\li720\fi-360\sb0\sa100\sl320\slmult1{\f0\fs22 \u8226  bcrypt password hashing (Laravel default)}\par
+\pard\li720\fi-360\sb0\sa100\sl320\slmult1{\f0\fs22 \u8226  Sanctum bearer token authentication for API endpoints}\par
+\pard\li720\fi-360\sb0\sa100\sl320\slmult1{\f0\fs22 \u8226  Rate limiting on all authentication endpoints}\par
+\pard\li720\fi-360\sb0\sa100\sl320\slmult1{\f0\fs22 \u8226  Optional TOTP two-factor authentication with encrypted backup recovery codes}\par
+\pard\li720\fi-360\sb0\sa100\sl320\slmult1{\f0\fs22 \u8226  Google OAuth social login as an alternative}\par
+\pard\li720\fi-360\sb0\sa100\sl320\slmult1{\f0\fs22 \u8226  Password reset via signed email links}\par
+\pard\li720\fi-360\sb0\sa100\sl320\slmult1{\f0\fs22 \u8226  Email verification for new accounts}\par
+\pard\li720\fi-360\sb0\sa100\sl320\slmult1{\f0\fs22 \u8226  Account lockout protection after failed attempts}\par
+\pard\keepn\sb360\sa120{\f0\b\fs28\cf2 Security Headers}\par
+\pard\li720\fi-360\sb0\sa100\sl320\slmult1{\f0\fs22 \u8226  Content-Security-Policy - Restricts script, style, font, image, and frame sources}\par
+\pard\li720\fi-360\sb0\sa100\sl320\slmult1{\f0\fs22 \u8226  X-Content-Type-Options: nosniff - Prevents MIME-type sniffing}\par
+\pard\li720\fi-360\sb0\sa100\sl320\slmult1{\f0\fs22 \u8226  X-Frame-Options: DENY - Prevents clickjacking}\par
+\pard\li720\fi-360\sb0\sa100\sl320\slmult1{\f0\fs22 \u8226  Referrer-Policy: strict-origin-when-cross-origin}\par
+\pard\li720\fi-360\sb0\sa100\sl320\slmult1{\f0\fs22 \u8226  Permissions-Policy - Disables camera, microphone, and geolocation access}\par
+\pard\li720\fi-360\sb0\sa100\sl320\slmult1{\f0\fs22 \u8226  Strict-Transport-Security - Forces HTTPS with preload}\par
+\pard\keepn\sb360\sa120{\f0\b\fs28\cf2 Data Protection}\par
+\pard\li720\fi-360\sb0\sa100\sl320\slmult1{\f0\fs22 \u8226  Every model with sensitive data uses $hidden arrays to prevent API leakage}\par
+\pard\li720\fi-360\sb0\sa100\sl320\slmult1{\f0\fs22 \u8226  Plaid access tokens are encrypted and never exposed to the frontend}\par
+\pard\li720\fi-360\sb0\sa100\sl320\slmult1{\f0\fs22 \u8226  Webhook signature verification prevents request tampering}\par
+\pard\li720\fi-360\sb0\sa100\sl320\slmult1{\f0\fs22 \u8226  Idempotency logging prevents duplicate webhook processing}\par
+\pard\li720\fi-360\sb0\sa100\sl320\slmult1{\f0\fs22 \u8226  Users can disconnect banks and delete accounts at any time}\par
+\pard\page
+\pard\keepn\sb480\sa200{\f0\b\fs36\cf1 Additional Features}\par
+\pard\keepn\sb360\sa120{\f0\b\fs28\cf2 Email Receipt Parsing (In Development)}\par
+\pard\sb0\sa180\sl360\slmult1{\f0\fs22 Users can connect their Gmail (via OAuth) or any IMAP email account. LedgerIQ scans for order confirmations and receipts, extracts product-level detail using Claude AI, and matches them to bank transactions. This provides itemized purchase tracking - for example, knowing that a $147.32 Amazon charge was specifically for office supplies and a printer cartridge, enabling more accurate tax categorization at the product level.}\par
+\pard\keepn\sb360\sa120{\f0\b\fs28\cf2 AI Question Chat System}\par
+\pard\sb0\sa180\sl360\slmult1{\f0\fs22 When the AI is uncertain about a transaction's category, it asks the user. Users interact through a dedicated Questions page where they can answer multiple-choice questions, provide free-text explanations, or engage in a back-and-forth chat with the AI for nuanced situations. Bulk answer mode lets users resolve multiple questions at once.}\par
+\pard\keepn\sb360\sa120{\f0\b\fs28\cf2 Transaction Management}\par
+\pard\sb0\sa180\sl360\slmult1{\f0\fs22 A full-featured transaction table with filtering by date range, category, amount range, merchant, account, and review status. Users can inline-edit categories and mark transactions as deductible. Eight query scopes provide efficient data retrieval across the application.}\par
+\pard\keepn\sb360\sa120{\f0\b\fs28\cf2 Financial Profile & Settings}\par
+\pard\sb0\sa180\sl360\slmult1{\f0\fs22 Users can configure their employment type, business type, home office status, tax filing status, and income details. This profile data enhances AI categorization accuracy and tax deduction detection. Settings also include 2FA management and account deletion.}\par
+\pard\page
+\pard\keepn\sb480\sa200{\f0\b\fs36\cf1 Competitive Landscape}\par
+\pard\sb0\sa180\sl360\slmult1{\f0\fs22 LedgerIQ competes in the personal finance management space with a unique combination of AI intelligence and zero-cost pricing:}\par
+\pard\sb200\sa200
+\trowd\trqc\trgaph108\trleft0\clcbpat1\clbrdrt\brdrs\brdrw10\clbrdrb\brdrs\brdrw10\clbrdrl\brdrs\brdrw10\clbrdrr\brdrs\brdrw10\cellx2600\clcbpat1\clbrdrt\brdrs\brdrw10\clbrdrb\brdrs\brdrw10\clbrdrl\brdrs\brdrw10\clbrdrr\brdrs\brdrw10\cellx4800\clcbpat1\clbrdrt\brdrs\brdrw10\clbrdrb\brdrs\brdrw10\clbrdrl\brdrs\brdrw10\clbrdrr\brdrs\brdrw10\cellx7000\clcbpat1\clbrdrt\brdrs\brdrw10\clbrdrb\brdrs\brdrw10\clbrdrl\brdrs\brdrw10\clbrdrr\brdrs\brdrw10\cellx9200\clcbpat1\clbrdrt\brdrs\brdrw10\clbrdrb\brdrs\brdrw10\clbrdrl\brdrs\brdrw10\clbrdrr\brdrs\brdrw10\cellx11400\clcbpat1\clbrdrt\brdrs\brdrw10\clbrdrb\brdrs\brdrw10\clbrdrl\brdrs\brdrw10\clbrdrr\brdrs\brdrw10\cellx13600
+\pard\intbl\qc{\f0\b\fs20\cf6 Feature}\cell
+\pard\intbl\qc{\f0\b\fs20\cf6 LedgerIQ}\cell
+\pard\intbl\qc{\f0\b\fs20\cf6 Mint}\cell
+\pard\intbl\qc{\f0\b\fs20\cf6 YNAB}\cell
+\pard\intbl\qc{\f0\b\fs20\cf6 Copilot}\cell
+\pard\intbl\qc{\f0\b\fs20\cf6 Quicken}\cell
+\row
+\trowd\trqc\trgaph108\trleft0\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx2600\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx4800\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx7000\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx9200\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx11400\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx13600
+\pard\intbl{\f0\b\fs20 Price}\cell
+\pard\intbl{\f0\b\fs20\cf5 FREE}\cell
+\pard\intbl{\f0\fs20 Free*}\cell
+\pard\intbl{\f0\fs20 $14.99/mo}\cell
+\pard\intbl{\f0\fs20 $10.99/mo}\cell
+\pard\intbl{\f0\fs20 $5.99/mo}\cell
+\row
+\trowd\trqc\trgaph108\trleft0\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx2600\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx4800\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx7000\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx9200\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx11400\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx13600
+\pard\intbl{\f0\b\fs20 AI Categorize}\cell
+\pard\intbl{\f0\b\fs20\cf5 Yes}\cell
+\pard\intbl{\f0\fs20 Basic}\cell
+\pard\intbl{\f0\fs20 Manual}\cell
+\pard\intbl{\f0\fs20 Yes}\cell
+\pard\intbl{\f0\fs20 Rules}\cell
+\row
+\trowd\trqc\trgaph108\trleft0\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx2600\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx4800\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx7000\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx9200\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx11400\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx13600
+\pard\intbl{\f0\b\fs20 Bank Sync}\cell
+\pard\intbl{\f0\b\fs20\cf5 Plaid}\cell
+\pard\intbl{\f0\fs20 Plaid}\cell
+\pard\intbl{\f0\fs20 Plaid}\cell
+\pard\intbl{\f0\fs20 Plaid}\cell
+\pard\intbl{\f0\fs20 Plaid}\cell
+\row
+\trowd\trqc\trgaph108\trleft0\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx2600\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx4800\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx7000\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx9200\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx11400\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx13600
+\pard\intbl{\f0\b\fs20 Statement Upload}\cell
+\pard\intbl{\f0\b\fs20\cf5 PDF + CSV}\cell
+\pard\intbl{\f0\fs20 No}\cell
+\pard\intbl{\f0\fs20 Manual}\cell
+\pard\intbl{\f0\fs20 No}\cell
+\pard\intbl{\f0\fs20 CSV only}\cell
+\row
+\trowd\trqc\trgaph108\trleft0\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx2600\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx4800\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx7000\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx9200\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx11400\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx13600
+\pard\intbl{\f0\b\fs20 Sub Detection}\cell
+\pard\intbl{\f0\b\fs20\cf5 Auto + AI}\cell
+\pard\intbl{\f0\fs20 Basic}\cell
+\pard\intbl{\f0\fs20 No}\cell
+\pard\intbl{\f0\fs20 Auto}\cell
+\pard\intbl{\f0\fs20 No}\cell
+\row
+\trowd\trqc\trgaph108\trleft0\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx2600\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx4800\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx7000\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx9200\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx11400\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx13600
+\pard\intbl{\f0\b\fs20 Savings Tips}\cell
+\pard\intbl{\f0\b\fs20\cf5 AI-Powered}\cell
+\pard\intbl{\f0\fs20 Basic}\cell
+\pard\intbl{\f0\fs20 No}\cell
+\pard\intbl{\f0\fs20 No}\cell
+\pard\intbl{\f0\fs20 No}\cell
+\row
+\trowd\trqc\trgaph108\trleft0\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx2600\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx4800\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx7000\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx9200\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx11400\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx13600
+\pard\intbl{\f0\b\fs20 Tax Export}\cell
+\pard\intbl{\f0\b\fs20\cf5 Sched C}\cell
+\pard\intbl{\f0\fs20 No}\cell
+\pard\intbl{\f0\fs20 No}\cell
+\pard\intbl{\f0\fs20 No}\cell
+\pard\intbl{\f0\fs20 Basic}\cell
+\row
+\trowd\trqc\trgaph108\trleft0\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx2600\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx4800\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx7000\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx9200\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx11400\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx13600
+\pard\intbl{\f0\b\fs20 2FA Support}\cell
+\pard\intbl{\f0\b\fs20\cf5 TOTP}\cell
+\pard\intbl{\f0\fs20 No}\cell
+\pard\intbl{\f0\fs20 No}\cell
+\pard\intbl{\f0\fs20 No}\cell
+\pard\intbl{\f0\fs20 No}\cell
+\row
+\pard\sb0\sa0\par
+\pard\sb0\sa120{\f0\i\fs18\cf4 * Mint (now Credit Karma) shifted to a credit-focused product in 2024, reducing its expense tracking capabilities.}\par
+\pard\page
+\pard\keepn\sb480\sa200{\f0\b\fs36\cf1 Technical Architecture Summary}\par
+\pard\sb200\sa200
+\trowd\trqc\trgaph108\trleft0\clcbpat1\clbrdrt\brdrs\brdrw10\clbrdrb\brdrs\brdrw10\clbrdrl\brdrs\brdrw10\clbrdrr\brdrs\brdrw10\cellx4200\clcbpat1\clbrdrt\brdrs\brdrw10\clbrdrb\brdrs\brdrw10\clbrdrl\brdrs\brdrw10\clbrdrr\brdrs\brdrw10\cellx9600\clcbpat1\clbrdrt\brdrs\brdrw10\clbrdrb\brdrs\brdrw10\clbrdrl\brdrs\brdrw10\clbrdrr\brdrs\brdrw10\cellx16000
+\pard\intbl\qc{\f0\b\fs20\cf6 Layer}\cell
+\pard\intbl\qc{\f0\b\fs20\cf6 Technology}\cell
+\pard\intbl\qc{\f0\b\fs20\cf6 Version}\cell
+\row
+\trowd\trqc\trgaph108\trleft0\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx4200\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx9600\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx16000
+\pard\intbl{\f0\b\fs20 Backend Framework}\cell
+\pard\intbl{\f0\fs20 Laravel}\cell
+\pard\intbl{\f0\fs20 12.51.0}\cell
+\row
+\trowd\trqc\trgaph108\trleft0\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx4200\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx9600\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx16000
+\pard\intbl{\f0\b\fs20 Language}\cell
+\pard\intbl{\f0\fs20 PHP}\cell
+\pard\intbl{\f0\fs20 8.3.29}\cell
+\row
+\trowd\trqc\trgaph108\trleft0\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx4200\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx9600\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx16000
+\pard\intbl{\f0\b\fs20 Database}\cell
+\pard\intbl{\f0\fs20 PostgreSQL}\cell
+\pard\intbl{\f0\fs20 15+}\cell
+\row
+\trowd\trqc\trgaph108\trleft0\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx4200\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx9600\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx16000
+\pard\intbl{\f0\b\fs20 Cache / Queue}\cell
+\pard\intbl{\f0\fs20 Redis}\cell
+\pard\intbl{\f0\fs20 7+}\cell
+\row
+\trowd\trqc\trgaph108\trleft0\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx4200\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx9600\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx16000
+\pard\intbl{\f0\b\fs20 Frontend Framework}\cell
+\pard\intbl{\f0\fs20 React}\cell
+\pard\intbl{\f0\fs20 19.2.4}\cell
+\row
+\trowd\trqc\trgaph108\trleft0\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx4200\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx9600\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx16000
+\pard\intbl{\f0\b\fs20 Frontend Bridge}\cell
+\pard\intbl{\f0\fs20 Inertia.js}\cell
+\pard\intbl{\f0\fs20 2.0.19}\cell
+\row
+\trowd\trqc\trgaph108\trleft0\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx4200\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx9600\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx16000
+\pard\intbl{\f0\b\fs20 Type System}\cell
+\pard\intbl{\f0\fs20 TypeScript}\cell
+\pard\intbl{\f0\fs20 Latest}\cell
+\row
+\trowd\trqc\trgaph108\trleft0\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx4200\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx9600\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx16000
+\pard\intbl{\f0\b\fs20 CSS Framework}\cell
+\pard\intbl{\f0\fs20 Tailwind CSS}\cell
+\pard\intbl{\f0\fs20 4.1.18}\cell
+\row
+\trowd\trqc\trgaph108\trleft0\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx4200\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx9600\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx16000
+\pard\intbl{\f0\b\fs20 AI Engine}\cell
+\pard\intbl{\f0\fs20 Anthropic Claude API}\cell
+\pard\intbl{\f0\fs20 Sonnet 4}\cell
+\row
+\trowd\trqc\trgaph108\trleft0\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx4200\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx9600\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx16000
+\pard\intbl{\f0\b\fs20 Bank Integration}\cell
+\pard\intbl{\f0\fs20 Plaid API}\cell
+\pard\intbl{\f0\fs20 Sandbox}\cell
+\row
+\trowd\trqc\trgaph108\trleft0\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx4200\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx9600\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx16000
+\pard\intbl{\f0\b\fs20 Authentication}\cell
+\pard\intbl{\f0\fs20 Sanctum + Fortify}\cell
+\pard\intbl{\f0\fs20 4.3.1}\cell
+\row
+\trowd\trqc\trgaph108\trleft0\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx4200\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx9600\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx16000
+\pard\intbl{\f0\b\fs20 Social OAuth}\cell
+\pard\intbl{\f0\fs20 Laravel Socialite}\cell
+\pard\intbl{\f0\fs20 5.24.2}\cell
+\row
+\trowd\trqc\trgaph108\trleft0\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx4200\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx9600\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx16000
+\pard\intbl{\f0\b\fs20 Testing}\cell
+\pard\intbl{\f0\fs20 Pest PHP}\cell
+\pard\intbl{\f0\fs20 3.8.5}\cell
+\row
+\trowd\trqc\trgaph108\trleft0\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx4200\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx9600\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx16000
+\pard\intbl{\f0\b\fs20 Code Style}\cell
+\pard\intbl{\f0\fs20 Laravel Pint}\cell
+\pard\intbl{\f0\fs20 1.27.1}\cell
+\row
+\trowd\trqc\trgaph108\trleft0\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx4200\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx9600\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx16000
+\pard\intbl{\f0\b\fs20 PDF Parsing}\cell
+\pard\intbl{\f0\fs20 spatie/pdf-to-text}\cell
+\pard\intbl{\f0\fs20 Latest}\cell
+\row
+\trowd\trqc\trgaph108\trleft0\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx4200\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx9600\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx16000
+\pard\intbl{\f0\b\fs20 Excel Export}\cell
+\pard\intbl{\f0\fs20 PhpSpreadsheet}\cell
+\pard\intbl{\f0\fs20 Latest}\cell
+\row
+\trowd\trqc\trgaph108\trleft0\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx4200\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx9600\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx16000
+\pard\intbl{\f0\b\fs20 PDF Export}\cell
+\pard\intbl{\f0\fs20 DomPDF}\cell
+\pard\intbl{\f0\fs20 Latest}\cell
+\row
+\pard\keepn\sb360\sa120{\f0\b\fs28\cf2 Test Coverage}\par
+\pard\sb0\sa180\sl360\slmult1{\f0\fs22 LedgerIQ has 142 automated tests with 524 assertions covering: authentication (registration, login, 2FA, OAuth, password reset), Plaid integration (link, sync, webhooks), transactions (categorization, filtering), subscriptions (detection, responses), savings (recommendations, tracking, goals), statement uploads (parse, import, history), dashboard (all financial widgets), and AI questions (answer, bulk, chat).}\par
+\pard\keepn\sb360\sa120{\f0\b\fs28\cf2 Application Scale}\par
+\pard\sb200\sa200
+\trowd\trqc\trgaph108\trleft0\clcbpat1\clbrdrt\brdrs\brdrw10\clbrdrb\brdrs\brdrw10\clbrdrl\brdrs\brdrw10\clbrdrr\brdrs\brdrw10\cellx5600\clcbpat1\clbrdrt\brdrs\brdrw10\clbrdrb\brdrs\brdrw10\clbrdrl\brdrs\brdrw10\clbrdrr\brdrs\brdrw10\cellx16000
+\pard\intbl\qc{\f0\b\fs20\cf6 Metric}\cell
+\pard\intbl\qc{\f0\b\fs20\cf6 Count}\cell
+\row
+\trowd\trqc\trgaph108\trleft0\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx5600\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx16000
+\pard\intbl{\f0\b\fs20 Eloquent Models}\cell
+\pard\intbl{\f0\fs20 18}\cell
+\row
+\trowd\trqc\trgaph108\trleft0\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx5600\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx16000
+\pard\intbl{\f0\b\fs20 API Controllers}\cell
+\pard\intbl{\f0\fs20 12}\cell
+\row
+\trowd\trqc\trgaph108\trleft0\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx5600\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx16000
+\pard\intbl{\f0\b\fs20 Auth Controllers}\cell
+\pard\intbl{\f0\fs20 5}\cell
+\row
+\trowd\trqc\trgaph108\trleft0\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx5600\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx16000
+\pard\intbl{\f0\b\fs20 Service Classes}\cell
+\pard\intbl{\f0\fs20 10}\cell
+\row
+\trowd\trqc\trgaph108\trleft0\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx5600\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx16000
+\pard\intbl{\f0\b\fs20 Frontend Pages}\cell
+\pard\intbl{\f0\fs20 16 (8 app + 8 marketing/legal)}\cell
+\row
+\trowd\trqc\trgaph108\trleft0\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx5600\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx16000
+\pard\intbl{\f0\b\fs20 Frontend Components}\cell
+\pard\intbl{\f0\fs20 40+}\cell
+\row
+\trowd\trqc\trgaph108\trleft0\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx5600\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx16000
+\pard\intbl{\f0\b\fs20 Database Migrations}\cell
+\pard\intbl{\f0\fs20 11}\cell
+\row
+\trowd\trqc\trgaph108\trleft0\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx5600\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx16000
+\pard\intbl{\f0\b\fs20 Expense Categories}\cell
+\pard\intbl{\f0\fs20 56 (12 with IRS mapping)}\cell
+\row
+\trowd\trqc\trgaph108\trleft0\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx5600\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx16000
+\pard\intbl{\f0\b\fs20 Automated Tests}\cell
+\pard\intbl{\f0\fs20 142 tests, 524 assertions}\cell
+\row
+\trowd\trqc\trgaph108\trleft0\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx5600\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx16000
+\pard\intbl{\f0\b\fs20 Known Subscriptions}\cell
+\pard\intbl{\f0\fs20 49 pre-populated merchants}\cell
+\row
+\trowd\trqc\trgaph108\trleft0\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx5600\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7\cellx16000
+\pard\intbl{\f0\b\fs20 SEO Blog Articles}\cell
+\pard\intbl{\f0\fs20 109 content pages}\cell
+\row
+\pard\page
+\pard\keepn\sb480\sa200{\f0\b\fs36\cf1 Summary}\par
+\pard\sb0\sa180\sl360\slmult1{\f0\fs22 LedgerIQ represents a significant opportunity in the personal finance management space. By combining AI-powered intelligence with bank-grade security and a completely free pricing model, the platform is positioned to capture users who are currently underserved by expensive, feature-limited alternatives.}\par
+\pard\sb0\sa180\sl360\slmult1{\f0\fs22 The platform's key differentiators are:}\par
+\pard\li720\fi-360\sb0\sa100\sl320\slmult1{\f0\fs22 \u8226  True AI Intelligence - Not rules-based, not keyword matching. Claude AI understands context, learns from corrections, and improves with every interaction.}\par
+\pard\li720\fi-360\sb0\sa100\sl320\slmult1{\f0\fs22 \u8226  Dual Data Ingestion - Both Plaid connectivity and statement upload ensure universal access regardless of bank support.}\par
+\pard\li720\fi-360\sb0\sa100\sl320\slmult1{\f0\fs22 \u8226  Immediate Financial Value - Subscription detection and savings recommendations deliver measurable savings from day one.}\par
+\pard\li720\fi-360\sb0\sa100\sl320\slmult1{\f0\fs22 \u8226  Tax Season Ready - Automatic IRS Schedule C mapping eliminates hours of manual tax preparation for freelancers and small business owners.}\par
+\pard\li720\fi-360\sb0\sa100\sl320\slmult1{\f0\fs22 \u8226  Production Quality - 142 automated tests, comprehensive security, and modern architecture ensure reliability and maintainability.}\par
+\pard\li720\fi-360\sb0\sa100\sl320\slmult1{\f0\fs22 \u8226  Zero Cost Barrier - Free forever with no premium tiers removes all friction from user acquisition.}\par
+\pard\sb0\sa0\par
+\pard\sb0\sa0\par
+\pard\qc\sb0\sa120{\f0\fs22\cf4 For questions or a live demonstration, please contact the LedgerIQ team.}\par
+}
