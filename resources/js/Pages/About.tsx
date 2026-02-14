@@ -18,7 +18,7 @@ const values = [
     {
         icon: <Heart className="h-6 w-6" />,
         title: 'Accessibility',
-        description: 'Smart financial tools shouldn\'t cost money. LedgerIQ is 100% free because managing your money well is a right, not a privilege.',
+        description: 'Smart financial tools shouldn\'t cost money. SpendifiAI is 100% free because managing your money well is a right, not a privilege.',
     },
 ];
 
@@ -43,13 +43,13 @@ const techStack = [
 export default function About() {
     return (
         <PublicLayout
-            title="About LedgerIQ - AI-Powered Personal Finance for Everyone"
-            description="LedgerIQ is a free AI-powered personal finance platform built for freelancers, small business owners, and individuals. Automatic expense tracking, tax deductions, and savings insights."
+            title="About SpendifiAI - AI-Powered Personal Finance for Everyone"
+            description="SpendifiAI is a free AI-powered personal finance platform built for freelancers, small business owners, and individuals. Automatic expense tracking, tax deductions, and savings insights."
             breadcrumbs={[{ name: 'About', url: '/about' }]}
         >
             <HeroSection
                 title="Built for People Who Want Smarter Money Management"
-                subtitle="LedgerIQ was created with a simple belief: everyone deserves intelligent financial tools, regardless of their budget."
+                subtitle="SpendifiAI was created with a simple belief: everyone deserves intelligent financial tools, regardless of their budget."
             />
 
             {/* Mission */}
@@ -57,7 +57,7 @@ export default function About() {
                 <div className="mx-auto max-w-3xl text-center">
                     <h2 className="text-3xl font-bold text-sw-text">Our Mission</h2>
                     <p className="mt-6 text-lg leading-relaxed text-sw-muted">
-                        We started LedgerIQ because we were frustrated with the state of personal finance tools.
+                        We started SpendifiAI because we were frustrated with the state of personal finance tools.
                         Most charge monthly fees for basic features. Others sell your financial data to advertisers.
                         Many require accounting knowledge just to set up.
                     </p>
@@ -109,7 +109,7 @@ export default function About() {
             </section>
 
             <CTASection
-                headline="Join the LedgerIQ Community"
+                headline="Join the SpendifiAI Community"
                 description="Start managing your finances smarter today. It's free, forever."
                 buttonText="Get Started Free"
                 buttonHref="/register"

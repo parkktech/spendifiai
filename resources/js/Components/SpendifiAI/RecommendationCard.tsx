@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { ChevronDown, ChevronUp, Check, X } from 'lucide-react';
-import Badge from '@/Components/SpendWise/Badge';
-import type { SavingsRecommendation } from '@/types/spendwise';
+import Badge from '@/Components/SpendifiAI/Badge';
+import type { SavingsRecommendation } from '@/types/spendifiai';
 
 interface RecommendationCardProps {
   recommendation: SavingsRecommendation;

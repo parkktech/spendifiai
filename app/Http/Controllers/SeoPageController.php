@@ -81,12 +81,12 @@ class SeoPageController extends Controller
         ];
 
         $categoryDescriptions = [
-            'comparison' => 'Side-by-side comparisons of LedgerIQ vs Mint, YNAB, QuickBooks, and other expense trackers. See pricing, features, and AI capabilities compared.',
+            'comparison' => 'Side-by-side comparisons of SpendifiAI vs Mint, YNAB, QuickBooks, and other expense trackers. See pricing, features, and AI capabilities compared.',
             'alternative' => 'Discover the best alternatives to popular expense trackers and accounting software. Free and paid options compared for freelancers and small businesses.',
             'guide' => 'Step-by-step guides on expense tracking, budgeting, tax deductions, and personal finance management. Practical tips for freelancers and small business owners.',
             'tax' => 'Tax deduction guides, Schedule C filing tips, quarterly estimated payments, and strategies to maximize write-offs for self-employed professionals.',
             'industry' => 'Expense tracking guides tailored for specific industries: freelancers, real estate agents, rideshare drivers, photographers, content creators, and more.',
-            'feature' => 'Deep dives into LedgerIQ features: AI categorization, subscription detection, bank sync, tax export, savings recommendations, and security.',
+            'feature' => 'Deep dives into SpendifiAI features: AI categorization, subscription detection, bank sync, tax export, savings recommendations, and security.',
         ];
 
         return view('seo.index', [

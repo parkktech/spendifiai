@@ -3,9 +3,9 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head } from '@inertiajs/react';
 import { PiggyBank, Target, Zap, Loader2, Activity, Calendar } from 'lucide-react';
 import { useApi, useApiPost } from '@/hooks/useApi';
-import StatCard from '@/Components/SpendWise/StatCard';
-import RecommendationCard from '@/Components/SpendWise/RecommendationCard';
-import type { RecommendationsResponse, SavingsTargetResponse } from '@/types/spendwise';
+import StatCard from '@/Components/SpendifiAI/StatCard';
+import RecommendationCard from '@/Components/SpendifiAI/RecommendationCard';
+import type { RecommendationsResponse, SavingsTargetResponse } from '@/types/spendifiai';
 
 const fmt = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
 

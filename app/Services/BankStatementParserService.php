@@ -292,10 +292,10 @@ class BankStatementParserService
     private function callClaude(string $prompt): string
     {
         $response = Http::withHeaders([
-            'x-api-key' => config('spendwise.ai.api_key'),
+            'x-api-key' => config('spendifiai.ai.api_key'),
             'anthropic-version' => '2023-06-01',
         ])->timeout(60)->post('https://api.anthropic.com/v1/messages', [
-            'model' => config('spendwise.ai.model'),
+            'model' => config('spendifiai.ai.model'),
             'max_tokens' => 4096,
             'messages' => [
                 ['role' => 'user', 'content' => $prompt],

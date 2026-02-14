@@ -1,8 +1,8 @@
-# LedgerIQ
+# SpendifiAI
 
 ## What This Is
 
-LedgerIQ is an AI-powered expense tracking SaaS that connects to users' bank accounts via Plaid, automatically categorizes transactions using Claude AI, detects subscriptions, generates savings recommendations, parses email receipts to match against bank charges, and exports tax-ready reports with IRS Schedule C mapping. It serves freelancers, small business owners, and consumers — the business/personal account purpose system adapts the experience to each user type.
+SpendifiAI is an AI-powered expense tracking SaaS that connects to users' bank accounts via Plaid, automatically categorizes transactions using Claude AI, detects subscriptions, generates savings recommendations, parses email receipts to match against bank charges, and exports tax-ready reports with IRS Schedule C mapping. It serves freelancers, small business owners, and consumers — the business/personal account purpose system adapts the experience to each user type.
 
 ## Core Value
 

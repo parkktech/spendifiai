@@ -18,7 +18,7 @@ export default function Security() {
     return (
         <PublicLayout
             title="Security Policy - Bank-Level Encryption & Data Protection"
-            description="LedgerIQ security: AES-256 encryption, Plaid SOC 2 Type II, bcrypt password hashing, TLS 1.2+, two-factor authentication, and responsible disclosure program."
+            description="SpendifiAI security: AES-256 encryption, Plaid SOC 2 Type II, bcrypt password hashing, TLS 1.2+, two-factor authentication, and responsible disclosure program."
             breadcrumbs={[{ name: 'Legal', url: '/security-policy' }, { name: 'Security', url: '/security-policy' }]}
         >
             <div className="bg-gradient-to-b from-white to-sw-accent-light px-6 py-16">
@@ -48,7 +48,7 @@ export default function Security() {
                         <section id="sec-1">
                             <h2 className="text-2xl font-semibold text-sw-text">1. Our Commitment</h2>
                             <p className="mt-4 leading-relaxed text-sw-muted">
-                                Security is foundational to LedgerIQ. We handle sensitive financial data, and we take that responsibility seriously. We implement industry-standard security controls and continuously monitor our systems to protect your information.
+                                Security is foundational to SpendifiAI. We handle sensitive financial data, and we take that responsibility seriously. We implement industry-standard security controls and continuously monitor our systems to protect your information.
                             </p>
                         </section>
 
@@ -102,7 +102,7 @@ export default function Security() {
                                     All bank connections are handled by <strong>Plaid</strong>, a SOC 2 Type II certified financial data platform trusted by thousands of applications including Venmo, Robinhood, and Coinbase.
                                 </p>
                                 <ul className="mt-4 list-disc space-y-2 pl-6 text-sw-muted">
-                                    <li><strong>LedgerIQ never sees or stores your bank credentials</strong> — they go directly to Plaid</li>
+                                    <li><strong>SpendifiAI never sees or stores your bank credentials</strong> — they go directly to Plaid</li>
                                     <li>Plaid access tokens are <strong>encrypted with AES-256</strong> before database storage</li>
                                     <li>Users can <strong>revoke bank access at any time</strong> through the app</li>
                                     <li>Disconnection immediately revokes and deletes the Plaid access token</li>
@@ -136,9 +136,9 @@ export default function Security() {
                         <section id="sec-8">
                             <h2 className="text-2xl font-semibold text-sw-text">8. Responsible Disclosure</h2>
                             <p className="mt-4 leading-relaxed text-sw-muted">
-                                If you discover a security vulnerability in LedgerIQ, we encourage responsible disclosure. Please report vulnerabilities to:
+                                If you discover a security vulnerability in SpendifiAI, we encourage responsible disclosure. Please report vulnerabilities to:
                             </p>
-                            <p className="mt-2 font-medium text-sw-accent">security@ledgeriq.com</p>
+                            <p className="mt-2 font-medium text-sw-accent">security@spendifiai.com</p>
                             <p className="mt-3 leading-relaxed text-sw-muted">
                                 We ask that you give us reasonable time to address the issue before public disclosure. We will not take legal action against security researchers who act in good faith.
                             </p>
@@ -149,7 +149,7 @@ export default function Security() {
                             <p className="mt-4 leading-relaxed text-sw-muted">
                                 For security questions or concerns:
                             </p>
-                            <p className="mt-2 font-medium text-sw-accent">security@ledgeriq.com</p>
+                            <p className="mt-2 font-medium text-sw-accent">security@spendifiai.com</p>
                         </section>
 
                         <nav className="flex flex-wrap items-center gap-3 border-t border-sw-border pt-8 text-sm">

@@ -12,11 +12,11 @@ import {
   Sparkles,
   AlertCircle,
 } from 'lucide-react';
-import TransactionRow from '@/Components/SpendWise/TransactionRow';
-import FilterBar, { FilterState } from '@/Components/SpendWise/FilterBar';
-import StatCard from '@/Components/SpendWise/StatCard';
+import TransactionRow from '@/Components/SpendifiAI/TransactionRow';
+import FilterBar, { FilterState } from '@/Components/SpendifiAI/FilterBar';
+import StatCard from '@/Components/SpendifiAI/StatCard';
 import { useApi, useApiPost } from '@/hooks/useApi';
-import type { PaginatedResponse, Transaction, ExpenseCategory } from '@/types/spendwise';
+import type { PaginatedResponse, Transaction, ExpenseCategory } from '@/types/spendifiai';
 
 function buildUrl(filters: FilterState, page: number): string {
   const params = new URLSearchParams();

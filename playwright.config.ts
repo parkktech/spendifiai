@@ -12,7 +12,7 @@ export default defineConfig({
     ],
     timeout: 60000,
     use: {
-        baseURL: process.env.APP_URL || 'http://www.ledgeriq.loc',
+        baseURL: process.env.APP_URL || 'http://www.spendifiai.loc',
         actionTimeout: 15000,
         trace: 'on-first-retry',
         screenshot: 'on',

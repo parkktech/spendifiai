@@ -30,9 +30,9 @@ Schedule::call(function () {
 
 // ── AI categorize pending transactions (every 2 hours) ──
 Schedule::call(function () {
-    User::whereHas('transactions', fn($q) => $q->where('review_status', 'pending_ai'))
+    User::whereHas('transactions', fn ($q) => $q->where('review_status', 'pending_ai'))
         ->pluck('id')
-        ->each(fn($id) => CategorizePendingTransactions::dispatch($id));
+        ->each(fn ($id) => CategorizePendingTransactions::dispatch($id));
 })->everyTwoHours()->name('categorize-pending');
 
 // ── Detect subscriptions (daily at 2am) + notify about unused ──
@@ -72,7 +72,7 @@ Schedule::call(function () {
 
 // ── Expire old AI questions (daily) ──
 Schedule::call(function () {
-    $expiry = config('spendwise.sync.question_expiry_days', 7);
+    $expiry = config('spendifiai.sync.question_expiry_days', 7);
     AIQuestion::where('status', 'pending')
         ->where('created_at', '<', now()->subDays($expiry))
         ->update(['status' => 'expired']);

@@ -8,7 +8,7 @@ import {
   ResponsiveContainer,
 } from 'recharts';
 import { TrendingUp } from 'lucide-react';
-import type { SavingsHistoryEntry } from '@/types/spendwise';
+import type { SavingsHistoryEntry } from '@/types/spendifiai';
 
 interface SavingsTrackingChartProps {
   data: SavingsHistoryEntry[];

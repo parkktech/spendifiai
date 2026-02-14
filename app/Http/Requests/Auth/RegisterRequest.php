@@ -15,12 +15,12 @@ class RegisterRequest extends FormRequest
     public function rules(): array
     {
         $rules = [
-            'name'     => 'required|string|max:255',
-            'email'    => 'required|string|email|max:255|unique:users',
+            'name' => 'required|string|max:255',
+            'email' => 'required|string|email|max:255|unique:users',
             'password' => 'required|string|min:8|confirmed',
         ];
 
-        if (config('spendwise.captcha.enabled')) {
+        if (config('spendifiai.captcha.enabled')) {
             $rules['captcha_token'] = 'required|string';
         }
 
@@ -29,10 +29,10 @@ class RegisterRequest extends FormRequest
 
     public function withValidator($validator): void
     {
-        if (config('spendwise.captcha.enabled') && $this->captcha_token) {
+        if (config('spendifiai.captcha.enabled') && $this->captcha_token) {
             $validator->after(function ($validator) {
                 $captcha = app(CaptchaService::class);
-                if (!$captcha->verify($this->captcha_token, 'register', $this->ip())) {
+                if (! $captcha->verify($this->captcha_token, 'register', $this->ip())) {
                     $validator->errors()->add('captcha_token', 'CAPTCHA verification failed. Please try again.');
                 }
             });
@@ -43,7 +43,7 @@ class RegisterRequest extends FormRequest
     {
         return [
             'email.unique' => 'An account with this email already exists.',
-            'password.min'  => 'Password must be at least 8 characters.',
+            'password.min' => 'Password must be at least 8 characters.',
         ];
     }
 }

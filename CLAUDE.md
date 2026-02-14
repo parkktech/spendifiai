@@ -1,4 +1,4 @@
-# CLAUDE.md — LedgerIQ
+# CLAUDE.md — SpendifiAI
 
 > AI-powered personal finance platform with Plaid bank integration, bank statement uploads,
 > Claude AI categorization, subscription detection, savings recommendations, and tax export.
@@ -122,7 +122,7 @@
 | Features, HowItWorks, About, FAQ, Contact | /features etc. | Marketing pages |
 | Legal/* | /privacy, /terms, /data-retention, /security-policy | Legal pages (Plaid-required) |
 
-### Key Frontend Components — `resources/js/Components/SpendWise/`
+### Key Frontend Components — `resources/js/Components/SpendifiAI/`
 
 ActionResponsePanel, Badge, ConfirmDialog, ConnectionMethodChooser, FileDropZone,
 PlaidLinkButton, ProcessingStatus, ProjectedSavingsBanner, QuestionCard, SavingsTrackingChart,

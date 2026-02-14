@@ -19,7 +19,7 @@ export default function PrivacyPolicy() {
     return (
         <PublicLayout
             title="Privacy Policy"
-            description="LedgerIQ privacy policy. Learn how we collect, use, and protect your personal and financial data. Plaid integration disclosures, data retention, and your rights explained."
+            description="SpendifiAI privacy policy. Learn how we collect, use, and protect your personal and financial data. Plaid integration disclosures, data retention, and your rights explained."
             breadcrumbs={[{ name: 'Legal', url: '/privacy' }, { name: 'Privacy Policy', url: '/privacy' }]}
         >
             <div className="bg-gradient-to-b from-white to-sw-accent-light px-6 py-16">
@@ -50,10 +50,10 @@ export default function PrivacyPolicy() {
                         <section id="section-1">
                             <h2 className="text-2xl font-semibold text-sw-text">1. Introduction</h2>
                             <p className="mt-4 leading-relaxed text-sw-muted">
-                                LedgerIQ (&quot;we,&quot; &quot;us,&quot; or &quot;our&quot;) provides an AI-powered financial tracking platform that helps individuals and small businesses manage expenses, track subscriptions, find savings, and prepare tax reports. This Privacy Policy explains how we collect, use, store, and protect your personal information when you use our services.
+                                SpendifiAI (&quot;we,&quot; &quot;us,&quot; or &quot;our&quot;) provides an AI-powered financial tracking platform that helps individuals and small businesses manage expenses, track subscriptions, find savings, and prepare tax reports. This Privacy Policy explains how we collect, use, store, and protect your personal information when you use our services.
                             </p>
                             <p className="mt-3 leading-relaxed text-sw-muted">
-                                By using LedgerIQ, you consent to the data practices described in this policy. If you do not agree with this policy, please do not use our services.
+                                By using SpendifiAI, you consent to the data practices described in this policy. If you do not agree with this policy, please do not use our services.
                             </p>
                         </section>
 
@@ -76,7 +76,7 @@ export default function PrivacyPolicy() {
                                 <li>Account and routing numbers (used for identification purposes only)</li>
                             </ul>
                             <p className="mt-2 leading-relaxed text-sw-muted">
-                                Your bank login credentials are provided directly to Plaid and are never seen or stored by LedgerIQ.
+                                Your bank login credentials are provided directly to Plaid and are never seen or stored by SpendifiAI.
                             </p>
 
                             <h3 className="mt-6 text-lg font-medium text-sw-text-secondary">Financial Profile Information</h3>
@@ -93,7 +93,7 @@ export default function PrivacyPolicy() {
 
                             <h3 className="mt-6 text-lg font-medium text-sw-text-secondary">Usage Data</h3>
                             <ul className="mt-2 list-disc space-y-1 pl-6 text-sw-muted">
-                                <li>Pages visited and features used within LedgerIQ</li>
+                                <li>Pages visited and features used within SpendifiAI</li>
                                 <li>Device type and browser information</li>
                             </ul>
                         </section>
@@ -178,7 +178,7 @@ export default function PrivacyPolicy() {
                             <h2 className="text-2xl font-semibold text-sw-text">7. Your Rights</h2>
                             <p className="mt-4 leading-relaxed text-sw-muted">You have the right to:</p>
                             <ul className="mt-2 list-disc space-y-1 pl-6 text-sw-muted">
-                                <li><strong>Access</strong> your personal data stored in LedgerIQ</li>
+                                <li><strong>Access</strong> your personal data stored in SpendifiAI</li>
                                 <li><strong>Export</strong> your financial data via tax reports (Excel, PDF, CSV)</li>
                                 <li><strong>Request deletion</strong> of your account and all associated data</li>
                                 <li><strong>Disconnect</strong> bank accounts at any time, immediately revoking Plaid access</li>
@@ -186,7 +186,7 @@ export default function PrivacyPolicy() {
                                 <li><strong>Disable</strong> two-factor authentication</li>
                             </ul>
                             <p className="mt-3 leading-relaxed text-sw-muted">
-                                To exercise your deletion rights, visit Settings &gt; Delete Account, or email us at <span className="font-medium text-sw-accent">privacy@ledgeriq.com</span>.
+                                To exercise your deletion rights, visit Settings &gt; Delete Account, or email us at <span className="font-medium text-sw-accent">privacy@spendifiai.com</span>.
                             </p>
                         </section>
 
@@ -201,14 +201,14 @@ export default function PrivacyPolicy() {
                         <section id="section-9">
                             <h2 className="text-2xl font-semibold text-sw-text">9. Cookies</h2>
                             <p className="mt-4 leading-relaxed text-sw-muted">
-                                LedgerIQ uses <strong>essential cookies only</strong> for session management and CSRF protection. We do not use advertising cookies, tracking cookies, or third-party analytics cookies.
+                                SpendifiAI uses <strong>essential cookies only</strong> for session management and CSRF protection. We do not use advertising cookies, tracking cookies, or third-party analytics cookies.
                             </p>
                         </section>
 
                         <section id="section-10">
                             <h2 className="text-2xl font-semibold text-sw-text">10. Changes to This Policy</h2>
                             <p className="mt-4 leading-relaxed text-sw-muted">
-                                We may update this Privacy Policy from time to time. We will notify you of material changes via email or in-app notification. Your continued use of LedgerIQ after changes constitutes acceptance of the updated policy.
+                                We may update this Privacy Policy from time to time. We will notify you of material changes via email or in-app notification. Your continued use of SpendifiAI after changes constitutes acceptance of the updated policy.
                             </p>
                         </section>
 
@@ -217,7 +217,7 @@ export default function PrivacyPolicy() {
                             <p className="mt-4 leading-relaxed text-sw-muted">
                                 If you have questions about this Privacy Policy or our data practices, contact us at:
                             </p>
-                            <p className="mt-2 font-medium text-sw-accent">privacy@ledgeriq.com</p>
+                            <p className="mt-2 font-medium text-sw-accent">privacy@spendifiai.com</p>
                         </section>
 
                         {/* Navigation */}

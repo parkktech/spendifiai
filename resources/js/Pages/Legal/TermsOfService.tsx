@@ -21,7 +21,7 @@ export default function TermsOfService() {
     return (
         <PublicLayout
             title="Terms of Service"
-            description="LedgerIQ terms of service. Usage rules, disclaimers, intellectual property, account responsibilities, and service limitations for our AI expense tracking platform."
+            description="SpendifiAI terms of service. Usage rules, disclaimers, intellectual property, account responsibilities, and service limitations for our AI expense tracking platform."
             breadcrumbs={[{ name: 'Legal', url: '/terms' }, { name: 'Terms of Service', url: '/terms' }]}
         >
             <div className="bg-gradient-to-b from-white to-sw-accent-light px-6 py-16">
@@ -48,14 +48,14 @@ export default function TermsOfService() {
                         <section id="tos-1">
                             <h2 className="text-2xl font-semibold text-sw-text">1. Acceptance of Terms</h2>
                             <p className="mt-4 leading-relaxed text-sw-muted">
-                                By accessing or using LedgerIQ (&quot;the Service&quot;), you agree to be bound by these Terms of Service. If you do not agree to these terms, you may not use the Service. These terms constitute a legally binding agreement between you and LedgerIQ.
+                                By accessing or using SpendifiAI (&quot;the Service&quot;), you agree to be bound by these Terms of Service. If you do not agree to these terms, you may not use the Service. These terms constitute a legally binding agreement between you and SpendifiAI.
                             </p>
                         </section>
 
                         <section id="tos-2">
                             <h2 className="text-2xl font-semibold text-sw-text">2. Description of Service</h2>
                             <p className="mt-4 leading-relaxed text-sw-muted">
-                                LedgerIQ is a free AI-powered expense tracking platform that provides:
+                                SpendifiAI is a free AI-powered expense tracking platform that provides:
                             </p>
                             <ul className="mt-2 list-disc space-y-1 pl-6 text-sw-muted">
                                 <li>Bank account integration via Plaid for automatic transaction import</li>
@@ -72,7 +72,7 @@ export default function TermsOfService() {
 
                         <section id="tos-3">
                             <h2 className="text-2xl font-semibold text-sw-text">3. Account Registration</h2>
-                            <p className="mt-4 leading-relaxed text-sw-muted">To use LedgerIQ, you must:</p>
+                            <p className="mt-4 leading-relaxed text-sw-muted">To use SpendifiAI, you must:</p>
                             <ul className="mt-2 list-disc space-y-1 pl-6 text-sw-muted">
                                 <li>Be at least 18 years of age</li>
                                 <li>Provide accurate and complete registration information</li>
@@ -80,7 +80,7 @@ export default function TermsOfService() {
                                 <li>Notify us immediately of any unauthorized use of your account</li>
                             </ul>
                             <p className="mt-3 leading-relaxed text-sw-muted">
-                                You are responsible for all activity that occurs under your account. LedgerIQ is not liable for any loss or damage arising from unauthorized access to your account.
+                                You are responsible for all activity that occurs under your account. SpendifiAI is not liable for any loss or damage arising from unauthorized access to your account.
                             </p>
                         </section>
 
@@ -100,7 +100,7 @@ export default function TermsOfService() {
                         <section id="tos-5">
                             <h2 className="text-2xl font-semibold text-sw-text">5. Third-Party Services</h2>
                             <p className="mt-4 leading-relaxed text-sw-muted">
-                                LedgerIQ integrates with third-party services including:
+                                SpendifiAI integrates with third-party services including:
                             </p>
                             <ul className="mt-2 list-disc space-y-1 pl-6 text-sw-muted">
                                 <li><strong>Plaid Inc.</strong> — for bank account connections and financial data retrieval. Your use of Plaid is subject to <a href="https://plaid.com/legal/" target="_blank" rel="noopener noreferrer" className="text-sw-accent hover:underline">Plaid&apos;s Terms</a>.</li>
@@ -108,14 +108,14 @@ export default function TermsOfService() {
                                 <li><strong>Google</strong> — for OAuth authentication and optional Gmail integration</li>
                             </ul>
                             <p className="mt-3 leading-relaxed text-sw-muted">
-                                We are not responsible for the availability, accuracy, or practices of third-party services. Service interruptions from third-party providers may affect LedgerIQ functionality.
+                                We are not responsible for the availability, accuracy, or practices of third-party services. Service interruptions from third-party providers may affect SpendifiAI functionality.
                             </p>
                         </section>
 
                         <section id="tos-6">
                             <h2 className="text-2xl font-semibold text-sw-text">6. Intellectual Property</h2>
                             <p className="mt-4 leading-relaxed text-sw-muted">
-                                LedgerIQ and its original content, features, and functionality are owned by LedgerIQ and are protected by copyright, trademark, and other intellectual property laws. You retain ownership of your personal financial data. By using the Service, you grant us a limited license to process your data as necessary to provide the Service.
+                                SpendifiAI and its original content, features, and functionality are owned by SpendifiAI and are protected by copyright, trademark, and other intellectual property laws. You retain ownership of your personal financial data. By using the Service, you grant us a limited license to process your data as necessary to provide the Service.
                             </p>
                         </section>
 
@@ -129,17 +129,17 @@ export default function TermsOfService() {
                         <section id="tos-8">
                             <h2 className="text-2xl font-semibold text-sw-text">8. Disclaimer of Warranties</h2>
                             <p className="mt-4 leading-relaxed text-sw-muted">
-                                THE SERVICE IS PROVIDED &quot;AS IS&quot; AND &quot;AS AVAILABLE&quot; WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED. LedgerIQ does not warrant that the Service will be uninterrupted, error-free, or secure.
+                                THE SERVICE IS PROVIDED &quot;AS IS&quot; AND &quot;AS AVAILABLE&quot; WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED. SpendifiAI does not warrant that the Service will be uninterrupted, error-free, or secure.
                             </p>
                             <p className="mt-3 rounded-xl border border-sw-warning/30 bg-sw-warning-light p-4 leading-relaxed text-sw-warning">
-                                <strong>Important:</strong> LedgerIQ is not a licensed financial advisor, accountant, or tax professional. The Service provides tools for expense tracking and categorization only. AI-generated categories and recommendations should not be considered financial or tax advice. Always consult a qualified professional for financial, tax, or investment decisions.
+                                <strong>Important:</strong> SpendifiAI is not a licensed financial advisor, accountant, or tax professional. The Service provides tools for expense tracking and categorization only. AI-generated categories and recommendations should not be considered financial or tax advice. Always consult a qualified professional for financial, tax, or investment decisions.
                             </p>
                         </section>
 
                         <section id="tos-9">
                             <h2 className="text-2xl font-semibold text-sw-text">9. Limitation of Liability</h2>
                             <p className="mt-4 leading-relaxed text-sw-muted">
-                                To the maximum extent permitted by law, LedgerIQ shall not be liable for any indirect, incidental, special, consequential, or punitive damages, including but not limited to:
+                                To the maximum extent permitted by law, SpendifiAI shall not be liable for any indirect, incidental, special, consequential, or punitive damages, including but not limited to:
                             </p>
                             <ul className="mt-2 list-disc space-y-1 pl-6 text-sw-muted">
                                 <li>Financial losses resulting from reliance on AI categorization or recommendations</li>
@@ -176,7 +176,7 @@ export default function TermsOfService() {
                             <p className="mt-4 leading-relaxed text-sw-muted">
                                 For questions about these Terms, contact us at:
                             </p>
-                            <p className="mt-2 font-medium text-sw-accent">legal@ledgeriq.com</p>
+                            <p className="mt-2 font-medium text-sw-accent">legal@spendifiai.com</p>
                         </section>
 
                         <nav className="flex flex-wrap items-center gap-3 border-t border-sw-border pt-8 text-sm">

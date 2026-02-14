@@ -61,15 +61,15 @@
             <h3>📎 Attached Files</h3>
             <div class="file-item">
                 <span class="file-icon" style="background: #1565c0;">XLS</span>
-                <span><strong>LedgerIQ_Tax_{{ $year }}.xlsx</strong> — Full workbook with 5 tabs: Summary, Schedule C Mapping, Categories, Transaction Detail, Subscriptions</span>
+                <span><strong>SpendifiAI_Tax_{{ $year }}.xlsx</strong> — Full workbook with 5 tabs: Summary, Schedule C Mapping, Categories, Transaction Detail, Subscriptions</span>
             </div>
             <div class="file-item">
                 <span class="file-icon" style="background: #c62828;">PDF</span>
-                <span><strong>LedgerIQ_Tax_Summary_{{ $year }}.pdf</strong> — Printable cover sheet with Schedule C mapping and category totals</span>
+                <span><strong>SpendifiAI_Tax_Summary_{{ $year }}.pdf</strong> — Printable cover sheet with Schedule C mapping and category totals</span>
             </div>
             <div class="file-item">
                 <span class="file-icon" style="background: #2e7d32;">CSV</span>
-                <span><strong>LedgerIQ_Transactions_{{ $year }}.csv</strong> — Raw transaction data for import into tax software</span>
+                <span><strong>SpendifiAI_Transactions_{{ $year }}.csv</strong> — Raw transaction data for import into tax software</span>
             </div>
         </div>
 

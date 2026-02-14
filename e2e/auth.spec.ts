@@ -31,7 +31,7 @@ test.describe('Authentication', () => {
     test('user can login and logout', async ({ page }) => {
         // Login with pre-created demo user (email already verified)
         await page.goto('/login');
-        await page.fill('[name="email"]', 'demo@ledgeriq.loc');
+        await page.fill('[name="email"]', 'demo@spendifiai.loc');
         await page.fill('[name="password"]', 'Demo1234!');
         await page.getByRole('button', { name: /log in/i }).click();
         await page.waitForURL('**/dashboard', { timeout: 15000 });

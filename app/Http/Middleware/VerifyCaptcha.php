@@ -13,13 +13,13 @@ class VerifyCaptcha
 
     public function handle(Request $request, Closure $next, ?string $action = null): Response
     {
-        if (!config('spendwise.captcha.enabled')) {
+        if (! config('spendifiai.captcha.enabled')) {
             return $next($request);
         }
 
         $token = $request->input('captcha_token');
 
-        if (!$token || !$this->captcha->verify($token, $action, $request->ip())) {
+        if (! $token || ! $this->captcha->verify($token, $action, $request->ip())) {
             return response()->json([
                 'message' => 'CAPTCHA verification failed. Please try again.',
             ], 422);

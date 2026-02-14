@@ -8,23 +8,23 @@
             ],
             'Features' => [
                 'title' => 'AI Expense Tracking Features - Bank Sync & Tax Export',
-                'description' => 'LedgerIQ features: AI categorization, Plaid bank sync, subscription detection, savings tips, Schedule C tax export, and receipt parsing. All free.',
+                'description' => 'SpendifiAI features: AI categorization, Plaid bank sync, subscription detection, savings tips, Schedule C tax export, and receipt parsing. All free.',
             ],
             'HowItWorks' => [
                 'title' => 'How It Works - Set Up AI Expense Tracking in 5 Minutes',
                 'description' => 'Get started in under 5 minutes. Connect your bank via Plaid or upload statements and let AI categorize your transactions automatically.',
             ],
             'About' => [
-                'title' => 'About LedgerIQ - AI-Powered Personal Finance for Everyone',
+                'title' => 'About SpendifiAI - AI-Powered Personal Finance for Everyone',
                 'description' => 'Free AI-powered personal finance for freelancers and small businesses. Automatic expense tracking, tax deductions, and savings insights.',
             ],
             'FAQ' => [
                 'title' => 'FAQ - AI Expense Tracking Questions Answered',
-                'description' => 'Common questions about LedgerIQ: security, AI accuracy, bank connections, tax exports, Plaid integration, and subscription detection.',
+                'description' => 'Common questions about SpendifiAI: security, AI accuracy, bank connections, tax exports, Plaid integration, and subscription detection.',
             ],
             'Contact' => [
-                'title' => 'Contact Us - LedgerIQ Support',
-                'description' => 'Contact LedgerIQ at support@ledgeriq.com. Questions about AI expense tracking, bank connections, or tax exports? We are here to help.',
+                'title' => 'Contact Us - SpendifiAI Support',
+                'description' => 'Contact SpendifiAI at support@spendifiai.com. Questions about AI expense tracking, bank connections, or tax exports? We are here to help.',
             ],
             'Legal/PrivacyPolicy' => [
                 'title' => 'Privacy Policy',
@@ -32,7 +32,7 @@
             ],
             'Legal/TermsOfService' => [
                 'title' => 'Terms of Service',
-                'description' => 'Usage rules, disclaimers, intellectual property, account responsibilities, and service limitations for LedgerIQ AI expense tracking.',
+                'description' => 'Usage rules, disclaimers, intellectual property, account responsibilities, and service limitations for SpendifiAI AI expense tracking.',
             ],
             'Legal/DataRetention' => [
                 'title' => 'Data Retention Policy',
@@ -45,10 +45,10 @@
         ];
         $component = $page['component'] ?? '';
         $seo = $seoMap[$component] ?? null;
-        $seoTitle = $seo ? $seo['title'] . (str_contains($seo['title'], 'LedgerIQ') ? '' : ' - LedgerIQ') : config('app.name', 'LedgerIQ');
+        $seoTitle = $seo ? $seo['title'] . (str_contains($seo['title'], 'SpendifiAI') ? '' : ' - SpendifiAI') : config('app.name', 'SpendifiAI');
         $seoDescription = $seo['description'] ?? '';
-        $seoCanonical = 'https://ledgeriq.com' . rtrim($page['url'] ?? '/', '?');
-        $seoOgImage = 'https://ledgeriq.com/images/ledgeriq-og.png';
+        $seoCanonical = 'https://spendifiai.com' . rtrim($page['url'] ?? '/', '?');
+        $seoOgImage = 'https://spendifiai.com/images/spendifiai-og.png';
     @endphp
     <head>
         <meta charset="utf-8">
@@ -63,22 +63,22 @@
             {{-- Open Graph --}}
             <meta property="og:type" content="website">
             <meta property="og:locale" content="en_US">
-            <meta property="og:site_name" content="LedgerIQ">
+            <meta property="og:site_name" content="SpendifiAI">
             <meta property="og:title" content="{{ $seoTitle }}">
             <meta property="og:description" content="{{ $seoDescription }}">
             <meta property="og:url" content="{{ $seoCanonical }}">
             <meta property="og:image" content="{{ $seoOgImage }}">
             <meta property="og:image:width" content="1200">
             <meta property="og:image:height" content="630">
-            <meta property="og:image:alt" content="{{ $seo['title'] }} - LedgerIQ AI Expense Tracking">
+            <meta property="og:image:alt" content="{{ $seo['title'] }} - SpendifiAI AI Expense Tracking">
 
             {{-- Twitter Card --}}
             <meta name="twitter:card" content="summary_large_image">
-            <meta name="twitter:site" content="@ledgeriq">
+            <meta name="twitter:site" content="@spendifiai">
             <meta name="twitter:title" content="{{ $seoTitle }}">
             <meta name="twitter:description" content="{{ $seoDescription }}">
             <meta name="twitter:image" content="{{ $seoOgImage }}">
-            <meta name="twitter:image:alt" content="{{ $seo['title'] }} - LedgerIQ AI Expense Tracking">
+            <meta name="twitter:image:alt" content="{{ $seo['title'] }} - SpendifiAI AI Expense Tracking">
         @endif
 
         @if($seo)
@@ -87,26 +87,26 @@
             {
                 "@@context": "https://schema.org",
                 "@@type": "Organization",
-                "@@id": "https://ledgeriq.com/#organization",
-                "name": "LedgerIQ",
-                "url": "https://ledgeriq.com",
+                "@@id": "https://spendifiai.com/#organization",
+                "name": "SpendifiAI",
+                "url": "https://spendifiai.com",
                 "logo": {
                     "@@type": "ImageObject",
-                    "url": "https://ledgeriq.com/images/ledgeriq-icon.png",
+                    "url": "https://spendifiai.com/images/spendifiai-icon.png",
                     "width": 512,
                     "height": 512
                 },
-                "email": "support@ledgeriq.com",
+                "email": "support@spendifiai.com",
                 "description": "AI-powered expense tracking that automatically categorizes transactions, detects unused subscriptions, finds savings, and prepares tax deductions. 100% free.",
                 "contactPoint": {
                     "@@type": "ContactPoint",
                     "contactType": "customer support",
-                    "email": "support@ledgeriq.com",
-                    "url": "https://ledgeriq.com/contact"
+                    "email": "support@spendifiai.com",
+                    "url": "https://spendifiai.com/contact"
                 },
                 "sameAs": [
-                    "https://ledgeriq.com/about",
-                    "https://ledgeriq.com/blog"
+                    "https://spendifiai.com/about",
+                    "https://spendifiai.com/blog"
                 ]
             }
             </script>
@@ -115,13 +115,13 @@
             {
                 "@@context": "https://schema.org",
                 "@@type": "WebSite",
-                "@@id": "https://ledgeriq.com/#website",
-                "name": "LedgerIQ",
-                "url": "https://ledgeriq.com",
-                "publisher": { "@@id": "https://ledgeriq.com/#organization" },
+                "@@id": "https://spendifiai.com/#website",
+                "name": "SpendifiAI",
+                "url": "https://spendifiai.com",
+                "publisher": { "@@id": "https://spendifiai.com/#organization" },
                 "potentialAction": {
                     "@@type": "SearchAction",
-                    "target": "https://ledgeriq.com/blog?q={search_term_string}",
+                    "target": "https://spendifiai.com/blog?q={search_term_string}",
                     "query-input": "required name=search_term_string"
                 }
             }
@@ -132,9 +132,9 @@
                 {
                     "@@context": "https://schema.org",
                     "@@type": "SoftwareApplication",
-                    "@@id": "https://ledgeriq.com/#software",
-                    "name": "LedgerIQ",
-                    "url": "https://ledgeriq.com",
+                    "@@id": "https://spendifiai.com/#software",
+                    "name": "SpendifiAI",
+                    "url": "https://spendifiai.com",
                     "applicationCategory": "FinanceApplication",
                     "operatingSystem": "Web browser",
                     "description": "Free AI-powered expense tracker with automatic transaction categorization, subscription detection, savings recommendations, and IRS Schedule C tax export.",
@@ -144,7 +144,7 @@
                         "priceCurrency": "USD",
                         "availability": "https://schema.org/InStock",
                         "priceValidUntil": "2027-12-31",
-                        "url": "https://ledgeriq.com/register",
+                        "url": "https://spendifiai.com/register",
                         "description": "100% free — no premium tiers, no trial periods, no credit card required"
                     },
                     "aggregateRating": {
@@ -168,14 +168,14 @@
                             "author": { "@@type": "Person", "name": "James K." },
                             "datePublished": "2025-12-03",
                             "reviewRating": { "@@type": "Rating", "ratingValue": "5", "bestRating": "5" },
-                            "reviewBody": "Switched from YNAB to LedgerIQ and saved $99/year. The AI subscription detection found $340 in charges I forgot about."
+                            "reviewBody": "Switched from YNAB to SpendifiAI and saved $99/year. The AI subscription detection found $340 in charges I forgot about."
                         },
                         {
                             "@@type": "Review",
                             "author": { "@@type": "Person", "name": "Maria L." },
                             "datePublished": "2026-01-10",
                             "reviewRating": { "@@type": "Rating", "ratingValue": "5", "bestRating": "5" },
-                            "reviewBody": "As a gig worker, tracking deductions was a nightmare. LedgerIQ maps everything to Schedule C automatically. My accountant loves it."
+                            "reviewBody": "As a gig worker, tracking deductions was a nightmare. SpendifiAI maps everything to Schedule C automatically. My accountant loves it."
                         }
                     ],
                     "featureList": [
@@ -188,7 +188,7 @@
                         "Email receipt matching",
                         "Two-factor authentication"
                     ],
-                    "provider": { "@@id": "https://ledgeriq.com/#organization" }
+                    "provider": { "@@id": "https://spendifiai.com/#organization" }
                 }
                 </script>
             @endif
@@ -198,7 +198,7 @@
                 {
                     "@@context": "https://schema.org",
                     "@@type": "ItemList",
-                    "name": "LedgerIQ Features",
+                    "name": "SpendifiAI Features",
                     "description": "Complete list of AI expense tracking features available for free",
                     "numberOfItems": 9,
                     "itemListElement": [
@@ -224,12 +224,12 @@
                     "mainEntity": [
                         {
                             "@@type": "Question",
-                            "name": "What is LedgerIQ?",
-                            "acceptedAnswer": { "@@type": "Answer", "text": "LedgerIQ is an AI-powered expense tracking platform that automatically categorizes transactions, detects unused subscriptions, provides savings recommendations, and generates tax-ready reports." }
+                            "name": "What is SpendifiAI?",
+                            "acceptedAnswer": { "@@type": "Answer", "text": "SpendifiAI is an AI-powered expense tracking platform that automatically categorizes transactions, detects unused subscriptions, provides savings recommendations, and generates tax-ready reports." }
                         },
                         {
                             "@@type": "Question",
-                            "name": "Is LedgerIQ really free?",
+                            "name": "Is SpendifiAI really free?",
                             "acceptedAnswer": { "@@type": "Answer", "text": "Yes, 100% free. No premium tiers, no trial periods, no hidden fees, and no credit card required." }
                         },
                         {
@@ -239,7 +239,7 @@
                         },
                         {
                             "@@type": "Question",
-                            "name": "Does LedgerIQ store my bank credentials?",
+                            "name": "Does SpendifiAI store my bank credentials?",
                             "acceptedAnswer": { "@@type": "Answer", "text": "No. Bank connections are handled by Plaid, a SOC 2 Type II certified platform. Your bank credentials never touch our servers." }
                         },
                         {
@@ -255,7 +255,7 @@
                         {
                             "@@type": "Question",
                             "name": "What tax export formats are available?",
-                            "acceptedAnswer": { "@@type": "Answer", "text": "LedgerIQ generates Excel workbooks, PDF cover sheets, and CSV files. All expenses are mapped to IRS Schedule C categories." }
+                            "acceptedAnswer": { "@@type": "Answer", "text": "SpendifiAI generates Excel workbooks, PDF cover sheets, and CSV files. All expenses are mapped to IRS Schedule C categories." }
                         },
                         {
                             "@@type": "Question",
@@ -298,8 +298,8 @@
                     "@@context": "https://schema.org",
                     "@@type": "BreadcrumbList",
                     "itemListElement": [
-                        { "@@type": "ListItem", "position": 1, "name": "Home", "item": "https://ledgeriq.com" }@foreach($crumbs as $i => $crumb),
-                        { "@@type": "ListItem", "position": {{ $i + 2 }}, "name": "{{ $crumb['name'] }}", "item": "https://ledgeriq.com{{ $crumb['url'] }}" }@endforeach
+                        { "@@type": "ListItem", "position": 1, "name": "Home", "item": "https://spendifiai.com" }@foreach($crumbs as $i => $crumb),
+                        { "@@type": "ListItem", "position": {{ $i + 2 }}, "name": "{{ $crumb['name'] }}", "item": "https://spendifiai.com{{ $crumb['url'] }}" }@endforeach
 
                     ]
                 }
@@ -311,8 +311,8 @@
                 {
                     "@@context": "https://schema.org",
                     "@@type": "HowTo",
-                    "name": "How to Set Up AI Expense Tracking with LedgerIQ",
-                    "description": "Get started with LedgerIQ in under 5 minutes. Connect your bank or upload statements and let AI categorize your transactions automatically.",
+                    "name": "How to Set Up AI Expense Tracking with SpendifiAI",
+                    "description": "Get started with SpendifiAI in under 5 minutes. Connect your bank or upload statements and let AI categorize your transactions automatically.",
                     "totalTime": "PT5M",
                     "step": [
                         {
@@ -350,7 +350,7 @@
 
         <!-- Favicon -->
         <link rel="icon" type="image/png" href="/favicon.png">
-        <link rel="apple-touch-icon" href="/images/ledgeriq-icon.png">
+        <link rel="apple-touch-icon" href="/images/spendifiai-icon.png">
         <meta name="theme-color" content="#2563eb">
 
         <!-- Fonts -->

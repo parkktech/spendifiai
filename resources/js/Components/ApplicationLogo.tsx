@@ -1,9 +1,9 @@
 import { HTMLAttributes } from 'react';
 
 /**
- * LedgerIQ logo — ascending bar chart on a curved ledger base
+ * SpendifiAI logo — ascending bar chart on a curved ledger base
  * with an AI sparkle on the tallest bar.
- * Design inspired by graphics/ledgeriq-icon.png, adapted to blue accent palette.
+ * Design inspired by graphics/spendifiai-icon.png, adapted to blue accent palette.
  */
 
 interface LogoIconProps {
@@ -75,7 +75,7 @@ export default function ApplicationLogo({
             {showText && (
                 <div>
                     <span className="text-xl font-bold tracking-tight text-sw-text">
-                        Ledger<span className="text-sw-accent">IQ</span>
+                        Spendifi<span className="text-sw-accent">AI</span>
                     </span>
                     {showTagline && (
                         <div className="text-[10px] text-sw-dim font-medium tracking-wide">

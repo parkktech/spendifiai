@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Sparkles, Check, Loader2, Send, MessageCircle, ArrowRight } from 'lucide-react';
 import Badge from './Badge';
-import type { AIQuestion } from '@/types/spendwise';
+import type { AIQuestion } from '@/types/spendifiai';
 import axios from 'axios';
 
 interface QuestionCardProps {

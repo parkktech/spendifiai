@@ -20,15 +20,15 @@ import {
   Upload,
   FileText,
 } from 'lucide-react';
-import PlaidLinkButton from '@/Components/SpendWise/PlaidLinkButton';
-import Badge from '@/Components/SpendWise/Badge';
-import ConfirmDialog from '@/Components/SpendWise/ConfirmDialog';
-import StatCard from '@/Components/SpendWise/StatCard';
-import ConnectionMethodChooser from '@/Components/SpendWise/ConnectionMethodChooser';
-import StatementUploadWizard from '@/Components/SpendWise/StatementUploadWizard';
-import UploadHistory from '@/Components/SpendWise/UploadHistory';
+import PlaidLinkButton from '@/Components/SpendifiAI/PlaidLinkButton';
+import Badge from '@/Components/SpendifiAI/Badge';
+import ConfirmDialog from '@/Components/SpendifiAI/ConfirmDialog';
+import StatCard from '@/Components/SpendifiAI/StatCard';
+import ConnectionMethodChooser from '@/Components/SpendifiAI/ConnectionMethodChooser';
+import StatementUploadWizard from '@/Components/SpendifiAI/StatementUploadWizard';
+import UploadHistory from '@/Components/SpendifiAI/UploadHistory';
 import { useApi, useApiPost } from '@/hooks/useApi';
-import type { BankAccount, StatementUploadHistory } from '@/types/spendwise';
+import type { BankAccount, StatementUploadHistory } from '@/types/spendifiai';
 import { usePage } from '@inertiajs/react';
 
 interface EmailConnection {
@@ -60,7 +60,7 @@ const PROVIDER_INSTRUCTIONS: Record<string, { title: string; passwordLabel: stri
       { text: 'Sign in to your Google Account security settings', link: 'https://myaccount.google.com/security' },
       { text: 'Under "How you sign in to Google", make sure 2-Step Verification is turned ON', link: 'https://myaccount.google.com/signinoptions/two-step-verification' },
       { text: 'Go to App Passwords (search "App Passwords" in your Google Account if the link below doesn\'t work)', link: 'https://myaccount.google.com/apppasswords' },
-      { text: 'Enter "LedgerIQ" as the app name, then click Create' },
+      { text: 'Enter "SpendifiAI" as the app name, then click Create' },
       { text: 'Copy the 16-character password shown and paste it below — this is your App Password' },
     ],
     note: 'Your regular Gmail password will NOT work. You must use an App Password. This requires 2-Step Verification to be enabled first.',
@@ -86,7 +86,7 @@ const PROVIDER_INSTRUCTIONS: Record<string, { title: string; passwordLabel: stri
       { text: 'Sign in to your Yahoo Account security page', link: 'https://login.yahoo.com/account/security' },
       { text: 'Turn on two-step verification if not already enabled' },
       { text: 'Scroll down and click "Generate app password"' },
-      { text: 'Select "Other App", name it "LedgerIQ", and click Generate' },
+      { text: 'Select "Other App", name it "SpendifiAI", and click Generate' },
       { text: 'Copy the generated password and paste it below' },
     ],
     note: 'Your regular Yahoo password will NOT work. You must generate an App Password.',
@@ -99,7 +99,7 @@ const PROVIDER_INSTRUCTIONS: Record<string, { title: string; passwordLabel: stri
       { text: 'Sign in at appleid.apple.com', link: 'https://appleid.apple.com/account/manage' },
       { text: 'Go to Sign-In and Security → App-Specific Passwords' },
       { text: 'Click the "+" to generate a new app-specific password' },
-      { text: 'Name it "LedgerIQ" and click Create' },
+      { text: 'Name it "SpendifiAI" and click Create' },
       { text: 'Copy the generated password and paste it below' },
     ],
     note: 'You must have two-factor authentication enabled on your Apple ID. Your regular iCloud password will NOT work.',
@@ -122,7 +122,7 @@ const PROVIDER_INSTRUCTIONS: Record<string, { title: string; passwordLabel: stri
     steps: [
       { text: 'Sign in to Fastmail and go to Settings → Privacy & Security → Integrations', link: 'https://app.fastmail.com/settings/security/integrations' },
       { text: 'Click "New app password"' },
-      { text: 'Name it "LedgerIQ", select IMAP access, and click Generate' },
+      { text: 'Name it "SpendifiAI", select IMAP access, and click Generate' },
       { text: 'Copy the password and paste it below' },
     ],
   },

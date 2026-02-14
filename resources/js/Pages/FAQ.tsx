@@ -10,20 +10,20 @@ const faqGroups = [
         title: 'General',
         items: [
             {
-                question: 'What is LedgerIQ?',
-                answer: 'LedgerIQ is an AI-powered expense tracking platform that automatically categorizes your transactions, detects unused subscriptions, provides personalized savings recommendations, and generates tax-ready reports. It connects to your bank accounts through Plaid and uses Claude AI for intelligent categorization.',
+                question: 'What is SpendifiAI?',
+                answer: 'SpendifiAI is an AI-powered expense tracking platform that automatically categorizes your transactions, detects unused subscriptions, provides personalized savings recommendations, and generates tax-ready reports. It connects to your bank accounts through Plaid and uses Claude AI for intelligent categorization.',
             },
             {
-                question: 'Is LedgerIQ really free?',
+                question: 'Is SpendifiAI really free?',
                 answer: 'Yes, 100% free. There are no premium tiers, no trial periods, no hidden fees, and no credit card required. We believe smart financial tools should be accessible to everyone.',
             },
             {
-                question: 'Who is LedgerIQ for?',
-                answer: 'LedgerIQ is designed for individuals, freelancers, and small business owners who want to track expenses, find savings, and prepare for tax season. It\'s especially useful if you need to separate business and personal expenses.',
+                question: 'Who is SpendifiAI for?',
+                answer: 'SpendifiAI is designed for individuals, freelancers, and small business owners who want to track expenses, find savings, and prepare for tax season. It\'s especially useful if you need to separate business and personal expenses.',
             },
             {
-                question: 'How does LedgerIQ make money?',
-                answer: 'LedgerIQ is currently offered as a free service. We may introduce optional premium features in the future, but the core functionality will always remain free.',
+                question: 'How does SpendifiAI make money?',
+                answer: 'SpendifiAI is currently offered as a free service. We may introduce optional premium features in the future, but the core functionality will always remain free.',
             },
         ],
     },
@@ -35,12 +35,12 @@ const faqGroups = [
                 answer: 'All sensitive data is encrypted at rest using AES-256-CBC encryption. Passwords are hashed with bcrypt. All connections use HTTPS with TLS 1.2+. We also offer optional two-factor authentication for additional account security.',
             },
             {
-                question: 'Does LedgerIQ store my bank credentials?',
-                answer: 'No. Bank connections are handled entirely by Plaid, a SOC 2 Type II certified financial data platform. Your bank username and password go directly to Plaid — LedgerIQ never sees or stores them.',
+                question: 'Does SpendifiAI store my bank credentials?',
+                answer: 'No. Bank connections are handled entirely by Plaid, a SOC 2 Type II certified financial data platform. Your bank username and password go directly to Plaid — SpendifiAI never sees or stores them.',
             },
             {
                 question: 'What is Plaid?',
-                answer: 'Plaid is a financial technology company that provides the secure connection between LedgerIQ and your bank. It\'s the same service trusted by Venmo, Robinhood, Coinbase, and thousands of other financial apps. Plaid is SOC 2 Type II certified.',
+                answer: 'Plaid is a financial technology company that provides the secure connection between SpendifiAI and your bank. It\'s the same service trusted by Venmo, Robinhood, Coinbase, and thousands of other financial apps. Plaid is SOC 2 Type II certified.',
             },
             {
                 question: 'Can I delete my data?',
@@ -61,7 +61,7 @@ const faqGroups = [
             },
             {
                 question: 'What tax export formats are available?',
-                answer: 'LedgerIQ generates a comprehensive tax package including an Excel workbook (5 tabs), a PDF cover sheet, and a CSV file. All expenses are mapped to IRS Schedule C categories. You can download the package or email it directly to your accountant.',
+                answer: 'SpendifiAI generates a comprehensive tax package including an Excel workbook (5 tabs), a PDF cover sheet, and a CSV file. All expenses are mapped to IRS Schedule C categories. You can download the package or email it directly to your accountant.',
             },
             {
                 question: 'How does subscription detection work?',
@@ -110,7 +110,7 @@ const faqSchema = {
 const softwareSchema = {
     '@context': 'https://schema.org',
     '@type': 'SoftwareApplication',
-    name: 'LedgerIQ',
+    name: 'SpendifiAI',
     applicationCategory: 'FinanceApplication',
     operatingSystem: 'Web browser',
     offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
@@ -131,14 +131,14 @@ export default function FAQ() {
     return (
         <PublicLayout
             title="FAQ - AI Expense Tracking Questions Answered"
-            description="Answers to common questions about LedgerIQ: security, AI categorization accuracy, bank connections, tax exports, Plaid integration, subscription detection, and account management."
+            description="Answers to common questions about SpendifiAI: security, AI categorization accuracy, bank connections, tax exports, Plaid integration, subscription detection, and account management."
             breadcrumbs={[{ name: 'FAQ', url: '/faq' }]}
         >
             <JsonLd data={faqSchema} />
             <JsonLd data={softwareSchema} />
             <HeroSection
                 title="Frequently Asked Questions"
-                subtitle="Find answers to common questions about LedgerIQ, security, features, and your account."
+                subtitle="Find answers to common questions about SpendifiAI, security, features, and your account."
             />
 
             <section className="px-6 py-20">

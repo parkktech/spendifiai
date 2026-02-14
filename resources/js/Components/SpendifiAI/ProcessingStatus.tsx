@@ -1,5 +1,5 @@
 import { Loader2, FileSearch, Sparkles, CheckCircle2, AlertTriangle } from 'lucide-react';
-import type { StatementProcessingStatus } from '@/types/spendwise';
+import type { StatementProcessingStatus } from '@/types/spendifiai';
 
 interface ProcessingStatusProps {
   status: StatementProcessingStatus;

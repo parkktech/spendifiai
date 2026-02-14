@@ -148,14 +148,14 @@ export default function Features() {
     return (
         <PublicLayout
             title="AI Expense Tracking Features - Bank Sync & Tax Export"
-            description="LedgerIQ features: AI categorization, Plaid bank sync, subscription detection, savings tips, Schedule C tax export, and receipt parsing. All free."
+            description="SpendifiAI features: AI categorization, Plaid bank sync, subscription detection, savings tips, Schedule C tax export, and receipt parsing. All free."
             breadcrumbs={[{ name: 'Features', url: '/features' }]}
         >
             <JsonLd
                 data={{
                     '@context': 'https://schema.org',
                     '@type': 'ItemList',
-                    name: 'LedgerIQ Features',
+                    name: 'SpendifiAI Features',
                     description: 'Complete list of AI expense tracking features available for free',
                     numberOfItems: 9,
                     itemListElement: [

@@ -20,8 +20,8 @@ class PasswordResetController extends Controller
     public function sendResetLink(Request $request): JsonResponse
     {
         $request->validate([
-            'email'            => 'required|email',
-            'captcha_token'    => config('spendwise.captcha.enabled') ? 'required|string' : 'nullable',
+            'email' => 'required|email',
+            'captcha_token' => config('spendifiai.captcha.enabled') ? 'required|string' : 'nullable',
         ]);
 
         $status = Password::sendResetLink($request->only('email'));
@@ -40,19 +40,19 @@ class PasswordResetController extends Controller
     public function resetPassword(Request $request): JsonResponse
     {
         $request->validate([
-            'token'                 => 'required|string',
-            'email'                 => 'required|email',
-            'password'              => 'required|string|min:8|confirmed',
+            'token' => 'required|string',
+            'email' => 'required|email',
+            'password' => 'required|string|min:8|confirmed',
         ]);
 
         $status = Password::reset(
             $request->only('email', 'password', 'password_confirmation', 'token'),
             function ($user, $password) {
                 $user->forceFill([
-                    'password'       => Hash::make($password),
+                    'password' => Hash::make($password),
                     'remember_token' => Str::random(60),
                     'failed_login_attempts' => 0,
-                    'locked_until'          => null,
+                    'locked_until' => null,
                 ])->save();
 
                 // Revoke all existing tokens on password reset
@@ -82,7 +82,7 @@ class PasswordResetController extends Controller
     {
         $request->validate([
             'current_password' => 'required|current_password',
-            'password'         => 'required|string|min:8|confirmed|different:current_password',
+            'password' => 'required|string|min:8|confirmed|different:current_password',
         ]);
 
         $request->user()->update([

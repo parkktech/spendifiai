@@ -20,12 +20,12 @@ class LoginRequest extends FormRequest
     public function rules(): array
     {
         $rules = [
-            'email'           => 'required|string|email',
-            'password'        => 'required|string',
+            'email' => 'required|string|email',
+            'password' => 'required|string',
             'two_factor_code' => 'nullable|string',
         ];
 
-        if (config('spendwise.captcha.enabled')) {
+        if (config('spendifiai.captcha.enabled')) {
             $rules['captcha_token'] = 'required|string';
         }
 
@@ -72,10 +72,10 @@ class LoginRequest extends FormRequest
 
     public function withValidator($validator): void
     {
-        if (config('spendwise.captcha.enabled') && $this->captcha_token) {
+        if (config('spendifiai.captcha.enabled') && $this->captcha_token) {
             $validator->after(function ($validator) {
                 $captcha = app(CaptchaService::class);
-                if (!$captcha->verify($this->captcha_token, 'login', $this->ip())) {
+                if (! $captcha->verify($this->captcha_token, 'login', $this->ip())) {
                     $validator->errors()->add('captcha_token', 'CAPTCHA verification failed.');
                 }
             });

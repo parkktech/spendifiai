@@ -31,7 +31,7 @@ export default function AuthLayout({ children }: PropsWithChildren) {
                         </svg>
                         <div>
                             <span className="text-2xl font-bold text-white">
-                                Ledger<span className="text-blue-200">IQ</span>
+                                Spendifi<span className="text-blue-200">AI</span>
                             </span>
                             <div className="text-[10px] text-blue-200 font-medium tracking-wide">
                                 AI-Powered Financial Intelligence
@@ -51,7 +51,7 @@ export default function AuthLayout({ children }: PropsWithChildren) {
                     </ul>
                 </div>
                 <p className="text-sm text-blue-200">
-                    &copy; {new Date().getFullYear()} LedgerIQ. All rights reserved.
+                    &copy; {new Date().getFullYear()} SpendifiAI. All rights reserved.
                 </p>
             </div>
 

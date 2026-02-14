@@ -2,7 +2,7 @@
 
 @section('title', ($categoryTitle ?? 'Blog') . ' - AI Expense Tracking Guides & Tips')
 @section('description', $categoryDescription ?? 'Free guides on expense tracking, tax deductions, subscription management, and personal finance. Expert tips for freelancers and small business owners.')
-@section('canonical', 'https://ledgeriq.com/blog' . ($currentCategory ? '/' . $currentCategory : ''))
+@section('canonical', 'https://spendifiai.com/blog' . ($currentCategory ? '/' . $currentCategory : ''))
 @section('og_type', 'website')
 
 @section('jsonld')
@@ -10,10 +10,10 @@
 {
     "@@context": "https://schema.org",
     "@@type": "CollectionPage",
-    "name": "{{ $categoryTitle ?? 'LedgerIQ Blog' }}",
-    "url": "https://ledgeriq.com/blog{{ $currentCategory ? '/' . $currentCategory : '' }}",
+    "name": "{{ $categoryTitle ?? 'SpendifiAI Blog' }}",
+    "url": "https://spendifiai.com/blog{{ $currentCategory ? '/' . $currentCategory : '' }}",
     "description": @json($categoryDescription ?? 'Free guides on expense tracking, tax deductions, and personal finance for freelancers and small business owners.'),
-    "isPartOf": { "@@id": "https://ledgeriq.com/#website" },
+    "isPartOf": { "@@id": "https://spendifiai.com/#website" },
     "mainEntity": {
         "@@type": "ItemList",
         "numberOfItems": {{ $pages->total() }},
@@ -22,7 +22,7 @@
             {
                 "@@type": "ListItem",
                 "position": {{ $i + 1 }},
-                "url": "https://ledgeriq.com/blog/{{ $item->slug }}",
+                "url": "https://spendifiai.com/blog/{{ $item->slug }}",
                 "name": @json($item->title)
             }{{ $i < min($pages->count(), 10) - 1 ? ',' : '' }}
             @endforeach
@@ -35,10 +35,10 @@
     "@@context": "https://schema.org",
     "@@type": "BreadcrumbList",
     "itemListElement": [
-        { "@@type": "ListItem", "position": 1, "name": "Home", "item": "https://ledgeriq.com" },
-        { "@@type": "ListItem", "position": 2, "name": "Blog", "item": "https://ledgeriq.com/blog" }
+        { "@@type": "ListItem", "position": 1, "name": "Home", "item": "https://spendifiai.com" },
+        { "@@type": "ListItem", "position": 2, "name": "Blog", "item": "https://spendifiai.com/blog" }
         @if($currentCategory)
-        ,{ "@@type": "ListItem", "position": 3, "name": "{{ $categoryTitle }}", "item": "https://ledgeriq.com/blog/{{ $currentCategory }}" }
+        ,{ "@@type": "ListItem", "position": 3, "name": "{{ $categoryTitle }}", "item": "https://spendifiai.com/blog/{{ $currentCategory }}" }
         @endif
     ]
 }
@@ -81,7 +81,7 @@
     <div class="relative mx-auto max-w-4xl text-center">
         <div class="mb-4 inline-flex items-center gap-2 rounded-full border border-blue-400/30 bg-blue-500/10 px-4 py-1.5 text-sm font-medium text-blue-300">
             <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25"/></svg>
-            The LedgerIQ Blog
+            The SpendifiAI Blog
         </div>
         <h1 class="font-serif-display text-4xl font-bold tracking-tight text-white sm:text-5xl lg:text-6xl">
             {{ $categoryTitle ?? 'Guides, Tips & Comparisons' }}
@@ -209,7 +209,7 @@
     <div class="absolute inset-0 opacity-30" style="background-image: radial-gradient(circle at 50% 50%, rgba(37,99,235,0.4) 0%, transparent 60%);"></div>
     <div class="relative mx-auto max-w-2xl text-center">
         <h2 class="font-serif-display text-3xl font-bold text-white sm:text-4xl">Ready to automate your expense tracking?</h2>
-        <p class="mx-auto mt-4 max-w-xl text-lg text-slate-300">Join thousands using LedgerIQ to track expenses, find savings, and prepare taxes with AI. 100% free.</p>
+        <p class="mx-auto mt-4 max-w-xl text-lg text-slate-300">Join thousands using SpendifiAI to track expenses, find savings, and prepare taxes with AI. 100% free.</p>
         <a href="/register" class="mt-8 inline-flex items-center gap-2 rounded-lg bg-blue-600 px-8 py-4 text-lg font-semibold text-white shadow-lg transition-all hover:bg-blue-500 hover:shadow-xl">
             Get Started Free
             <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"/></svg>

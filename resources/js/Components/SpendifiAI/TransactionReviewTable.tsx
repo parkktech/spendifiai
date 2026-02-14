@@ -11,7 +11,7 @@ import {
   ArrowUpRight,
 } from 'lucide-react';
 import Badge from './Badge';
-import type { ParsedTransaction } from '@/types/spendwise';
+import type { ParsedTransaction } from '@/types/spendifiai';
 
 interface TransactionReviewTableProps {
   transactions: ParsedTransaction[];

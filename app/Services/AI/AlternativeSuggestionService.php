@@ -20,8 +20,8 @@ class AlternativeSuggestionService
     {
         $this->apiKey = config('services.anthropic.api_key') ?? '';
         $this->model = config('services.anthropic.model', 'claude-sonnet-4-20250514');
-        $this->cacheDays = config('spendwise.ai.alternatives.cache_days', 7);
-        $this->maxPerItem = config('spendwise.ai.alternatives.max_per_item', 4);
+        $this->cacheDays = config('spendifiai.ai.alternatives.cache_days', 7);
+        $this->maxPerItem = config('spendifiai.ai.alternatives.max_per_item', 4);
     }
 
     /**

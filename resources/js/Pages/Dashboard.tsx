@@ -30,14 +30,14 @@ import {
   TrendingDown,
   Shield,
 } from 'lucide-react';
-import SpendingChart from '@/Components/SpendWise/SpendingChart';
-import TransactionRow from '@/Components/SpendWise/TransactionRow';
-import Badge from '@/Components/SpendWise/Badge';
-import ActionResponsePanel from '@/Components/SpendWise/ActionResponsePanel';
-import ProjectedSavingsBanner from '@/Components/SpendWise/ProjectedSavingsBanner';
-import SavingsTrackingChart from '@/Components/SpendWise/SavingsTrackingChart';
+import SpendingChart from '@/Components/SpendifiAI/SpendingChart';
+import TransactionRow from '@/Components/SpendifiAI/TransactionRow';
+import Badge from '@/Components/SpendifiAI/Badge';
+import ActionResponsePanel from '@/Components/SpendifiAI/ActionResponsePanel';
+import ProjectedSavingsBanner from '@/Components/SpendifiAI/ProjectedSavingsBanner';
+import SavingsTrackingChart from '@/Components/SpendifiAI/SavingsTrackingChart';
 import { useApi, useApiPost } from '@/hooks/useApi';
-import type { DashboardData, RecurringBill, BudgetWaterfall, HomeAffordability } from '@/types/spendwise';
+import type { DashboardData, RecurringBill, BudgetWaterfall, HomeAffordability } from '@/types/spendifiai';
 
 const fmt = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
 

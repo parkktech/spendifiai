@@ -111,7 +111,7 @@ export default function AuthenticatedLayout({
           </svg>
           {!collapsed && (
             <div>
-              <div className="text-[15px] font-bold text-sw-text tracking-tight">Ledger<span className="text-sw-accent">IQ</span></div>
+              <div className="text-[15px] font-bold text-sw-text tracking-tight">Spendifi<span className="text-sw-accent">AI</span></div>
               <div className="text-[10px] text-sw-dim font-medium tracking-wide">AI-Powered Financial Intelligence</div>
             </div>
           )}

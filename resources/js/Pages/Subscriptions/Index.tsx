@@ -3,10 +3,10 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head } from '@inertiajs/react';
 import { RefreshCw, AlertTriangle, TrendingUp, Loader2 } from 'lucide-react';
 import { useApi, useApiPost } from '@/hooks/useApi';
-import StatCard from '@/Components/SpendWise/StatCard';
-import SubscriptionCard from '@/Components/SpendWise/SubscriptionCard';
-import ViewModeToggle from '@/Components/SpendWise/ViewModeToggle';
-import type { SubscriptionsResponse } from '@/types/spendwise';
+import StatCard from '@/Components/SpendifiAI/StatCard';
+import SubscriptionCard from '@/Components/SpendifiAI/SubscriptionCard';
+import ViewModeToggle from '@/Components/SpendifiAI/ViewModeToggle';
+import type { SubscriptionsResponse } from '@/types/spendifiai';
 
 const fmt = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
 

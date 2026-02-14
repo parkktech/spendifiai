@@ -1,4 +1,4 @@
-# Requirements: LedgerIQ
+# Requirements: SpendifiAI
 
 **Defined:** 2026-02-10
 **Core Value:** Users connect their bank and immediately get intelligent, automatic categorization of every transaction with business/personal separation, tax deduction flagging, and AI-generated questions when confidence is low.

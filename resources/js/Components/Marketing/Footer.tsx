@@ -57,7 +57,7 @@ export default function Footer() {
                                 </defs>
                             </svg>
                             <span className="text-xl font-bold tracking-tight text-white">
-                                Ledger<span className="text-blue-400">IQ</span>
+                                Spendifi<span className="text-blue-400">AI</span>
                             </span>
                         </a>
                         <p className="mt-4 max-w-xs text-sm leading-relaxed text-slate-400">
@@ -107,7 +107,7 @@ export default function Footer() {
             <div className="border-t border-slate-800">
                 <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 px-6 py-6 sm:flex-row">
                     <p className="text-sm text-slate-500">
-                        &copy; {new Date().getFullYear()} LedgerIQ. All rights reserved.
+                        &copy; {new Date().getFullYear()} SpendifiAI. All rights reserved.
                     </p>
                     <div className="flex items-center gap-1 text-sm text-slate-500">
                         <span>Rated</span>

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Receipt, Check, ChevronDown, CheckCircle, Search, Mail } from 'lucide-react';
 import Badge from './Badge';
-import type { Transaction } from '@/types/spendwise';
+import type { Transaction } from '@/types/spendifiai';
 
 interface TransactionRowProps {
   transaction: Transaction;

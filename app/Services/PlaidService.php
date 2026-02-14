@@ -40,14 +40,14 @@ class PlaidService
                 'email_address_verified_time' => $user->email_verified_at?->toIso8601String() ?? now()->toIso8601String(),
                 'phone_number_verified_time' => now()->toIso8601String(),
             ],
-            'client_name' => config('app.name', 'LedgerIQ'),
-            'products' => config('spendwise.plaid.products', ['transactions']),
-            'country_codes' => config('spendwise.plaid.country_codes', ['US']),
+            'client_name' => config('app.name', 'SpendifiAI'),
+            'products' => config('spendifiai.plaid.products', ['transactions']),
+            'country_codes' => config('spendifiai.plaid.country_codes', ['US']),
             'language' => 'en',
         ];
 
         // Webhook is required in production, optional in sandbox
-        if ($webhookUrl = config('spendwise.plaid.webhook_url')) {
+        if ($webhookUrl = config('spendifiai.plaid.webhook_url')) {
             $params['webhook'] = $webhookUrl;
         }
 

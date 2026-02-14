@@ -1,6 +1,6 @@
 import { FileText, Calendar, Hash, Upload } from 'lucide-react';
 import Badge from './Badge';
-import type { StatementUploadHistory } from '@/types/spendwise';
+import type { StatementUploadHistory } from '@/types/spendifiai';
 
 interface UploadHistoryProps {
   uploads: StatementUploadHistory[];

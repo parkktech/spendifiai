@@ -2,7 +2,7 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
     @foreach($staticPages as $page)
     <url>
-        <loc>https://ledgeriq.com{{ $page['url'] }}</loc>
+        <loc>https://spendifiai.com{{ $page['url'] }}</loc>
         @if(!empty($page['lastmod']))
         <lastmod>{{ $page['lastmod'] }}</lastmod>
         @endif
@@ -12,7 +12,7 @@
     @endforeach
     @foreach($blogPages as $page)
     <url>
-        <loc>https://ledgeriq.com/blog/{{ $page->slug }}</loc>
+        <loc>https://spendifiai.com/blog/{{ $page->slug }}</loc>
         <lastmod>{{ $page->updated_at->toW3cString() }}</lastmod>
         <changefreq>monthly</changefreq>
         <priority>0.7</priority>

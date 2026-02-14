@@ -79,8 +79,8 @@ class EnrichSeoContent extends Command
     private function generateAltText(SeoPage $page): string
     {
         $title = $page->title;
-        // Remove "| LedgerIQ" suffix if present
-        $title = preg_replace('/\s*[|\-]\s*LedgerIQ$/i', '', $title);
+        // Remove "| SpendifiAI" suffix if present
+        $title = preg_replace('/\s*[|\-]\s*SpendifiAI$/i', '', $title);
 
         $prefixes = [
             'comparison' => 'Comparison chart showing',
@@ -114,30 +114,30 @@ class EnrichSeoContent extends Command
 
     private function comparisonFaqs(SeoPage $page): array
     {
-        // Extract competitor name from title like "LedgerIQ vs Mint: ..."
+        // Extract competitor name from title like "SpendifiAI vs Mint: ..."
         preg_match('/vs\s+(.+?)[\s:]/i', $page->title, $matches);
         $competitor = $matches[1] ?? 'the competitor';
 
         return [
             [
-                'question' => "Is LedgerIQ really free compared to {$competitor}?",
-                'answer' => 'Yes, LedgerIQ is 100% free with no premium tiers, no trial periods, and no credit card required. Unlike many competitors that charge monthly or annual fees, LedgerIQ provides AI-powered expense tracking, tax deduction exports, and subscription detection at no cost.',
+                'question' => "Is SpendifiAI really free compared to {$competitor}?",
+                'answer' => 'Yes, SpendifiAI is 100% free with no premium tiers, no trial periods, and no credit card required. Unlike many competitors that charge monthly or annual fees, SpendifiAI provides AI-powered expense tracking, tax deduction exports, and subscription detection at no cost.',
             ],
             [
-                'question' => "Can I switch from {$competitor} to LedgerIQ easily?",
-                'answer' => "Yes. You can import your transaction history by connecting your bank through Plaid or uploading your bank statements as PDF or CSV files. LedgerIQ's AI will automatically categorize your imported transactions, so you won't need to start from scratch.",
+                'question' => "Can I switch from {$competitor} to SpendifiAI easily?",
+                'answer' => "Yes. You can import your transaction history by connecting your bank through Plaid or uploading your bank statements as PDF or CSV files. SpendifiAI's AI will automatically categorize your imported transactions, so you won't need to start from scratch.",
             ],
             [
-                'question' => "How does LedgerIQ's AI categorization compare to {$competitor}?",
-                'answer' => "LedgerIQ uses Claude AI by Anthropic to categorize transactions with over 85% accuracy. Unlike rule-based systems that match merchant names, LedgerIQ's AI considers transaction amount, frequency, account type, and context. When confidence is low, it asks you a quick question instead of guessing wrong.",
+                'question' => "How does SpendifiAI's AI categorization compare to {$competitor}?",
+                'answer' => "SpendifiAI uses Claude AI by Anthropic to categorize transactions with over 85% accuracy. Unlike rule-based systems that match merchant names, SpendifiAI's AI considers transaction amount, frequency, account type, and context. When confidence is low, it asks you a quick question instead of guessing wrong.",
             ],
             [
-                'question' => 'Does LedgerIQ support tax deduction tracking?',
-                'answer' => 'Yes. LedgerIQ automatically maps your business expenses to IRS Schedule C categories and lets you export a complete tax package as Excel, PDF, or CSV. You can also email the package directly to your accountant. This feature is especially valuable for freelancers and self-employed workers.',
+                'question' => 'Does SpendifiAI support tax deduction tracking?',
+                'answer' => 'Yes. SpendifiAI automatically maps your business expenses to IRS Schedule C categories and lets you export a complete tax package as Excel, PDF, or CSV. You can also email the package directly to your accountant. This feature is especially valuable for freelancers and self-employed workers.',
             ],
             [
-                'question' => 'Is my financial data secure with LedgerIQ?',
-                'answer' => 'Absolutely. LedgerIQ encrypts all sensitive data at rest using AES-256 encryption. Bank connections use Plaid, which is SOC 2 Type II certified and trusted by major fintech apps. All connections use HTTPS/TLS, and optional two-factor authentication is available.',
+                'question' => 'Is my financial data secure with SpendifiAI?',
+                'answer' => 'Absolutely. SpendifiAI encrypts all sensitive data at rest using AES-256 encryption. Bank connections use Plaid, which is SOC 2 Type II certified and trusted by major fintech apps. All connections use HTTPS/TLS, and optional two-factor authentication is available.',
             ],
         ];
     }
@@ -151,11 +151,11 @@ class EnrichSeoContent extends Command
         return [
             [
                 'question' => "What is the best free alternative to {$product}?",
-                'answer' => 'LedgerIQ is the best free alternative offering AI-powered expense categorization, automatic subscription detection, savings recommendations, and IRS Schedule C tax exports. Unlike most alternatives that charge monthly fees, LedgerIQ is completely free with no premium tiers.',
+                'answer' => 'SpendifiAI is the best free alternative offering AI-powered expense categorization, automatic subscription detection, savings recommendations, and IRS Schedule C tax exports. Unlike most alternatives that charge monthly fees, SpendifiAI is completely free with no premium tiers.',
             ],
             [
                 'question' => "How do I migrate from {$product} to a different expense tracker?",
-                'answer' => 'Most expense trackers let you export your data as CSV files. You can then import this data into your new tool, or connect your bank directly through Plaid to pull in fresh transaction data. LedgerIQ also supports PDF and CSV bank statement uploads as an alternative to direct bank connections.',
+                'answer' => 'Most expense trackers let you export your data as CSV files. You can then import this data into your new tool, or connect your bank directly through Plaid to pull in fresh transaction data. SpendifiAI also supports PDF and CSV bank statement uploads as an alternative to direct bank connections.',
             ],
             [
                 'question' => 'What features should I look for in an expense tracker?',
@@ -163,7 +163,7 @@ class EnrichSeoContent extends Command
             ],
             [
                 'question' => 'Are paid alternatives worth it over free options?',
-                'answer' => 'It depends on your needs. Many paid alternatives offer features that are now available for free in tools like LedgerIQ. Before paying $99-200/year for a budgeting app, compare the features available in free alternatives. AI-powered categorization, tax exports, and subscription detection are all available without a subscription fee.',
+                'answer' => 'It depends on your needs. Many paid alternatives offer features that are now available for free in tools like SpendifiAI. Before paying $99-200/year for a budgeting app, compare the features available in free alternatives. AI-powered categorization, tax exports, and subscription detection are all available without a subscription fee.',
             ],
         ];
     }
@@ -180,7 +180,7 @@ class EnrichSeoContent extends Command
             $faqs = [
                 [
                     'question' => 'Do I need an accountant to track my tax deductions?',
-                    'answer' => 'Not necessarily. AI-powered tools like LedgerIQ can automatically categorize your expenses and map them to IRS Schedule C lines. However, consulting a tax professional is recommended for complex situations. LedgerIQ can export your categorized deductions in formats your accountant can easily review.',
+                    'answer' => 'Not necessarily. AI-powered tools like SpendifiAI can automatically categorize your expenses and map them to IRS Schedule C lines. However, consulting a tax professional is recommended for complex situations. SpendifiAI can export your categorized deductions in formats your accountant can easily review.',
                 ],
                 [
                     'question' => 'What happens if I miss a tax deduction?',
@@ -192,7 +192,7 @@ class EnrichSeoContent extends Command
                 ],
                 [
                     'question' => 'Can AI really help with tax deduction tracking?',
-                    'answer' => 'Yes. AI-powered expense trackers like LedgerIQ analyze each transaction contextually, considering factors like merchant type, amount, frequency, and your account designation (business vs personal). This catches deductions that manual tracking or simple rule-based systems often miss.',
+                    'answer' => 'Yes. AI-powered expense trackers like SpendifiAI analyze each transaction contextually, considering factors like merchant type, amount, frequency, and your account designation (business vs personal). This catches deductions that manual tracking or simple rule-based systems often miss.',
                 ],
             ];
         } elseif (str_contains($slug, 'subscription') || str_contains($slug, 'cancel')) {
@@ -203,7 +203,7 @@ class EnrichSeoContent extends Command
                 ],
                 [
                     'question' => 'How does automatic subscription detection work?',
-                    'answer' => 'Tools like LedgerIQ scan your transaction history for recurring charge patterns across weekly, monthly, quarterly, and annual frequencies. They then analyze billing gaps to identify subscriptions that may have stopped billing or that you may have forgotten about.',
+                    'answer' => 'Tools like SpendifiAI scan your transaction history for recurring charge patterns across weekly, monthly, quarterly, and annual frequencies. They then analyze billing gaps to identify subscriptions that may have stopped billing or that you may have forgotten about.',
                 ],
                 [
                     'question' => 'Should I cancel all subscriptions to save money?',
@@ -211,14 +211,14 @@ class EnrichSeoContent extends Command
                 ],
                 [
                     'question' => 'Can I track subscriptions automatically without linking my bank?',
-                    'answer' => 'Yes. You can upload PDF or CSV bank statements to LedgerIQ, which will detect recurring charges in your transaction history. This is a good option if you prefer not to connect your bank account directly through Plaid.',
+                    'answer' => 'Yes. You can upload PDF or CSV bank statements to SpendifiAI, which will detect recurring charges in your transaction history. This is a good option if you prefer not to connect your bank account directly through Plaid.',
                 ],
             ];
         } elseif (str_contains($slug, 'budget') || str_contains($slug, 'spending') || str_contains($slug, 'save') || str_contains($slug, 'saving')) {
             $faqs = [
                 [
                     'question' => 'What is the easiest way to start budgeting?',
-                    'answer' => 'Start by tracking your spending for one month without changing any habits. Use an AI-powered tool like LedgerIQ to automatically categorize your transactions. Once you see where your money goes, you can set realistic budget limits based on actual spending patterns rather than guesses.',
+                    'answer' => 'Start by tracking your spending for one month without changing any habits. Use an AI-powered tool like SpendifiAI to automatically categorize your transactions. Once you see where your money goes, you can set realistic budget limits based on actual spending patterns rather than guesses.',
                 ],
                 [
                     'question' => 'How does AI help with budgeting?',
@@ -226,7 +226,7 @@ class EnrichSeoContent extends Command
                 ],
                 [
                     'question' => 'Do I need to track every purchase manually?',
-                    'answer' => 'No. By connecting your bank account through Plaid or uploading bank statements, tools like LedgerIQ automatically import and categorize all your transactions. This eliminates manual data entry and ensures nothing is missed.',
+                    'answer' => 'No. By connecting your bank account through Plaid or uploading bank statements, tools like SpendifiAI automatically import and categorize all your transactions. This eliminates manual data entry and ensures nothing is missed.',
                 ],
                 [
                     'question' => 'What budgeting method works best for beginners?',
@@ -241,11 +241,11 @@ class EnrichSeoContent extends Command
                 ],
                 [
                     'question' => 'Should I separate business and personal bank accounts?',
-                    'answer' => 'Yes, strongly recommended. Separating accounts makes expense tracking easier, simplifies tax preparation, and provides cleaner records if audited. If you use a single account, tools like LedgerIQ let you tag accounts as mixed and use AI to separate business from personal transactions.',
+                    'answer' => 'Yes, strongly recommended. Separating accounts makes expense tracking easier, simplifies tax preparation, and provides cleaner records if audited. If you use a single account, tools like SpendifiAI let you tag accounts as mixed and use AI to separate business from personal transactions.',
                 ],
                 [
                     'question' => 'How do I track expenses if I am just starting freelancing?',
-                    'answer' => 'Start by connecting your bank account to an expense tracker like LedgerIQ or uploading your bank statements. The AI will automatically categorize your transactions as business or personal. Set up a system from day one — it is much harder to reconstruct expenses at year-end.',
+                    'answer' => 'Start by connecting your bank account to an expense tracker like SpendifiAI or uploading your bank statements. The AI will automatically categorize your transactions as business or personal. Set up a system from day one — it is much harder to reconstruct expenses at year-end.',
                 ],
                 [
                     'question' => 'Do freelancers need to make quarterly tax payments?',
@@ -257,19 +257,19 @@ class EnrichSeoContent extends Command
             $faqs = [
                 [
                     'question' => 'How long does it take to set up expense tracking?',
-                    'answer' => 'With LedgerIQ, setup takes under 5 minutes. Connect your bank through Plaid, and your transactions are imported automatically. Alternatively, upload a PDF or CSV bank statement. The AI begins categorizing your expenses immediately with no manual configuration needed.',
+                    'answer' => 'With SpendifiAI, setup takes under 5 minutes. Connect your bank through Plaid, and your transactions are imported automatically. Alternatively, upload a PDF or CSV bank statement. The AI begins categorizing your expenses immediately with no manual configuration needed.',
                 ],
                 [
                     'question' => 'Do I need any accounting knowledge to track expenses?',
-                    'answer' => 'No. LedgerIQ is designed for people without accounting backgrounds. The AI handles categorization, and the dashboard presents your finances in simple, visual formats. For tax purposes, expenses are automatically mapped to the correct IRS categories.',
+                    'answer' => 'No. SpendifiAI is designed for people without accounting backgrounds. The AI handles categorization, and the dashboard presents your finances in simple, visual formats. For tax purposes, expenses are automatically mapped to the correct IRS categories.',
                 ],
                 [
                     'question' => 'Is my financial data safe with online expense trackers?',
-                    'answer' => 'Reputable expense trackers like LedgerIQ use bank-level security. This includes AES-256 encryption for stored data, secure bank connections through Plaid (SOC 2 Type II certified), HTTPS for all connections, and optional two-factor authentication.',
+                    'answer' => 'Reputable expense trackers like SpendifiAI use bank-level security. This includes AES-256 encryption for stored data, secure bank connections through Plaid (SOC 2 Type II certified), HTTPS for all connections, and optional two-factor authentication.',
                 ],
                 [
                     'question' => 'Can I use expense tracking on my phone?',
-                    'answer' => 'LedgerIQ is a web application that works on any device with a browser, including smartphones and tablets. The responsive design adapts to your screen size, so you can check your finances, review AI questions, and track spending from anywhere.',
+                    'answer' => 'SpendifiAI is a web application that works on any device with a browser, including smartphones and tablets. The responsive design adapts to your screen size, so you can check your finances, review AI questions, and track spending from anywhere.',
                 ],
             ];
         }
@@ -315,7 +315,7 @@ class EnrichSeoContent extends Command
         }
 
         // Build the "Related Reading" section
-        $linksHtml = '<h2>Related Reading</h2><p>Explore more guides and resources from LedgerIQ:</p><ul>';
+        $linksHtml = '<h2>Related Reading</h2><p>Explore more guides and resources from SpendifiAI:</p><ul>';
         foreach ($relatedLinks as $link) {
             $linksHtml .= '<li><a href="/blog/'.$link['slug'].'">'.$link['title'].'</a></li>';
         }

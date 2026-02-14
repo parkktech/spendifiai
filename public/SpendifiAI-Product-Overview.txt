@@ -1,5 +1,5 @@
 ================================================================================
-                              LEDGERIQ
+                              SPENDIFIAI
                 AI-Powered Personal Finance Platform
                    Comprehensive Product Overview
               For Prospective Partners & Stakeholders
@@ -13,14 +13,14 @@
 EXECUTIVE SUMMARY
 ================================================================================
 
-LedgerIQ is a free, AI-powered personal finance platform that helps
+SpendifiAI is a free, AI-powered personal finance platform that helps
 individuals, freelancers, and small business owners take complete control of
 their financial lives. By combining bank-grade security, intelligent
-automation, and the power of Claude AI, LedgerIQ eliminates the tedious
+automation, and the power of Claude AI, SpendifiAI eliminates the tedious
 manual work of expense tracking, subscription management, savings
 optimization, and tax preparation.
 
-Unlike competitors that charge $8-15/month (Mint, YNAB, Copilot), LedgerIQ
+Unlike competitors that charge $8-15/month (Mint, YNAB, Copilot), SpendifiAI
 is 100% free with no premium tiers, no trial periods, and no credit card
 required. This is not a loss leader - it is a deliberate strategy to capture
 market share in the rapidly growing personal finance management sector.
@@ -63,7 +63,7 @@ all features.
 BANK CONNECTIVITY & DATA INGESTION
 ================================================================================
 
-LedgerIQ provides two complementary methods for importing financial data,
+SpendifiAI provides two complementary methods for importing financial data,
 ensuring every user can participate regardless of their bank or technical
 comfort level.
 
@@ -74,13 +74,13 @@ PLAID BANK INTEGRATION
 Through Plaid - the same infrastructure trusted by Venmo, Robinhood,
 Coinbase, and thousands of financial applications - users can securely
 connect their bank accounts in under 60 seconds. Their banking credentials
-never touch LedgerIQ's servers.
+never touch SpendifiAI's servers.
 
 How It Works:
 
   * User clicks "Connect Bank" and authenticates directly with their bank
     through Plaid's secure modal
-  * Plaid returns an encrypted access token - LedgerIQ stores it with
+  * Plaid returns an encrypted access token - SpendifiAI stores it with
     AES-256 encryption at rest
   * Transactions sync automatically in real-time via webhooks
   * Account balances, types, and metadata are imported alongside transactions
@@ -107,7 +107,7 @@ BANK STATEMENT UPLOAD
 ---------------------
 
 For users whose banks are not supported by Plaid, or who prefer not to link
-their accounts electronically, LedgerIQ offers intelligent statement parsing.
+their accounts electronically, SpendifiAI offers intelligent statement parsing.
 Users simply upload a PDF or CSV bank statement, and Claude AI extracts every
 transaction automatically.
 
@@ -137,7 +137,7 @@ CSV Statement Processing:
 
 Duplicate Detection:
 
-Before importing, LedgerIQ automatically checks each parsed transaction
+Before importing, SpendifiAI automatically checks each parsed transaction
 against existing records. Matches are identified using amount (within $0.01
 tolerance), date (exact match), and merchant name (Levenshtein distance
 threshold). Flagged duplicates are shown to the user for review before
@@ -155,7 +155,7 @@ uploaded data.
 AI-POWERED TRANSACTION CATEGORIZATION
 ================================================================================
 
-At the heart of LedgerIQ is Claude AI's ability to understand and categorize
+At the heart of SpendifiAI is Claude AI's ability to understand and categorize
 financial transactions with human-like accuracy. This is not simple keyword
 matching - the AI considers context, account purpose, merchant patterns, and
 user history to make intelligent decisions.
@@ -208,7 +208,7 @@ doesn't just update that one transaction:
 56 EXPENSE CATEGORIES
 ---------------------
 
-LedgerIQ uses 56 expense categories (46 top-level, 10 subcategories)
+SpendifiAI uses 56 expense categories (46 top-level, 10 subcategories)
 organized into logical groups: Housing & Utilities, Transportation, Food &
 Dining, Business Expenses, Personal & Health, Subscriptions & Entertainment,
 Household & Personal, Education & Wealth, and Transfer/Income categories.
@@ -230,7 +230,7 @@ SUBSCRIPTION DETECTION & MANAGEMENT
 ================================================================================
 
 The average American spends $219/month on subscriptions, with studies showing
-that most people underestimate their recurring charges by 2-3x. LedgerIQ's
+that most people underestimate their recurring charges by 2-3x. SpendifiAI's
 Subscription Detective scans 6 months of transaction history to surface every
 recurring charge - especially the ones users have forgotten about.
 
@@ -251,7 +251,7 @@ DETECTION ALGORITHM
 "STOPPED BILLING" DETECTION - FINDING UNUSED SUBSCRIPTIONS
 -----------------------------------------------------------
 
-This is where LedgerIQ provides immediate, concrete value. The system
+This is where SpendifiAI provides immediate, concrete value. The system
 compares each subscription's last charge date against its expected billing
 cycle:
 
@@ -273,7 +273,7 @@ USER RESPONSE SYSTEM
 
 For each subscription, users can take one of three actions:
 
-  * Cancel - Mark the subscription for cancellation. LedgerIQ provides
+  * Cancel - Mark the subscription for cancellation. SpendifiAI provides
     direct links to cancellation pages and tracks the projected savings.
   * Reduce - Downgrade to a cheaper plan. The AI suggests alternative tiers
     and calculates the savings difference.
@@ -284,7 +284,7 @@ For each subscription, users can take one of three actions:
 AI-POWERED ALTERNATIVES
 -----------------------
 
-When a user considers canceling or reducing a subscription, LedgerIQ's AI
+When a user considers canceling or reducing a subscription, SpendifiAI's AI
 can suggest cheaper alternatives. For example, if a user is paying
 $15.99/month for a streaming service, the AI might suggest a competitor at
 $7.99/month or a bundle that combines multiple services for less. Alternative
@@ -295,7 +295,7 @@ suggestions are cached for 7 days to minimize API calls.
 AI SAVINGS RECOMMENDATIONS & GOAL TRACKING
 ================================================================================
 
-LedgerIQ's savings engine goes beyond simple "spend less" advice. It analyzes
+SpendifiAI's savings engine goes beyond simple "spend less" advice. It analyzes
 90 days of actual spending data - broken down by category, merchant, timing,
 and pattern - to generate specific, actionable recommendations with real
 dollar amounts pulled from the user's own transactions.
@@ -367,7 +367,7 @@ TAX DEDUCTION OPTIMIZATION & EXPORT
 ================================================================================
 
 For freelancers, self-employed individuals, and small business owners, tax
-deduction tracking is one of LedgerIQ's most valuable features. The AI
+deduction tracking is one of SpendifiAI's most valuable features. The AI
 automatically identifies tax-deductible expenses and maps them to IRS
 Schedule C line items, then exports accountant-ready reports in multiple
 formats.
@@ -403,9 +403,9 @@ Universal Deductions:
 IRS SCHEDULE C LINE MAPPING
 ----------------------------
 
-LedgerIQ maps 12 expense categories directly to IRS Schedule C lines:
+SpendifiAI maps 12 expense categories directly to IRS Schedule C lines:
 
-  Schedule C Line | Description         | LedgerIQ Categories
+  Schedule C Line | Description         | SpendifiAI Categories
   ----------------|---------------------|----------------------------------
   Line 8          | Advertising         | Marketing & Advertising
   Line 9          | Car & Truck         | Gas, Auto Maintenance, Transport
@@ -457,7 +457,7 @@ accountant via email, with a summary in the email body and CC to the user.
 COMPREHENSIVE FINANCIAL DASHBOARD
 ================================================================================
 
-The LedgerIQ dashboard is an 8-widget financial command center that gives
+The SpendifiAI dashboard is an 8-widget financial command center that gives
 users a complete picture of their financial health at a glance. Data is
 cached for 60 seconds per user and can be filtered by account type.
 
@@ -514,7 +514,7 @@ cached for 60 seconds per user and can be filtered by account type.
 SECURITY ARCHITECTURE
 ================================================================================
 
-LedgerIQ treats security as a foundational requirement, not an afterthought.
+SpendifiAI treats security as a foundational requirement, not an afterthought.
 The platform implements defense-in-depth across every layer of the stack.
 
 
@@ -571,7 +571,7 @@ ADDITIONAL FEATURES
 Email Receipt Parsing (In Development):
 
 Users can connect their Gmail (via OAuth) or any IMAP email account.
-LedgerIQ scans for order confirmations and receipts, extracts product-level
+SpendifiAI scans for order confirmations and receipts, extracts product-level
 detail using Claude AI, and matches them to bank transactions. This provides
 itemized purchase tracking - for example, knowing that a $147.32 Amazon
 charge was specifically for office supplies and a printer cartridge, enabling
@@ -604,10 +604,10 @@ include 2FA management and account deletion.
 COMPETITIVE LANDSCAPE
 ================================================================================
 
-LedgerIQ competes in the personal finance management space with a unique
+SpendifiAI competes in the personal finance management space with a unique
 combination of AI intelligence and zero-cost pricing:
 
-  Feature          | LedgerIQ  | Mint     | YNAB      | Copilot   | Quicken
+  Feature          | SpendifiAI  | Mint     | YNAB      | Copilot   | Quicken
   -----------------|-----------|----------|-----------|-----------|----------
   Price            | FREE      | Free*    | $14.99/mo | $10.99/mo | $5.99/mo
   AI Categorize    | Yes       | Basic    | Manual    | Yes       | Rules
@@ -680,7 +680,7 @@ APPLICATION SCALE
 SUMMARY
 ================================================================================
 
-LedgerIQ represents a significant opportunity in the personal finance
+SpendifiAI represents a significant opportunity in the personal finance
 management space. By combining AI-powered intelligence with bank-grade
 security and a completely free pricing model, the platform is positioned to
 capture users who are currently underserved by expensive, feature-limited
@@ -708,6 +708,6 @@ The platform's key differentiators are:
     friction from user acquisition.
 
 
-For questions or a live demonstration, please contact the LedgerIQ team.
+For questions or a live demonstration, please contact the SpendifiAI team.
 
 ================================================================================

@@ -91,7 +91,7 @@ class SocialAuthController extends Controller
 
         // Generate API token
         $user->tokens()->delete();
-        $token = $user->createToken('ledgeriq-google')->plainTextToken;
+        $token = $user->createToken('spendifiai-google')->plainTextToken;
 
         // For SPA: redirect to frontend with token
         $frontendUrl = config('app.frontend_url', config('app.url'));

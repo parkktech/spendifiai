@@ -9,8 +9,8 @@ use App\Models\BankConnection;
 use App\Models\PlaidWebhookLog;
 use App\Notifications\BankConnectionIssueNotification;
 use App\Services\PlaidService;
-use Firebase\JWT\JWT;
 use Firebase\JWT\JWK;
+use Firebase\JWT\JWT;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
@@ -39,7 +39,7 @@ class PlaidWebhookController extends Controller
 
         // 1. Verify JWT signature (skip in sandbox mode)
         if (config('services.plaid.env') !== 'sandbox') {
-            if (!$this->verifyWebhookSignature($request)) {
+            if (! $this->verifyWebhookSignature($request)) {
                 Log::warning('Plaid webhook signature verification failed', [
                     'webhook_type' => $webhookType,
                     'webhook_code' => $webhookCode,
@@ -67,7 +67,7 @@ class PlaidWebhookController extends Controller
         // 3. Look up BankConnection by plaid_item_id
         $connection = BankConnection::where('plaid_item_id', $itemId)->first();
 
-        if (!$connection) {
+        if (! $connection) {
             PlaidWebhookLog::create([
                 'webhook_type' => $webhookType,
                 'webhook_code' => $webhookCode,
@@ -254,8 +254,9 @@ class PlaidWebhookController extends Controller
         try {
             $signedJwt = $request->header('Plaid-Verification');
 
-            if (!$signedJwt) {
+            if (! $signedJwt) {
                 Log::warning('Plaid webhook missing Plaid-Verification header');
+
                 return false;
             }
 
@@ -263,33 +264,36 @@ class PlaidWebhookController extends Controller
             $tks = explode('.', $signedJwt);
             if (count($tks) !== 3) {
                 Log::warning('Plaid webhook JWT has invalid format');
+
                 return false;
             }
 
             $headerJson = json_decode(JWT::urlsafeB64Decode($tks[0]), true);
-            if (!$headerJson || ($headerJson['alg'] ?? '') !== 'ES256') {
+            if (! $headerJson || ($headerJson['alg'] ?? '') !== 'ES256') {
                 Log::warning('Plaid webhook JWT has invalid algorithm', [
                     'alg' => $headerJson['alg'] ?? 'missing',
                 ]);
+
                 return false;
             }
 
             $kid = $headerJson['kid'] ?? null;
-            if (!$kid) {
+            if (! $kid) {
                 Log::warning('Plaid webhook JWT missing kid in header');
+
                 return false;
             }
 
             // Fetch and cache JWK from Plaid
             $jwk = Cache::remember("plaid_webhook_key:{$kid}", 86400, function () use ($kid) {
-                $baseUrl = config('spendwise.plaid.base_url');
+                $baseUrl = config('spendifiai.plaid.base_url');
                 $response = Http::timeout(10)->post("{$baseUrl}/webhook_verification_key/get", [
                     'client_id' => config('services.plaid.client_id'),
                     'secret' => config('services.plaid.secret'),
                     'key_id' => $kid,
                 ]);
 
-                if (!$response->successful()) {
+                if (! $response->successful()) {
                     throw new \RuntimeException('Failed to fetch Plaid webhook verification key');
                 }
 
@@ -306,13 +310,15 @@ class PlaidWebhookController extends Controller
                     'iat' => $decoded->iat ?? 'missing',
                     'now' => time(),
                 ]);
+
                 return false;
             }
 
             // Verify request body SHA-256
             $bodyHash = hash('sha256', $request->getContent());
-            if (!hash_equals($decoded->request_body_sha256 ?? '', $bodyHash)) {
+            if (! hash_equals($decoded->request_body_sha256 ?? '', $bodyHash)) {
                 Log::warning('Plaid webhook body hash mismatch');
+
                 return false;
             }
 
@@ -321,6 +327,7 @@ class PlaidWebhookController extends Controller
             Log::warning('Plaid webhook signature verification error', [
                 'error' => $e->getMessage(),
             ]);
+
             return false;
         }
     }

@@ -49,7 +49,7 @@ class User extends Authenticatable implements MustVerifyEmail
         ];
     }
 
-    // ─── LedgerIQ Relationships ───
+    // ─── SpendifiAI Relationships ───
 
     public function bankConnections(): HasMany
     {

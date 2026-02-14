@@ -11,10 +11,10 @@ import {
   ToggleRight,
   Send,
 } from 'lucide-react';
-import QuestionCard from '@/Components/SpendWise/QuestionCard';
-import Badge from '@/Components/SpendWise/Badge';
+import QuestionCard from '@/Components/SpendifiAI/QuestionCard';
+import Badge from '@/Components/SpendifiAI/Badge';
 import { useApi, useApiPost } from '@/hooks/useApi';
-import type { AIQuestion } from '@/types/spendwise';
+import type { AIQuestion } from '@/types/spendifiai';
 import axios from 'axios';
 
 export default function QuestionsIndex() {

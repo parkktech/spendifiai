@@ -4,7 +4,7 @@ use App\Services\CaptchaService;
 use Illuminate\Support\Facades\Http;
 
 it('returns true when captcha is disabled', function () {
-    config(['spendwise.captcha.enabled' => false]);
+    config(['spendifiai.captcha.enabled' => false]);
 
     $service = new CaptchaService();
     $result = $service->verify('any-token');
@@ -14,10 +14,10 @@ it('returns true when captcha is disabled', function () {
 
 it('returns true for score above threshold', function () {
     config([
-        'spendwise.captcha.enabled' => true,
-        'spendwise.captcha.secret_key' => 'test-secret',
-        'spendwise.captcha.verify_url' => 'https://www.google.com/recaptcha/api/siteverify',
-        'spendwise.captcha.threshold' => 0.5,
+        'spendifiai.captcha.enabled' => true,
+        'spendifiai.captcha.secret_key' => 'test-secret',
+        'spendifiai.captcha.verify_url' => 'https://www.google.com/recaptcha/api/siteverify',
+        'spendifiai.captcha.threshold' => 0.5,
     ]);
 
     Http::fake([
@@ -36,10 +36,10 @@ it('returns true for score above threshold', function () {
 
 it('returns false for score below threshold', function () {
     config([
-        'spendwise.captcha.enabled' => true,
-        'spendwise.captcha.secret_key' => 'test-secret',
-        'spendwise.captcha.verify_url' => 'https://www.google.com/recaptcha/api/siteverify',
-        'spendwise.captcha.threshold' => 0.5,
+        'spendifiai.captcha.enabled' => true,
+        'spendifiai.captcha.secret_key' => 'test-secret',
+        'spendifiai.captcha.verify_url' => 'https://www.google.com/recaptcha/api/siteverify',
+        'spendifiai.captcha.threshold' => 0.5,
     ]);
 
     Http::fake([
@@ -58,10 +58,10 @@ it('returns false for score below threshold', function () {
 
 it('returns false for action mismatch', function () {
     config([
-        'spendwise.captcha.enabled' => true,
-        'spendwise.captcha.secret_key' => 'test-secret',
-        'spendwise.captcha.verify_url' => 'https://www.google.com/recaptcha/api/siteverify',
-        'spendwise.captcha.threshold' => 0.5,
+        'spendifiai.captcha.enabled' => true,
+        'spendifiai.captcha.secret_key' => 'test-secret',
+        'spendifiai.captcha.verify_url' => 'https://www.google.com/recaptcha/api/siteverify',
+        'spendifiai.captcha.threshold' => 0.5,
     ]);
 
     Http::fake([
@@ -80,10 +80,10 @@ it('returns false for action mismatch', function () {
 
 it('returns false when API returns failure', function () {
     config([
-        'spendwise.captcha.enabled' => true,
-        'spendwise.captcha.secret_key' => 'test-secret',
-        'spendwise.captcha.verify_url' => 'https://www.google.com/recaptcha/api/siteverify',
-        'spendwise.captcha.threshold' => 0.5,
+        'spendifiai.captcha.enabled' => true,
+        'spendifiai.captcha.secret_key' => 'test-secret',
+        'spendifiai.captcha.verify_url' => 'https://www.google.com/recaptcha/api/siteverify',
+        'spendifiai.captcha.threshold' => 0.5,
     ]);
 
     Http::fake([
@@ -101,10 +101,10 @@ it('returns false when API returns failure', function () {
 
 it('returns false on API exception', function () {
     config([
-        'spendwise.captcha.enabled' => true,
-        'spendwise.captcha.secret_key' => 'test-secret',
-        'spendwise.captcha.verify_url' => 'https://www.google.com/recaptcha/api/siteverify',
-        'spendwise.captcha.threshold' => 0.5,
+        'spendifiai.captcha.enabled' => true,
+        'spendifiai.captcha.secret_key' => 'test-secret',
+        'spendifiai.captcha.verify_url' => 'https://www.google.com/recaptcha/api/siteverify',
+        'spendifiai.captcha.threshold' => 0.5,
     ]);
 
     Http::fake(fn () => throw new \RuntimeException('Connection failed'));

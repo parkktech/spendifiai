@@ -1,8 +1,8 @@
-# Roadmap: LedgerIQ
+# Roadmap: SpendifiAI
 
 ## Overview
 
-LedgerIQ is an AI-powered expense tracker with ~60% of backend code already built. The roadmap integrates existing code into a fresh Laravel 12 project, decomposes the monolithic controller, wires up all backend features (bank integration, AI categorization, subscriptions, savings, tax, email parsing), builds the React/Inertia frontend, and delivers a tested, deployable application. Five phases move from scaffolding through working product.
+SpendifiAI is an AI-powered expense tracker with ~60% of backend code already built. The roadmap integrates existing code into a fresh Laravel 12 project, decomposes the monolithic controller, wires up all backend features (bank integration, AI categorization, subscriptions, savings, tax, email parsing), builds the React/Inertia frontend, and delivers a tested, deployable application. Five phases move from scaffolding through working product.
 
 ## Phases
 

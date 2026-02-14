@@ -19,7 +19,7 @@ import type {
   StatementUploadResult,
   StatementProcessingStatus,
   StatementImportResult,
-} from '@/types/spendwise';
+} from '@/types/spendifiai';
 import { useApiPost } from '@/hooks/useApi';
 
 interface StatementUploadWizardProps {
@@ -576,7 +576,7 @@ export default function StatementUploadWizard({
                 {importResult?.imported ?? 0} transactions imported
               </h3>
               <p className="text-sm text-sw-muted mt-2 max-w-md">
-                Your transactions from {effectiveBankName} are now in LedgerIQ. AI
+                Your transactions from {effectiveBankName} are now in SpendifiAI. AI
                 categorization will start automatically. Head to your dashboard to see
                 your spending analysis.
               </p>

@@ -67,7 +67,7 @@ Route::get('/sitemap.xml', [SitemapController::class, 'index'])->name('sitemap')
 // ── Health Check ──
 Route::get('/health', fn () => response()->json([
     'status' => 'ok',
-    'service' => 'ledgeriq',
+    'service' => 'spendifiai',
     'time' => now()->toIso8601String(),
 ]));
 

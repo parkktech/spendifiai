@@ -30,18 +30,18 @@ class SeoPageSeeder extends Seeder
     {
         return [
             [
-                'slug' => 'ledgeriq-vs-mint',
-                'title' => 'LedgerIQ vs Mint: Which Free Expense Tracker Is Better in 2026?',
-                'meta_description' => 'Compare LedgerIQ and Mint side by side. See how AI-powered categorization, bank syncing, tax exports, and subscription detection stack up. Both free.',
-                'h1' => 'LedgerIQ vs Mint: Complete Comparison for 2026',
+                'slug' => 'spendifiai-vs-mint',
+                'title' => 'SpendifiAI vs Mint: Which Free Expense Tracker Is Better in 2026?',
+                'meta_description' => 'Compare SpendifiAI and Mint side by side. See how AI-powered categorization, bank syncing, tax exports, and subscription detection stack up. Both free.',
+                'h1' => 'SpendifiAI vs Mint: Complete Comparison for 2026',
                 'category' => 'comparison',
-                'keywords' => json_encode(['ledgeriq vs mint', 'mint alternative', 'free expense tracker comparison', 'best budgeting app 2026']),
-                'excerpt' => 'Mint pioneered free expense tracking, but LedgerIQ brings AI-powered categorization and tax export features that Mint never offered. Here is how they compare across every major feature.',
-                'content' => '<p>Mint was the gold standard for free personal finance tools for over a decade. But with its acquisition by Credit Karma and shifting priorities, many users are looking for a modern alternative. LedgerIQ offers AI-powered expense tracking with features Mint never had, including automatic tax deduction exports and subscription waste detection.</p>
+                'keywords' => json_encode(['spendifiai vs mint', 'mint alternative', 'free expense tracker comparison', 'best budgeting app 2026']),
+                'excerpt' => 'Mint pioneered free expense tracking, but SpendifiAI brings AI-powered categorization and tax export features that Mint never offered. Here is how they compare across every major feature.',
+                'content' => '<p>Mint was the gold standard for free personal finance tools for over a decade. But with its acquisition by Credit Karma and shifting priorities, many users are looking for a modern alternative. SpendifiAI offers AI-powered expense tracking with features Mint never had, including automatic tax deduction exports and subscription waste detection.</p>
 
 <h2>Quick Comparison</h2>
 <table>
-<thead><tr><th>Feature</th><th>LedgerIQ</th><th>Mint</th></tr></thead>
+<thead><tr><th>Feature</th><th>SpendifiAI</th><th>Mint</th></tr></thead>
 <tbody>
 <tr><td>Price</td><td>Free</td><td>Free (with ads)</td></tr>
 <tr><td>AI Categorization</td><td>Claude AI with 95%+ accuracy</td><td>Rule-based, often wrong</td></tr>
@@ -56,42 +56,42 @@ class SeoPageSeeder extends Seeder
 
 <h2>Expense Tracking and Categorization</h2>
 <p>Mint uses rule-based categorization that assigns categories based on merchant names. This works for obvious transactions like Starbucks or Amazon, but struggles with ambiguous charges. Users report spending significant time manually fixing categories each month.</p>
-<p>LedgerIQ uses Claude AI to understand transaction context, not just merchant names. It considers the amount, frequency, your account type (business vs. personal), and even the time of day to assign categories with over 95% accuracy. When confidence is below 85%, it asks you a quick question rather than guessing wrong.</p>
+<p>SpendifiAI uses Claude AI to understand transaction context, not just merchant names. It considers the amount, frequency, your account type (business vs. personal), and even the time of day to assign categories with over 95% accuracy. When confidence is below 85%, it asks you a quick question rather than guessing wrong.</p>
 
 <h2>Bank Connections</h2>
-<p>Both platforms connect to thousands of banks. Mint uses Intuit-owned connections, while LedgerIQ uses Plaid, the industry-standard bank aggregator trusted by Venmo, Robinhood, and thousands of fintech apps. LedgerIQ also lets you upload PDF or CSV bank statements directly if you prefer not to link your bank electronically.</p>
+<p>Both platforms connect to thousands of banks. Mint uses Intuit-owned connections, while SpendifiAI uses Plaid, the industry-standard bank aggregator trusted by Venmo, Robinhood, and thousands of fintech apps. SpendifiAI also lets you upload PDF or CSV bank statements directly if you prefer not to link your bank electronically.</p>
 
 <h2>Tax Features</h2>
-<p>This is where LedgerIQ pulls far ahead. Mint was never designed for tax preparation. LedgerIQ automatically maps your expenses to IRS Schedule C categories and lets you export your deductions as Excel, PDF, or CSV files. For freelancers and self-employed workers, this feature alone can save hours during tax season and potentially thousands of dollars in missed deductions.</p>
+<p>This is where SpendifiAI pulls far ahead. Mint was never designed for tax preparation. SpendifiAI automatically maps your expenses to IRS Schedule C categories and lets you export your deductions as Excel, PDF, or CSV files. For freelancers and self-employed workers, this feature alone can save hours during tax season and potentially thousands of dollars in missed deductions.</p>
 
 <h2>Subscription Detection</h2>
-<p>Mint offers basic bill reminders, but LedgerIQ actively scans your transactions for recurring charges and detects when subscriptions have stopped billing. It analyzes billing frequency (weekly, monthly, quarterly, annual) and flags subscriptions you may have forgotten about, complete with estimated annual savings if you cancel.</p>
+<p>Mint offers basic bill reminders, but SpendifiAI actively scans your transactions for recurring charges and detects when subscriptions have stopped billing. It analyzes billing frequency (weekly, monthly, quarterly, annual) and flags subscriptions you may have forgotten about, complete with estimated annual savings if you cancel.</p>
 
 <h2>Privacy and Ads</h2>
-<p>Mint is ad-supported and actively recommends credit cards and financial products based on your data. LedgerIQ has zero ads and does not sell your financial data. Your information is encrypted at rest and never shared with third parties.</p>
+<p>Mint is ad-supported and actively recommends credit cards and financial products based on your data. SpendifiAI has zero ads and does not sell your financial data. Your information is encrypted at rest and never shared with third parties.</p>
 
 <h2>Verdict</h2>
-<p>Mint is a decent basic budgeting tool, but it has not evolved significantly in years. LedgerIQ offers everything Mint does plus AI categorization, tax exports, subscription detection, and statement uploads, all for free and without ads. If you are a freelancer or self-employed, the choice is clear.</p>
+<p>Mint is a decent basic budgeting tool, but it has not evolved significantly in years. SpendifiAI offers everything Mint does plus AI categorization, tax exports, subscription detection, and statement uploads, all for free and without ads. If you are a freelancer or self-employed, the choice is clear.</p>
 
-<p><strong>Ready to upgrade from Mint?</strong> <a href="/register">Create your free LedgerIQ account</a> and import your transactions in minutes. You can also explore our <a href="/features">full feature list</a> to see everything LedgerIQ offers.</p>',
+<p><strong>Ready to upgrade from Mint?</strong> <a href="/register">Create your free SpendifiAI account</a> and import your transactions in minutes. You can also explore our <a href="/features">full feature list</a> to see everything SpendifiAI offers.</p>',
                 'is_published' => true,
                 'published_at' => '2026-01-05 09:00:00',
                 'created_at' => now(),
                 'updated_at' => now(),
             ],
             [
-                'slug' => 'ledgeriq-vs-expensify',
-                'title' => 'LedgerIQ vs Expensify: Free AI Expense Tracker vs Business Tool',
-                'meta_description' => 'LedgerIQ vs Expensify compared for freelancers and self-employed. See pricing, AI features, tax exports, and why LedgerIQ is the better free option.',
-                'h1' => 'LedgerIQ vs Expensify: Which Expense Tracker Wins in 2026?',
+                'slug' => 'spendifiai-vs-expensify',
+                'title' => 'SpendifiAI vs Expensify: Free AI Expense Tracker vs Business Tool',
+                'meta_description' => 'SpendifiAI vs Expensify compared for freelancers and self-employed. See pricing, AI features, tax exports, and why SpendifiAI is the better free option.',
+                'h1' => 'SpendifiAI vs Expensify: Which Expense Tracker Wins in 2026?',
                 'category' => 'comparison',
-                'keywords' => json_encode(['ledgeriq vs expensify', 'expensify alternative free', 'expense tracker comparison', 'best expense app freelancers']),
-                'excerpt' => 'Expensify is built for corporate expense reports. LedgerIQ is built for freelancers and self-employed individuals who need AI categorization and tax exports. Here is the full comparison.',
-                'content' => '<p>Expensify made its name as the go-to expense reporting tool for businesses. Employees snap receipt photos, managers approve reports, and accountants reconcile. But if you are a freelancer, solopreneur, or self-employed worker, Expensify is expensive overkill. LedgerIQ gives you AI-powered expense tracking with tax features purpose-built for independent workers, and it is completely free.</p>
+                'keywords' => json_encode(['spendifiai vs expensify', 'expensify alternative free', 'expense tracker comparison', 'best expense app freelancers']),
+                'excerpt' => 'Expensify is built for corporate expense reports. SpendifiAI is built for freelancers and self-employed individuals who need AI categorization and tax exports. Here is the full comparison.',
+                'content' => '<p>Expensify made its name as the go-to expense reporting tool for businesses. Employees snap receipt photos, managers approve reports, and accountants reconcile. But if you are a freelancer, solopreneur, or self-employed worker, Expensify is expensive overkill. SpendifiAI gives you AI-powered expense tracking with tax features purpose-built for independent workers, and it is completely free.</p>
 
 <h2>Quick Comparison</h2>
 <table>
-<thead><tr><th>Feature</th><th>LedgerIQ</th><th>Expensify</th></tr></thead>
+<thead><tr><th>Feature</th><th>SpendifiAI</th><th>Expensify</th></tr></thead>
 <tbody>
 <tr><td>Price</td><td>Free</td><td>$5-18/user/month</td></tr>
 <tr><td>Target User</td><td>Freelancers, self-employed</td><td>Businesses, teams</td></tr>
@@ -105,43 +105,43 @@ class SeoPageSeeder extends Seeder
 
 <h2>Expense Tracking</h2>
 <p>Expensify focuses on receipt scanning and expense report generation. You photograph a receipt, SmartScan extracts the details, and you submit it for approval. This workflow makes sense for employees but is unnecessary overhead for solo workers.</p>
-<p>LedgerIQ automatically imports transactions from your bank and uses Claude AI to categorize every expense. No receipt scanning required for most transactions. When you do have email receipts, LedgerIQ parses them automatically and matches them to bank transactions.</p>
+<p>SpendifiAI automatically imports transactions from your bank and uses Claude AI to categorize every expense. No receipt scanning required for most transactions. When you do have email receipts, SpendifiAI parses them automatically and matches them to bank transactions.</p>
 
 <h2>Bank Connections</h2>
-<p>Both platforms connect to major banks. Expensify uses its own integration layer, while LedgerIQ uses Plaid for reliable, secure connections to over 12,000 financial institutions. LedgerIQ also accepts PDF and CSV bank statement uploads for banks that do not support electronic connections.</p>
+<p>Both platforms connect to major banks. Expensify uses its own integration layer, while SpendifiAI uses Plaid for reliable, secure connections to over 12,000 financial institutions. SpendifiAI also accepts PDF and CSV bank statement uploads for banks that do not support electronic connections.</p>
 
 <h2>Tax Features</h2>
-<p>Expensify can export data to accounting software, but it does not understand tax categories. LedgerIQ maps every expense to the appropriate IRS Schedule C line item and generates tax-ready exports in Excel, PDF, or CSV format. This means your accountant gets organized deductions instead of a raw transaction dump.</p>
+<p>Expensify can export data to accounting software, but it does not understand tax categories. SpendifiAI maps every expense to the appropriate IRS Schedule C line item and generates tax-ready exports in Excel, PDF, or CSV format. This means your accountant gets organized deductions instead of a raw transaction dump.</p>
 <p>For self-employed workers, this is worth hundreds of dollars in saved accountant fees and potentially thousands in deductions you might otherwise miss.</p>
 
 <h2>Pricing</h2>
-<p>Expensify charges $5 per user per month on the Collect plan and up to $18 per user on the Control plan. Even for a single user, that is $60 to $216 per year. LedgerIQ is completely free with no usage limits, no premium tiers, and no feature gating.</p>
+<p>Expensify charges $5 per user per month on the Collect plan and up to $18 per user on the Control plan. Even for a single user, that is $60 to $216 per year. SpendifiAI is completely free with no usage limits, no premium tiers, and no feature gating.</p>
 
 <h2>Subscription Detection</h2>
-<p>Expensify has no subscription tracking. LedgerIQ automatically detects recurring charges across all your connected accounts, identifies forgotten subscriptions, and shows you exactly how much you could save by canceling unused services.</p>
+<p>Expensify has no subscription tracking. SpendifiAI automatically detects recurring charges across all your connected accounts, identifies forgotten subscriptions, and shows you exactly how much you could save by canceling unused services.</p>
 
 <h2>Verdict</h2>
-<p>Expensify is the right choice for businesses with teams that need expense report approval workflows. For everyone else, especially freelancers and self-employed individuals, LedgerIQ is the clear winner. You get better AI categorization, tax-ready exports, subscription detection, and savings recommendations, all for free.</p>
+<p>Expensify is the right choice for businesses with teams that need expense report approval workflows. For everyone else, especially freelancers and self-employed individuals, SpendifiAI is the clear winner. You get better AI categorization, tax-ready exports, subscription detection, and savings recommendations, all for free.</p>
 
-<p><strong>Stop paying for expense tracking.</strong> <a href="/register">Sign up for LedgerIQ free</a> and get AI-powered categorization with IRS-ready tax exports. See our <a href="/features">features page</a> for the full breakdown.</p>',
+<p><strong>Stop paying for expense tracking.</strong> <a href="/register">Sign up for SpendifiAI free</a> and get AI-powered categorization with IRS-ready tax exports. See our <a href="/features">features page</a> for the full breakdown.</p>',
                 'is_published' => true,
                 'published_at' => '2026-01-07 10:30:00',
                 'created_at' => now(),
                 'updated_at' => now(),
             ],
             [
-                'slug' => 'ledgeriq-vs-quickbooks-self-employed',
-                'title' => 'LedgerIQ vs QuickBooks Self-Employed: Free AI Alternative in 2026',
-                'meta_description' => 'Compare LedgerIQ and QuickBooks Self-Employed for freelancers. AI categorization, Schedule C exports, and subscription detection, all free vs $15/mo.',
-                'h1' => 'LedgerIQ vs QuickBooks Self-Employed: Full Comparison',
+                'slug' => 'spendifiai-vs-quickbooks-self-employed',
+                'title' => 'SpendifiAI vs QuickBooks Self-Employed: Free AI Alternative in 2026',
+                'meta_description' => 'Compare SpendifiAI and QuickBooks Self-Employed for freelancers. AI categorization, Schedule C exports, and subscription detection, all free vs $15/mo.',
+                'h1' => 'SpendifiAI vs QuickBooks Self-Employed: Full Comparison',
                 'category' => 'comparison',
-                'keywords' => json_encode(['ledgeriq vs quickbooks self employed', 'quickbooks alternative free', 'freelancer expense tracker', 'schedule c expense tracking']),
-                'excerpt' => 'QuickBooks Self-Employed costs $15/month for basic expense tracking and tax categorization. LedgerIQ offers AI-powered categorization and Schedule C exports completely free.',
-                'content' => '<p>QuickBooks Self-Employed is Intuit\'s offering for freelancers and independent contractors. At $15 per month ($180 per year), it provides mileage tracking, basic expense categorization, and quarterly tax estimates. LedgerIQ delivers more advanced AI categorization, subscription detection, and savings analysis for free.</p>
+                'keywords' => json_encode(['spendifiai vs quickbooks self employed', 'quickbooks alternative free', 'freelancer expense tracker', 'schedule c expense tracking']),
+                'excerpt' => 'QuickBooks Self-Employed costs $15/month for basic expense tracking and tax categorization. SpendifiAI offers AI-powered categorization and Schedule C exports completely free.',
+                'content' => '<p>QuickBooks Self-Employed is Intuit\'s offering for freelancers and independent contractors. At $15 per month ($180 per year), it provides mileage tracking, basic expense categorization, and quarterly tax estimates. SpendifiAI delivers more advanced AI categorization, subscription detection, and savings analysis for free.</p>
 
 <h2>Quick Comparison</h2>
 <table>
-<thead><tr><th>Feature</th><th>LedgerIQ</th><th>QuickBooks Self-Employed</th></tr></thead>
+<thead><tr><th>Feature</th><th>SpendifiAI</th><th>QuickBooks Self-Employed</th></tr></thead>
 <tbody>
 <tr><td>Price</td><td>Free</td><td>$15/month ($180/year)</td></tr>
 <tr><td>AI Categorization</td><td>Claude AI contextual engine</td><td>Basic rule-based</td></tr>
@@ -155,43 +155,43 @@ class SeoPageSeeder extends Seeder
 
 <h2>Expense Tracking</h2>
 <p>QuickBooks Self-Employed categorizes transactions using simple rules. You swipe left or right on each transaction to mark it as business or personal. While intuitive, this manual approach becomes tedious when you have hundreds of transactions per month.</p>
-<p>LedgerIQ uses Claude AI to automatically categorize transactions with over 95% accuracy. It considers merchant name, amount, frequency, account purpose (business vs. personal), and transaction patterns. You only need to intervene for the small percentage of ambiguous transactions, and even then, LedgerIQ asks smart questions to learn your preferences.</p>
+<p>SpendifiAI uses Claude AI to automatically categorize transactions with over 95% accuracy. It considers merchant name, amount, frequency, account purpose (business vs. personal), and transaction patterns. You only need to intervene for the small percentage of ambiguous transactions, and even then, SpendifiAI asks smart questions to learn your preferences.</p>
 
 <h2>Tax Features</h2>
 <p>QuickBooks Self-Employed estimates quarterly taxes and integrates with TurboTax. However, this locks you into the Intuit ecosystem. If you use a different tax preparer or CPA, exporting your data is cumbersome.</p>
-<p>LedgerIQ maps expenses to all 22 IRS Schedule C categories and exports clean, organized deduction reports in Excel, PDF, or CSV format. These work with any tax software or accountant. The average self-employed worker has $12,000 to $15,000 in annual deductions. Proper categorization ensures you do not miss any.</p>
+<p>SpendifiAI maps expenses to all 22 IRS Schedule C categories and exports clean, organized deduction reports in Excel, PDF, or CSV format. These work with any tax software or accountant. The average self-employed worker has $12,000 to $15,000 in annual deductions. Proper categorization ensures you do not miss any.</p>
 
 <h2>Subscription Detection</h2>
-<p>QuickBooks Self-Employed has no subscription tracking capability. LedgerIQ scans your transaction history for recurring patterns, identifies active subscriptions, detects when services stop billing, and calculates potential savings from canceling unused subscriptions. Users typically find $50 to $200 per month in forgotten or underused subscriptions.</p>
+<p>QuickBooks Self-Employed has no subscription tracking capability. SpendifiAI scans your transaction history for recurring patterns, identifies active subscriptions, detects when services stop billing, and calculates potential savings from canceling unused subscriptions. Users typically find $50 to $200 per month in forgotten or underused subscriptions.</p>
 
 <h2>Savings Recommendations</h2>
-<p>LedgerIQ analyzes your last 90 days of spending with Claude AI and generates personalized recommendations for reducing expenses. These are not generic tips. They are specific, actionable suggestions based on your actual spending patterns, like switching to an annual plan for a subscription you use daily or canceling a gym membership you have not used in three months.</p>
+<p>SpendifiAI analyzes your last 90 days of spending with Claude AI and generates personalized recommendations for reducing expenses. These are not generic tips. They are specific, actionable suggestions based on your actual spending patterns, like switching to an annual plan for a subscription you use daily or canceling a gym membership you have not used in three months.</p>
 
 <h2>Pricing</h2>
-<p>QuickBooks Self-Employed costs $15 per month, and that price often increases after promotional periods. The TurboTax bundle can reach $25 per month. Over a year, you are spending $180 to $300 on basic expense tracking. LedgerIQ provides more advanced features for zero cost.</p>
+<p>QuickBooks Self-Employed costs $15 per month, and that price often increases after promotional periods. The TurboTax bundle can reach $25 per month. Over a year, you are spending $180 to $300 on basic expense tracking. SpendifiAI provides more advanced features for zero cost.</p>
 
 <h2>Verdict</h2>
-<p>QuickBooks Self-Employed has the advantage of mileage tracking and deep TurboTax integration. But if you do not need those specific features, LedgerIQ is the better choice. You get superior AI categorization, flexible tax exports, subscription detection, and savings analysis without paying $180 per year.</p>
+<p>QuickBooks Self-Employed has the advantage of mileage tracking and deep TurboTax integration. But if you do not need those specific features, SpendifiAI is the better choice. You get superior AI categorization, flexible tax exports, subscription detection, and savings analysis without paying $180 per year.</p>
 
-<p><strong>Save $180/year on expense tracking.</strong> <a href="/register">Try LedgerIQ free</a> and get AI-powered Schedule C categorization today. Visit our <a href="/features">features page</a> to learn more.</p>',
+<p><strong>Save $180/year on expense tracking.</strong> <a href="/register">Try SpendifiAI free</a> and get AI-powered Schedule C categorization today. Visit our <a href="/features">features page</a> to learn more.</p>',
                 'is_published' => true,
                 'published_at' => '2026-01-09 08:15:00',
                 'created_at' => now(),
                 'updated_at' => now(),
             ],
             [
-                'slug' => 'ledgeriq-vs-wave',
-                'title' => 'LedgerIQ vs Wave Accounting: AI Expense Tracking vs Full Accounting',
-                'meta_description' => 'Compare LedgerIQ and Wave Accounting for freelancers. See how AI categorization and tax exports compare to Wave\'s invoicing and bookkeeping features.',
-                'h1' => 'LedgerIQ vs Wave Accounting: Which Is Right for You?',
+                'slug' => 'spendifiai-vs-wave',
+                'title' => 'SpendifiAI vs Wave Accounting: AI Expense Tracking vs Full Accounting',
+                'meta_description' => 'Compare SpendifiAI and Wave Accounting for freelancers. See how AI categorization and tax exports compare to Wave\'s invoicing and bookkeeping features.',
+                'h1' => 'SpendifiAI vs Wave Accounting: Which Is Right for You?',
                 'category' => 'comparison',
-                'keywords' => json_encode(['ledgeriq vs wave', 'wave accounting alternative', 'free expense tracker vs wave', 'wave vs ledgeriq']),
-                'excerpt' => 'Wave offers free invoicing and accounting. LedgerIQ offers free AI-powered expense tracking with tax exports. Both are free, but they serve different needs.',
-                'content' => '<p>Wave Accounting is a popular free tool for small businesses and freelancers. It offers invoicing, basic accounting, and receipt scanning. LedgerIQ takes a different approach, focusing on AI-powered expense categorization, subscription detection, and tax deduction exports. Both are free, but they solve different problems.</p>
+                'keywords' => json_encode(['spendifiai vs wave', 'wave accounting alternative', 'free expense tracker vs wave', 'wave vs spendifiai']),
+                'excerpt' => 'Wave offers free invoicing and accounting. SpendifiAI offers free AI-powered expense tracking with tax exports. Both are free, but they serve different needs.',
+                'content' => '<p>Wave Accounting is a popular free tool for small businesses and freelancers. It offers invoicing, basic accounting, and receipt scanning. SpendifiAI takes a different approach, focusing on AI-powered expense categorization, subscription detection, and tax deduction exports. Both are free, but they solve different problems.</p>
 
 <h2>Quick Comparison</h2>
 <table>
-<thead><tr><th>Feature</th><th>LedgerIQ</th><th>Wave</th></tr></thead>
+<thead><tr><th>Feature</th><th>SpendifiAI</th><th>Wave</th></tr></thead>
 <tbody>
 <tr><td>Price</td><td>Free</td><td>Free (paid add-ons)</td></tr>
 <tr><td>Primary Focus</td><td>AI expense tracking and taxes</td><td>Invoicing and accounting</td></tr>
@@ -206,46 +206,46 @@ class SeoPageSeeder extends Seeder
 
 <h2>Expense Tracking</h2>
 <p>Wave treats expense tracking as part of a broader accounting workflow. You connect your bank, transactions import, and you manually categorize them into accounting categories (Chart of Accounts). It works but requires understanding double-entry bookkeeping concepts.</p>
-<p>LedgerIQ is purpose-built for expense tracking. Claude AI categorizes every transaction automatically, understanding context like whether a purchase is business or personal, recurring or one-time, and which tax category it belongs to. No accounting knowledge required.</p>
+<p>SpendifiAI is purpose-built for expense tracking. Claude AI categorizes every transaction automatically, understanding context like whether a purchase is business or personal, recurring or one-time, and which tax category it belongs to. No accounting knowledge required.</p>
 
 <h2>Bank Connections</h2>
-<p>Wave connects to banks through its own integration. LedgerIQ uses Plaid, the same secure infrastructure used by major fintech apps. Both support major banks, but LedgerIQ also allows PDF and CSV statement uploads for banks without electronic connections, giving you more flexibility.</p>
+<p>Wave connects to banks through its own integration. SpendifiAI uses Plaid, the same secure infrastructure used by major fintech apps. Both support major banks, but SpendifiAI also allows PDF and CSV statement uploads for banks without electronic connections, giving you more flexibility.</p>
 
 <h2>Tax Features</h2>
 <p>Wave generates profit and loss statements and other accounting reports. These are useful but generic. You or your accountant still needs to map expenses to specific tax categories.</p>
-<p>LedgerIQ automatically maps every expense to the correct IRS Schedule C line item. When tax season arrives, you export a clean spreadsheet or PDF with all your deductions organized by category. This can save hours of accountant time and ensure no deduction is missed.</p>
+<p>SpendifiAI automatically maps every expense to the correct IRS Schedule C line item. When tax season arrives, you export a clean spreadsheet or PDF with all your deductions organized by category. This can save hours of accountant time and ensure no deduction is missed.</p>
 
 <h2>Where Wave Wins</h2>
-<p>Wave is the better choice if you need invoicing, payment processing, or payroll. These are core business operations that LedgerIQ does not cover. Wave also offers basic accounting reports like balance sheets and income statements.</p>
+<p>Wave is the better choice if you need invoicing, payment processing, or payroll. These are core business operations that SpendifiAI does not cover. Wave also offers basic accounting reports like balance sheets and income statements.</p>
 
-<h2>Where LedgerIQ Wins</h2>
-<p>LedgerIQ is the better choice for expense tracking specifically. AI categorization is dramatically more accurate than Wave\'s basic auto-categorization. Subscription detection finds recurring charges you have forgotten about. Savings recommendations analyze your spending and suggest specific ways to cut costs. And tax exports are mapped to IRS categories, not generic accounting categories.</p>
+<h2>Where SpendifiAI Wins</h2>
+<p>SpendifiAI is the better choice for expense tracking specifically. AI categorization is dramatically more accurate than Wave\'s basic auto-categorization. Subscription detection finds recurring charges you have forgotten about. Savings recommendations analyze your spending and suggest specific ways to cut costs. And tax exports are mapped to IRS categories, not generic accounting categories.</p>
 
 <h2>Using Both Together</h2>
-<p>Many freelancers benefit from using both tools. Wave handles invoicing and client payments, while LedgerIQ handles expense tracking, categorization, and tax preparation. Since both are free, there is no cost to using them together.</p>
+<p>Many freelancers benefit from using both tools. Wave handles invoicing and client payments, while SpendifiAI handles expense tracking, categorization, and tax preparation. Since both are free, there is no cost to using them together.</p>
 
 <h2>Verdict</h2>
-<p>If you need full accounting with invoicing, use Wave. If you need smart expense tracking with tax exports and subscription detection, use LedgerIQ. For many freelancers, the ideal setup is both.</p>
+<p>If you need full accounting with invoicing, use Wave. If you need smart expense tracking with tax exports and subscription detection, use SpendifiAI. For many freelancers, the ideal setup is both.</p>
 
-<p><strong>Get smarter expense tracking for free.</strong> <a href="/register">Create your LedgerIQ account</a> and let AI handle your categorization. See how it works on our <a href="/features">features page</a>.</p>',
+<p><strong>Get smarter expense tracking for free.</strong> <a href="/register">Create your SpendifiAI account</a> and let AI handle your categorization. See how it works on our <a href="/features">features page</a>.</p>',
                 'is_published' => true,
                 'published_at' => '2026-01-11 11:00:00',
                 'created_at' => now(),
                 'updated_at' => now(),
             ],
             [
-                'slug' => 'ledgeriq-vs-freshbooks',
-                'title' => 'LedgerIQ vs FreshBooks: Free AI Tracker vs Paid Accounting Software',
-                'meta_description' => 'Compare LedgerIQ and FreshBooks for freelancers. AI expense categorization and tax exports for free vs FreshBooks starting at $17/month.',
-                'h1' => 'LedgerIQ vs FreshBooks: Detailed 2026 Comparison',
+                'slug' => 'spendifiai-vs-freshbooks',
+                'title' => 'SpendifiAI vs FreshBooks: Free AI Tracker vs Paid Accounting Software',
+                'meta_description' => 'Compare SpendifiAI and FreshBooks for freelancers. AI expense categorization and tax exports for free vs FreshBooks starting at $17/month.',
+                'h1' => 'SpendifiAI vs FreshBooks: Detailed 2026 Comparison',
                 'category' => 'comparison',
-                'keywords' => json_encode(['ledgeriq vs freshbooks', 'freshbooks alternative free', 'freelancer expense tracking', 'freshbooks comparison 2026']),
-                'excerpt' => 'FreshBooks is a popular paid accounting tool for freelancers starting at $17/month. LedgerIQ provides AI-powered expense tracking and tax exports for free. Here is how they compare.',
-                'content' => '<p>FreshBooks has built a loyal following among freelancers with its clean interface and strong invoicing features. Starting at $17 per month ($204 per year), it covers time tracking, invoicing, expenses, and basic accounting. LedgerIQ focuses specifically on expense tracking and tax preparation, using AI to deliver features FreshBooks cannot match, all for free.</p>
+                'keywords' => json_encode(['spendifiai vs freshbooks', 'freshbooks alternative free', 'freelancer expense tracking', 'freshbooks comparison 2026']),
+                'excerpt' => 'FreshBooks is a popular paid accounting tool for freelancers starting at $17/month. SpendifiAI provides AI-powered expense tracking and tax exports for free. Here is how they compare.',
+                'content' => '<p>FreshBooks has built a loyal following among freelancers with its clean interface and strong invoicing features. Starting at $17 per month ($204 per year), it covers time tracking, invoicing, expenses, and basic accounting. SpendifiAI focuses specifically on expense tracking and tax preparation, using AI to deliver features FreshBooks cannot match, all for free.</p>
 
 <h2>Quick Comparison</h2>
 <table>
-<thead><tr><th>Feature</th><th>LedgerIQ</th><th>FreshBooks</th></tr></thead>
+<thead><tr><th>Feature</th><th>SpendifiAI</th><th>FreshBooks</th></tr></thead>
 <tbody>
 <tr><td>Price</td><td>Free</td><td>$17-55/month</td></tr>
 <tr><td>AI Categorization</td><td>Claude AI engine</td><td>Basic rules</td></tr>
@@ -260,28 +260,28 @@ class SeoPageSeeder extends Seeder
 
 <h2>Expense Tracking</h2>
 <p>FreshBooks offers solid expense tracking with receipt capture and basic categorization. You can connect your bank and manually categorize transactions. The mobile app lets you photograph receipts on the go. However, categorization is manual or rule-based, meaning you do the work.</p>
-<p>LedgerIQ automates the entire categorization process with Claude AI. Each transaction is analyzed in context, considering the merchant, amount, frequency, and your account type. Accuracy exceeds 95% for most users, and the system learns from your corrections over time.</p>
+<p>SpendifiAI automates the entire categorization process with Claude AI. Each transaction is analyzed in context, considering the merchant, amount, frequency, and your account type. Accuracy exceeds 95% for most users, and the system learns from your corrections over time.</p>
 
 <h2>Tax Features</h2>
 <p>FreshBooks generates reports that help with tax preparation, including profit and loss statements. But it does not map expenses to IRS Schedule C line items. Your accountant still needs to interpret the data.</p>
-<p>LedgerIQ maps every categorized expense directly to Schedule C categories. The export includes your total deductions by category, ready to transfer directly onto your tax return. This precision is worth real money: the average freelancer misses $3,000 to $5,000 in deductions annually due to poor categorization.</p>
+<p>SpendifiAI maps every categorized expense directly to Schedule C categories. The export includes your total deductions by category, ready to transfer directly onto your tax return. This precision is worth real money: the average freelancer misses $3,000 to $5,000 in deductions annually due to poor categorization.</p>
 
 <h2>Subscription Detection and Savings</h2>
-<p>FreshBooks has no subscription tracking or savings recommendations. LedgerIQ automatically identifies all recurring charges, flags subscriptions that may have stopped billing, and uses AI to suggest personalized ways to reduce your monthly expenses. Many users discover $100 or more in monthly savings they did not know about.</p>
+<p>FreshBooks has no subscription tracking or savings recommendations. SpendifiAI automatically identifies all recurring charges, flags subscriptions that may have stopped billing, and uses AI to suggest personalized ways to reduce your monthly expenses. Many users discover $100 or more in monthly savings they did not know about.</p>
 
 <h2>Pricing</h2>
-<p>FreshBooks Lite starts at $17 per month for up to 5 billable clients. The Plus plan is $30 per month, and Premium is $55 per month. Over a year, you are spending $204 to $660 on the software. LedgerIQ is free with no client limits, no feature restrictions, and no hidden fees.</p>
+<p>FreshBooks Lite starts at $17 per month for up to 5 billable clients. The Plus plan is $30 per month, and Premium is $55 per month. Over a year, you are spending $204 to $660 on the software. SpendifiAI is free with no client limits, no feature restrictions, and no hidden fees.</p>
 
 <h2>When to Choose FreshBooks</h2>
 <p>FreshBooks is the right choice if you need invoicing, time tracking, and client management in one platform. It excels at the business operations side of freelancing.</p>
 
-<h2>When to Choose LedgerIQ</h2>
-<p>LedgerIQ is the right choice if your primary need is smart expense tracking and tax preparation. AI categorization, Schedule C exports, and subscription detection are all areas where LedgerIQ significantly outperforms FreshBooks.</p>
+<h2>When to Choose SpendifiAI</h2>
+<p>SpendifiAI is the right choice if your primary need is smart expense tracking and tax preparation. AI categorization, Schedule C exports, and subscription detection are all areas where SpendifiAI significantly outperforms FreshBooks.</p>
 
 <h2>Verdict</h2>
-<p>FreshBooks and LedgerIQ serve different primary needs. If you already use FreshBooks for invoicing, add LedgerIQ for free to get AI-powered expense categorization and tax exports. If you do not need invoicing, LedgerIQ alone covers expense tracking better than FreshBooks at zero cost.</p>
+<p>FreshBooks and SpendifiAI serve different primary needs. If you already use FreshBooks for invoicing, add SpendifiAI for free to get AI-powered expense categorization and tax exports. If you do not need invoicing, SpendifiAI alone covers expense tracking better than FreshBooks at zero cost.</p>
 
-<p><strong>Add AI expense tracking to your workflow.</strong> <a href="/register">Sign up for LedgerIQ free</a> and start categorizing with Claude AI. Learn more on our <a href="/features">features page</a>.</p>',
+<p><strong>Add AI expense tracking to your workflow.</strong> <a href="/register">Sign up for SpendifiAI free</a> and start categorizing with Claude AI. Learn more on our <a href="/features">features page</a>.</p>',
                 'is_published' => true,
                 'published_at' => '2026-01-13 14:00:00',
                 'created_at' => now(),
@@ -294,18 +294,18 @@ class SeoPageSeeder extends Seeder
     {
         return [
             [
-                'slug' => 'ledgeriq-vs-ynab',
-                'title' => 'LedgerIQ vs YNAB: Free AI Tracker vs $14.99/Month Budget App',
-                'meta_description' => 'Compare LedgerIQ and YNAB (You Need A Budget). AI expense tracking and tax exports for free vs YNAB\'s zero-based budgeting at $14.99/month.',
-                'h1' => 'LedgerIQ vs YNAB: Which Should You Choose in 2026?',
+                'slug' => 'spendifiai-vs-ynab',
+                'title' => 'SpendifiAI vs YNAB: Free AI Tracker vs $14.99/Month Budget App',
+                'meta_description' => 'Compare SpendifiAI and YNAB (You Need A Budget). AI expense tracking and tax exports for free vs YNAB\'s zero-based budgeting at $14.99/month.',
+                'h1' => 'SpendifiAI vs YNAB: Which Should You Choose in 2026?',
                 'category' => 'comparison',
-                'keywords' => json_encode(['ledgeriq vs ynab', 'ynab alternative free', 'you need a budget alternative', 'free budgeting app 2026']),
-                'excerpt' => 'YNAB is beloved for its zero-based budgeting philosophy, but at $14.99/month it is not cheap. LedgerIQ offers AI-powered categorization and tax features for free. Different tools for different needs.',
-                'content' => '<p>YNAB (You Need A Budget) has a passionate user base thanks to its zero-based budgeting methodology. Every dollar gets a job, and users report paying off debt and building savings. But at $14.99 per month ($99 per year), it is one of the most expensive personal finance apps. LedgerIQ takes a different approach with AI-powered expense tracking and tax optimization, all for free.</p>
+                'keywords' => json_encode(['spendifiai vs ynab', 'ynab alternative free', 'you need a budget alternative', 'free budgeting app 2026']),
+                'excerpt' => 'YNAB is beloved for its zero-based budgeting philosophy, but at $14.99/month it is not cheap. SpendifiAI offers AI-powered categorization and tax features for free. Different tools for different needs.',
+                'content' => '<p>YNAB (You Need A Budget) has a passionate user base thanks to its zero-based budgeting methodology. Every dollar gets a job, and users report paying off debt and building savings. But at $14.99 per month ($99 per year), it is one of the most expensive personal finance apps. SpendifiAI takes a different approach with AI-powered expense tracking and tax optimization, all for free.</p>
 
 <h2>Quick Comparison</h2>
 <table>
-<thead><tr><th>Feature</th><th>LedgerIQ</th><th>YNAB</th></tr></thead>
+<thead><tr><th>Feature</th><th>SpendifiAI</th><th>YNAB</th></tr></thead>
 <tbody>
 <tr><td>Price</td><td>Free</td><td>$14.99/month or $99/year</td></tr>
 <tr><td>Philosophy</td><td>AI-automated tracking</td><td>Manual zero-based budgeting</td></tr>
@@ -319,43 +319,43 @@ class SeoPageSeeder extends Seeder
 
 <h2>Different Philosophies</h2>
 <p>YNAB is intentionally manual. The founders believe that manually assigning every dollar forces you to be mindful about spending. This works for people who want hands-on control over every transaction. It requires 15 to 30 minutes per week of active management.</p>
-<p>LedgerIQ automates the tedious parts. AI handles categorization, subscription detection runs in the background, and savings recommendations are generated automatically. You spend your time reviewing insights and making decisions, not sorting transactions.</p>
+<p>SpendifiAI automates the tedious parts. AI handles categorization, subscription detection runs in the background, and savings recommendations are generated automatically. You spend your time reviewing insights and making decisions, not sorting transactions.</p>
 
 <h2>Expense Categorization</h2>
 <p>YNAB requires you to manually categorize every transaction into your budget categories. While this forces engagement, it also means errors when you are tired or rushing. Many YNAB users report falling behind and then spending hours catching up.</p>
-<p>LedgerIQ categorizes transactions automatically with Claude AI. Accuracy exceeds 95%, and the system asks clarifying questions for ambiguous transactions rather than guessing wrong. You review and approve rather than manually sort.</p>
+<p>SpendifiAI categorizes transactions automatically with Claude AI. Accuracy exceeds 95%, and the system asks clarifying questions for ambiguous transactions rather than guessing wrong. You review and approve rather than manually sort.</p>
 
 <h2>Tax Features</h2>
-<p>YNAB has zero tax features. It is a pure budgeting tool. If you are self-employed, you need a separate tool for tax categorization and deduction tracking. LedgerIQ maps expenses directly to IRS Schedule C categories and exports tax-ready reports. For freelancers, this is a critical gap in YNAB.</p>
+<p>YNAB has zero tax features. It is a pure budgeting tool. If you are self-employed, you need a separate tool for tax categorization and deduction tracking. SpendifiAI maps expenses directly to IRS Schedule C categories and exports tax-ready reports. For freelancers, this is a critical gap in YNAB.</p>
 
 <h2>Subscription Detection</h2>
-<p>YNAB treats subscriptions like any other expense. You manually budget for them. LedgerIQ automatically detects recurring charges, identifies billing frequency, and alerts you when subscriptions may be unused. The average American spends $219 per month on subscriptions, and studies show 42% of people forget at least one subscription they are paying for.</p>
+<p>YNAB treats subscriptions like any other expense. You manually budget for them. SpendifiAI automatically detects recurring charges, identifies billing frequency, and alerts you when subscriptions may be unused. The average American spends $219 per month on subscriptions, and studies show 42% of people forget at least one subscription they are paying for.</p>
 
 <h2>Pricing</h2>
-<p>YNAB costs $14.99 per month or $99 per year. While many users say it pays for itself through better budgeting habits, the cost is a barrier for people already trying to save money. LedgerIQ is completely free with no premium tiers or feature restrictions.</p>
+<p>YNAB costs $14.99 per month or $99 per year. While many users say it pays for itself through better budgeting habits, the cost is a barrier for people already trying to save money. SpendifiAI is completely free with no premium tiers or feature restrictions.</p>
 
 <h2>Verdict</h2>
-<p>YNAB is excellent if you want a disciplined, hands-on budgeting system and are willing to invest time and money. LedgerIQ is better if you want automated expense tracking, tax preparation, and subscription management without the cost or time commitment. Many users actually benefit from using both.</p>
+<p>YNAB is excellent if you want a disciplined, hands-on budgeting system and are willing to invest time and money. SpendifiAI is better if you want automated expense tracking, tax preparation, and subscription management without the cost or time commitment. Many users actually benefit from using both.</p>
 
-<p><strong>Get AI expense tracking for free.</strong> <a href="/register">Create your LedgerIQ account</a> and let AI categorize your spending automatically. Check out our <a href="/features">features</a> to see everything included.</p>',
+<p><strong>Get AI expense tracking for free.</strong> <a href="/register">Create your SpendifiAI account</a> and let AI categorize your spending automatically. Check out our <a href="/features">features</a> to see everything included.</p>',
                 'is_published' => true,
                 'published_at' => '2026-01-14 09:00:00',
                 'created_at' => now(),
                 'updated_at' => now(),
             ],
             [
-                'slug' => 'ledgeriq-vs-personal-capital',
-                'title' => 'LedgerIQ vs Empower (Personal Capital): Expense Tracking Compared',
-                'meta_description' => 'Compare LedgerIQ and Empower Personal Capital for expense tracking. AI categorization and tax exports vs investment-focused wealth management.',
-                'h1' => 'LedgerIQ vs Empower (Personal Capital): 2026 Comparison',
+                'slug' => 'spendifiai-vs-personal-capital',
+                'title' => 'SpendifiAI vs Empower (Personal Capital): Expense Tracking Compared',
+                'meta_description' => 'Compare SpendifiAI and Empower Personal Capital for expense tracking. AI categorization and tax exports vs investment-focused wealth management.',
+                'h1' => 'SpendifiAI vs Empower (Personal Capital): 2026 Comparison',
                 'category' => 'comparison',
-                'keywords' => json_encode(['ledgeriq vs personal capital', 'empower alternative', 'personal capital alternative expense tracking', 'free expense tracker vs empower']),
-                'excerpt' => 'Empower (formerly Personal Capital) is an investment-focused tool with basic expense tracking. LedgerIQ is a dedicated AI expense tracker with tax exports. Here is how they compare.',
-                'content' => '<p>Empower, formerly known as Personal Capital, is best known as a wealth management platform. It offers free financial dashboards alongside paid investment advisory services. While it includes basic expense tracking, that is not its focus. LedgerIQ is purpose-built for expense tracking with AI categorization and tax features.</p>
+                'keywords' => json_encode(['spendifiai vs personal capital', 'empower alternative', 'personal capital alternative expense tracking', 'free expense tracker vs empower']),
+                'excerpt' => 'Empower (formerly Personal Capital) is an investment-focused tool with basic expense tracking. SpendifiAI is a dedicated AI expense tracker with tax exports. Here is how they compare.',
+                'content' => '<p>Empower, formerly known as Personal Capital, is best known as a wealth management platform. It offers free financial dashboards alongside paid investment advisory services. While it includes basic expense tracking, that is not its focus. SpendifiAI is purpose-built for expense tracking with AI categorization and tax features.</p>
 
 <h2>Quick Comparison</h2>
 <table>
-<thead><tr><th>Feature</th><th>LedgerIQ</th><th>Empower</th></tr></thead>
+<thead><tr><th>Feature</th><th>SpendifiAI</th><th>Empower</th></tr></thead>
 <tbody>
 <tr><td>Price</td><td>Free</td><td>Free dashboard (advisory 0.49-0.89%)</td></tr>
 <tr><td>Primary Focus</td><td>Expense tracking and taxes</td><td>Investment management</td></tr>
@@ -369,43 +369,43 @@ class SeoPageSeeder extends Seeder
 
 <h2>Expense Tracking</h2>
 <p>Empower includes a basic spending tracker that categorizes transactions after you link your bank accounts. The categorization is simple and often inaccurate, grouping dissimilar expenses together. Most users report it as a secondary feature they rarely check.</p>
-<p>LedgerIQ makes expense tracking its core mission. Claude AI analyzes each transaction considering merchant, amount, frequency, and account context. Categories are granular and accurate, with over 50 IRS-aligned categories available for business expenses.</p>
+<p>SpendifiAI makes expense tracking its core mission. Claude AI analyzes each transaction considering merchant, amount, frequency, and account context. Categories are granular and accurate, with over 50 IRS-aligned categories available for business expenses.</p>
 
 <h2>Tax Features</h2>
 <p>Empower has no tax preparation features. It is designed for investment portfolio management and retirement planning. If you are self-employed, you get no help with expense categorization for Schedule C.</p>
-<p>LedgerIQ maps every business expense to the correct IRS Schedule C line item and generates tax-ready exports. This is invaluable during tax season, saving hours of manual work and ensuring you capture every legitimate deduction.</p>
+<p>SpendifiAI maps every business expense to the correct IRS Schedule C line item and generates tax-ready exports. This is invaluable during tax season, saving hours of manual work and ensuring you capture every legitimate deduction.</p>
 
 <h2>Investment Tracking</h2>
 <p>This is where Empower excels. Its portfolio analysis tools, retirement planner, fee analyzer, and asset allocation views are industry-leading. If investment management is your priority, Empower is hard to beat.</p>
 
 <h2>Subscription Detection</h2>
-<p>Empower does not track subscriptions or detect recurring charges. LedgerIQ identifies all recurring billing patterns, flags potentially unused subscriptions, and estimates your savings from canceling. This alone can save most users $50 to $200 per month.</p>
+<p>Empower does not track subscriptions or detect recurring charges. SpendifiAI identifies all recurring billing patterns, flags potentially unused subscriptions, and estimates your savings from canceling. This alone can save most users $50 to $200 per month.</p>
 
 <h2>Using Both Together</h2>
-<p>These tools complement each other perfectly. Empower manages your investments and retirement planning. LedgerIQ manages your expense tracking, tax categorization, and subscription optimization. Since both are free, using them together gives you comprehensive financial management.</p>
+<p>These tools complement each other perfectly. Empower manages your investments and retirement planning. SpendifiAI manages your expense tracking, tax categorization, and subscription optimization. Since both are free, using them together gives you comprehensive financial management.</p>
 
 <h2>Verdict</h2>
-<p>Empower is not really a competitor to LedgerIQ. They serve different needs. Use Empower for investment management and LedgerIQ for expense tracking and tax preparation. Together, they cover your complete financial picture.</p>
+<p>Empower is not really a competitor to SpendifiAI. They serve different needs. Use Empower for investment management and SpendifiAI for expense tracking and tax preparation. Together, they cover your complete financial picture.</p>
 
-<p><strong>Complete your financial toolkit.</strong> <a href="/register">Add LedgerIQ free</a> for AI-powered expense tracking alongside your investment tools. See our <a href="/features">full feature list</a>.</p>',
+<p><strong>Complete your financial toolkit.</strong> <a href="/register">Add SpendifiAI free</a> for AI-powered expense tracking alongside your investment tools. See our <a href="/features">full feature list</a>.</p>',
                 'is_published' => true,
                 'published_at' => '2026-01-16 10:00:00',
                 'created_at' => now(),
                 'updated_at' => now(),
             ],
             [
-                'slug' => 'ledgeriq-vs-quicken',
-                'title' => 'LedgerIQ vs Quicken: Free AI Tracker vs Legacy Desktop Software',
-                'meta_description' => 'Compare LedgerIQ and Quicken for personal finance. Free AI expense tracking vs Quicken\'s $5.99-9.99/month desktop software. Full feature breakdown.',
-                'h1' => 'LedgerIQ vs Quicken: Modern AI vs Legacy Software',
+                'slug' => 'spendifiai-vs-quicken',
+                'title' => 'SpendifiAI vs Quicken: Free AI Tracker vs Legacy Desktop Software',
+                'meta_description' => 'Compare SpendifiAI and Quicken for personal finance. Free AI expense tracking vs Quicken\'s $5.99-9.99/month desktop software. Full feature breakdown.',
+                'h1' => 'SpendifiAI vs Quicken: Modern AI vs Legacy Software',
                 'category' => 'comparison',
-                'keywords' => json_encode(['ledgeriq vs quicken', 'quicken alternative free', 'quicken replacement 2026', 'free personal finance software']),
-                'excerpt' => 'Quicken has been around for 40 years but still charges $5.99-9.99/month. LedgerIQ offers modern AI expense tracking for free. Here is the full comparison.',
-                'content' => '<p>Quicken launched in 1983 and has been a household name in personal finance for four decades. It now operates as a subscription service at $5.99 to $9.99 per month. While it is feature-rich, its interface feels dated and it lacks the AI capabilities that modern tools provide. LedgerIQ is built from the ground up with AI-first design.</p>
+                'keywords' => json_encode(['spendifiai vs quicken', 'quicken alternative free', 'quicken replacement 2026', 'free personal finance software']),
+                'excerpt' => 'Quicken has been around for 40 years but still charges $5.99-9.99/month. SpendifiAI offers modern AI expense tracking for free. Here is the full comparison.',
+                'content' => '<p>Quicken launched in 1983 and has been a household name in personal finance for four decades. It now operates as a subscription service at $5.99 to $9.99 per month. While it is feature-rich, its interface feels dated and it lacks the AI capabilities that modern tools provide. SpendifiAI is built from the ground up with AI-first design.</p>
 
 <h2>Quick Comparison</h2>
 <table>
-<thead><tr><th>Feature</th><th>LedgerIQ</th><th>Quicken</th></tr></thead>
+<thead><tr><th>Feature</th><th>SpendifiAI</th><th>Quicken</th></tr></thead>
 <tbody>
 <tr><td>Price</td><td>Free</td><td>$5.99-9.99/month</td></tr>
 <tr><td>Platform</td><td>Web-based (any device)</td><td>Desktop + mobile companion</td></tr>
@@ -419,44 +419,44 @@ class SeoPageSeeder extends Seeder
 
 <h2>User Experience</h2>
 <p>Quicken\'s desktop interface carries decades of feature accumulation. While powerful, new users find it overwhelming with hundreds of menu options and settings. The mobile app is a companion to the desktop software, not a standalone product.</p>
-<p>LedgerIQ is web-based and accessible from any device with a clean, modern interface. There is nothing to install, no data files to back up, and no sync issues between devices. AI handles the heavy lifting, so you interact with insights rather than data entry screens.</p>
+<p>SpendifiAI is web-based and accessible from any device with a clean, modern interface. There is nothing to install, no data files to back up, and no sync issues between devices. AI handles the heavy lifting, so you interact with insights rather than data entry screens.</p>
 
 <h2>Expense Categorization</h2>
 <p>Quicken uses memorized payees, a system where you categorize a merchant once and it remembers for future transactions. This works well for consistent merchants but fails for new or ambiguous charges. After 40 years, many users have thousands of memorized rules that sometimes conflict.</p>
-<p>LedgerIQ uses Claude AI to understand each transaction in context. It does not rely on simple pattern matching. A payment to Amazon might be categorized as office supplies, personal shopping, or business inventory depending on the amount, account, and your business type.</p>
+<p>SpendifiAI uses Claude AI to understand each transaction in context. It does not rely on simple pattern matching. A payment to Amazon might be categorized as office supplies, personal shopping, or business inventory depending on the amount, account, and your business type.</p>
 
 <h2>Tax Features</h2>
 <p>Quicken integrates with TurboTax through Intuit\'s ecosystem. If you use TurboTax, this integration works well. If you use any other tax software or a CPA, Quicken\'s tax reports are generic.</p>
-<p>LedgerIQ exports IRS Schedule C deductions in universally compatible formats: Excel, PDF, and CSV. These work with any tax preparer, any software, and any accountant. Every expense is mapped to the specific Schedule C line item.</p>
+<p>SpendifiAI exports IRS Schedule C deductions in universally compatible formats: Excel, PDF, and CSV. These work with any tax preparer, any software, and any accountant. Every expense is mapped to the specific Schedule C line item.</p>
 
 <h2>Subscription Detection</h2>
-<p>Quicken tracks bills but does not proactively detect forgotten subscriptions. LedgerIQ scans all connected accounts for recurring charges, identifies billing patterns, and highlights subscriptions that may no longer be delivering value.</p>
+<p>Quicken tracks bills but does not proactively detect forgotten subscriptions. SpendifiAI scans all connected accounts for recurring charges, identifies billing patterns, and highlights subscriptions that may no longer be delivering value.</p>
 
 <h2>Pricing</h2>
-<p>Quicken Simplifi costs $5.99 per month and Classic Quicken ranges from $6.99 to $9.99 per month ($72 to $120 per year). LedgerIQ is free with no subscriptions, no trials, and no feature limitations.</p>
+<p>Quicken Simplifi costs $5.99 per month and Classic Quicken ranges from $6.99 to $9.99 per month ($72 to $120 per year). SpendifiAI is free with no subscriptions, no trials, and no feature limitations.</p>
 
 <h2>Verdict</h2>
-<p>Quicken is a comprehensive financial management suite with investment tracking and decades of features. But for expense tracking specifically, LedgerIQ\'s AI categorization, tax exports, and subscription detection are more modern and more useful, at zero cost.</p>
+<p>Quicken is a comprehensive financial management suite with investment tracking and decades of features. But for expense tracking specifically, SpendifiAI\'s AI categorization, tax exports, and subscription detection are more modern and more useful, at zero cost.</p>
 
-<p><strong>Upgrade to AI-powered tracking.</strong> <a href="/register">Start with LedgerIQ free</a> and experience modern expense categorization. Explore all <a href="/features">features here</a>.</p>',
+<p><strong>Upgrade to AI-powered tracking.</strong> <a href="/register">Start with SpendifiAI free</a> and experience modern expense categorization. Explore all <a href="/features">features here</a>.</p>',
                 'is_published' => true,
                 'published_at' => '2026-01-18 08:30:00',
                 'created_at' => now(),
                 'updated_at' => now(),
             ],
             [
-                'slug' => 'ledgeriq-vs-zoho-expense',
-                'title' => 'LedgerIQ vs Zoho Expense: Free AI Tracking vs Business Expense Tool',
-                'meta_description' => 'Compare LedgerIQ and Zoho Expense for freelancers. AI-powered categorization and tax exports for free vs Zoho\'s corporate expense management.',
-                'h1' => 'LedgerIQ vs Zoho Expense: Full Feature Comparison',
+                'slug' => 'spendifiai-vs-zoho-expense',
+                'title' => 'SpendifiAI vs Zoho Expense: Free AI Tracking vs Business Expense Tool',
+                'meta_description' => 'Compare SpendifiAI and Zoho Expense for freelancers. AI-powered categorization and tax exports for free vs Zoho\'s corporate expense management.',
+                'h1' => 'SpendifiAI vs Zoho Expense: Full Feature Comparison',
                 'category' => 'comparison',
-                'keywords' => json_encode(['ledgeriq vs zoho expense', 'zoho expense alternative', 'free expense tracker vs zoho', 'zoho expense comparison']),
-                'excerpt' => 'Zoho Expense is a corporate expense management tool with approval workflows. LedgerIQ is built for freelancers with AI categorization and tax exports. Both have free tiers.',
-                'content' => '<p>Zoho Expense is part of the massive Zoho business suite, designed for companies that need expense report management with approval workflows and policy enforcement. It has a limited free tier for up to 3 users. LedgerIQ is designed for individual freelancers and self-employed workers who need AI-powered expense tracking and tax preparation.</p>
+                'keywords' => json_encode(['spendifiai vs zoho expense', 'zoho expense alternative', 'free expense tracker vs zoho', 'zoho expense comparison']),
+                'excerpt' => 'Zoho Expense is a corporate expense management tool with approval workflows. SpendifiAI is built for freelancers with AI categorization and tax exports. Both have free tiers.',
+                'content' => '<p>Zoho Expense is part of the massive Zoho business suite, designed for companies that need expense report management with approval workflows and policy enforcement. It has a limited free tier for up to 3 users. SpendifiAI is designed for individual freelancers and self-employed workers who need AI-powered expense tracking and tax preparation.</p>
 
 <h2>Quick Comparison</h2>
 <table>
-<thead><tr><th>Feature</th><th>LedgerIQ</th><th>Zoho Expense</th></tr></thead>
+<thead><tr><th>Feature</th><th>SpendifiAI</th><th>Zoho Expense</th></tr></thead>
 <tbody>
 <tr><td>Price</td><td>Free (unlimited)</td><td>Free (3 users) / $3-8/user/month</td></tr>
 <tr><td>Target User</td><td>Freelancers, self-employed</td><td>Businesses, teams</td></tr>
@@ -470,39 +470,39 @@ class SeoPageSeeder extends Seeder
 
 <h2>Expense Tracking</h2>
 <p>Zoho Expense is built around the expense report paradigm. You create reports, add expenses (manually or via receipt scan), and submit for approval. The receipt OCR extracts basic details like amount and date. For a solo freelancer, the report-and-approve workflow adds unnecessary friction.</p>
-<p>LedgerIQ imports transactions directly from your bank via Plaid and categorizes them automatically with Claude AI. There are no reports to create or approve. Your expenses are tracked, categorized, and ready for tax export as they happen.</p>
+<p>SpendifiAI imports transactions directly from your bank via Plaid and categorizes them automatically with Claude AI. There are no reports to create or approve. Your expenses are tracked, categorized, and ready for tax export as they happen.</p>
 
 <h2>Tax Features</h2>
-<p>Zoho Expense generates basic expense reports exportable to Zoho Books or other accounting software. Tax categorization is your responsibility. LedgerIQ automatically maps expenses to IRS Schedule C categories, generating tax-ready exports that your accountant can use directly. For self-employed workers with dozens of expense categories, this automation saves significant time.</p>
+<p>Zoho Expense generates basic expense reports exportable to Zoho Books or other accounting software. Tax categorization is your responsibility. SpendifiAI automatically maps expenses to IRS Schedule C categories, generating tax-ready exports that your accountant can use directly. For self-employed workers with dozens of expense categories, this automation saves significant time.</p>
 
 <h2>Integration Ecosystem</h2>
-<p>Zoho Expense integrates deeply with the Zoho suite (Books, CRM, Projects, People). If you are already in the Zoho ecosystem, this integration is valuable. LedgerIQ focuses on doing expense tracking exceptionally well as a standalone tool, with universal export formats that work with any workflow.</p>
+<p>Zoho Expense integrates deeply with the Zoho suite (Books, CRM, Projects, People). If you are already in the Zoho ecosystem, this integration is valuable. SpendifiAI focuses on doing expense tracking exceptionally well as a standalone tool, with universal export formats that work with any workflow.</p>
 
 <h2>Subscription Detection and Savings</h2>
-<p>Zoho Expense tracks expenses but does not analyze spending patterns for recurring charges or savings opportunities. LedgerIQ automatically identifies subscriptions, detects unused services, and provides AI-powered savings recommendations based on your actual spending.</p>
+<p>Zoho Expense tracks expenses but does not analyze spending patterns for recurring charges or savings opportunities. SpendifiAI automatically identifies subscriptions, detects unused services, and provides AI-powered savings recommendations based on your actual spending.</p>
 
 <h2>Verdict</h2>
-<p>Zoho Expense is the right choice for businesses with teams that need expense report workflows and Zoho suite integration. For individual freelancers and self-employed workers, LedgerIQ provides smarter expense tracking with AI categorization, tax exports, and subscription detection at no cost.</p>
+<p>Zoho Expense is the right choice for businesses with teams that need expense report workflows and Zoho suite integration. For individual freelancers and self-employed workers, SpendifiAI provides smarter expense tracking with AI categorization, tax exports, and subscription detection at no cost.</p>
 
-<p><strong>Track expenses smarter, not harder.</strong> <a href="/register">Get LedgerIQ free</a> and let AI handle categorization. Visit our <a href="/features">features page</a> to see the full list.</p>',
+<p><strong>Track expenses smarter, not harder.</strong> <a href="/register">Get SpendifiAI free</a> and let AI handle categorization. Visit our <a href="/features">features page</a> to see the full list.</p>',
                 'is_published' => true,
                 'published_at' => '2026-01-20 12:00:00',
                 'created_at' => now(),
                 'updated_at' => now(),
             ],
             [
-                'slug' => 'ledgeriq-vs-xero',
-                'title' => 'LedgerIQ vs Xero: Free AI Expense Tracker vs Cloud Accounting',
-                'meta_description' => 'Compare LedgerIQ and Xero for freelancers and small businesses. AI categorization and tax exports for free vs Xero\'s $15-78/month accounting.',
-                'h1' => 'LedgerIQ vs Xero: Expense Tracking Comparison for 2026',
+                'slug' => 'spendifiai-vs-xero',
+                'title' => 'SpendifiAI vs Xero: Free AI Expense Tracker vs Cloud Accounting',
+                'meta_description' => 'Compare SpendifiAI and Xero for freelancers and small businesses. AI categorization and tax exports for free vs Xero\'s $15-78/month accounting.',
+                'h1' => 'SpendifiAI vs Xero: Expense Tracking Comparison for 2026',
                 'category' => 'comparison',
-                'keywords' => json_encode(['ledgeriq vs xero', 'xero alternative free', 'xero vs ledgeriq', 'free expense tracking vs xero']),
-                'excerpt' => 'Xero is a full cloud accounting platform starting at $15/month. LedgerIQ provides AI-powered expense tracking and tax exports for free. Different tools, different strengths.',
-                'content' => '<p>Xero is a cloud-based accounting platform popular with small businesses and their accountants. Starting at $15 per month for the Starter plan and going up to $78 per month for Premium, it covers invoicing, bank reconciliation, payroll, and financial reporting. LedgerIQ focuses on AI-powered expense tracking and tax preparation at zero cost.</p>
+                'keywords' => json_encode(['spendifiai vs xero', 'xero alternative free', 'xero vs spendifiai', 'free expense tracking vs xero']),
+                'excerpt' => 'Xero is a full cloud accounting platform starting at $15/month. SpendifiAI provides AI-powered expense tracking and tax exports for free. Different tools, different strengths.',
+                'content' => '<p>Xero is a cloud-based accounting platform popular with small businesses and their accountants. Starting at $15 per month for the Starter plan and going up to $78 per month for Premium, it covers invoicing, bank reconciliation, payroll, and financial reporting. SpendifiAI focuses on AI-powered expense tracking and tax preparation at zero cost.</p>
 
 <h2>Quick Comparison</h2>
 <table>
-<thead><tr><th>Feature</th><th>LedgerIQ</th><th>Xero</th></tr></thead>
+<thead><tr><th>Feature</th><th>SpendifiAI</th><th>Xero</th></tr></thead>
 <tbody>
 <tr><td>Price</td><td>Free</td><td>$15-78/month</td></tr>
 <tr><td>AI Categorization</td><td>Claude AI engine</td><td>Bank rules (manual setup)</td></tr>
@@ -516,25 +516,25 @@ class SeoPageSeeder extends Seeder
 
 <h2>Expense Tracking</h2>
 <p>Xero imports bank transactions and uses manually created bank rules for categorization. You set up rules like "if description contains UBER, categorize as Travel." This requires significant initial setup time and ongoing maintenance as new merchants appear. Xero calls the process "bank reconciliation," reflecting its accounting-first design.</p>
-<p>LedgerIQ requires zero setup for categorization. Claude AI understands transaction context automatically and categorizes with over 95% accuracy from day one. No rules to create, no training period, no manual reconciliation.</p>
+<p>SpendifiAI requires zero setup for categorization. Claude AI understands transaction context automatically and categorizes with over 95% accuracy from day one. No rules to create, no training period, no manual reconciliation.</p>
 
 <h2>Tax Features</h2>
 <p>Xero generates comprehensive accounting reports including profit and loss, balance sheets, and tax summaries. For businesses with accountants who use Xero, this integration is seamless. However, Xero does not specifically map to IRS Schedule C categories for self-employed individuals.</p>
-<p>LedgerIQ is designed specifically for self-employed tax needs. Every expense maps to a Schedule C line item, and exports are generated in formats that work with any tax preparer. For sole proprietors and freelancers, this targeted approach is more useful than generic accounting reports.</p>
+<p>SpendifiAI is designed specifically for self-employed tax needs. Every expense maps to a Schedule C line item, and exports are generated in formats that work with any tax preparer. For sole proprietors and freelancers, this targeted approach is more useful than generic accounting reports.</p>
 
 <h2>Subscription and Savings</h2>
-<p>Xero tracks recurring invoices from a billing perspective but does not analyze your spending for unused subscriptions or savings opportunities. LedgerIQ identifies all recurring charges, detects stopped billing, and provides AI recommendations for reducing monthly expenses.</p>
+<p>Xero tracks recurring invoices from a billing perspective but does not analyze your spending for unused subscriptions or savings opportunities. SpendifiAI identifies all recurring charges, detects stopped billing, and provides AI recommendations for reducing monthly expenses.</p>
 
 <h2>When to Use Xero</h2>
 <p>Xero is the right choice for small businesses that need full accounting, invoicing, payroll, and multi-currency support. It excels when you work with an accountant who uses Xero\'s platform.</p>
 
-<h2>When to Use LedgerIQ</h2>
-<p>LedgerIQ is the right choice for freelancers and self-employed individuals focused on expense tracking, tax preparation, and finding savings. It requires no accounting knowledge and delivers immediate value with AI categorization.</p>
+<h2>When to Use SpendifiAI</h2>
+<p>SpendifiAI is the right choice for freelancers and self-employed individuals focused on expense tracking, tax preparation, and finding savings. It requires no accounting knowledge and delivers immediate value with AI categorization.</p>
 
 <h2>Verdict</h2>
-<p>Xero is a full accounting platform. LedgerIQ is an intelligent expense tracker. If you need invoicing, payroll, and financial statements, Xero is worth the cost. If you need smart expense tracking with tax exports, LedgerIQ delivers more for less (specifically, for free).</p>
+<p>Xero is a full accounting platform. SpendifiAI is an intelligent expense tracker. If you need invoicing, payroll, and financial statements, Xero is worth the cost. If you need smart expense tracking with tax exports, SpendifiAI delivers more for less (specifically, for free).</p>
 
-<p><strong>Start tracking expenses with AI today.</strong> <a href="/register">Sign up for LedgerIQ free</a> and get instant categorization. See all <a href="/features">features here</a>.</p>',
+<p><strong>Start tracking expenses with AI today.</strong> <a href="/register">Sign up for SpendifiAI free</a> and get instant categorization. See all <a href="/features">features here</a>.</p>',
                 'is_published' => true,
                 'published_at' => '2026-01-22 09:30:00',
                 'created_at' => now(),
@@ -547,18 +547,18 @@ class SeoPageSeeder extends Seeder
     {
         return [
             [
-                'slug' => 'ledgeriq-vs-bench',
-                'title' => 'LedgerIQ vs Bench Accounting: AI Self-Service vs Human Bookkeepers',
-                'meta_description' => 'Compare LedgerIQ and Bench Accounting. Free AI expense tracking vs Bench\'s $299-499/month human bookkeeping service. Which is right for you?',
-                'h1' => 'LedgerIQ vs Bench Accounting: AI vs Human Bookkeeping',
+                'slug' => 'spendifiai-vs-bench',
+                'title' => 'SpendifiAI vs Bench Accounting: AI Self-Service vs Human Bookkeepers',
+                'meta_description' => 'Compare SpendifiAI and Bench Accounting. Free AI expense tracking vs Bench\'s $299-499/month human bookkeeping service. Which is right for you?',
+                'h1' => 'SpendifiAI vs Bench Accounting: AI vs Human Bookkeeping',
                 'category' => 'comparison',
-                'keywords' => json_encode(['ledgeriq vs bench', 'bench accounting alternative', 'cheap bookkeeping alternative', 'ai vs human bookkeeper']),
-                'excerpt' => 'Bench pairs you with a human bookkeeper for $299-499/month. LedgerIQ uses AI to categorize expenses and prepare tax exports for free. Here is when each makes sense.',
-                'content' => '<p>Bench Accounting takes a fundamentally different approach to expense tracking: they assign you a human bookkeeper who categorizes your transactions and prepares financial statements. Starting at $299 per month ($3,588 per year), it is a premium service. LedgerIQ uses Claude AI to deliver similar categorization accuracy at zero cost.</p>
+                'keywords' => json_encode(['spendifiai vs bench', 'bench accounting alternative', 'cheap bookkeeping alternative', 'ai vs human bookkeeper']),
+                'excerpt' => 'Bench pairs you with a human bookkeeper for $299-499/month. SpendifiAI uses AI to categorize expenses and prepare tax exports for free. Here is when each makes sense.',
+                'content' => '<p>Bench Accounting takes a fundamentally different approach to expense tracking: they assign you a human bookkeeper who categorizes your transactions and prepares financial statements. Starting at $299 per month ($3,588 per year), it is a premium service. SpendifiAI uses Claude AI to deliver similar categorization accuracy at zero cost.</p>
 
 <h2>Quick Comparison</h2>
 <table>
-<thead><tr><th>Feature</th><th>LedgerIQ</th><th>Bench</th></tr></thead>
+<thead><tr><th>Feature</th><th>SpendifiAI</th><th>Bench</th></tr></thead>
 <tbody>
 <tr><td>Price</td><td>Free</td><td>$299-499/month</td></tr>
 <tr><td>Categorization Method</td><td>Claude AI</td><td>Human bookkeeper</td></tr>
@@ -572,42 +572,42 @@ class SeoPageSeeder extends Seeder
 
 <h2>The Human vs AI Approach</h2>
 <p>Bench assigns a dedicated bookkeeper who reviews your transactions monthly. They categorize expenses, reconcile accounts, and prepare financial statements. The quality depends on your bookkeeper, and communication happens through messaging. Changes take days, not seconds.</p>
-<p>LedgerIQ categorizes transactions instantly as they import from your bank. Claude AI analyzes context, amount, frequency, and account purpose to assign categories with over 95% accuracy. When the AI is uncertain, it asks you a quick clarifying question. Results are immediate, available 24/7, and consistent.</p>
+<p>SpendifiAI categorizes transactions instantly as they import from your bank. Claude AI analyzes context, amount, frequency, and account purpose to assign categories with over 95% accuracy. When the AI is uncertain, it asks you a quick clarifying question. Results are immediate, available 24/7, and consistent.</p>
 
 <h2>Tax Preparation</h2>
-<p>Bench offers a year-end tax package that organizes your financials for your CPA. This is delivered once per year during tax season. LedgerIQ maps expenses to Schedule C categories in real time, so your tax data is always current. You can export at any point during the year to check your deduction totals or prepare for quarterly estimated payments.</p>
+<p>Bench offers a year-end tax package that organizes your financials for your CPA. This is delivered once per year during tax season. SpendifiAI maps expenses to Schedule C categories in real time, so your tax data is always current. You can export at any point during the year to check your deduction totals or prepare for quarterly estimated payments.</p>
 
 <h2>Cost Analysis</h2>
-<p>Bench costs $299 to $499 per month depending on your transaction volume. Over a year, that is $3,588 to $5,988. For a freelancer earning $60,000 to $100,000, that represents 4% to 10% of gross income spent on bookkeeping alone. LedgerIQ provides AI categorization, tax exports, subscription detection, and savings recommendations for zero dollars.</p>
+<p>Bench costs $299 to $499 per month depending on your transaction volume. Over a year, that is $3,588 to $5,988. For a freelancer earning $60,000 to $100,000, that represents 4% to 10% of gross income spent on bookkeeping alone. SpendifiAI provides AI categorization, tax exports, subscription detection, and savings recommendations for zero dollars.</p>
 
 <h2>When Bench Makes Sense</h2>
 <p>Bench is worth the investment for businesses with complex accounting needs: multiple revenue streams, inventory, employees, or investors requiring formal financial statements. The human touch helps with nuanced categorization that requires business context.</p>
 
-<h2>When LedgerIQ Makes Sense</h2>
-<p>For sole proprietors, freelancers, and self-employed individuals with straightforward expenses, LedgerIQ\'s AI handles categorization as well as a human bookkeeper. You save $3,588 or more per year while getting instant categorization and additional features like subscription detection.</p>
+<h2>When SpendifiAI Makes Sense</h2>
+<p>For sole proprietors, freelancers, and self-employed individuals with straightforward expenses, SpendifiAI\'s AI handles categorization as well as a human bookkeeper. You save $3,588 or more per year while getting instant categorization and additional features like subscription detection.</p>
 
 <h2>Verdict</h2>
-<p>Bench is a premium service for businesses that need full bookkeeping. LedgerIQ is a free, AI-powered tool for individuals who need smart expense tracking and tax preparation. For most freelancers, LedgerIQ provides 90% of Bench\'s value at 0% of the cost.</p>
+<p>Bench is a premium service for businesses that need full bookkeeping. SpendifiAI is a free, AI-powered tool for individuals who need smart expense tracking and tax preparation. For most freelancers, SpendifiAI provides 90% of Bench\'s value at 0% of the cost.</p>
 
-<p><strong>Save $3,588/year on bookkeeping.</strong> <a href="/register">Try LedgerIQ free</a> and see if AI categorization meets your needs. Check our <a href="/features">features page</a> for details.</p>',
+<p><strong>Save $3,588/year on bookkeeping.</strong> <a href="/register">Try SpendifiAI free</a> and see if AI categorization meets your needs. Check our <a href="/features">features page</a> for details.</p>',
                 'is_published' => true,
                 'published_at' => '2026-01-24 10:00:00',
                 'created_at' => now(),
                 'updated_at' => now(),
             ],
             [
-                'slug' => 'ledgeriq-vs-keeper-tax',
-                'title' => 'LedgerIQ vs Keeper Tax: Free AI Tracker vs $16/Month Tax Finder',
-                'meta_description' => 'Compare LedgerIQ and Keeper Tax for freelancers. Both find tax deductions automatically, but LedgerIQ is free and offers more features. Full comparison.',
-                'h1' => 'LedgerIQ vs Keeper Tax: Tax Deduction Tracking Compared',
+                'slug' => 'spendifiai-vs-keeper-tax',
+                'title' => 'SpendifiAI vs Keeper Tax: Free AI Tracker vs $16/Month Tax Finder',
+                'meta_description' => 'Compare SpendifiAI and Keeper Tax for freelancers. Both find tax deductions automatically, but SpendifiAI is free and offers more features. Full comparison.',
+                'h1' => 'SpendifiAI vs Keeper Tax: Tax Deduction Tracking Compared',
                 'category' => 'comparison',
-                'keywords' => json_encode(['ledgeriq vs keeper tax', 'keeper tax alternative', 'free tax deduction tracker', 'keeper tax comparison']),
-                'excerpt' => 'Keeper Tax automatically finds tax write-offs for freelancers at $16/month. LedgerIQ does the same with AI categorization, subscription detection, and savings analysis for free.',
-                'content' => '<p>Keeper Tax markets itself as an automatic tax write-off finder for freelancers. At $16 per month ($192 per year), it scans your bank transactions for potential deductions and offers tax filing. LedgerIQ provides the same deduction-finding capability with additional features like subscription detection and savings recommendations, all for free.</p>
+                'keywords' => json_encode(['spendifiai vs keeper tax', 'keeper tax alternative', 'free tax deduction tracker', 'keeper tax comparison']),
+                'excerpt' => 'Keeper Tax automatically finds tax write-offs for freelancers at $16/month. SpendifiAI does the same with AI categorization, subscription detection, and savings analysis for free.',
+                'content' => '<p>Keeper Tax markets itself as an automatic tax write-off finder for freelancers. At $16 per month ($192 per year), it scans your bank transactions for potential deductions and offers tax filing. SpendifiAI provides the same deduction-finding capability with additional features like subscription detection and savings recommendations, all for free.</p>
 
 <h2>Quick Comparison</h2>
 <table>
-<thead><tr><th>Feature</th><th>LedgerIQ</th><th>Keeper Tax</th></tr></thead>
+<thead><tr><th>Feature</th><th>SpendifiAI</th><th>Keeper Tax</th></tr></thead>
 <tbody>
 <tr><td>Price</td><td>Free</td><td>$16/month ($192/year)</td></tr>
 <tr><td>Deduction Finding</td><td>AI-powered Schedule C mapping</td><td>AI-powered deduction scanning</td></tr>
@@ -621,42 +621,42 @@ class SeoPageSeeder extends Seeder
 
 <h2>Tax Deduction Finding</h2>
 <p>Keeper Tax scans your transactions and identifies potential write-offs. It uses text-based AI to classify expenses and sends you notifications about deductions you might miss. This core feature is genuinely useful for freelancers who are not tax-savvy.</p>
-<p>LedgerIQ does the same thing with Claude AI, mapping every transaction to one of over 50 IRS-aligned expense categories. The key difference is that LedgerIQ considers more context: your account purpose (business vs. personal), transaction frequency, and spending patterns. This additional context reduces false positives where personal expenses are incorrectly flagged as deductions.</p>
+<p>SpendifiAI does the same thing with Claude AI, mapping every transaction to one of over 50 IRS-aligned expense categories. The key difference is that SpendifiAI considers more context: your account purpose (business vs. personal), transaction frequency, and spending patterns. This additional context reduces false positives where personal expenses are incorrectly flagged as deductions.</p>
 
 <h2>Tax Export and Filing</h2>
-<p>Keeper Tax offers built-in tax filing, which is convenient. LedgerIQ does not file taxes directly but exports your deductions in Excel, PDF, or CSV format that works with TurboTax, H&R Block, or any CPA. For freelancers with complex tax situations, using a dedicated tax preparer is often the better choice anyway.</p>
+<p>Keeper Tax offers built-in tax filing, which is convenient. SpendifiAI does not file taxes directly but exports your deductions in Excel, PDF, or CSV format that works with TurboTax, H&R Block, or any CPA. For freelancers with complex tax situations, using a dedicated tax preparer is often the better choice anyway.</p>
 
 <h2>Beyond Tax Deductions</h2>
-<p>Keeper Tax focuses exclusively on tax deductions. LedgerIQ provides comprehensive expense management including subscription detection that finds recurring charges you may have forgotten, savings recommendations from Claude AI that analyze your spending patterns, and a full expense categorization system for both business and personal spending.</p>
+<p>Keeper Tax focuses exclusively on tax deductions. SpendifiAI provides comprehensive expense management including subscription detection that finds recurring charges you may have forgotten, savings recommendations from Claude AI that analyze your spending patterns, and a full expense categorization system for both business and personal spending.</p>
 
 <h2>Accuracy</h2>
-<p>Both tools make categorization errors. The important question is how they handle uncertainty. Keeper Tax flags potential deductions and you confirm or reject them. LedgerIQ uses confidence scores: high-confidence categorizations happen automatically, while low-confidence transactions generate questions for you. This approach means fewer notifications while maintaining accuracy.</p>
+<p>Both tools make categorization errors. The important question is how they handle uncertainty. Keeper Tax flags potential deductions and you confirm or reject them. SpendifiAI uses confidence scores: high-confidence categorizations happen automatically, while low-confidence transactions generate questions for you. This approach means fewer notifications while maintaining accuracy.</p>
 
 <h2>Pricing</h2>
-<p>Keeper Tax costs $16 per month or $192 per year. Their tax filing service adds additional costs per state. LedgerIQ is free with all features included and no hidden charges.</p>
+<p>Keeper Tax costs $16 per month or $192 per year. Their tax filing service adds additional costs per state. SpendifiAI is free with all features included and no hidden charges.</p>
 
 <h2>Verdict</h2>
-<p>If you want tax deduction finding plus built-in filing in one app, Keeper Tax is convenient but expensive. If you want deduction finding plus subscription detection, savings analysis, and bank statement support, all for free, LedgerIQ offers more value. Most users can pair LedgerIQ with their preferred tax filing service and save $192 per year.</p>
+<p>If you want tax deduction finding plus built-in filing in one app, Keeper Tax is convenient but expensive. If you want deduction finding plus subscription detection, savings analysis, and bank statement support, all for free, SpendifiAI offers more value. Most users can pair SpendifiAI with their preferred tax filing service and save $192 per year.</p>
 
-<p><strong>Find every deduction for free.</strong> <a href="/register">Create your LedgerIQ account</a> and start tracking Schedule C deductions instantly. See all <a href="/features">features</a>.</p>',
+<p><strong>Find every deduction for free.</strong> <a href="/register">Create your SpendifiAI account</a> and start tracking Schedule C deductions instantly. See all <a href="/features">features</a>.</p>',
                 'is_published' => true,
                 'published_at' => '2026-01-25 11:30:00',
                 'created_at' => now(),
                 'updated_at' => now(),
             ],
             [
-                'slug' => 'ledgeriq-vs-hurdlr',
-                'title' => 'LedgerIQ vs Hurdlr: Free AI Expense Tracking vs Freelancer Tax App',
-                'meta_description' => 'Compare LedgerIQ and Hurdlr for freelancer expense tracking. AI categorization, tax exports, and subscription detection for free vs Hurdlr\'s paid plans.',
-                'h1' => 'LedgerIQ vs Hurdlr: Freelancer Expense Tracking Compared',
+                'slug' => 'spendifiai-vs-hurdlr',
+                'title' => 'SpendifiAI vs Hurdlr: Free AI Expense Tracking vs Freelancer Tax App',
+                'meta_description' => 'Compare SpendifiAI and Hurdlr for freelancer expense tracking. AI categorization, tax exports, and subscription detection for free vs Hurdlr\'s paid plans.',
+                'h1' => 'SpendifiAI vs Hurdlr: Freelancer Expense Tracking Compared',
                 'category' => 'comparison',
-                'keywords' => json_encode(['ledgeriq vs hurdlr', 'hurdlr alternative', 'freelancer expense tracker free', 'hurdlr comparison 2026']),
-                'excerpt' => 'Hurdlr offers expense tracking and mileage logging for freelancers. LedgerIQ delivers AI-powered categorization, subscription detection, and tax exports for free. Full comparison inside.',
-                'content' => '<p>Hurdlr was built specifically for freelancers and gig workers, offering real-time profit tracking, mileage logging, and expense categorization. After being acquired by Novo, its future as a standalone product has been uncertain. LedgerIQ provides AI-powered expense tracking with features that go beyond what Hurdlr offers, all at no cost.</p>
+                'keywords' => json_encode(['spendifiai vs hurdlr', 'hurdlr alternative', 'freelancer expense tracker free', 'hurdlr comparison 2026']),
+                'excerpt' => 'Hurdlr offers expense tracking and mileage logging for freelancers. SpendifiAI delivers AI-powered categorization, subscription detection, and tax exports for free. Full comparison inside.',
+                'content' => '<p>Hurdlr was built specifically for freelancers and gig workers, offering real-time profit tracking, mileage logging, and expense categorization. After being acquired by Novo, its future as a standalone product has been uncertain. SpendifiAI provides AI-powered expense tracking with features that go beyond what Hurdlr offers, all at no cost.</p>
 
 <h2>Quick Comparison</h2>
 <table>
-<thead><tr><th>Feature</th><th>LedgerIQ</th><th>Hurdlr</th></tr></thead>
+<thead><tr><th>Feature</th><th>SpendifiAI</th><th>Hurdlr</th></tr></thead>
 <tbody>
 <tr><td>Price</td><td>Free</td><td>Free basic / $10/month Pro</td></tr>
 <tr><td>AI Categorization</td><td>Claude AI engine</td><td>Basic auto-categorization</td></tr>
@@ -670,40 +670,40 @@ class SeoPageSeeder extends Seeder
 
 <h2>Expense Categorization</h2>
 <p>Hurdlr uses basic auto-categorization rules that assign categories based on merchant names. The Pro plan improves this with smarter rules, but it still relies on pattern matching rather than contextual understanding.</p>
-<p>LedgerIQ uses Claude AI to understand each transaction in context. It considers multiple signals including merchant name, transaction amount, purchase frequency, and whether the linked account is designated for business or personal use. This contextual approach delivers over 95% accuracy compared to the 70-80% typical of rule-based systems.</p>
+<p>SpendifiAI uses Claude AI to understand each transaction in context. It considers multiple signals including merchant name, transaction amount, purchase frequency, and whether the linked account is designated for business or personal use. This contextual approach delivers over 95% accuracy compared to the 70-80% typical of rule-based systems.</p>
 
 <h2>Tax Features</h2>
 <p>Hurdlr provides a tax summary showing estimated income and expenses. The Pro plan adds quarterly tax estimates. However, it does not generate Schedule C-ready exports with line-item mapping.</p>
-<p>LedgerIQ maps every expense to specific IRS Schedule C line items (Line 8 Advertising, Line 17 Legal, Line 18 Office, etc.) and exports organized deduction reports in Excel, PDF, or CSV. This level of detail saves significant time during tax preparation and helps ensure no deductions are missed.</p>
+<p>SpendifiAI maps every expense to specific IRS Schedule C line items (Line 8 Advertising, Line 17 Legal, Line 18 Office, etc.) and exports organized deduction reports in Excel, PDF, or CSV. This level of detail saves significant time during tax preparation and helps ensure no deductions are missed.</p>
 
 <h2>Subscription Detection</h2>
-<p>Hurdlr does not track subscriptions. LedgerIQ identifies all recurring charges, tracks billing frequency (weekly, monthly, quarterly, annual), and detects when subscriptions appear unused. The average freelancer spends $150 to $300 per month on subscriptions, and finding even one or two unused services can save $20 to $50 per month.</p>
+<p>Hurdlr does not track subscriptions. SpendifiAI identifies all recurring charges, tracks billing frequency (weekly, monthly, quarterly, annual), and detects when subscriptions appear unused. The average freelancer spends $150 to $300 per month on subscriptions, and finding even one or two unused services can save $20 to $50 per month.</p>
 
 <h2>Future Availability</h2>
-<p>Since Novo\'s acquisition of Hurdlr, the product\'s standalone future is uncertain. Features may be rolled into Novo\'s banking platform. LedgerIQ is independently developed with a clear focus on expense tracking and tax preparation for freelancers.</p>
+<p>Since Novo\'s acquisition of Hurdlr, the product\'s standalone future is uncertain. Features may be rolled into Novo\'s banking platform. SpendifiAI is independently developed with a clear focus on expense tracking and tax preparation for freelancers.</p>
 
 <h2>Verdict</h2>
-<p>Hurdlr\'s mileage tracking is a genuine advantage for gig workers. For everything else, LedgerIQ offers more advanced expense tracking with AI categorization, detailed tax exports, subscription detection, and savings recommendations. If mileage tracking is not essential for you, LedgerIQ is the clear choice.</p>
+<p>Hurdlr\'s mileage tracking is a genuine advantage for gig workers. For everything else, SpendifiAI offers more advanced expense tracking with AI categorization, detailed tax exports, subscription detection, and savings recommendations. If mileage tracking is not essential for you, SpendifiAI is the clear choice.</p>
 
-<p><strong>Track expenses smarter with AI.</strong> <a href="/register">Sign up for LedgerIQ free</a> and get instant Schedule C categorization. Learn more on our <a href="/features">features page</a>.</p>',
+<p><strong>Track expenses smarter with AI.</strong> <a href="/register">Sign up for SpendifiAI free</a> and get instant Schedule C categorization. Learn more on our <a href="/features">features page</a>.</p>',
                 'is_published' => true,
                 'published_at' => '2026-01-27 09:00:00',
                 'created_at' => now(),
                 'updated_at' => now(),
             ],
             [
-                'slug' => 'ledgeriq-vs-stride',
-                'title' => 'LedgerIQ vs Stride Tax: AI Expense Tracker vs Tax-Only App',
-                'meta_description' => 'Compare LedgerIQ and Stride Tax for freelancers. Full AI expense tracking with tax exports vs Stride\'s free mileage and expense logging.',
-                'h1' => 'LedgerIQ vs Stride Tax: Which Is Better for Freelancers?',
+                'slug' => 'spendifiai-vs-stride',
+                'title' => 'SpendifiAI vs Stride Tax: AI Expense Tracker vs Tax-Only App',
+                'meta_description' => 'Compare SpendifiAI and Stride Tax for freelancers. Full AI expense tracking with tax exports vs Stride\'s free mileage and expense logging.',
+                'h1' => 'SpendifiAI vs Stride Tax: Which Is Better for Freelancers?',
                 'category' => 'comparison',
-                'keywords' => json_encode(['ledgeriq vs stride', 'stride tax alternative', 'stride health expense tracker', 'free tax deduction app']),
-                'excerpt' => 'Stride Tax offers free mileage tracking and basic expense logging for gig workers. LedgerIQ provides comprehensive AI expense categorization with Schedule C exports. Here is the comparison.',
-                'content' => '<p>Stride (formerly Stride Health) offers a free app focused on mileage tracking and basic expense logging for gig workers and freelancers. Their business model is referrals to health insurance and tax filing partners. LedgerIQ provides comprehensive AI-powered expense tracking with advanced tax features.</p>
+                'keywords' => json_encode(['spendifiai vs stride', 'stride tax alternative', 'stride health expense tracker', 'free tax deduction app']),
+                'excerpt' => 'Stride Tax offers free mileage tracking and basic expense logging for gig workers. SpendifiAI provides comprehensive AI expense categorization with Schedule C exports. Here is the comparison.',
+                'content' => '<p>Stride (formerly Stride Health) offers a free app focused on mileage tracking and basic expense logging for gig workers and freelancers. Their business model is referrals to health insurance and tax filing partners. SpendifiAI provides comprehensive AI-powered expense tracking with advanced tax features.</p>
 
 <h2>Quick Comparison</h2>
 <table>
-<thead><tr><th>Feature</th><th>LedgerIQ</th><th>Stride Tax</th></tr></thead>
+<thead><tr><th>Feature</th><th>SpendifiAI</th><th>Stride Tax</th></tr></thead>
 <tbody>
 <tr><td>Price</td><td>Free</td><td>Free</td></tr>
 <tr><td>AI Categorization</td><td>Claude AI engine</td><td>Not available (manual entry)</td></tr>
@@ -717,40 +717,40 @@ class SeoPageSeeder extends Seeder
 
 <h2>Expense Tracking Approach</h2>
 <p>Stride takes a manual approach to expense tracking. You photograph receipts, manually log expenses, and assign categories yourself. There is no bank connection, no automatic import, and no AI categorization. For someone driving for Uber or DoorDash with few expense types, this simplicity works. For freelancers with diverse expenses, it quickly becomes tedious.</p>
-<p>LedgerIQ connects to your bank through Plaid and automatically imports every transaction. Claude AI categorizes each expense with over 95% accuracy, considering the full context of each transaction. You also upload PDF or CSV bank statements for accounts you prefer not to link electronically.</p>
+<p>SpendifiAI connects to your bank through Plaid and automatically imports every transaction. Claude AI categorizes each expense with over 95% accuracy, considering the full context of each transaction. You also upload PDF or CSV bank statements for accounts you prefer not to link electronically.</p>
 
 <h2>Tax Features</h2>
 <p>Stride generates a basic deduction summary showing your total expenses and mileage deduction. It does not map to specific Schedule C line items or generate detailed reports. Stride partners with tax filing services and refers you to complete your return.</p>
-<p>LedgerIQ maps every expense to the correct IRS Schedule C line item across all 22 categories. Exports are available in Excel, PDF, or CSV format, compatible with any tax software or preparer. The detailed category breakdown helps you and your accountant maximize deductions.</p>
+<p>SpendifiAI maps every expense to the correct IRS Schedule C line item across all 22 categories. Exports are available in Excel, PDF, or CSV format, compatible with any tax software or preparer. The detailed category breakdown helps you and your accountant maximize deductions.</p>
 
 <h2>Bank Connectivity</h2>
-<p>This is LedgerIQ\'s major advantage. Stride requires manual entry for all expenses. LedgerIQ connects to over 12,000 banks through Plaid, automatically importing and categorizing transactions daily. This means no expenses slip through the cracks, especially those small charges that add up to significant deductions over a year.</p>
+<p>This is SpendifiAI\'s major advantage. Stride requires manual entry for all expenses. SpendifiAI connects to over 12,000 banks through Plaid, automatically importing and categorizing transactions daily. This means no expenses slip through the cracks, especially those small charges that add up to significant deductions over a year.</p>
 
 <h2>Subscription Detection</h2>
-<p>Stride has no subscription tracking. LedgerIQ automatically identifies recurring charges and alerts you to potentially unused subscriptions. For freelancers managing multiple tools and services, this feature typically uncovers $50 to $200 per month in avoidable charges.</p>
+<p>Stride has no subscription tracking. SpendifiAI automatically identifies recurring charges and alerts you to potentially unused subscriptions. For freelancers managing multiple tools and services, this feature typically uncovers $50 to $200 per month in avoidable charges.</p>
 
 <h2>Verdict</h2>
-<p>Stride is a solid free mileage tracker for gig workers with simple expenses. LedgerIQ is a comprehensive expense tracker for freelancers with diverse spending who need detailed tax categorization. Using both together (Stride for mileage, LedgerIQ for everything else) is an effective free combination.</p>
+<p>Stride is a solid free mileage tracker for gig workers with simple expenses. SpendifiAI is a comprehensive expense tracker for freelancers with diverse spending who need detailed tax categorization. Using both together (Stride for mileage, SpendifiAI for everything else) is an effective free combination.</p>
 
-<p><strong>Automate your expense tracking.</strong> <a href="/register">Get LedgerIQ free</a> and connect your bank for instant AI categorization. See our <a href="/features">full feature list</a>.</p>',
+<p><strong>Automate your expense tracking.</strong> <a href="/register">Get SpendifiAI free</a> and connect your bank for instant AI categorization. See our <a href="/features">full feature list</a>.</p>',
                 'is_published' => true,
                 'published_at' => '2026-01-28 14:00:00',
                 'created_at' => now(),
                 'updated_at' => now(),
             ],
             [
-                'slug' => 'ledgeriq-vs-copilot-money',
-                'title' => 'LedgerIQ vs Copilot Money: Free AI Tracker vs $10.99/Month App',
-                'meta_description' => 'Compare LedgerIQ and Copilot Money for personal finance. AI expense tracking and tax exports for free vs Copilot\'s $10.99/month budgeting app.',
-                'h1' => 'LedgerIQ vs Copilot Money: Personal Finance Apps Compared',
+                'slug' => 'spendifiai-vs-copilot-money',
+                'title' => 'SpendifiAI vs Copilot Money: Free AI Tracker vs $10.99/Month App',
+                'meta_description' => 'Compare SpendifiAI and Copilot Money for personal finance. AI expense tracking and tax exports for free vs Copilot\'s $10.99/month budgeting app.',
+                'h1' => 'SpendifiAI vs Copilot Money: Personal Finance Apps Compared',
                 'category' => 'comparison',
-                'keywords' => json_encode(['ledgeriq vs copilot money', 'copilot money alternative', 'copilot money vs ledgeriq', 'free budgeting app alternative']),
-                'excerpt' => 'Copilot Money is a polished budgeting app for iOS at $10.99/month. LedgerIQ offers AI expense tracking with tax exports for free on any device. Here is the complete comparison.',
-                'content' => '<p>Copilot Money has gained popularity as a beautifully designed personal finance app, particularly on iOS. At $10.99 per month ($95.88 per year on the annual plan), it offers budgeting, spending insights, and investment tracking. LedgerIQ delivers AI-powered expense tracking with tax features for free, accessible on any device.</p>
+                'keywords' => json_encode(['spendifiai vs copilot money', 'copilot money alternative', 'copilot money vs spendifiai', 'free budgeting app alternative']),
+                'excerpt' => 'Copilot Money is a polished budgeting app for iOS at $10.99/month. SpendifiAI offers AI expense tracking with tax exports for free on any device. Here is the complete comparison.',
+                'content' => '<p>Copilot Money has gained popularity as a beautifully designed personal finance app, particularly on iOS. At $10.99 per month ($95.88 per year on the annual plan), it offers budgeting, spending insights, and investment tracking. SpendifiAI delivers AI-powered expense tracking with tax features for free, accessible on any device.</p>
 
 <h2>Quick Comparison</h2>
 <table>
-<thead><tr><th>Feature</th><th>LedgerIQ</th><th>Copilot Money</th></tr></thead>
+<thead><tr><th>Feature</th><th>SpendifiAI</th><th>Copilot Money</th></tr></thead>
 <tbody>
 <tr><td>Price</td><td>Free</td><td>$10.99/month or $95.88/year</td></tr>
 <tr><td>Platform</td><td>Web (any device)</td><td>iOS and Mac only</td></tr>
@@ -764,26 +764,26 @@ class SeoPageSeeder extends Seeder
 
 <h2>Design and Experience</h2>
 <p>Copilot Money is often praised for its visual design. The iOS-native interface is polished with smooth animations and beautiful charts. If design aesthetics are a top priority and you exclusively use Apple devices, Copilot delivers a premium feel.</p>
-<p>LedgerIQ is web-based, meaning it works on any device with a browser: Windows, Mac, Linux, iOS, Android, or Chrome OS. The interface is clean and modern with Tailwind CSS styling, focused on functionality and speed rather than animations.</p>
+<p>SpendifiAI is web-based, meaning it works on any device with a browser: Windows, Mac, Linux, iOS, Android, or Chrome OS. The interface is clean and modern with Tailwind CSS styling, focused on functionality and speed rather than animations.</p>
 
 <h2>Expense Categorization</h2>
 <p>Copilot uses rule-based categorization where you set up custom categories and rules. It learns from your manual edits over time but does not use AI for initial categorization. Many users report spending significant time tweaking categories during the first few weeks.</p>
-<p>LedgerIQ uses Claude AI for contextual categorization from day one. No training period required. The AI considers merchant, amount, frequency, and account context to deliver over 95% accuracy immediately. When it is uncertain, it asks you a targeted question rather than making an incorrect assignment.</p>
+<p>SpendifiAI uses Claude AI for contextual categorization from day one. No training period required. The AI considers merchant, amount, frequency, and account context to deliver over 95% accuracy immediately. When it is uncertain, it asks you a targeted question rather than making an incorrect assignment.</p>
 
 <h2>Tax Features</h2>
 <p>Copilot Money has no tax-related features. It is purely a personal budgeting tool. For freelancers and self-employed users, this means using a separate tool for tax deduction tracking.</p>
-<p>LedgerIQ maps business expenses to IRS Schedule C categories and generates export-ready tax reports. This feature is invaluable for the estimated 59 million Americans who freelance, saving hours of manual work and ensuring maximum deductions.</p>
+<p>SpendifiAI maps business expenses to IRS Schedule C categories and generates export-ready tax reports. This feature is invaluable for the estimated 59 million Americans who freelance, saving hours of manual work and ensuring maximum deductions.</p>
 
 <h2>Platform Availability</h2>
-<p>Copilot Money is limited to iOS and Mac. If you use an Android phone or Windows computer, you cannot use it. LedgerIQ is accessible from any modern web browser on any platform, ensuring you can track expenses from any device.</p>
+<p>Copilot Money is limited to iOS and Mac. If you use an Android phone or Windows computer, you cannot use it. SpendifiAI is accessible from any modern web browser on any platform, ensuring you can track expenses from any device.</p>
 
 <h2>Pricing</h2>
-<p>Copilot charges $10.99 monthly or $95.88 annually. LedgerIQ is completely free. Over three years, Copilot costs $287.64 compared to $0 for LedgerIQ.</p>
+<p>Copilot charges $10.99 monthly or $95.88 annually. SpendifiAI is completely free. Over three years, Copilot costs $287.64 compared to $0 for SpendifiAI.</p>
 
 <h2>Verdict</h2>
-<p>Copilot Money is a beautiful iOS budgeting app. LedgerIQ is a powerful cross-platform expense tracker with AI and tax features. For Apple-only users who want premium design and do not need tax features, Copilot is nice to have. For everyone else, especially freelancers and self-employed users, LedgerIQ offers more functionality at no cost.</p>
+<p>Copilot Money is a beautiful iOS budgeting app. SpendifiAI is a powerful cross-platform expense tracker with AI and tax features. For Apple-only users who want premium design and do not need tax features, Copilot is nice to have. For everyone else, especially freelancers and self-employed users, SpendifiAI offers more functionality at no cost.</p>
 
-<p><strong>Track expenses on any device, for free.</strong> <a href="/register">Create your LedgerIQ account</a> and start categorizing with AI. Explore our <a href="/features">features</a> to learn more.</p>',
+<p><strong>Track expenses on any device, for free.</strong> <a href="/register">Create your SpendifiAI account</a> and start categorizing with AI. Explore our <a href="/features">features</a> to learn more.</p>',
                 'is_published' => true,
                 'published_at' => '2026-01-30 10:30:00',
                 'created_at' => now(),
@@ -796,18 +796,18 @@ class SeoPageSeeder extends Seeder
     {
         return [
             [
-                'slug' => 'ledgeriq-vs-monarch-money',
-                'title' => 'LedgerIQ vs Monarch Money: Free AI Tracker vs $9.99/Month Finance App',
-                'meta_description' => 'Compare LedgerIQ and Monarch Money for personal finance. Free AI expense tracking and tax exports vs Monarch\'s $9.99/month budgeting platform.',
-                'h1' => 'LedgerIQ vs Monarch Money: Complete 2026 Comparison',
+                'slug' => 'spendifiai-vs-monarch-money',
+                'title' => 'SpendifiAI vs Monarch Money: Free AI Tracker vs $9.99/Month Finance App',
+                'meta_description' => 'Compare SpendifiAI and Monarch Money for personal finance. Free AI expense tracking and tax exports vs Monarch\'s $9.99/month budgeting platform.',
+                'h1' => 'SpendifiAI vs Monarch Money: Complete 2026 Comparison',
                 'category' => 'comparison',
-                'keywords' => json_encode(['ledgeriq vs monarch money', 'monarch money alternative', 'monarch money vs ledgeriq', 'free finance app 2026']),
-                'excerpt' => 'Monarch Money offers collaborative budgeting at $9.99/month. LedgerIQ provides AI expense tracking and tax exports for free. Both connect to banks, but their strengths differ.',
-                'content' => '<p>Monarch Money has emerged as a popular personal finance app, especially for couples and families who want to manage finances together. At $9.99 per month ($99.99 per year), it offers budgeting, investment tracking, and shared financial planning. LedgerIQ focuses on AI-powered expense tracking and tax preparation for individuals, completely free.</p>
+                'keywords' => json_encode(['spendifiai vs monarch money', 'monarch money alternative', 'monarch money vs spendifiai', 'free finance app 2026']),
+                'excerpt' => 'Monarch Money offers collaborative budgeting at $9.99/month. SpendifiAI provides AI expense tracking and tax exports for free. Both connect to banks, but their strengths differ.',
+                'content' => '<p>Monarch Money has emerged as a popular personal finance app, especially for couples and families who want to manage finances together. At $9.99 per month ($99.99 per year), it offers budgeting, investment tracking, and shared financial planning. SpendifiAI focuses on AI-powered expense tracking and tax preparation for individuals, completely free.</p>
 
 <h2>Quick Comparison</h2>
 <table>
-<thead><tr><th>Feature</th><th>LedgerIQ</th><th>Monarch Money</th></tr></thead>
+<thead><tr><th>Feature</th><th>SpendifiAI</th><th>Monarch Money</th></tr></thead>
 <tbody>
 <tr><td>Price</td><td>Free</td><td>$9.99/month or $99.99/year</td></tr>
 <tr><td>AI Categorization</td><td>Claude AI engine</td><td>Basic auto-categorization</td></tr>
@@ -821,43 +821,43 @@ class SeoPageSeeder extends Seeder
 
 <h2>Expense Categorization</h2>
 <p>Monarch Money auto-categorizes transactions using standard rules. You can create custom categories and manually reassign transactions. The system improves over time as it learns from your corrections, but initial accuracy is modest, typically requiring manual fixes for 20-30% of transactions.</p>
-<p>LedgerIQ uses Claude AI for contextual categorization that delivers over 95% accuracy from the start. The AI understands nuances like distinguishing a business meal from personal dining, or separating home office supplies from personal Amazon purchases, based on amount patterns and account context.</p>
+<p>SpendifiAI uses Claude AI for contextual categorization that delivers over 95% accuracy from the start. The AI understands nuances like distinguishing a business meal from personal dining, or separating home office supplies from personal Amazon purchases, based on amount patterns and account context.</p>
 
 <h2>Collaborative Features</h2>
-<p>Monarch Money\'s standout feature is shared financial management. Couples can link all accounts, set joint budgets, and see unified financial views. This is genuinely useful for household financial planning and is something LedgerIQ does not offer. If you manage finances with a partner, this is a significant advantage.</p>
+<p>Monarch Money\'s standout feature is shared financial management. Couples can link all accounts, set joint budgets, and see unified financial views. This is genuinely useful for household financial planning and is something SpendifiAI does not offer. If you manage finances with a partner, this is a significant advantage.</p>
 
 <h2>Tax Features</h2>
 <p>Monarch Money is a personal finance tool without tax-specific features. There is no Schedule C mapping, no deduction tracking, and no tax export. For the 59 million American freelancers, this means needing a second tool for tax preparation.</p>
-<p>LedgerIQ automatically maps business expenses to IRS Schedule C line items and exports organized deduction reports. This single feature can save freelancers thousands in missed deductions and hours of manual organization during tax season.</p>
+<p>SpendifiAI automatically maps business expenses to IRS Schedule C line items and exports organized deduction reports. This single feature can save freelancers thousands in missed deductions and hours of manual organization during tax season.</p>
 
 <h2>Investment Tracking</h2>
-<p>Monarch Money includes portfolio tracking with performance analysis and asset allocation views. LedgerIQ focuses on expense tracking and does not offer investment features. If investment tracking is important, Monarch or Empower are better options.</p>
+<p>Monarch Money includes portfolio tracking with performance analysis and asset allocation views. SpendifiAI focuses on expense tracking and does not offer investment features. If investment tracking is important, Monarch or Empower are better options.</p>
 
 <h2>Pricing</h2>
-<p>Monarch costs $9.99 per month ($119.88 per year on monthly billing or $99.99 on annual). For a couple, this may be justified by the collaborative features. LedgerIQ is free for everyone.</p>
+<p>Monarch costs $9.99 per month ($119.88 per year on monthly billing or $99.99 on annual). For a couple, this may be justified by the collaborative features. SpendifiAI is free for everyone.</p>
 
 <h2>Verdict</h2>
-<p>Monarch Money excels at collaborative household finance management. LedgerIQ excels at AI-powered expense tracking and tax preparation. If you share finances with a partner and want joint budgeting, Monarch is worth considering. If you are a freelancer who needs smart expense tracking and tax exports, LedgerIQ is the better tool at zero cost.</p>
+<p>Monarch Money excels at collaborative household finance management. SpendifiAI excels at AI-powered expense tracking and tax preparation. If you share finances with a partner and want joint budgeting, Monarch is worth considering. If you are a freelancer who needs smart expense tracking and tax exports, SpendifiAI is the better tool at zero cost.</p>
 
-<p><strong>Get AI expense tracking for free.</strong> <a href="/register">Sign up for LedgerIQ</a> and start categorizing transactions automatically. See our <a href="/features">full features</a>.</p>',
+<p><strong>Get AI expense tracking for free.</strong> <a href="/register">Sign up for SpendifiAI</a> and start categorizing transactions automatically. See our <a href="/features">full features</a>.</p>',
                 'is_published' => true,
                 'published_at' => '2026-02-01 08:00:00',
                 'created_at' => now(),
                 'updated_at' => now(),
             ],
             [
-                'slug' => 'ledgeriq-vs-simplifi',
-                'title' => 'LedgerIQ vs Simplifi by Quicken: Free AI Tracker vs $5.99/Month App',
-                'meta_description' => 'Compare LedgerIQ and Simplifi by Quicken. AI expense tracking and tax exports for free vs Simplifi\'s $5.99/month spending and budgeting tool.',
-                'h1' => 'LedgerIQ vs Simplifi by Quicken: Head-to-Head Comparison',
+                'slug' => 'spendifiai-vs-simplifi',
+                'title' => 'SpendifiAI vs Simplifi by Quicken: Free AI Tracker vs $5.99/Month App',
+                'meta_description' => 'Compare SpendifiAI and Simplifi by Quicken. AI expense tracking and tax exports for free vs Simplifi\'s $5.99/month spending and budgeting tool.',
+                'h1' => 'SpendifiAI vs Simplifi by Quicken: Head-to-Head Comparison',
                 'category' => 'comparison',
-                'keywords' => json_encode(['ledgeriq vs simplifi', 'simplifi alternative free', 'simplifi by quicken review', 'simplifi comparison 2026']),
-                'excerpt' => 'Simplifi by Quicken offers clean budgeting at $5.99/month. LedgerIQ provides AI expense categorization and tax exports for free. Here is how they compare on every feature.',
-                'content' => '<p>Simplifi by Quicken is the modern, streamlined counterpart to the classic Quicken desktop software. At $5.99 per month ($47.88 per year on annual billing), it offers a clean interface for budgeting, spending tracking, and subscription management. LedgerIQ takes expense tracking further with AI categorization and tax-specific features, all at no cost.</p>
+                'keywords' => json_encode(['spendifiai vs simplifi', 'simplifi alternative free', 'simplifi by quicken review', 'simplifi comparison 2026']),
+                'excerpt' => 'Simplifi by Quicken offers clean budgeting at $5.99/month. SpendifiAI provides AI expense categorization and tax exports for free. Here is how they compare on every feature.',
+                'content' => '<p>Simplifi by Quicken is the modern, streamlined counterpart to the classic Quicken desktop software. At $5.99 per month ($47.88 per year on annual billing), it offers a clean interface for budgeting, spending tracking, and subscription management. SpendifiAI takes expense tracking further with AI categorization and tax-specific features, all at no cost.</p>
 
 <h2>Quick Comparison</h2>
 <table>
-<thead><tr><th>Feature</th><th>LedgerIQ</th><th>Simplifi</th></tr></thead>
+<thead><tr><th>Feature</th><th>SpendifiAI</th><th>Simplifi</th></tr></thead>
 <tbody>
 <tr><td>Price</td><td>Free</td><td>$5.99/month or $47.88/year</td></tr>
 <tr><td>AI Categorization</td><td>Claude AI engine</td><td>Auto-categorization rules</td></tr>
@@ -871,44 +871,44 @@ class SeoPageSeeder extends Seeder
 
 <h2>Expense Tracking</h2>
 <p>Simplifi provides solid automatic categorization based on merchant names. It does well with common retailers and services, assigning categories that make sense for personal budgeting. Custom categories are easy to create. The spending plan feature helps you understand how much you can safely spend after bills and savings goals.</p>
-<p>LedgerIQ uses Claude AI for deeper categorization that goes beyond merchant names. The AI distinguishes between business and personal spending, identifies expense types that matter for taxes, and achieves over 95% accuracy without manual rule setup. For freelancers, the tax-aware categorization is a game-changer.</p>
+<p>SpendifiAI uses Claude AI for deeper categorization that goes beyond merchant names. The AI distinguishes between business and personal spending, identifies expense types that matter for taxes, and achieves over 95% accuracy without manual rule setup. For freelancers, the tax-aware categorization is a game-changer.</p>
 
 <h2>Budgeting Features</h2>
 <p>Simplifi\'s spending plan is its signature feature. It calculates your available spending by subtracting bills and savings goals from your income. Watchlists let you monitor specific spending categories. These are practical budgeting tools that many users find genuinely helpful for day-to-day spending decisions.</p>
-<p>LedgerIQ offers budget goals for category-based spending limits but does not have a spending plan feature as detailed as Simplifi\'s. LedgerIQ compensates with AI-powered savings recommendations that analyze your spending patterns and suggest specific, actionable ways to reduce expenses.</p>
+<p>SpendifiAI offers budget goals for category-based spending limits but does not have a spending plan feature as detailed as Simplifi\'s. SpendifiAI compensates with AI-powered savings recommendations that analyze your spending patterns and suggest specific, actionable ways to reduce expenses.</p>
 
 <h2>Tax Features</h2>
 <p>Simplifi has no tax preparation features. Like most personal finance apps, it treats all spending as personal. Freelancers and self-employed users need a separate tool for deduction tracking.</p>
-<p>LedgerIQ automatically identifies business expenses and maps them to IRS Schedule C categories. Tax-ready exports save hours during tax season and help ensure every legitimate deduction is captured.</p>
+<p>SpendifiAI automatically identifies business expenses and maps them to IRS Schedule C categories. Tax-ready exports save hours during tax season and help ensure every legitimate deduction is captured.</p>
 
 <h2>Subscription Management</h2>
-<p>Both tools track recurring transactions. Simplifi displays them in a list so you can see all your subscriptions in one view. LedgerIQ goes further by analyzing billing patterns, detecting when subscriptions stop billing (indicating possible cancellation or service issues), and calculating projected savings from canceling unused services.</p>
+<p>Both tools track recurring transactions. Simplifi displays them in a list so you can see all your subscriptions in one view. SpendifiAI goes further by analyzing billing patterns, detecting when subscriptions stop billing (indicating possible cancellation or service issues), and calculating projected savings from canceling unused services.</p>
 
 <h2>Pricing</h2>
-<p>Simplifi costs $5.99 per month or $47.88 per year with annual billing. It is one of the more affordable paid options. LedgerIQ is entirely free with no usage limits or feature restrictions.</p>
+<p>Simplifi costs $5.99 per month or $47.88 per year with annual billing. It is one of the more affordable paid options. SpendifiAI is entirely free with no usage limits or feature restrictions.</p>
 
 <h2>Verdict</h2>
-<p>Simplifi is a solid, affordable budgeting tool with a great spending plan feature. LedgerIQ offers more advanced AI categorization, tax exports, and subscription savings analysis for free. If day-to-day budgeting is your priority, Simplifi is good. If expense tracking accuracy and tax preparation matter more, LedgerIQ wins.</p>
+<p>Simplifi is a solid, affordable budgeting tool with a great spending plan feature. SpendifiAI offers more advanced AI categorization, tax exports, and subscription savings analysis for free. If day-to-day budgeting is your priority, Simplifi is good. If expense tracking accuracy and tax preparation matter more, SpendifiAI wins.</p>
 
-<p><strong>Try AI-powered expense tracking.</strong> <a href="/register">Create your free LedgerIQ account</a> and see the difference AI categorization makes. Visit our <a href="/features">features page</a> for details.</p>',
+<p><strong>Try AI-powered expense tracking.</strong> <a href="/register">Create your free SpendifiAI account</a> and see the difference AI categorization makes. Visit our <a href="/features">features page</a> for details.</p>',
                 'is_published' => true,
                 'published_at' => '2026-02-02 11:00:00',
                 'created_at' => now(),
                 'updated_at' => now(),
             ],
             [
-                'slug' => 'ledgeriq-vs-rocket-money',
-                'title' => 'LedgerIQ vs Rocket Money: Free AI Tracker vs Subscription Canceller',
-                'meta_description' => 'Compare LedgerIQ and Rocket Money. AI expense tracking and tax exports for free vs Rocket Money\'s subscription cancellation service at $3-12/month.',
-                'h1' => 'LedgerIQ vs Rocket Money: Full Feature Comparison',
+                'slug' => 'spendifiai-vs-rocket-money',
+                'title' => 'SpendifiAI vs Rocket Money: Free AI Tracker vs Subscription Canceller',
+                'meta_description' => 'Compare SpendifiAI and Rocket Money. AI expense tracking and tax exports for free vs Rocket Money\'s subscription cancellation service at $3-12/month.',
+                'h1' => 'SpendifiAI vs Rocket Money: Full Feature Comparison',
                 'category' => 'comparison',
-                'keywords' => json_encode(['ledgeriq vs rocket money', 'rocket money alternative', 'truebill alternative', 'subscription cancellation app']),
-                'excerpt' => 'Rocket Money (formerly Truebill) specializes in subscription cancellation and bill negotiation. LedgerIQ offers AI expense tracking with tax exports for free. Different strengths for different needs.',
-                'content' => '<p>Rocket Money (formerly Truebill) made its name by helping users find and cancel unwanted subscriptions. It also negotiates bills on your behalf, taking a percentage of your savings. At $3 to $12 per month for Premium, plus 30-60% of negotiation savings, the costs add up. LedgerIQ provides subscription detection alongside comprehensive AI expense tracking for free.</p>
+                'keywords' => json_encode(['spendifiai vs rocket money', 'rocket money alternative', 'truebill alternative', 'subscription cancellation app']),
+                'excerpt' => 'Rocket Money (formerly Truebill) specializes in subscription cancellation and bill negotiation. SpendifiAI offers AI expense tracking with tax exports for free. Different strengths for different needs.',
+                'content' => '<p>Rocket Money (formerly Truebill) made its name by helping users find and cancel unwanted subscriptions. It also negotiates bills on your behalf, taking a percentage of your savings. At $3 to $12 per month for Premium, plus 30-60% of negotiation savings, the costs add up. SpendifiAI provides subscription detection alongside comprehensive AI expense tracking for free.</p>
 
 <h2>Quick Comparison</h2>
 <table>
-<thead><tr><th>Feature</th><th>LedgerIQ</th><th>Rocket Money</th></tr></thead>
+<thead><tr><th>Feature</th><th>SpendifiAI</th><th>Rocket Money</th></tr></thead>
 <tbody>
 <tr><td>Price</td><td>Free</td><td>Free basic / $3-12/month Premium</td></tr>
 <tr><td>Subscription Detection</td><td>Automatic AI detection</td><td>Core feature</td></tr>
@@ -922,43 +922,43 @@ class SeoPageSeeder extends Seeder
 
 <h2>Subscription Management</h2>
 <p>Rocket Money\'s core strength is subscription management. It detects recurring charges, lets you cancel directly through the app, and negotiates lower rates on bills like cable, internet, and insurance. The cancellation concierge service handles the phone calls you dread. However, negotiation savings come with a 30-60% fee, meaning you keep only 40-70% of the savings.</p>
-<p>LedgerIQ detects subscriptions automatically and provides detailed information about each recurring charge, including billing frequency, total annual cost, and time since last charge. It identifies potentially unused subscriptions but does not cancel on your behalf. You make the decision and cancel directly with the provider, keeping 100% of your savings.</p>
+<p>SpendifiAI detects subscriptions automatically and provides detailed information about each recurring charge, including billing frequency, total annual cost, and time since last charge. It identifies potentially unused subscriptions but does not cancel on your behalf. You make the decision and cancel directly with the provider, keeping 100% of your savings.</p>
 
 <h2>Expense Tracking</h2>
 <p>Rocket Money includes basic expense tracking and budgeting, but these are secondary features. Categorization is simple, and there are no AI-powered insights into spending patterns.</p>
-<p>LedgerIQ is built around AI expense tracking. Claude AI categorizes every transaction with contextual awareness, distinguishing business from personal expenses and mapping to tax categories. The comprehensive dashboard shows spending trends, budget performance, and personalized savings recommendations.</p>
+<p>SpendifiAI is built around AI expense tracking. Claude AI categorizes every transaction with contextual awareness, distinguishing business from personal expenses and mapping to tax categories. The comprehensive dashboard shows spending trends, budget performance, and personalized savings recommendations.</p>
 
 <h2>Tax Features</h2>
-<p>Rocket Money has no tax features. It is purely a personal finance and subscription management tool. LedgerIQ maps business expenses to IRS Schedule C categories and generates tax-ready exports, making it essential for freelancers and self-employed users.</p>
+<p>Rocket Money has no tax features. It is purely a personal finance and subscription management tool. SpendifiAI maps business expenses to IRS Schedule C categories and generates tax-ready exports, making it essential for freelancers and self-employed users.</p>
 
 <h2>Bill Negotiation</h2>
-<p>This is Rocket Money\'s unique value. They negotiate lower rates on your bills, potentially saving hundreds per year on cable, internet, phone, and insurance. LedgerIQ does not offer negotiation services but does analyze your spending for savings opportunities across all expense categories.</p>
+<p>This is Rocket Money\'s unique value. They negotiate lower rates on your bills, potentially saving hundreds per year on cable, internet, phone, and insurance. SpendifiAI does not offer negotiation services but does analyze your spending for savings opportunities across all expense categories.</p>
 
 <h2>Pricing</h2>
-<p>Rocket Money\'s free tier shows subscriptions but limits features. Premium costs $3 to $12 per month (you choose your price), and negotiation fees take 30-60% of savings. If they save you $50 per month on bills, they keep $15 to $30 of that. LedgerIQ is completely free with all features included.</p>
+<p>Rocket Money\'s free tier shows subscriptions but limits features. Premium costs $3 to $12 per month (you choose your price), and negotiation fees take 30-60% of savings. If they save you $50 per month on bills, they keep $15 to $30 of that. SpendifiAI is completely free with all features included.</p>
 
 <h2>Verdict</h2>
-<p>If you specifically want someone to cancel subscriptions and negotiate bills on your behalf, Rocket Money offers that service (at a cost). If you want comprehensive AI expense tracking with tax features and subscription detection included, LedgerIQ provides more overall value for free.</p>
+<p>If you specifically want someone to cancel subscriptions and negotiate bills on your behalf, Rocket Money offers that service (at a cost). If you want comprehensive AI expense tracking with tax features and subscription detection included, SpendifiAI provides more overall value for free.</p>
 
-<p><strong>Detect subscriptions and track expenses for free.</strong> <a href="/register">Get LedgerIQ</a> and let AI find your recurring charges. See all <a href="/features">features here</a>.</p>',
+<p><strong>Detect subscriptions and track expenses for free.</strong> <a href="/register">Get SpendifiAI</a> and let AI find your recurring charges. See all <a href="/features">features here</a>.</p>',
                 'is_published' => true,
                 'published_at' => '2026-02-03 09:30:00',
                 'created_at' => now(),
                 'updated_at' => now(),
             ],
             [
-                'slug' => 'ledgeriq-vs-turbotax-self-employed',
-                'title' => 'LedgerIQ vs TurboTax Self-Employed: Year-Round Tracking vs Tax Filing',
-                'meta_description' => 'Compare LedgerIQ and TurboTax Self-Employed. Free year-round AI expense tracking vs TurboTax\'s $129+ once-a-year tax filing software.',
-                'h1' => 'LedgerIQ vs TurboTax Self-Employed: Tracking vs Filing',
+                'slug' => 'spendifiai-vs-turbotax-self-employed',
+                'title' => 'SpendifiAI vs TurboTax Self-Employed: Year-Round Tracking vs Tax Filing',
+                'meta_description' => 'Compare SpendifiAI and TurboTax Self-Employed. Free year-round AI expense tracking vs TurboTax\'s $129+ once-a-year tax filing software.',
+                'h1' => 'SpendifiAI vs TurboTax Self-Employed: Tracking vs Filing',
                 'category' => 'comparison',
-                'keywords' => json_encode(['ledgeriq vs turbotax self employed', 'turbotax alternative freelancers', 'year round expense tracking', 'turbotax self employed review']),
-                'excerpt' => 'TurboTax Self-Employed is a tax filing tool you use once a year. LedgerIQ is an AI expense tracker you use year-round. They complement each other perfectly.',
-                'content' => '<p>TurboTax Self-Employed is Intuit\'s tax filing software for freelancers and independent contractors. At $129 or more per filing (plus state returns), it walks you through Schedule C, deductions, and quarterly estimates. LedgerIQ is a year-round AI expense tracker that ensures your deductions are organized before you ever open TurboTax.</p>
+                'keywords' => json_encode(['spendifiai vs turbotax self employed', 'turbotax alternative freelancers', 'year round expense tracking', 'turbotax self employed review']),
+                'excerpt' => 'TurboTax Self-Employed is a tax filing tool you use once a year. SpendifiAI is an AI expense tracker you use year-round. They complement each other perfectly.',
+                'content' => '<p>TurboTax Self-Employed is Intuit\'s tax filing software for freelancers and independent contractors. At $129 or more per filing (plus state returns), it walks you through Schedule C, deductions, and quarterly estimates. SpendifiAI is a year-round AI expense tracker that ensures your deductions are organized before you ever open TurboTax.</p>
 
 <h2>Quick Comparison</h2>
 <table>
-<thead><tr><th>Feature</th><th>LedgerIQ</th><th>TurboTax Self-Employed</th></tr></thead>
+<thead><tr><th>Feature</th><th>SpendifiAI</th><th>TurboTax Self-Employed</th></tr></thead>
 <tbody>
 <tr><td>Price</td><td>Free</td><td>$129+ per filing</td></tr>
 <tr><td>Purpose</td><td>Year-round expense tracking</td><td>Annual tax filing</td></tr>
@@ -971,42 +971,42 @@ class SeoPageSeeder extends Seeder
 </table>
 
 <h2>Different Tools for Different Jobs</h2>
-<p>TurboTax Self-Employed and LedgerIQ are not really competitors. They serve different phases of the tax cycle. LedgerIQ tracks and categorizes expenses year-round. TurboTax files your return once per year. The best results come from using both: LedgerIQ to organize deductions throughout the year, and TurboTax to file.</p>
+<p>TurboTax Self-Employed and SpendifiAI are not really competitors. They serve different phases of the tax cycle. SpendifiAI tracks and categorizes expenses year-round. TurboTax files your return once per year. The best results come from using both: SpendifiAI to organize deductions throughout the year, and TurboTax to file.</p>
 
 <h2>Year-Round Expense Tracking</h2>
-<p>TurboTax Self-Employed bundles QuickBooks Self-Employed for year-round tracking, but this adds $15 per month on top of the filing fee. LedgerIQ provides superior AI-powered tracking for free. Claude AI categorizes transactions in real time with over 95% accuracy, mapping every expense to the correct Schedule C line item.</p>
+<p>TurboTax Self-Employed bundles QuickBooks Self-Employed for year-round tracking, but this adds $15 per month on top of the filing fee. SpendifiAI provides superior AI-powered tracking for free. Claude AI categorizes transactions in real time with over 95% accuracy, mapping every expense to the correct Schedule C line item.</p>
 
 <h2>Tax Filing</h2>
-<p>TurboTax excels at tax filing. Its interview-style approach guides even non-tax-savvy users through complex self-employment returns. It handles quarterly estimates, identifies eligible deductions, and e-files directly with the IRS. LedgerIQ does not file taxes but exports clean, organized deduction data that feeds directly into TurboTax or any other filing software.</p>
+<p>TurboTax excels at tax filing. Its interview-style approach guides even non-tax-savvy users through complex self-employment returns. It handles quarterly estimates, identifies eligible deductions, and e-files directly with the IRS. SpendifiAI does not file taxes but exports clean, organized deduction data that feeds directly into TurboTax or any other filing software.</p>
 
 <h2>The Ideal Workflow</h2>
-<p>The most effective approach for freelancers combines both tools. Throughout the year, LedgerIQ automatically imports and categorizes your expenses, detects subscriptions, and tracks deductions by Schedule C category. At tax time, you export your organized deductions from LedgerIQ and import or enter them into TurboTax. This combination ensures maximum deductions with minimum effort.</p>
+<p>The most effective approach for freelancers combines both tools. Throughout the year, SpendifiAI automatically imports and categorizes your expenses, detects subscriptions, and tracks deductions by Schedule C category. At tax time, you export your organized deductions from SpendifiAI and import or enter them into TurboTax. This combination ensures maximum deductions with minimum effort.</p>
 
 <h2>Cost Comparison</h2>
-<p>TurboTax Self-Employed costs $129 or more per federal filing plus $59 per state. With QuickBooks SE for year-round tracking, add $180 per year. Total annual cost: $309 to $400+. Using LedgerIQ for year-round tracking and TurboTax only for filing: $129 to $188 per year, saving $120 to $212 annually.</p>
+<p>TurboTax Self-Employed costs $129 or more per federal filing plus $59 per state. With QuickBooks SE for year-round tracking, add $180 per year. Total annual cost: $309 to $400+. Using SpendifiAI for year-round tracking and TurboTax only for filing: $129 to $188 per year, saving $120 to $212 annually.</p>
 
 <h2>Verdict</h2>
-<p>Use LedgerIQ year-round for free AI expense tracking and Schedule C categorization. Use TurboTax (or any tax software) at filing time. This combination maximizes your deductions while minimizing cost. LedgerIQ\'s exports work with any filing software, so you are never locked into one ecosystem.</p>
+<p>Use SpendifiAI year-round for free AI expense tracking and Schedule C categorization. Use TurboTax (or any tax software) at filing time. This combination maximizes your deductions while minimizing cost. SpendifiAI\'s exports work with any filing software, so you are never locked into one ecosystem.</p>
 
-<p><strong>Start organizing deductions now.</strong> <a href="/register">Get LedgerIQ free</a> and have your Schedule C categories ready when tax season arrives. See our <a href="/features">features</a> for details.</p>',
+<p><strong>Start organizing deductions now.</strong> <a href="/register">Get SpendifiAI free</a> and have your Schedule C categories ready when tax season arrives. See our <a href="/features">features</a> for details.</p>',
                 'is_published' => true,
                 'published_at' => '2026-02-05 10:00:00',
                 'created_at' => now(),
                 'updated_at' => now(),
             ],
             [
-                'slug' => 'ledgeriq-vs-spreadsheets',
-                'title' => 'LedgerIQ vs Excel/Google Sheets: AI Tracking vs Manual Spreadsheets',
-                'meta_description' => 'Compare LedgerIQ with Excel and Google Sheets for expense tracking. AI automation vs manual data entry. Save 5+ hours per month with free AI categorization.',
-                'h1' => 'LedgerIQ vs Spreadsheets: Why AI Beats Manual Tracking',
+                'slug' => 'spendifiai-vs-spreadsheets',
+                'title' => 'SpendifiAI vs Excel/Google Sheets: AI Tracking vs Manual Spreadsheets',
+                'meta_description' => 'Compare SpendifiAI with Excel and Google Sheets for expense tracking. AI automation vs manual data entry. Save 5+ hours per month with free AI categorization.',
+                'h1' => 'SpendifiAI vs Spreadsheets: Why AI Beats Manual Tracking',
                 'category' => 'comparison',
                 'keywords' => json_encode(['expense tracking spreadsheet vs app', 'excel expense tracker alternative', 'google sheets expense tracking', 'automate expense tracking']),
-                'excerpt' => 'Many freelancers track expenses in Excel or Google Sheets. LedgerIQ automates the entire process with AI categorization and bank syncing for free. Here is why it is time to switch.',
-                'content' => '<p>Spreadsheets are the default expense tracking tool for millions of freelancers. They are familiar, flexible, and free (with Google Sheets). But manual expense tracking in spreadsheets has serious downsides: data entry errors, forgotten transactions, inconsistent categories, and hours of tedious work each month. LedgerIQ automates everything spreadsheets require you to do manually.</p>
+                'excerpt' => 'Many freelancers track expenses in Excel or Google Sheets. SpendifiAI automates the entire process with AI categorization and bank syncing for free. Here is why it is time to switch.',
+                'content' => '<p>Spreadsheets are the default expense tracking tool for millions of freelancers. They are familiar, flexible, and free (with Google Sheets). But manual expense tracking in spreadsheets has serious downsides: data entry errors, forgotten transactions, inconsistent categories, and hours of tedious work each month. SpendifiAI automates everything spreadsheets require you to do manually.</p>
 
 <h2>Quick Comparison</h2>
 <table>
-<thead><tr><th>Feature</th><th>LedgerIQ</th><th>Spreadsheets</th></tr></thead>
+<thead><tr><th>Feature</th><th>SpendifiAI</th><th>Spreadsheets</th></tr></thead>
 <tbody>
 <tr><td>Price</td><td>Free</td><td>Free (Google) / $7-13/mo (Excel)</td></tr>
 <tr><td>Data Entry</td><td>Automatic bank sync</td><td>Manual entry or CSV import</td></tr>
@@ -1020,26 +1020,26 @@ class SeoPageSeeder extends Seeder
 
 <h2>The Time Cost of Spreadsheets</h2>
 <p>The average freelancer with 100-200 transactions per month spends 5 to 10 hours on spreadsheet-based expense tracking. This includes downloading bank statements, entering data, categorizing transactions, checking for errors, and formatting reports. At even $30 per hour, that is $150 to $300 per month in lost productive time.</p>
-<p>LedgerIQ reduces this to minutes. Bank transactions import automatically through Plaid. Claude AI categorizes each one. You review a dashboard instead of typing in cells. The time savings alone make LedgerIQ worth switching to, even ignoring every other feature.</p>
+<p>SpendifiAI reduces this to minutes. Bank transactions import automatically through Plaid. Claude AI categorizes each one. You review a dashboard instead of typing in cells. The time savings alone make SpendifiAI worth switching to, even ignoring every other feature.</p>
 
 <h2>Accuracy and Completeness</h2>
 <p>Spreadsheet tracking has two chronic problems: missed transactions and categorization errors. When you manually enter expenses, small charges slip through. A $4.99 subscription charge or a $12 business lunch might not seem worth entering, but over a year, missed small deductions can total $500 to $2,000.</p>
-<p>LedgerIQ imports every transaction from your connected bank accounts automatically. Nothing is missed. AI categorization is consistent, applying the same logic to every transaction without fatigue or oversight.</p>
+<p>SpendifiAI imports every transaction from your connected bank accounts automatically. Nothing is missed. AI categorization is consistent, applying the same logic to every transaction without fatigue or oversight.</p>
 
 <h2>Tax Preparation</h2>
 <p>At tax time, spreadsheet users face the painful process of reorganizing their data into Schedule C categories. Formulas break, categories do not match IRS requirements, and the accountant asks for a different format.</p>
-<p>LedgerIQ categorizes expenses into IRS Schedule C line items throughout the year. At tax time, you click "Export" and receive a clean Excel, PDF, or CSV file organized exactly how the IRS and your accountant expect. No reformatting, no pivot tables, no VLOOKUP formulas.</p>
+<p>SpendifiAI categorizes expenses into IRS Schedule C line items throughout the year. At tax time, you click "Export" and receive a clean Excel, PDF, or CSV file organized exactly how the IRS and your accountant expect. No reformatting, no pivot tables, no VLOOKUP formulas.</p>
 
 <h2>Subscription Detection</h2>
-<p>Spotting recurring charges in a spreadsheet requires manually scanning rows and remembering what you signed up for. LedgerIQ automatically identifies all recurring billing patterns and flags potential waste. This feature alone typically saves $50 to $200 per month for users who discover forgotten subscriptions.</p>
+<p>Spotting recurring charges in a spreadsheet requires manually scanning rows and remembering what you signed up for. SpendifiAI automatically identifies all recurring billing patterns and flags potential waste. This feature alone typically saves $50 to $200 per month for users who discover forgotten subscriptions.</p>
 
 <h2>When Spreadsheets Still Make Sense</h2>
-<p>Spreadsheets remain useful for highly custom financial modeling, projections, and scenarios that require flexible formulas. LedgerIQ handles day-to-day tracking, while you can export data to spreadsheets for custom analysis when needed.</p>
+<p>Spreadsheets remain useful for highly custom financial modeling, projections, and scenarios that require flexible formulas. SpendifiAI handles day-to-day tracking, while you can export data to spreadsheets for custom analysis when needed.</p>
 
 <h2>Verdict</h2>
-<p>Spreadsheets were the best option when no good free alternative existed. LedgerIQ changes that equation. You get automatic bank syncing, AI categorization, tax-ready exports, and subscription detection for free. Keep your spreadsheets for custom analysis, but let AI handle the tedious tracking work.</p>
+<p>Spreadsheets were the best option when no good free alternative existed. SpendifiAI changes that equation. You get automatic bank syncing, AI categorization, tax-ready exports, and subscription detection for free. Keep your spreadsheets for custom analysis, but let AI handle the tedious tracking work.</p>
 
-<p><strong>Reclaim 5+ hours per month.</strong> <a href="/register">Switch to LedgerIQ free</a> and automate your expense tracking with AI. See our <a href="/features">features</a> for the full list.</p>',
+<p><strong>Reclaim 5+ hours per month.</strong> <a href="/register">Switch to SpendifiAI free</a> and automate your expense tracking with AI. See our <a href="/features">features</a> for the full list.</p>',
                 'is_published' => true,
                 'published_at' => '2026-02-06 13:00:00',
                 'created_at' => now(),
@@ -1054,15 +1054,15 @@ class SeoPageSeeder extends Seeder
             [
                 'slug' => 'best-mint-alternatives',
                 'title' => 'Best Mint Alternatives in 2026: 7 Free and Paid Options Compared',
-                'meta_description' => 'Looking for Mint alternatives? We compare the 7 best options including LedgerIQ, Monarch Money, YNAB, and more. Find the right free budgeting app for 2026.',
+                'meta_description' => 'Looking for Mint alternatives? We compare the 7 best options including SpendifiAI, Monarch Money, YNAB, and more. Find the right free budgeting app for 2026.',
                 'h1' => 'Best Mint Alternatives in 2026',
                 'category' => 'alternative',
                 'keywords' => json_encode(['best mint alternatives', 'mint replacement 2026', 'free budgeting app like mint', 'mint alternative free']),
                 'excerpt' => 'With Mint absorbed into Credit Karma, millions of users need a new home for their financial data. We evaluated the top 7 Mint alternatives for features, price, and ease of use.',
                 'content' => '<p>Mint was the undisputed leader in free personal finance for over 15 years. Since its integration into Credit Karma under Intuit, many users have found the experience degraded with more ads and fewer features. If you are looking for a Mint replacement, here are the best alternatives in 2026, starting with the most compelling option.</p>
 
-<h2>1. LedgerIQ — Best Overall Mint Alternative</h2>
-<p>LedgerIQ is a free AI-powered expense tracker that goes beyond what Mint ever offered. It connects to banks via Plaid, automatically categorizes transactions using Claude AI with over 95% accuracy, detects unused subscriptions, and exports tax deductions to IRS Schedule C format.</p>
+<h2>1. SpendifiAI — Best Overall Mint Alternative</h2>
+<p>SpendifiAI is a free AI-powered expense tracker that goes beyond what Mint ever offered. It connects to banks via Plaid, automatically categorizes transactions using Claude AI with over 95% accuracy, detects unused subscriptions, and exports tax deductions to IRS Schedule C format.</p>
 <p><strong>Pros:</strong> Completely free, AI categorization far more accurate than Mint\'s rules, tax export feature Mint never had, subscription detection with savings estimates, PDF/CSV bank statement uploads, no ads.</p>
 <p><strong>Cons:</strong> No investment tracking, no bill pay reminders, newer platform.</p>
 <p><strong>Price:</strong> Free</p>
@@ -1111,9 +1111,9 @@ class SeoPageSeeder extends Seeder
 <p><strong>Best for:</strong> People primarily looking to reduce subscription spending.</p>
 
 <h2>Our Recommendation</h2>
-<p>For most Mint users, LedgerIQ is the best replacement. It is free (like Mint was), has no ads (unlike what Mint became), and adds AI categorization and tax features that Mint never offered. Freelancers and self-employed users benefit the most from the Schedule C export feature.</p>
+<p>For most Mint users, SpendifiAI is the best replacement. It is free (like Mint was), has no ads (unlike what Mint became), and adds AI categorization and tax features that Mint never offered. Freelancers and self-employed users benefit the most from the Schedule C export feature.</p>
 
-<p><strong>Ready to replace Mint?</strong> <a href="/register">Create your free LedgerIQ account</a> in under a minute. See our <a href="/features">full feature list</a> or read our <a href="/blog/ledgeriq-vs-mint">detailed Mint comparison</a>.</p>',
+<p><strong>Ready to replace Mint?</strong> <a href="/register">Create your free SpendifiAI account</a> in under a minute. See our <a href="/features">full feature list</a> or read our <a href="/blog/spendifiai-vs-mint">detailed Mint comparison</a>.</p>',
                 'is_published' => true,
                 'published_at' => '2026-01-08 09:00:00',
                 'created_at' => now(),
@@ -1129,8 +1129,8 @@ class SeoPageSeeder extends Seeder
                 'excerpt' => 'Expensify is powerful but expensive for solo users. Here are 6 alternatives that offer better value for freelancers and small teams, including free options with AI features.',
                 'content' => '<p>Expensify revolutionized expense reporting for businesses, but at $5 to $18 per user per month, it is overkill for freelancers and small teams. Whether you need a cheaper option or simply want features better suited to solo work, these alternatives deliver more value in 2026.</p>
 
-<h2>1. LedgerIQ — Best Free Alternative for Freelancers</h2>
-<p>LedgerIQ replaces Expensify\'s expense tracking with AI-powered categorization and adds tax features Expensify lacks.</p>
+<h2>1. SpendifiAI — Best Free Alternative for Freelancers</h2>
+<p>SpendifiAI replaces Expensify\'s expense tracking with AI-powered categorization and adds tax features Expensify lacks.</p>
 <p><strong>Pros:</strong> Completely free, Claude AI categorization with 95%+ accuracy, IRS Schedule C tax exports, subscription detection, bank statement upload support, zero ads.</p>
 <p><strong>Cons:</strong> No expense report approval workflows, no team management, no receipt scanning app.</p>
 <p><strong>Price:</strong> Free</p>
@@ -1172,9 +1172,9 @@ class SeoPageSeeder extends Seeder
 <p><strong>Best for:</strong> Freelancers whose primary need is tax deduction tracking with filing.</p>
 
 <h2>Our Recommendation</h2>
-<p>For freelancers leaving Expensify, LedgerIQ is the strongest choice. You get better AI categorization, tax-specific exports, and subscription detection, all for free. The only reason to stay with Expensify is if you need team expense report approval workflows.</p>
+<p>For freelancers leaving Expensify, SpendifiAI is the strongest choice. You get better AI categorization, tax-specific exports, and subscription detection, all for free. The only reason to stay with Expensify is if you need team expense report approval workflows.</p>
 
-<p><strong>Switch from Expensify for free.</strong> <a href="/register">Create your LedgerIQ account</a> and experience AI-powered expense tracking. Read our <a href="/blog/ledgeriq-vs-expensify">detailed Expensify comparison</a>.</p>',
+<p><strong>Switch from Expensify for free.</strong> <a href="/register">Create your SpendifiAI account</a> and experience AI-powered expense tracking. Read our <a href="/blog/spendifiai-vs-expensify">detailed Expensify comparison</a>.</p>',
                 'is_published' => true,
                 'published_at' => '2026-01-10 10:00:00',
                 'created_at' => now(),
@@ -1190,8 +1190,8 @@ class SeoPageSeeder extends Seeder
                 'excerpt' => 'QuickBooks is powerful but expensive for freelancers at $15-55/month. Here are the best alternatives in 2026, from free AI expense trackers to full accounting platforms.',
                 'content' => '<p>QuickBooks dominates small business accounting, but its pricing ($15 to $55 per month for self-employed and small business plans) is steep for solo freelancers. Many freelancers pay for features they never use while missing specialized tools they actually need. Here are the best alternatives.</p>
 
-<h2>1. LedgerIQ — Best Free AI-Powered Alternative</h2>
-<p>LedgerIQ focuses on what freelancers need most: smart expense tracking and tax deduction preparation.</p>
+<h2>1. SpendifiAI — Best Free AI-Powered Alternative</h2>
+<p>SpendifiAI focuses on what freelancers need most: smart expense tracking and tax deduction preparation.</p>
 <p><strong>Pros:</strong> Free, Claude AI categorization (95%+ accuracy), Schedule C tax exports (Excel/PDF/CSV), automatic subscription detection, savings recommendations, bank statement upload.</p>
 <p><strong>Cons:</strong> No invoicing, no payroll, no full accounting ledger.</p>
 <p><strong>Price:</strong> Free</p>
@@ -1233,9 +1233,9 @@ class SeoPageSeeder extends Seeder
 <p><strong>Best for:</strong> Busy freelancers earning $100K+ who want to fully outsource bookkeeping.</p>
 
 <h2>Our Recommendation</h2>
-<p>Most freelancers overpay for QuickBooks features they never use. Start with LedgerIQ for free AI expense tracking and tax exports. Add Wave if you need invoicing. This free combination covers 90% of freelancer needs at zero cost versus $180+ per year for QuickBooks.</p>
+<p>Most freelancers overpay for QuickBooks features they never use. Start with SpendifiAI for free AI expense tracking and tax exports. Add Wave if you need invoicing. This free combination covers 90% of freelancer needs at zero cost versus $180+ per year for QuickBooks.</p>
 
-<p><strong>Stop overpaying for accounting software.</strong> <a href="/register">Get LedgerIQ free</a> and handle expense tracking with AI. See our <a href="/blog/ledgeriq-vs-quickbooks-self-employed">detailed QuickBooks comparison</a>.</p>',
+<p><strong>Stop overpaying for accounting software.</strong> <a href="/register">Get SpendifiAI free</a> and handle expense tracking with AI. See our <a href="/blog/spendifiai-vs-quickbooks-self-employed">detailed QuickBooks comparison</a>.</p>',
                 'is_published' => true,
                 'published_at' => '2026-01-15 09:00:00',
                 'created_at' => now(),
@@ -1251,8 +1251,8 @@ class SeoPageSeeder extends Seeder
                 'excerpt' => 'YNAB costs $14.99/month and requires significant time investment. Here are the best alternatives for 2026 that offer great budgeting and expense tracking at lower prices or for free.',
                 'content' => '<p>YNAB (You Need A Budget) is an excellent budgeting tool with a devoted following. But at $14.99 per month ($99 per year with annual billing), plus the 15-30 minutes per week of manual categorization it requires, it is not for everyone. These alternatives offer different approaches to financial management at better prices.</p>
 
-<h2>1. LedgerIQ — Best Free AI Alternative</h2>
-<p>LedgerIQ automates the tedious parts of expense tracking that YNAB makes you do manually.</p>
+<h2>1. SpendifiAI — Best Free AI Alternative</h2>
+<p>SpendifiAI automates the tedious parts of expense tracking that YNAB makes you do manually.</p>
 <p><strong>Pros:</strong> Free, Claude AI auto-categorization (95%+ accuracy), IRS Schedule C tax exports, subscription detection, savings recommendations, zero manual data entry.</p>
 <p><strong>Cons:</strong> No zero-based budgeting methodology, less comprehensive budget planning.</p>
 <p><strong>Price:</strong> Free</p>
@@ -1294,9 +1294,9 @@ class SeoPageSeeder extends Seeder
 <p><strong>Best for:</strong> Dave Ramsey followers who want structured zero-based budgeting.</p>
 
 <h2>Our Recommendation</h2>
-<p>If YNAB\'s price or time commitment is your concern, LedgerIQ offers the most value for free. AI handles categorization automatically, saving you hours each month. Add in tax exports and subscription detection, and you get more features than YNAB at zero cost.</p>
+<p>If YNAB\'s price or time commitment is your concern, SpendifiAI offers the most value for free. AI handles categorization automatically, saving you hours each month. Add in tax exports and subscription detection, and you get more features than YNAB at zero cost.</p>
 
-<p><strong>Save $99/year and hours of your time.</strong> <a href="/register">Try LedgerIQ free</a> and let AI handle expense categorization. See our <a href="/blog/ledgeriq-vs-ynab">detailed YNAB comparison</a>.</p>',
+<p><strong>Save $99/year and hours of your time.</strong> <a href="/register">Try SpendifiAI free</a> and let AI handle expense categorization. See our <a href="/blog/spendifiai-vs-ynab">detailed YNAB comparison</a>.</p>',
                 'is_published' => true,
                 'published_at' => '2026-01-19 11:30:00',
                 'created_at' => now(),
@@ -1312,8 +1312,8 @@ class SeoPageSeeder extends Seeder
                 'excerpt' => 'Wave is a solid free accounting tool, but it may not fit every need. Here are the best Wave alternatives in 2026, from specialized expense trackers to comprehensive accounting platforms.',
                 'content' => '<p>Wave Accounting has been a go-to free option for small businesses and freelancers. But its limitations, including basic expense categorization, limited integrations, and occasionally unreliable bank connections, push many users to explore alternatives. Here are the best options in 2026.</p>
 
-<h2>1. LedgerIQ — Best for Expense Tracking and Taxes</h2>
-<p>LedgerIQ replaces Wave\'s weakest area (expense categorization) with AI-powered intelligence.</p>
+<h2>1. SpendifiAI — Best for Expense Tracking and Taxes</h2>
+<p>SpendifiAI replaces Wave\'s weakest area (expense categorization) with AI-powered intelligence.</p>
 <p><strong>Pros:</strong> Free, Claude AI categorization (95%+ accuracy), IRS Schedule C exports, subscription detection, savings recommendations, PDF/CSV statement upload.</p>
 <p><strong>Cons:</strong> No invoicing, no accounting ledger, no payroll.</p>
 <p><strong>Price:</strong> Free</p>
@@ -1348,9 +1348,9 @@ class SeoPageSeeder extends Seeder
 <p><strong>Best for:</strong> Small businesses already using Zoho tools or needing inventory management.</p>
 
 <h2>Our Recommendation</h2>
-<p>The best Wave alternative depends on what you need. For smart expense tracking with tax features, use LedgerIQ (free). For invoicing with accounting, try FreshBooks ($17/month). For the best free combination, use LedgerIQ for expenses and Wave for invoicing, getting the best of both worlds.</p>
+<p>The best Wave alternative depends on what you need. For smart expense tracking with tax features, use SpendifiAI (free). For invoicing with accounting, try FreshBooks ($17/month). For the best free combination, use SpendifiAI for expenses and Wave for invoicing, getting the best of both worlds.</p>
 
-<p><strong>Upgrade your expense tracking for free.</strong> <a href="/register">Get LedgerIQ</a> for AI-powered categorization and tax exports. See our <a href="/blog/ledgeriq-vs-wave">detailed Wave comparison</a>.</p>',
+<p><strong>Upgrade your expense tracking for free.</strong> <a href="/register">Get SpendifiAI</a> for AI-powered categorization and tax exports. See our <a href="/blog/spendifiai-vs-wave">detailed Wave comparison</a>.</p>',
                 'is_published' => true,
                 'published_at' => '2026-01-21 09:00:00',
                 'created_at' => now(),
@@ -1372,8 +1372,8 @@ class SeoPageSeeder extends Seeder
                 'excerpt' => 'FreshBooks starts at $17/month and can reach $55/month for premium features. Here are the best alternatives for self-employed professionals in 2026, including free options.',
                 'content' => '<p>FreshBooks is excellent for invoicing and client management, but at $17 to $55 per month, it is a significant expense for self-employed professionals. If you are looking for alternatives that better fit your budget or specific needs, here are the top options for 2026.</p>
 
-<h2>1. LedgerIQ — Best Free Expense Tracking Alternative</h2>
-<p>LedgerIQ focuses on what FreshBooks does weakly: expense categorization and tax preparation.</p>
+<h2>1. SpendifiAI — Best Free Expense Tracking Alternative</h2>
+<p>SpendifiAI focuses on what FreshBooks does weakly: expense categorization and tax preparation.</p>
 <p><strong>Pros:</strong> Free, AI categorization with 95%+ accuracy, Schedule C tax exports, subscription detection, savings recommendations, bank statement uploads.</p>
 <p><strong>Cons:</strong> No invoicing, no time tracking, no client management.</p>
 <p><strong>Price:</strong> Free</p>
@@ -1408,9 +1408,9 @@ class SeoPageSeeder extends Seeder
 <p><strong>Best for:</strong> Budget-conscious self-employed workers who want modular tools.</p>
 
 <h2>Our Recommendation</h2>
-<p>For expense tracking specifically, LedgerIQ outperforms FreshBooks with AI categorization and tax exports, for free. For invoicing, Wave is the best free alternative. The LedgerIQ + Wave combination gives you better expense tracking and equivalent invoicing at $0/month versus FreshBooks at $17-55/month.</p>
+<p>For expense tracking specifically, SpendifiAI outperforms FreshBooks with AI categorization and tax exports, for free. For invoicing, Wave is the best free alternative. The SpendifiAI + Wave combination gives you better expense tracking and equivalent invoicing at $0/month versus FreshBooks at $17-55/month.</p>
 
-<p><strong>Get better expense tracking for free.</strong> <a href="/register">Create your LedgerIQ account</a> and start saving. Read our <a href="/blog/ledgeriq-vs-freshbooks">full FreshBooks comparison</a>.</p>',
+<p><strong>Get better expense tracking for free.</strong> <a href="/register">Create your SpendifiAI account</a> and start saving. Read our <a href="/blog/spendifiai-vs-freshbooks">full FreshBooks comparison</a>.</p>',
                 'is_published' => true,
                 'published_at' => '2026-01-23 10:00:00',
                 'created_at' => now(),
@@ -1426,8 +1426,8 @@ class SeoPageSeeder extends Seeder
                 'excerpt' => 'Empower offers great investment tools but weak expense tracking. Here are the best alternatives that cover spending management, tax features, or both investments and expenses.',
                 'content' => '<p>Empower (formerly Personal Capital) excels at investment portfolio management but treats expense tracking as an afterthought. If you need better spending management, tax features, or simply a different approach to personal finance, these alternatives fill the gaps Empower leaves.</p>
 
-<h2>1. LedgerIQ — Best for Expense Tracking</h2>
-<p>LedgerIQ replaces Empower\'s weakest feature (expense tracking) with AI-powered intelligence.</p>
+<h2>1. SpendifiAI — Best for Expense Tracking</h2>
+<p>SpendifiAI replaces Empower\'s weakest feature (expense tracking) with AI-powered intelligence.</p>
 <p><strong>Pros:</strong> Free, Claude AI categorization (95%+ accuracy), Schedule C tax exports, subscription detection, savings analysis, bank statement upload.</p>
 <p><strong>Cons:</strong> No investment tracking, no retirement planning, no net worth calculation.</p>
 <p><strong>Price:</strong> Free</p>
@@ -1462,9 +1462,9 @@ class SeoPageSeeder extends Seeder
 <p><strong>Best for:</strong> Apple users who value premium design in their finance app.</p>
 
 <h2>Our Recommendation</h2>
-<p>The best approach is pairing tools. Use LedgerIQ (free) for AI expense tracking and tax exports, plus Empower (free) for investment management. This gives you best-in-class tools for both spending and investing at zero cost.</p>
+<p>The best approach is pairing tools. Use SpendifiAI (free) for AI expense tracking and tax exports, plus Empower (free) for investment management. This gives you best-in-class tools for both spending and investing at zero cost.</p>
 
-<p><strong>Add smart expense tracking to your toolkit.</strong> <a href="/register">Get LedgerIQ free</a> and pair it with your investment tools. Check our <a href="/features">features page</a>.</p>',
+<p><strong>Add smart expense tracking to your toolkit.</strong> <a href="/register">Get SpendifiAI free</a> and pair it with your investment tools. Check our <a href="/features">features page</a>.</p>',
                 'is_published' => true,
                 'published_at' => '2026-01-26 11:00:00',
                 'created_at' => now(),
@@ -1480,8 +1480,8 @@ class SeoPageSeeder extends Seeder
                 'excerpt' => 'Rocket Money charges $3-12/month plus negotiation fees. Here are the best alternatives for finding unused subscriptions and managing bills in 2026, including free options.',
                 'content' => '<p>Rocket Money (formerly Truebill) is popular for subscription cancellation and bill negotiation. But its Premium tier costs $3 to $12 per month, and negotiation fees take 30-60% of your savings. If you want subscription tracking without the fees, these alternatives deliver.</p>
 
-<h2>1. LedgerIQ — Best Free Subscription Detection</h2>
-<p>LedgerIQ includes automatic subscription detection as part of its comprehensive AI expense tracking platform.</p>
+<h2>1. SpendifiAI — Best Free Subscription Detection</h2>
+<p>SpendifiAI includes automatic subscription detection as part of its comprehensive AI expense tracking platform.</p>
 <p><strong>Pros:</strong> Free, AI-powered subscription detection, frequency analysis (weekly/monthly/quarterly/annual), stopped-billing detection, savings estimates, full expense tracking with tax exports.</p>
 <p><strong>Cons:</strong> No concierge cancellation service, no bill negotiation, detection only (you cancel yourself).</p>
 <p><strong>Price:</strong> Free</p>
@@ -1516,9 +1516,9 @@ class SeoPageSeeder extends Seeder
 <p><strong>Best for:</strong> iOS users who want a simple subscription overview without linking bank accounts.</p>
 
 <h2>Our Recommendation</h2>
-<p>LedgerIQ provides the best free alternative to Rocket Money. You get automatic subscription detection with AI-powered analysis, plus comprehensive expense tracking and tax features. The only thing you give up is the concierge cancellation service, but canceling subscriptions yourself keeps 100% of your savings.</p>
+<p>SpendifiAI provides the best free alternative to Rocket Money. You get automatic subscription detection with AI-powered analysis, plus comprehensive expense tracking and tax features. The only thing you give up is the concierge cancellation service, but canceling subscriptions yourself keeps 100% of your savings.</p>
 
-<p><strong>Find unused subscriptions for free.</strong> <a href="/register">Get LedgerIQ</a> and let AI detect your recurring charges. See all <a href="/features">features here</a>.</p>',
+<p><strong>Find unused subscriptions for free.</strong> <a href="/register">Get SpendifiAI</a> and let AI detect your recurring charges. See all <a href="/features">features here</a>.</p>',
                 'is_published' => true,
                 'published_at' => '2026-01-29 09:30:00',
                 'created_at' => now(),
@@ -1534,8 +1534,8 @@ class SeoPageSeeder extends Seeder
                 'excerpt' => 'You do not need to pay for expense tracking in 2026. These 7 free apps offer bank connections, automatic categorization, and budgeting tools without any subscription fees.',
                 'content' => '<p>The personal finance app market has exploded, and you no longer need to pay monthly fees for quality expense tracking. Whether you want AI-powered categorization, simple budgeting, or investment tracking, there is a free option that fits. Here are the 7 best free expense trackers for 2026.</p>
 
-<h2>1. LedgerIQ — Best Overall Free Expense Tracker</h2>
-<p>LedgerIQ is the most feature-rich free expense tracker available, with AI categorization that outperforms many paid alternatives.</p>
+<h2>1. SpendifiAI — Best Overall Free Expense Tracker</h2>
+<p>SpendifiAI is the most feature-rich free expense tracker available, with AI categorization that outperforms many paid alternatives.</p>
 <p><strong>Key Features:</strong> Claude AI categorization (95%+ accuracy), Plaid bank connections (12,000+ banks), IRS Schedule C tax exports, automatic subscription detection, AI savings recommendations, PDF/CSV statement upload, email receipt parsing.</p>
 <p><strong>Limitations:</strong> No investment tracking, no invoicing.</p>
 <p><strong>Best for:</strong> Freelancers, self-employed, and anyone wanting the smartest free expense tracking available.</p>
@@ -1577,9 +1577,9 @@ class SeoPageSeeder extends Seeder
 <p><strong>Best for:</strong> Small teams of 1-3 who need basic expense report functionality.</p>
 
 <h2>Our Top Pick</h2>
-<p>LedgerIQ stands out as the best free expense tracker for 2026. AI categorization eliminates manual work, tax exports save hours during filing season, and subscription detection finds money you are wasting. No other free tool combines all these features.</p>
+<p>SpendifiAI stands out as the best free expense tracker for 2026. AI categorization eliminates manual work, tax exports save hours during filing season, and subscription detection finds money you are wasting. No other free tool combines all these features.</p>
 
-<p><strong>Start tracking expenses for free today.</strong> <a href="/register">Create your LedgerIQ account</a> in 60 seconds. No credit card, no trial period, no catch. See our <a href="/features">full feature list</a>.</p>',
+<p><strong>Start tracking expenses for free today.</strong> <a href="/register">Create your SpendifiAI account</a> in 60 seconds. No credit card, no trial period, no catch. See our <a href="/features">full feature list</a>.</p>',
                 'is_published' => true,
                 'published_at' => '2026-02-01 09:00:00',
                 'created_at' => now(),
@@ -1595,8 +1595,8 @@ class SeoPageSeeder extends Seeder
                 'excerpt' => 'AI is transforming expense tracking from tedious data entry into automated intelligence. Here are the best AI-powered expense trackers in 2026 that actually deliver on the promise.',
                 'content' => '<p>Every finance app claims to use AI in 2026, but few deliver genuinely intelligent features. True AI expense tracking means contextual categorization, pattern recognition, and personalized insights, not just basic rule matching rebranded as "smart." Here are the apps that actually use AI meaningfully.</p>
 
-<h2>1. LedgerIQ — Best AI Categorization (Free)</h2>
-<p>LedgerIQ uses Claude AI (Anthropic\'s large language model) for contextual expense categorization that understands what you bought, not just where you bought it.</p>
+<h2>1. SpendifiAI — Best AI Categorization (Free)</h2>
+<p>SpendifiAI uses Claude AI (Anthropic\'s large language model) for contextual expense categorization that understands what you bought, not just where you bought it.</p>
 <p><strong>AI Features:</strong> Contextual transaction categorization (95%+ accuracy), confidence-based routing (auto-categorize, flag for review, or ask questions), AI-powered savings recommendations from 90-day spending analysis, intelligent subscription detection with billing frequency analysis.</p>
 <p><strong>How the AI works:</strong> Each transaction is analyzed with context including merchant name, amount, frequency, account purpose (business/personal), and historical patterns. High-confidence categorizations happen silently. Low-confidence transactions generate targeted questions. The system learns from your answers.</p>
 <p><strong>Price:</strong> Free</p>
@@ -1630,13 +1630,13 @@ class SeoPageSeeder extends Seeder
 <p><strong>Price:</strong> $5-18/user/month</p>
 <p><strong>Best for:</strong> Business teams that process many receipt-based expense reports.</p>
 
-<h2>What Makes LedgerIQ\'s AI Different</h2>
-<p>Most "AI" expense trackers use basic machine learning or pattern matching. LedgerIQ uses Claude, a large language model that actually understands the context of each transaction. It knows that a $47 charge at Home Depot is probably a business expense for a contractor but a personal expense for most people. This contextual understanding is what delivers 95%+ accuracy from day one, without weeks of training.</p>
+<h2>What Makes SpendifiAI\'s AI Different</h2>
+<p>Most "AI" expense trackers use basic machine learning or pattern matching. SpendifiAI uses Claude, a large language model that actually understands the context of each transaction. It knows that a $47 charge at Home Depot is probably a business expense for a contractor but a personal expense for most people. This contextual understanding is what delivers 95%+ accuracy from day one, without weeks of training.</p>
 
 <h2>Our Recommendation</h2>
-<p>If you want the best AI expense tracking available, LedgerIQ is the clear winner. It uses the most advanced AI technology, delivers the highest accuracy, and is completely free. No other tool matches its combination of AI quality and price (zero).</p>
+<p>If you want the best AI expense tracking available, SpendifiAI is the clear winner. It uses the most advanced AI technology, delivers the highest accuracy, and is completely free. No other tool matches its combination of AI quality and price (zero).</p>
 
-<p><strong>Experience real AI expense tracking.</strong> <a href="/register">Try LedgerIQ free</a> and see Claude AI categorize your transactions with 95%+ accuracy. Explore our <a href="/features">features</a>.</p>',
+<p><strong>Experience real AI expense tracking.</strong> <a href="/register">Try SpendifiAI free</a> and see Claude AI categorize your transactions with 95%+ accuracy. Explore our <a href="/features">features</a>.</p>',
                 'is_published' => true,
                 'published_at' => '2026-02-04 10:30:00',
                 'created_at' => now(),
@@ -1677,7 +1677,7 @@ class SeoPageSeeder extends Seeder
 <p>Bank statements alone may not satisfy the IRS. For expenses over $75, keep receipts that show the business purpose. For meals and entertainment, note who you met with and the business topic discussed. Digital copies (photos or email receipts) are accepted by the IRS.</p>
 
 <h2>Step 5: Automate with the Right Tools</h2>
-<p>Manual tracking in spreadsheets works but is error-prone and time-consuming. Modern tools connect to your bank accounts and categorize transactions automatically. AI-powered tools like LedgerIQ go further, using contextual analysis to distinguish business from personal expenses with over 95% accuracy.</p>
+<p>Manual tracking in spreadsheets works but is error-prone and time-consuming. Modern tools connect to your bank accounts and categorize transactions automatically. AI-powered tools like SpendifiAI go further, using contextual analysis to distinguish business from personal expenses with over 95% accuracy.</p>
 
 <h2>Step 6: Review Monthly</h2>
 <p>At the end of each month, review your categorized expenses for accuracy. Check that large purchases are in the right categories, verify no personal expenses are marked as business, and ensure no business expenses were missed. This 30-minute monthly review prevents hours of year-end cleanup.</p>
@@ -1686,10 +1686,10 @@ class SeoPageSeeder extends Seeder
 <strong>Warning:</strong> Never claim personal expenses as business deductions. The IRS penalty for fraudulent deductions starts at 75% of the underpaid tax amount plus interest.
 </div>
 
-<h2>How LedgerIQ Helps</h2>
-<p>LedgerIQ automates steps 2 through 6. It connects to your bank via Plaid, uses Claude AI to categorize every transaction into IRS Schedule C categories, flags uncertain items for your review, and exports tax-ready deduction reports. The entire process takes minutes instead of hours, and it is completely free.</p>
+<h2>How SpendifiAI Helps</h2>
+<p>SpendifiAI automates steps 2 through 6. It connects to your bank via Plaid, uses Claude AI to categorize every transaction into IRS Schedule C categories, flags uncertain items for your review, and exports tax-ready deduction reports. The entire process takes minutes instead of hours, and it is completely free.</p>
 
-<p><strong>Start tracking business expenses the smart way.</strong> <a href="/register">Create your free LedgerIQ account</a> and let AI handle categorization. Visit our <a href="/features">features page</a> for more details.</p>',
+<p><strong>Start tracking business expenses the smart way.</strong> <a href="/register">Create your free SpendifiAI account</a> and let AI handle categorization. Visit our <a href="/features">features page</a> for more details.</p>',
                 'is_published' => true,
                 'published_at' => '2026-01-06 09:00:00',
                 'created_at' => now(),
@@ -1745,10 +1745,10 @@ class SeoPageSeeder extends Seeder
 <strong>Tip:</strong> When in doubt about a category, ask yourself: "Would the IRS agree this expense was ordinary and necessary for my business?" If yes, find the most specific category. If no, do not deduct it.
 </div>
 
-<h2>How LedgerIQ Automates Categorization</h2>
-<p>LedgerIQ uses Claude AI to automatically map every transaction to the correct Schedule C line item. The AI considers your business type, account purpose, and transaction context to categorize with over 95% accuracy. When uncertain, it asks you a targeted question rather than guessing. At tax time, export a clean report with deductions organized by Schedule C line.</p>
+<h2>How SpendifiAI Automates Categorization</h2>
+<p>SpendifiAI uses Claude AI to automatically map every transaction to the correct Schedule C line item. The AI considers your business type, account purpose, and transaction context to categorize with over 95% accuracy. When uncertain, it asks you a targeted question rather than guessing. At tax time, export a clean report with deductions organized by Schedule C line.</p>
 
-<p><strong>Stop guessing about expense categories.</strong> <a href="/register">Get LedgerIQ free</a> and let AI map your expenses to Schedule C automatically. See our <a href="/features">features</a> for details.</p>',
+<p><strong>Stop guessing about expense categories.</strong> <a href="/register">Get SpendifiAI free</a> and let AI map your expenses to Schedule C automatically. See our <a href="/features">features</a> for details.</p>',
                 'is_published' => true,
                 'published_at' => '2026-01-08 10:30:00',
                 'created_at' => now(),
@@ -1795,10 +1795,10 @@ class SeoPageSeeder extends Seeder
 <h2>Step 6: Set Review Reminders</h2>
 <p>Subscription creep happens gradually. Set a quarterly calendar reminder to review all recurring charges. Annual subscriptions are especially sneaky because you forget about them between billing cycles.</p>
 
-<h2>How LedgerIQ Automates This Process</h2>
-<p>LedgerIQ eliminates steps 1 through 3 entirely. It connects to your bank accounts, scans all transactions automatically, and identifies every recurring charge with its billing frequency and cost. It even detects when subscriptions stop billing (meaning you may have been charged but the service shut down). The dashboard shows your total subscription spending and highlights services that may be unused.</p>
+<h2>How SpendifiAI Automates This Process</h2>
+<p>SpendifiAI eliminates steps 1 through 3 entirely. It connects to your bank accounts, scans all transactions automatically, and identifies every recurring charge with its billing frequency and cost. It even detects when subscriptions stop billing (meaning you may have been charged but the service shut down). The dashboard shows your total subscription spending and highlights services that may be unused.</p>
 
-<p><strong>Find your hidden subscriptions in minutes.</strong> <a href="/register">Sign up for LedgerIQ free</a> and see all your recurring charges instantly. Learn more on our <a href="/features">features page</a>.</p>',
+<p><strong>Find your hidden subscriptions in minutes.</strong> <a href="/register">Sign up for SpendifiAI free</a> and see all your recurring charges instantly. Learn more on our <a href="/features">features page</a>.</p>',
                 'is_published' => true,
                 'published_at' => '2026-01-10 09:00:00',
                 'created_at' => now(),
@@ -1845,13 +1845,13 @@ class SeoPageSeeder extends Seeder
 <p>Annual subscriptions renew silently. Check your bank statements in the renewal month. Many people are surprised by annual charges for services they stopped using months ago.</p>
 
 <div style="background:#f0f9ff;border-left:4px solid #3b82f6;padding:12px 16px;margin:16px 0;">
-<strong>Tip:</strong> LedgerIQ automatically detects all subscription billing frequencies including annual charges, so you get alerts before renewal rather than surprises after.
+<strong>Tip:</strong> SpendifiAI automatically detects all subscription billing frequencies including annual charges, so you get alerts before renewal rather than surprises after.
 </div>
 
-<h2>How LedgerIQ Helps You Save</h2>
-<p>LedgerIQ automatically detects every subscription from your bank transactions, analyzes billing frequency, calculates annual cost, and identifies subscriptions that appear unused. AI-powered savings recommendations suggest specific actions, whether to cancel, downgrade, or switch to annual billing, with projected savings calculations. All for free.</p>
+<h2>How SpendifiAI Helps You Save</h2>
+<p>SpendifiAI automatically detects every subscription from your bank transactions, analyzes billing frequency, calculates annual cost, and identifies subscriptions that appear unused. AI-powered savings recommendations suggest specific actions, whether to cancel, downgrade, or switch to annual billing, with projected savings calculations. All for free.</p>
 
-<p><strong>Find out how much you can save.</strong> <a href="/register">Create your free LedgerIQ account</a> and see your subscription spending in minutes. Explore our <a href="/features">features</a>.</p>',
+<p><strong>Find out how much you can save.</strong> <a href="/register">Create your free SpendifiAI account</a> and see your subscription spending in minutes. Explore our <a href="/features">features</a>.</p>',
                 'is_published' => true,
                 'published_at' => '2026-01-12 11:00:00',
                 'created_at' => now(),
@@ -1903,10 +1903,10 @@ class SeoPageSeeder extends Seeder
 <strong>Warning:</strong> Schedule C is one of the most audited tax forms. Ensure every deduction has documentation. Round numbers and unusually high deduction-to-income ratios raise red flags.
 </div>
 
-<h2>How LedgerIQ Simplifies Schedule C</h2>
-<p>LedgerIQ automatically categorizes your expenses into Schedule C line items throughout the year. When filing time arrives, export your organized deductions as Excel, PDF, or CSV. Every expense is mapped to the correct line number, so you or your tax preparer can transfer numbers directly onto the form.</p>
+<h2>How SpendifiAI Simplifies Schedule C</h2>
+<p>SpendifiAI automatically categorizes your expenses into Schedule C line items throughout the year. When filing time arrives, export your organized deductions as Excel, PDF, or CSV. Every expense is mapped to the correct line number, so you or your tax preparer can transfer numbers directly onto the form.</p>
 
-<p><strong>Make Schedule C filing effortless.</strong> <a href="/register">Start with LedgerIQ free</a> and have your deductions organized year-round. See our <a href="/features">tax features</a>.</p>',
+<p><strong>Make Schedule C filing effortless.</strong> <a href="/register">Start with SpendifiAI free</a> and have your deductions organized year-round. See our <a href="/features">tax features</a>.</p>',
                 'is_published' => true,
                 'published_at' => '2026-01-14 09:30:00',
                 'created_at' => now(),
@@ -1952,10 +1952,10 @@ class SeoPageSeeder extends Seeder
 <h2>Monthly Financial Review</h2>
 <p>Spend 30 minutes at month-end reviewing: total income received, total expenses by category, estimated quarterly tax payment needed, and any uncategorized transactions. This prevents the painful January scramble that leads to missed deductions.</p>
 
-<h2>How LedgerIQ Handles Freelance Finances</h2>
-<p>LedgerIQ connects to your business bank accounts, automatically categorizes every transaction to Schedule C line items, detects recurring charges, and generates tax-ready exports. The AI understands freelance spending patterns and distinguishes business from personal expenses with over 95% accuracy. All free.</p>
+<h2>How SpendifiAI Handles Freelance Finances</h2>
+<p>SpendifiAI connects to your business bank accounts, automatically categorizes every transaction to Schedule C line items, detects recurring charges, and generates tax-ready exports. The AI understands freelance spending patterns and distinguishes business from personal expenses with over 95% accuracy. All free.</p>
 
-<p><strong>Simplify your freelance finances.</strong> <a href="/register">Get LedgerIQ free</a> and automate your income and expense tracking. See our <a href="/features">features page</a>.</p>',
+<p><strong>Simplify your freelance finances.</strong> <a href="/register">Get SpendifiAI free</a> and automate your income and expense tracking. See our <a href="/features">features page</a>.</p>',
                 'is_published' => true,
                 'published_at' => '2026-01-16 10:00:00',
                 'created_at' => now(),
@@ -2000,10 +2000,10 @@ class SeoPageSeeder extends Seeder
 <strong>Warning:</strong> If you have an LLC or S-Corp, mixing business and personal funds can pierce the corporate veil, meaning you lose the liability protection the business structure provides. Keep them separate.
 </div>
 
-<h2>How LedgerIQ Helps</h2>
-<p>LedgerIQ lets you tag each connected bank account as business, personal, or mixed. This account purpose flows into every transaction, helping the AI categorize correctly. Business account transactions are automatically matched to Schedule C categories, while personal account transactions are tracked separately. The system flags unusual patterns like business-type charges on personal accounts.</p>
+<h2>How SpendifiAI Helps</h2>
+<p>SpendifiAI lets you tag each connected bank account as business, personal, or mixed. This account purpose flows into every transaction, helping the AI categorize correctly. Business account transactions are automatically matched to Schedule C categories, while personal account transactions are tracked separately. The system flags unusual patterns like business-type charges on personal accounts.</p>
 
-<p><strong>Get clean expense separation with AI.</strong> <a href="/register">Create your free LedgerIQ account</a> and tag your accounts for automatic business/personal classification. See our <a href="/features">features</a>.</p>',
+<p><strong>Get clean expense separation with AI.</strong> <a href="/register">Create your free SpendifiAI account</a> and tag your accounts for automatic business/personal classification. See our <a href="/features">features</a>.</p>',
                 'is_published' => true,
                 'published_at' => '2026-01-18 09:00:00',
                 'created_at' => now(),
@@ -2050,10 +2050,10 @@ class SeoPageSeeder extends Seeder
 <li>Export organized deduction report for your tax preparer</li>
 </ul>
 
-<h2>How LedgerIQ Automates Deduction Tracking</h2>
-<p>LedgerIQ connects to your banks, imports every transaction, and uses Claude AI to map each one to the correct Schedule C category automatically. Confidence-based routing means obvious deductions are categorized silently while ambiguous items generate questions for you. At any time, export a current deduction summary in Excel, PDF, or CSV format. All year-round, all free.</p>
+<h2>How SpendifiAI Automates Deduction Tracking</h2>
+<p>SpendifiAI connects to your banks, imports every transaction, and uses Claude AI to map each one to the correct Schedule C category automatically. Confidence-based routing means obvious deductions are categorized silently while ambiguous items generate questions for you. At any time, export a current deduction summary in Excel, PDF, or CSV format. All year-round, all free.</p>
 
-<p><strong>Never miss a deduction again.</strong> <a href="/register">Start with LedgerIQ free</a> and track deductions automatically from day one. Explore our <a href="/features">tax features</a>.</p>',
+<p><strong>Never miss a deduction again.</strong> <a href="/register">Start with SpendifiAI free</a> and track deductions automatically from day one. Explore our <a href="/features">tax features</a>.</p>',
                 'is_published' => true,
                 'published_at' => '2026-01-20 10:30:00',
                 'created_at' => now(),
@@ -2101,10 +2101,10 @@ class SeoPageSeeder extends Seeder
 <strong>Warning:</strong> Do not rely solely on bank statements for documentation. While they work for expenses under $75, larger expenses need original receipts showing itemized details and business purpose.
 </div>
 
-<h2>How LedgerIQ Reduces Receipt Burden</h2>
-<p>LedgerIQ\'s bank connection captures every transaction automatically, reducing the number of expenses that need manual receipt documentation. For expenses under $75, your LedgerIQ transaction record paired with your bank statement satisfies IRS requirements. Email receipt parsing automatically matches emailed purchase confirmations to bank transactions, creating a digital paper trail without manual effort.</p>
+<h2>How SpendifiAI Reduces Receipt Burden</h2>
+<p>SpendifiAI\'s bank connection captures every transaction automatically, reducing the number of expenses that need manual receipt documentation. For expenses under $75, your SpendifiAI transaction record paired with your bank statement satisfies IRS requirements. Email receipt parsing automatically matches emailed purchase confirmations to bank transactions, creating a digital paper trail without manual effort.</p>
 
-<p><strong>Simplify your receipt management.</strong> <a href="/register">Get LedgerIQ free</a> and automate your expense documentation. See our <a href="/features">features</a> for details.</p>',
+<p><strong>Simplify your receipt management.</strong> <a href="/register">Get SpendifiAI free</a> and automate your expense documentation. See our <a href="/features">features</a> for details.</p>',
                 'is_published' => true,
                 'published_at' => '2026-01-22 09:00:00',
                 'created_at' => now(),
@@ -2154,10 +2154,10 @@ class SeoPageSeeder extends Seeder
 <li>Not adjusting when income or expenses change</li>
 </ul>
 
-<h2>How LedgerIQ Supports Your Budget</h2>
-<p>LedgerIQ automatically categorizes your spending, making Step 1 effortless. The dashboard shows spending by category with progress toward budget goals. AI-powered savings recommendations identify specific areas where you are overspending compared to your goals. Subscription detection finds recurring charges you may not have budgeted for.</p>
+<h2>How SpendifiAI Supports Your Budget</h2>
+<p>SpendifiAI automatically categorizes your spending, making Step 1 effortless. The dashboard shows spending by category with progress toward budget goals. AI-powered savings recommendations identify specific areas where you are overspending compared to your goals. Subscription detection finds recurring charges you may not have budgeted for.</p>
 
-<p><strong>Build a budget based on real data.</strong> <a href="/register">Create your free LedgerIQ account</a> and see exactly where your money goes. Explore our <a href="/features">features</a>.</p>',
+<p><strong>Build a budget based on real data.</strong> <a href="/register">Create your free SpendifiAI account</a> and see exactly where your money goes. Explore our <a href="/features">features</a>.</p>',
                 'is_published' => true,
                 'published_at' => '2026-01-24 11:00:00',
                 'created_at' => now(),
@@ -2201,10 +2201,10 @@ class SeoPageSeeder extends Seeder
 <strong>Tip:</strong> Start with the three highest-impact changes. Trying all 25 at once leads to burnout. Pick the easiest three, implement them this week, then add more next month.
 </div>
 
-<h2>How LedgerIQ Identifies Your Savings</h2>
-<p>LedgerIQ analyzes your spending patterns with Claude AI and generates personalized recommendations based on your actual expenses, not generic tips. It identifies subscriptions you can cancel, shows exactly how much you spend in each category, and calculates projected savings from specific changes.</p>
+<h2>How SpendifiAI Identifies Your Savings</h2>
+<p>SpendifiAI analyzes your spending patterns with Claude AI and generates personalized recommendations based on your actual expenses, not generic tips. It identifies subscriptions you can cancel, shows exactly how much you spend in each category, and calculates projected savings from specific changes.</p>
 
-<p><strong>See your personalized savings opportunities.</strong> <a href="/register">Get LedgerIQ free</a> and let AI analyze your spending. Visit our <a href="/features">features page</a>.</p>',
+<p><strong>See your personalized savings opportunities.</strong> <a href="/register">Get SpendifiAI free</a> and let AI analyze your spending. Visit our <a href="/features">features page</a>.</p>',
                 'is_published' => true,
                 'published_at' => '2026-01-26 09:00:00',
                 'created_at' => now(),
@@ -2253,10 +2253,10 @@ class SeoPageSeeder extends Seeder
 <strong>Warning:</strong> Inflating mileage is one of the most commonly caught audit items. The IRS can cross-reference your reported miles with your vehicle\'s maintenance records and odometer readings.
 </div>
 
-<h2>How LedgerIQ Helps with Vehicle Expenses</h2>
-<p>While LedgerIQ does not currently track GPS mileage, it captures and categorizes all vehicle-related expenses from your bank transactions: gas, insurance, repairs, parking, tolls, and car washes. These are automatically categorized under Schedule C Line 9, giving you a complete picture of your vehicle expenses alongside all other deductions.</p>
+<h2>How SpendifiAI Helps with Vehicle Expenses</h2>
+<p>While SpendifiAI does not currently track GPS mileage, it captures and categorizes all vehicle-related expenses from your bank transactions: gas, insurance, repairs, parking, tolls, and car washes. These are automatically categorized under Schedule C Line 9, giving you a complete picture of your vehicle expenses alongside all other deductions.</p>
 
-<p><strong>Track all your deductions in one place.</strong> <a href="/register">Get LedgerIQ free</a> and let AI categorize your vehicle and other business expenses. See our <a href="/features">features</a>.</p>',
+<p><strong>Track all your deductions in one place.</strong> <a href="/register">Get SpendifiAI free</a> and let AI categorize your vehicle and other business expenses. See our <a href="/features">features</a>.</p>',
                 'is_published' => true,
                 'published_at' => '2026-01-28 10:30:00',
                 'created_at' => now(),
@@ -2307,10 +2307,10 @@ class SeoPageSeeder extends Seeder
 <strong>Warning:</strong> If you use the regular method and claim depreciation, you will owe depreciation recapture tax when you sell your home. This does not apply to the simplified method. Consider this in your decision.
 </div>
 
-<h2>How LedgerIQ Tracks Home Office Expenses</h2>
-<p>LedgerIQ automatically categorizes your utility payments, internet bills, insurance, and other home expenses from your bank transactions. While you still need to calculate the business-use percentage, LedgerIQ ensures all relevant expenses are captured and organized. Combined with the Schedule C export, your home office deduction data is tax-ready.</p>
+<h2>How SpendifiAI Tracks Home Office Expenses</h2>
+<p>SpendifiAI automatically categorizes your utility payments, internet bills, insurance, and other home expenses from your bank transactions. While you still need to calculate the business-use percentage, SpendifiAI ensures all relevant expenses are captured and organized. Combined with the Schedule C export, your home office deduction data is tax-ready.</p>
 
-<p><strong>Capture every home office expense.</strong> <a href="/register">Start with LedgerIQ free</a> and ensure no deduction is missed. Check our <a href="/features">features</a> for details.</p>',
+<p><strong>Capture every home office expense.</strong> <a href="/register">Start with SpendifiAI free</a> and ensure no deduction is missed. Check our <a href="/features">features</a> for details.</p>',
                 'is_published' => true,
                 'published_at' => '2026-01-30 09:00:00',
                 'created_at' => now(),
@@ -2357,10 +2357,10 @@ class SeoPageSeeder extends Seeder
 <h2>Year-End 1099 Reconciliation</h2>
 <p>In January, compare your 1099 forms received against your income records. Common issues: missing 1099s from clients (follow up), incorrect amounts (request corrected forms), and payments split across calendar years. Ensure your reported income matches what the IRS has on file.</p>
 
-<h2>How LedgerIQ Tracks 1099 Finances</h2>
-<p>LedgerIQ connects to your business bank accounts and automatically categorizes both income deposits and expense transactions. AI maps expenses to Schedule C categories, tracks recurring costs, and generates tax-ready exports showing your total income and organized deductions. All of this runs continuously so your tax picture is always current.</p>
+<h2>How SpendifiAI Tracks 1099 Finances</h2>
+<p>SpendifiAI connects to your business bank accounts and automatically categorizes both income deposits and expense transactions. AI maps expenses to Schedule C categories, tracks recurring costs, and generates tax-ready exports showing your total income and organized deductions. All of this runs continuously so your tax picture is always current.</p>
 
-<p><strong>Get your 1099 finances organized.</strong> <a href="/register">Create your free LedgerIQ account</a> and let AI handle categorization. See our <a href="/features">tax features</a>.</p>',
+<p><strong>Get your 1099 finances organized.</strong> <a href="/register">Create your free SpendifiAI account</a> and let AI handle categorization. See our <a href="/features">tax features</a>.</p>',
                 'is_published' => true,
                 'published_at' => '2026-02-01 10:00:00',
                 'created_at' => now(),
@@ -2410,10 +2410,10 @@ class SeoPageSeeder extends Seeder
 <li>Forgetting about automatic transfers when income varies (freelancers: adjust transfers with income)</li>
 </ul>
 
-<h2>How LedgerIQ Unifies Your Accounts</h2>
-<p>LedgerIQ connects to all your bank accounts through Plaid, giving you a unified dashboard across every institution. Each account can be tagged as business, personal, or mixed, and AI categorization considers the account purpose when classifying transactions. You also upload PDF or CSV statements from accounts that do not support electronic connections. One view, all accounts, all AI-categorized.</p>
+<h2>How SpendifiAI Unifies Your Accounts</h2>
+<p>SpendifiAI connects to all your bank accounts through Plaid, giving you a unified dashboard across every institution. Each account can be tagged as business, personal, or mixed, and AI categorization considers the account purpose when classifying transactions. You also upload PDF or CSV statements from accounts that do not support electronic connections. One view, all accounts, all AI-categorized.</p>
 
-<p><strong>See all your accounts in one place.</strong> <a href="/register">Get LedgerIQ free</a> and connect all your banks for unified tracking. Check our <a href="/features">features</a>.</p>',
+<p><strong>See all your accounts in one place.</strong> <a href="/register">Get SpendifiAI free</a> and connect all your banks for unified tracking. Check our <a href="/features">features</a>.</p>',
                 'is_published' => true,
                 'published_at' => '2026-02-03 09:00:00',
                 'created_at' => now(),
@@ -2444,7 +2444,7 @@ class SeoPageSeeder extends Seeder
 
 <h2>Layer 2: AI Categorization</h2>
 <p>This is where modern AI has transformed expense tracking. Traditional tools use simple rules: "If merchant contains STARBUCKS, categorize as Dining." These rules fail for ambiguous merchants, new businesses, and context-dependent purchases.</p>
-<p>AI categorization (like Claude AI used by LedgerIQ) considers multiple signals: merchant name, transaction amount, purchase frequency, account type (business vs. personal), time patterns, and your business type. A $47 charge at Home Depot is categorized as "Supplies" for a contractor but "Home Maintenance" for a software developer. This contextual understanding delivers 95%+ accuracy versus 70-80% for rule-based systems.</p>
+<p>AI categorization (like Claude AI used by SpendifiAI) considers multiple signals: merchant name, transaction amount, purchase frequency, account type (business vs. personal), time patterns, and your business type. A $47 charge at Home Depot is categorized as "Supplies" for a contractor but "Home Maintenance" for a software developer. This contextual understanding delivers 95%+ accuracy versus 70-80% for rule-based systems.</p>
 
 <h2>Layer 3: Intelligent Insights</h2>
 <p>AI does not just categorize; it analyzes. Automated insight generation includes subscription detection (finding all recurring charges), spending trend analysis (identifying increases or decreases by category), savings recommendations (specific suggestions to reduce costs), and tax deduction tracking (mapping to IRS Schedule C categories).</p>
@@ -2462,10 +2462,10 @@ class SeoPageSeeder extends Seeder
 <h2>Return on Time Investment</h2>
 <p>If you value your time at $50 per hour and currently spend 7 hours monthly on manual tracking, automation saves $350 per month in productive time. Over a year, that is $4,200 in time savings, plus the value of deductions you would have missed with manual tracking.</p>
 
-<h2>How LedgerIQ Delivers Full Automation</h2>
-<p>LedgerIQ implements all three automation layers: Plaid bank syncing imports transactions automatically, Claude AI categorizes with 95%+ accuracy using confidence-based routing, and the intelligence layer detects subscriptions, generates savings recommendations, and maps deductions to Schedule C. Setup takes under 10 minutes, and it is completely free.</p>
+<h2>How SpendifiAI Delivers Full Automation</h2>
+<p>SpendifiAI implements all three automation layers: Plaid bank syncing imports transactions automatically, Claude AI categorizes with 95%+ accuracy using confidence-based routing, and the intelligence layer detects subscriptions, generates savings recommendations, and maps deductions to Schedule C. Setup takes under 10 minutes, and it is completely free.</p>
 
-<p><strong>Automate your expense tracking today.</strong> <a href="/register">Create your free LedgerIQ account</a> in minutes. Explore all <a href="/features">AI features</a>.</p>',
+<p><strong>Automate your expense tracking today.</strong> <a href="/register">Create your free SpendifiAI account</a> in minutes. Explore all <a href="/features">AI features</a>.</p>',
                 'is_published' => true,
                 'published_at' => '2026-02-05 10:30:00',
                 'created_at' => now(),
@@ -2515,10 +2515,10 @@ class SeoPageSeeder extends Seeder
 <h2>Filing Options</h2>
 <p>You can file yourself using tax software (TurboTax Self-Employed, H&R Block, FreeTaxUSA) or hire a CPA. For simple Schedule C returns with straightforward income and expenses, software is usually sufficient ($50-150). For complex situations (multiple businesses, foreign income, significant deductions), a CPA ($300-800) may save you more than they cost.</p>
 
-<h2>How LedgerIQ Makes Tax Season Easy</h2>
-<p>If you used LedgerIQ year-round, tax preparation is essentially done. Export your organized deductions as Excel, PDF, or CSV with every expense mapped to the correct Schedule C line item. Hand this to your CPA or import the data into your tax software. No scrambling, no missed deductions, no stress.</p>
+<h2>How SpendifiAI Makes Tax Season Easy</h2>
+<p>If you used SpendifiAI year-round, tax preparation is essentially done. Export your organized deductions as Excel, PDF, or CSV with every expense mapped to the correct Schedule C line item. Hand this to your CPA or import the data into your tax software. No scrambling, no missed deductions, no stress.</p>
 
-<p><strong>Be ready for next tax season from day one.</strong> <a href="/register">Start LedgerIQ free</a> and track deductions automatically all year. See our <a href="/features">tax features</a>.</p>',
+<p><strong>Be ready for next tax season from day one.</strong> <a href="/register">Start SpendifiAI free</a> and track deductions automatically all year. See our <a href="/features">tax features</a>.</p>',
                 'is_published' => true,
                 'published_at' => '2026-02-06 09:00:00',
                 'created_at' => now(),
@@ -2561,10 +2561,10 @@ class SeoPageSeeder extends Seeder
 <h2>Quarterly Estimated Payments</h2>
 <p>SE tax is paid through quarterly estimated payments along with income tax. To avoid underpayment penalties, pay at least 100% of prior year total tax liability (110% if income exceeded $150,000) across four quarterly installments.</p>
 
-<h2>How LedgerIQ Helps Minimize SE Tax</h2>
-<p>LedgerIQ maximizes your business deductions by ensuring no expense goes uncategorized. AI catches deductions that manual tracking misses, especially small recurring charges. Every dollar of captured deductions reduces both your income tax AND your self-employment tax. The Schedule C export provides organized deductions that make calculating SE tax straightforward.</p>
+<h2>How SpendifiAI Helps Minimize SE Tax</h2>
+<p>SpendifiAI maximizes your business deductions by ensuring no expense goes uncategorized. AI catches deductions that manual tracking misses, especially small recurring charges. Every dollar of captured deductions reduces both your income tax AND your self-employment tax. The Schedule C export provides organized deductions that make calculating SE tax straightforward.</p>
 
-<p><strong>Maximize deductions to minimize SE tax.</strong> <a href="/register">Get LedgerIQ free</a> and capture every business expense. See our <a href="/features">tax features</a>.</p>',
+<p><strong>Maximize deductions to minimize SE tax.</strong> <a href="/register">Get SpendifiAI free</a> and capture every business expense. See our <a href="/features">tax features</a>.</p>',
                 'is_published' => true,
                 'published_at' => '2026-02-07 10:00:00',
                 'created_at' => now(),
@@ -2618,10 +2618,10 @@ class SeoPageSeeder extends Seeder
 <strong>Warning:</strong> Do not skip quarterly payments even if you plan to file an extension. Extensions extend the filing deadline, NOT the payment deadline. Taxes owed are still due April 15.
 </div>
 
-<h2>How LedgerIQ Supports Quarterly Planning</h2>
-<p>LedgerIQ tracks your income and expenses in real time, giving you an up-to-date picture of your net self-employment income at any point during the year. This makes calculating quarterly payments straightforward: review your year-to-date numbers, estimate the remaining quarters, and calculate your payment. The Schedule C export provides the organized data you need for accurate estimates.</p>
+<h2>How SpendifiAI Supports Quarterly Planning</h2>
+<p>SpendifiAI tracks your income and expenses in real time, giving you an up-to-date picture of your net self-employment income at any point during the year. This makes calculating quarterly payments straightforward: review your year-to-date numbers, estimate the remaining quarters, and calculate your payment. The Schedule C export provides the organized data you need for accurate estimates.</p>
 
-<p><strong>Stay on top of quarterly taxes.</strong> <a href="/register">Get LedgerIQ free</a> for real-time income and expense tracking. See our <a href="/features">features</a>.</p>',
+<p><strong>Stay on top of quarterly taxes.</strong> <a href="/register">Get SpendifiAI free</a> for real-time income and expense tracking. See our <a href="/features">features</a>.</p>',
                 'is_published' => true,
                 'published_at' => '2026-02-08 11:00:00',
                 'created_at' => now(),
@@ -2672,10 +2672,10 @@ class SeoPageSeeder extends Seeder
 <h2>Strategy 6: Deduct Education</h2>
 <p>Education that maintains or improves skills for your current business is deductible. Online courses (Udemy, Coursera), professional certifications, industry conferences, and business-related books all qualify. The education must relate to your current business, not qualify you for a new career.</p>
 
-<h2>How LedgerIQ Maximizes Your Deductions</h2>
-<p>LedgerIQ catches deductions that manual tracking misses. Claude AI analyzes every transaction and maps it to the correct Schedule C category. The AI considers context that humans overlook: a recurring $4.99 charge that is actually a deductible business tool, a gas purchase on the day of a client meeting that qualifies as business travel, or a technology purchase that falls under Section 179. At year-end, export your complete deduction report organized by category.</p>
+<h2>How SpendifiAI Maximizes Your Deductions</h2>
+<p>SpendifiAI catches deductions that manual tracking misses. Claude AI analyzes every transaction and maps it to the correct Schedule C category. The AI considers context that humans overlook: a recurring $4.99 charge that is actually a deductible business tool, a gas purchase on the day of a client meeting that qualifies as business travel, or a technology purchase that falls under Section 179. At year-end, export your complete deduction report organized by category.</p>
 
-<p><strong>Capture every deduction with AI.</strong> <a href="/register">Get LedgerIQ free</a> and stop leaving money on the table. See our <a href="/features">tax features</a>.</p>',
+<p><strong>Capture every deduction with AI.</strong> <a href="/register">Get SpendifiAI free</a> and stop leaving money on the table. See our <a href="/features">tax features</a>.</p>',
                 'is_published' => true,
                 'published_at' => '2026-02-09 09:30:00',
                 'created_at' => now(),
@@ -2733,10 +2733,10 @@ class SeoPageSeeder extends Seeder
 <h2>PDF vs. CSV Statement Downloads</h2>
 <p>Most banks offer both PDF and CSV downloads. PDFs look like paper statements and are good for records. CSV files contain raw transaction data in spreadsheet format, useful for importing into financial software. When uploading statements to expense tracking tools, both formats work but CSV is typically easier to process.</p>
 
-<h2>How LedgerIQ Reads Your Statements</h2>
-<p>LedgerIQ accepts PDF and CSV bank statement uploads and uses AI to extract and categorize every transaction. It decodes cryptic merchant names, identifies recurring charges, and maps business expenses to tax categories. You can also connect directly via Plaid for automatic daily imports. Either way, your statement data becomes organized, categorized, and tax-ready.</p>
+<h2>How SpendifiAI Reads Your Statements</h2>
+<p>SpendifiAI accepts PDF and CSV bank statement uploads and uses AI to extract and categorize every transaction. It decodes cryptic merchant names, identifies recurring charges, and maps business expenses to tax categories. You can also connect directly via Plaid for automatic daily imports. Either way, your statement data becomes organized, categorized, and tax-ready.</p>
 
-<p><strong>Let AI decode your bank statements.</strong> <a href="/register">Get LedgerIQ free</a> and upload your statements for instant categorization. Check our <a href="/features">features</a>.</p>',
+<p><strong>Let AI decode your bank statements.</strong> <a href="/register">Get SpendifiAI free</a> and upload your statements for instant categorization. Check our <a href="/features">features</a>.</p>',
                 'is_published' => true,
                 'published_at' => '2026-02-10 09:00:00',
                 'created_at' => now(),
@@ -2780,10 +2780,10 @@ class SeoPageSeeder extends Seeder
 <h2>Monthly Review and Adjustment</h2>
 <p>At month-end, check: did you meet your savings goals? Were essential costs as expected? Was flexible spending satisfying without being excessive? Adjust next month accordingly. Spending plans evolve. A plan that works in January may need tweaking by March due to seasonal expenses or income changes.</p>
 
-<h2>How LedgerIQ Supports Your Spending Plan</h2>
-<p>LedgerIQ automatically categorizes your spending into essential and flexible categories using AI. The dashboard shows spending by category with progress toward budget goals, making the weekly check-in take seconds instead of minutes. Subscription detection identifies recurring costs that may be eating into your flexible spending unknowingly.</p>
+<h2>How SpendifiAI Supports Your Spending Plan</h2>
+<p>SpendifiAI automatically categorizes your spending into essential and flexible categories using AI. The dashboard shows spending by category with progress toward budget goals, making the weekly check-in take seconds instead of minutes. Subscription detection identifies recurring costs that may be eating into your flexible spending unknowingly.</p>
 
-<p><strong>Build your spending plan with real data.</strong> <a href="/register">Create your free LedgerIQ account</a> and see exactly where your money goes. Visit our <a href="/features">features page</a>.</p>',
+<p><strong>Build your spending plan with real data.</strong> <a href="/register">Create your free SpendifiAI account</a> and see exactly where your money goes. Visit our <a href="/features">features page</a>.</p>',
                 'is_published' => true,
                 'published_at' => '2026-02-10 14:00:00',
                 'created_at' => now(),
@@ -2836,10 +2836,10 @@ class SeoPageSeeder extends Seeder
 <strong>Warning:</strong> Do not estimate or reconstruct cash expenses at year-end. The IRS requires contemporaneous records (created at or near the time of the expense). Year-end estimates are easily challenged in an audit.
 </div>
 
-<h2>How LedgerIQ Complements Cash Tracking</h2>
-<p>LedgerIQ automatically tracks all card-based expenses through bank connections. For cash expenses, you can upload receipts or manually log them to keep everything in one system. Since LedgerIQ handles 90%+ of your expenses automatically (the card-based ones), you only need manual tracking for the small percentage paid in cash.</p>
+<h2>How SpendifiAI Complements Cash Tracking</h2>
+<p>SpendifiAI automatically tracks all card-based expenses through bank connections. For cash expenses, you can upload receipts or manually log them to keep everything in one system. Since SpendifiAI handles 90%+ of your expenses automatically (the card-based ones), you only need manual tracking for the small percentage paid in cash.</p>
 
-<p><strong>Automate what you can, track the rest.</strong> <a href="/register">Get LedgerIQ free</a> for automatic card expense tracking. See our <a href="/features">features</a>.</p>',
+<p><strong>Automate what you can, track the rest.</strong> <a href="/register">Get SpendifiAI free</a> for automatic card expense tracking. See our <a href="/features">features</a>.</p>',
                 'is_published' => true,
                 'published_at' => '2026-02-11 10:30:00',
                 'created_at' => now(),
@@ -2889,10 +2889,10 @@ class SeoPageSeeder extends Seeder
 <li><strong>$500/month:</strong> $6,000 in 12 months. Significant lifestyle optimization plus income growth.</li>
 </ul>
 
-<h2>How LedgerIQ Helps You Save</h2>
-<p>LedgerIQ identifies money you can redirect to savings. AI-powered subscription detection finds forgotten recurring charges. Savings recommendations analyze your specific spending patterns and suggest realistic cuts. Budget goals track your progress toward your emergency fund target. The dashboard shows projected savings from recommended changes.</p>
+<h2>How SpendifiAI Helps You Save</h2>
+<p>SpendifiAI identifies money you can redirect to savings. AI-powered subscription detection finds forgotten recurring charges. Savings recommendations analyze your specific spending patterns and suggest realistic cuts. Budget goals track your progress toward your emergency fund target. The dashboard shows projected savings from recommended changes.</p>
 
-<p><strong>Find hidden savings for your emergency fund.</strong> <a href="/register">Get LedgerIQ free</a> and see where your money is going. Visit our <a href="/features">features page</a>.</p>',
+<p><strong>Find hidden savings for your emergency fund.</strong> <a href="/register">Get SpendifiAI free</a> and see where your money is going. Visit our <a href="/features">features page</a>.</p>',
                 'is_published' => true,
                 'published_at' => '2026-02-12 09:00:00',
                 'created_at' => now(),
@@ -2937,10 +2937,10 @@ class SeoPageSeeder extends Seeder
 <h2>Getting Started with AI Finance</h2>
 <p>The simplest way to start is with a tool that combines all AI capabilities in one platform. Look for: automatic bank syncing, AI-powered categorization, subscription detection, savings analysis, and tax-relevant exports. Avoid tools that use "AI" as a marketing term but only offer basic rule-based features.</p>
 
-<h2>How LedgerIQ Uses AI</h2>
-<p>LedgerIQ is built on Claude AI (by Anthropic) for contextual expense categorization. It connects to banks via Plaid, categorizes every transaction with confidence scoring, detects subscriptions and unused services, generates personalized savings recommendations, and exports IRS Schedule C deductions. Every AI feature is included for free.</p>
+<h2>How SpendifiAI Uses AI</h2>
+<p>SpendifiAI is built on Claude AI (by Anthropic) for contextual expense categorization. It connects to banks via Plaid, categorizes every transaction with confidence scoring, detects subscriptions and unused services, generates personalized savings recommendations, and exports IRS Schedule C deductions. Every AI feature is included for free.</p>
 
-<p><strong>Experience AI-powered finance management.</strong> <a href="/register">Create your free LedgerIQ account</a> and see what AI can do with your financial data. Explore our <a href="/features">AI features</a>.</p>',
+<p><strong>Experience AI-powered finance management.</strong> <a href="/register">Create your free SpendifiAI account</a> and see what AI can do with your financial data. Explore our <a href="/features">AI features</a>.</p>',
                 'is_published' => true,
                 'published_at' => '2026-02-12 14:00:00',
                 'created_at' => now(),

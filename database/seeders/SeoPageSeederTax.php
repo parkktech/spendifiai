@@ -51,7 +51,7 @@ class SeoPageSeederTax extends Seeder
         $content = <<<'HTML'
 <p>Freelancing offers incredible freedom, but it also comes with a tax burden that catches many independent workers off guard. The good news is that dozens of legitimate deductions can dramatically lower your taxable income. The bad news is that most freelancers miss at least a few every single year.</p>
 
-<p>This comprehensive checklist covers every deduction you should consider as a freelancer filing in 2026. Bookmark it, reference it at tax time, and let <a href="/features">LedgerIQ's AI categorization</a> handle the sorting for you automatically throughout the year.</p>
+<p>This comprehensive checklist covers every deduction you should consider as a freelancer filing in 2026. Bookmark it, reference it at tax time, and let <a href="/features">SpendifiAI's AI categorization</a> handle the sorting for you automatically throughout the year.</p>
 
 <h2>Home Office Deductions</h2>
 
@@ -138,11 +138,11 @@ class SeoPageSeederTax extends Seeder
 
 <p>These contributions reduce your taxable income dollar for dollar while building your retirement savings.</p>
 
-<h2>How LedgerIQ Makes This Effortless</h2>
+<h2>How SpendifiAI Makes This Effortless</h2>
 
-<p>Manually tracking all of these deductions across bank statements, credit cards, and receipts is exhausting. LedgerIQ uses AI-powered categorization to automatically sort every transaction into the correct tax category, map them to IRS Schedule C lines, and generate export-ready reports at tax time.</p>
+<p>Manually tracking all of these deductions across bank statements, credit cards, and receipts is exhausting. SpendifiAI uses AI-powered categorization to automatically sort every transaction into the correct tax category, map them to IRS Schedule C lines, and generate export-ready reports at tax time.</p>
 
-<p>Stop leaving money on the table. <a href="/register">Sign up for LedgerIQ</a> and let AI handle your deduction tracking so you never miss a write-off again.</p>
+<p>Stop leaving money on the table. <a href="/register">Sign up for SpendifiAI</a> and let AI handle your deduction tracking so you never miss a write-off again.</p>
 HTML;
 
         $faqItems = [
@@ -152,15 +152,15 @@ HTML;
             ],
             [
                 'question' => 'Do I need receipts for every deduction?',
-                'answer' => 'The IRS requires substantiation for all deductions. For expenses under $75, a bank or credit card statement is generally sufficient. For larger amounts, keep the original receipt. LedgerIQ automatically links your bank transactions to categories, creating a digital paper trail.',
+                'answer' => 'The IRS requires substantiation for all deductions. For expenses under $75, a bank or credit card statement is generally sufficient. For larger amounts, keep the original receipt. SpendifiAI automatically links your bank transactions to categories, creating a digital paper trail.',
             ],
             [
                 'question' => 'Can I deduct expenses from before I officially started freelancing?',
                 'answer' => 'Yes, startup costs incurred before your business officially launched can be deducted. You can deduct up to $5,000 in startup costs in your first year, with the remainder amortized over 15 years.',
             ],
             [
-                'question' => 'How does LedgerIQ help with freelancer tax deductions?',
-                'answer' => 'LedgerIQ uses AI to automatically categorize every transaction into IRS-recognized expense categories, maps them to Schedule C lines, and generates export-ready tax reports in Excel, PDF, or CSV format.',
+                'question' => 'How does SpendifiAI help with freelancer tax deductions?',
+                'answer' => 'SpendifiAI uses AI to automatically categorize every transaction into IRS-recognized expense categories, maps them to Schedule C lines, and generates export-ready tax reports in Excel, PDF, or CSV format.',
             ],
         ];
 
@@ -266,9 +266,9 @@ HTML;
 
 <h2>Tracking Deductions with AI</h2>
 
-<p>The difference between small businesses that maximize deductions and those that leave money on the table almost always comes down to tracking. LedgerIQ connects to your business bank accounts and uses <a href="/features">AI-powered categorization</a> to automatically sort every transaction into the correct IRS expense category.</p>
+<p>The difference between small businesses that maximize deductions and those that leave money on the table almost always comes down to tracking. SpendifiAI connects to your business bank accounts and uses <a href="/features">AI-powered categorization</a> to automatically sort every transaction into the correct IRS expense category.</p>
 
-<p>When tax time arrives, export your categorized expenses directly to your accountant in Excel, PDF, or CSV format with full Schedule C mapping already applied. <a href="/register">Start tracking your deductions with LedgerIQ today</a>.</p>
+<p>When tax time arrives, export your categorized expenses directly to your accountant in Excel, PDF, or CSV format with full Schedule C mapping already applied. <a href="/register">Start tracking your deductions with SpendifiAI today</a>.</p>
 HTML;
 
         $faqItems = [
@@ -282,7 +282,7 @@ HTML;
             ],
             [
                 'question' => 'What records do I need to keep for tax deductions?',
-                'answer' => 'Keep receipts, bank statements, invoices, and mileage logs for all business expenses. The IRS generally requires documentation showing the amount, date, place, and business purpose of each expense. LedgerIQ automatically creates a categorized transaction history that serves as supporting documentation.',
+                'answer' => 'Keep receipts, bank statements, invoices, and mileage logs for all business expenses. The IRS generally requires documentation showing the amount, date, place, and business purpose of each expense. SpendifiAI automatically creates a categorized transaction history that serves as supporting documentation.',
             ],
             [
                 'question' => 'How does Section 179 differ from regular depreciation?',
@@ -396,11 +396,11 @@ HTML;
 <h3>Indirect Expenses</h3>
 <p>Expenses that benefit your entire home — mortgage, utilities, insurance — are deductible only at your business-use percentage.</p>
 
-<h2>Tracking Home Office Expenses with LedgerIQ</h2>
+<h2>Tracking Home Office Expenses with SpendifiAI</h2>
 
-<p>LedgerIQ's <a href="/features">AI-powered expense tracking</a> automatically identifies and categorizes housing-related expenses from your connected bank accounts. When tax season arrives, your home office expenses are already sorted and ready for your Schedule C export.</p>
+<p>SpendifiAI's <a href="/features">AI-powered expense tracking</a> automatically identifies and categorizes housing-related expenses from your connected bank accounts. When tax season arrives, your home office expenses are already sorted and ready for your Schedule C export.</p>
 
-<p>No more digging through utility bills in April. <a href="/register">Create your LedgerIQ account</a> and start tracking your home office deduction automatically.</p>
+<p>No more digging through utility bills in April. <a href="/register">Create your SpendifiAI account</a> and start tracking your home office deduction automatically.</p>
 HTML;
 
         $faqItems = [
@@ -519,11 +519,11 @@ HTML;
 
 <h2>Maximizing Your Mileage Deduction</h2>
 
-<p>Combine your mileage tracking with LedgerIQ's <a href="/features">expense tracking features</a>. While LedgerIQ automatically categorizes your fuel purchases, insurance payments, and repair expenses from your bank transactions, pairing that data with a mileage log gives you everything you need for either deduction method.</p>
+<p>Combine your mileage tracking with SpendifiAI's <a href="/features">expense tracking features</a>. While SpendifiAI automatically categorizes your fuel purchases, insurance payments, and repair expenses from your bank transactions, pairing that data with a mileage log gives you everything you need for either deduction method.</p>
 
-<p>At tax time, LedgerIQ's <a href="/blog/schedule-c-filing-guide">Schedule C export</a> includes your vehicle expenses alongside all other business deductions in a single, accountant-ready report.</p>
+<p>At tax time, SpendifiAI's <a href="/blog/schedule-c-filing-guide">Schedule C export</a> includes your vehicle expenses alongside all other business deductions in a single, accountant-ready report.</p>
 
-<p>Ready to stop guessing at your mileage deduction? <a href="/register">Sign up for LedgerIQ</a> and bring all your business expenses into one place.</p>
+<p>Ready to stop guessing at your mileage deduction? <a href="/register">Sign up for SpendifiAI</a> and bring all your business expenses into one place.</p>
 HTML;
 
         $faqItems = [
@@ -643,13 +643,13 @@ HTML;
 <h3>Waiting Until Tax Time</h3>
 <p>Paying your entire tax bill in April means you owe penalties on each missed quarterly payment throughout the year. Even if you can afford to pay everything at once, the penalties make it more expensive.</p>
 
-<h2>Track Your Tax Liability with LedgerIQ</h2>
+<h2>Track Your Tax Liability with SpendifiAI</h2>
 
-<p>Estimating quarterly taxes is much easier when you can see your income and expenses in real time. LedgerIQ's <a href="/features">AI-powered categorization</a> tracks your business revenue and deductions as they happen, so you always know where you stand.</p>
+<p>Estimating quarterly taxes is much easier when you can see your income and expenses in real time. SpendifiAI's <a href="/features">AI-powered categorization</a> tracks your business revenue and deductions as they happen, so you always know where you stand.</p>
 
-<p>When it is time to calculate your next quarterly payment, export your year-to-date income and expenses from LedgerIQ's <a href="/blog/schedule-c-filing-guide">tax export feature</a> and plug the numbers directly into your calculation.</p>
+<p>When it is time to calculate your next quarterly payment, export your year-to-date income and expenses from SpendifiAI's <a href="/blog/schedule-c-filing-guide">tax export feature</a> and plug the numbers directly into your calculation.</p>
 
-<p><a href="/register">Start using LedgerIQ</a> to stay on top of your quarterly tax obligations and avoid costly surprises.</p>
+<p><a href="/register">Start using SpendifiAI</a> to stay on top of your quarterly tax obligations and avoid costly surprises.</p>
 HTML;
 
         $faqItems = [
@@ -771,7 +771,7 @@ HTML;
 <h3>Business Insurance</h3>
 <p>General liability, professional liability (E&O), product liability, cyber liability, and business interruption insurance premiums are all deductible. If you are self-employed, your health insurance premiums are deductible as an adjustment to income on Schedule 1.</p>
 
-<blockquote><strong>Important:</strong> Business expenses must be documented. The IRS requires records showing the amount, date, place, and business purpose of each expense. Bank and credit card statements are generally sufficient for expenses under $75. For larger amounts, keep the original receipt. LedgerIQ creates a permanent, categorized record of every transaction automatically.</blockquote>
+<blockquote><strong>Important:</strong> Business expenses must be documented. The IRS requires records showing the amount, date, place, and business purpose of each expense. Bank and credit card statements are generally sufficient for expenses under $75. For larger amounts, keep the original receipt. SpendifiAI creates a permanent, categorized record of every transaction automatically.</blockquote>
 
 <h2>What Is Not Deductible</h2>
 
@@ -790,15 +790,15 @@ HTML;
 
 <p>Many expenses serve both personal and business purposes. Your cell phone, internet service, and vehicle are common examples. For mixed-use items, you deduct only the business-use percentage. The IRS expects a reasonable allocation — claiming 100% business use on your personal cell phone is a red flag.</p>
 
-<p>Document your business-use percentage with a log or reasonable estimate. For a phone used roughly 70% for business, deduct 70% of the bill. LedgerIQ helps by letting you tag expenses with the correct business-use percentage when you <a href="/features">categorize your transactions</a>.</p>
+<p>Document your business-use percentage with a log or reasonable estimate. For a phone used roughly 70% for business, deduct 70% of the bill. SpendifiAI helps by letting you tag expenses with the correct business-use percentage when you <a href="/features">categorize your transactions</a>.</p>
 
 <h2>Automate Your Expense Tracking</h2>
 
 <p>The biggest reason business owners miss deductions is not that they do not know about them — it is that they lose track of expenses throughout the year. By January, that $200 software subscription from March is forgotten, and that $85 client lunch in July is nowhere to be found.</p>
 
-<p>LedgerIQ solves this by connecting to your business bank accounts and using AI to automatically categorize every transaction into the correct IRS expense category. At tax time, export everything in a single click with full <a href="/blog/schedule-c-filing-guide">Schedule C mapping</a>.</p>
+<p>SpendifiAI solves this by connecting to your business bank accounts and using AI to automatically categorize every transaction into the correct IRS expense category. At tax time, export everything in a single click with full <a href="/blog/schedule-c-filing-guide">Schedule C mapping</a>.</p>
 
-<p><a href="/register">Create your free LedgerIQ account</a> and never miss a deductible expense again.</p>
+<p><a href="/register">Create your free SpendifiAI account</a> and never miss a deductible expense again.</p>
 HTML;
 
         $faqItems = [
@@ -891,7 +891,7 @@ HTML;
 </tbody>
 </table>
 
-<blockquote><strong>Tip:</strong> Line 27a (Other expenses) is a catch-all for legitimate business expenses that do not fit into the standard categories. List them on Part V of Schedule C with descriptions. Common entries include software subscriptions, bank fees, online tools, and education expenses. LedgerIQ's <a href="/features">Schedule C export</a> maps every expense to the correct line automatically.</blockquote>
+<blockquote><strong>Tip:</strong> Line 27a (Other expenses) is a catch-all for legitimate business expenses that do not fit into the standard categories. List them on Part V of Schedule C with descriptions. Common entries include software subscriptions, bank fees, online tools, and education expenses. SpendifiAI's <a href="/features">Schedule C export</a> maps every expense to the correct line automatically.</blockquote>
 
 <h2>Part III: Cost of Goods Sold</h2>
 
@@ -913,11 +913,11 @@ HTML;
 
 <p>Your Schedule C net profit flows to Schedule SE, where you calculate self-employment tax (15.3%). You can deduct the employer-equivalent portion (50% of SE tax) as an adjustment to income on Schedule 1. This reduces your adjusted gross income but not your self-employment tax itself.</p>
 
-<h2>Filing Schedule C with LedgerIQ</h2>
+<h2>Filing Schedule C with SpendifiAI</h2>
 
-<p>LedgerIQ eliminates the hardest part of filing Schedule C: gathering and categorizing a year's worth of expenses. Throughout the year, LedgerIQ's AI categorizes every transaction and maps it to the correct Schedule C line. At tax time, export your data in Excel, PDF, or CSV format with each expense already assigned to the right line number.</p>
+<p>SpendifiAI eliminates the hardest part of filing Schedule C: gathering and categorizing a year's worth of expenses. Throughout the year, SpendifiAI's AI categorizes every transaction and maps it to the correct Schedule C line. At tax time, export your data in Excel, PDF, or CSV format with each expense already assigned to the right line number.</p>
 
-<p>Hand the export to your accountant or use it to fill out Schedule C yourself in minutes. <a href="/register">Sign up for LedgerIQ</a> and make your next Schedule C filing effortless.</p>
+<p>Hand the export to your accountant or use it to fill out Schedule C yourself in minutes. <a href="/register">Sign up for SpendifiAI</a> and make your next Schedule C filing effortless.</p>
 HTML;
 
         $faqItems = [
@@ -934,8 +934,8 @@ HTML;
                 'answer' => 'Schedule C-EZ was a simplified version of Schedule C for businesses with expenses under $5,000 and no inventory, employees, or home office deduction. The IRS discontinued Schedule C-EZ starting with the 2019 tax year. All sole proprietors now use the full Schedule C.',
             ],
             [
-                'question' => 'How does LedgerIQ help with Schedule C filing?',
-                'answer' => 'LedgerIQ automatically categorizes every bank transaction into IRS-recognized expense categories and maps them to the correct Schedule C line numbers. At tax time, you export a complete report that your accountant can use directly, or that you can reference to fill out Schedule C in minutes.',
+                'question' => 'How does SpendifiAI help with Schedule C filing?',
+                'answer' => 'SpendifiAI automatically categorizes every bank transaction into IRS-recognized expense categories and maps them to the correct Schedule C line numbers. At tax time, you export a complete report that your accountant can use directly, or that you can reference to fill out Schedule C in minutes.',
             ],
         ];
 
@@ -1032,11 +1032,11 @@ HTML;
 <h3>Ignoring Quarterly Estimated Payments</h3>
 <p>Without an employer withholding taxes, you must make <a href="/blog/quarterly-estimated-tax-payments">quarterly estimated tax payments</a>. Skipping these results in penalties even if you pay your full balance on April 15.</p>
 
-<h2>Track Your 1099 Income with LedgerIQ</h2>
+<h2>Track Your 1099 Income with SpendifiAI</h2>
 
-<p>LedgerIQ connects to your bank accounts and automatically identifies and categorizes business income and expenses. When you receive your 1099 forms, you can cross-reference them against your LedgerIQ transaction history to ensure nothing is missed or double-counted.</p>
+<p>SpendifiAI connects to your bank accounts and automatically identifies and categorizes business income and expenses. When you receive your 1099 forms, you can cross-reference them against your SpendifiAI transaction history to ensure nothing is missed or double-counted.</p>
 
-<p>At tax time, export your Schedule C data with all expenses mapped to the correct IRS line numbers. <a href="/register">Start using LedgerIQ today</a> and take the stress out of 1099 filing season.</p>
+<p>At tax time, export your Schedule C data with all expenses mapped to the correct IRS line numbers. <a href="/register">Start using SpendifiAI today</a> and take the stress out of 1099 filing season.</p>
 HTML;
 
         $faqItems = [
@@ -1120,7 +1120,7 @@ HTML;
 <li>Continuing education and professional development</li>
 </ul>
 
-<p>LedgerIQ's <a href="/features">AI-powered categorization</a> catches deductions that manual tracking misses. The AI identifies patterns in your spending and flags potential deductions you might overlook.</p>
+<p>SpendifiAI's <a href="/features">AI-powered categorization</a> catches deductions that manual tracking misses. The AI identifies patterns in your spending and flags potential deductions you might overlook.</p>
 
 <h2>Strategy 3: Consider Your Business Structure</h2>
 
@@ -1158,9 +1158,9 @@ HTML;
 
 <h2>Put These Strategies Into Action</h2>
 
-<p>Tax savings start with knowing exactly where your money goes. LedgerIQ tracks every business transaction, categorizes it for Schedule C, and gives you real-time visibility into your income and expenses. When it is time to implement these strategies, you will have the data you need.</p>
+<p>Tax savings start with knowing exactly where your money goes. SpendifiAI tracks every business transaction, categorizes it for Schedule C, and gives you real-time visibility into your income and expenses. When it is time to implement these strategies, you will have the data you need.</p>
 
-<p><a href="/register">Create your LedgerIQ account</a> and start building a tax-efficient business from day one.</p>
+<p><a href="/register">Create your SpendifiAI account</a> and start building a tax-efficient business from day one.</p>
 HTML;
 
         $faqItems = [
@@ -1177,8 +1177,8 @@ HTML;
                 'answer' => 'Technically yes, but the total employer contributions across both accounts cannot exceed the annual limit. In practice, most self-employed individuals choose one or the other. A Solo 401(k) is usually better for those earning under $300,000 because the employee deferral component allows higher total contributions.',
             ],
             [
-                'question' => 'How does LedgerIQ help with tax-saving strategies?',
-                'answer' => 'LedgerIQ automatically tracks and categorizes all business income and expenses, ensuring you claim every deduction. The AI identifies spending patterns and flags potential deductions. At tax time, export Schedule C data with IRS line mapping, making it easy to calculate estimated taxes and implement timing strategies.',
+                'question' => 'How does SpendifiAI help with tax-saving strategies?',
+                'answer' => 'SpendifiAI automatically tracks and categorizes all business income and expenses, ensuring you claim every deduction. The AI identifies spending patterns and flags potential deductions. At tax time, export Schedule C data with IRS line mapping, making it easy to calculate estimated taxes and implement timing strategies.',
             ],
         ];
 
@@ -1291,13 +1291,13 @@ HTML;
 
 <p>Tips are included in the deductible meal amount. If your meal is $50, the tip is $10, and sales tax is $4, your total deductible expense is $64 (before the 50% limitation). Your actual deduction is $32.</p>
 
-<h2>Tracking Business Meals with LedgerIQ</h2>
+<h2>Tracking Business Meals with SpendifiAI</h2>
 
-<p>LedgerIQ's AI categorization automatically identifies restaurant charges in your bank transactions and flags them as potential business meal deductions. The <a href="/features">expense tracking system</a> categorizes each meal under the correct Schedule C line (Line 24b — Meals), making tax-time reporting seamless.</p>
+<p>SpendifiAI's AI categorization automatically identifies restaurant charges in your bank transactions and flags them as potential business meal deductions. The <a href="/features">expense tracking system</a> categorizes each meal under the correct Schedule C line (Line 24b — Meals), making tax-time reporting seamless.</p>
 
-<p>For the best results, add a quick note about the business purpose and attendees when you review your transactions in LedgerIQ. The AI handles the categorization, and you provide the context that the IRS requires.</p>
+<p>For the best results, add a quick note about the business purpose and attendees when you review your transactions in SpendifiAI. The AI handles the categorization, and you provide the context that the IRS requires.</p>
 
-<p>Ready to stop losing track of business meals? <a href="/register">Sign up for LedgerIQ</a> and let AI keep your meal deductions organized year-round.</p>
+<p>Ready to stop losing track of business meals? <a href="/register">Sign up for SpendifiAI</a> and let AI keep your meal deductions organized year-round.</p>
 HTML;
 
         $faqItems = [

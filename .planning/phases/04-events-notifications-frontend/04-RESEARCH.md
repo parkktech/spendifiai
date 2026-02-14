@@ -566,7 +566,7 @@ Currently only `/dashboard` has an Inertia route. Need to add 7 more Inertia rou
 ## Sources
 
 ### Primary (HIGH confidence)
-- Codebase inspection: All files read directly from `/var/www/html/ledgeriq/`
+- Codebase inspection: All files read directly from `/var/www/html/spendifiai/`
 - `package.json`: React 19, Inertia 2, TypeScript 5, Tailwind 4, Vite 7
 - `composer.json`: Laravel 12, Sanctum, Fortify
 - Verified installed versions: React 19.2.4, @inertiajs/react 2.3.13, tailwindcss 4.1.18

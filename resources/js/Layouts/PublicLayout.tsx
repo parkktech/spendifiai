@@ -17,28 +17,28 @@ interface PublicLayoutProps {
     breadcrumbs?: BreadcrumbItem[];
 }
 
-const SITE_URL = 'https://ledgeriq.com';
-const DEFAULT_OG_IMAGE = `${SITE_URL}/images/ledgeriq-og.png`;
+const SITE_URL = 'https://spendifiai.com';
+const DEFAULT_OG_IMAGE = `${SITE_URL}/images/spendifiai-og.png`;
 const DEFAULT_DESCRIPTION = 'AI-powered expense tracking that automatically categorizes transactions, detects unused subscriptions, finds savings, and prepares your tax deductions. 100% free.';
 
 const organizationSchema = {
     '@context': 'https://schema.org',
     '@type': 'Organization',
     '@id': `${SITE_URL}/#organization`,
-    name: 'LedgerIQ',
+    name: 'SpendifiAI',
     url: SITE_URL,
     logo: {
         '@type': 'ImageObject',
-        url: `${SITE_URL}/images/ledgeriq-icon.png`,
+        url: `${SITE_URL}/images/spendifiai-icon.png`,
         width: 512,
         height: 512,
     },
     description: DEFAULT_DESCRIPTION,
-    email: 'support@ledgeriq.com',
+    email: 'support@spendifiai.com',
     contactPoint: {
         '@type': 'ContactPoint',
         contactType: 'customer support',
-        email: 'support@ledgeriq.com',
+        email: 'support@spendifiai.com',
         url: `${SITE_URL}/contact`,
     },
 };
@@ -47,7 +47,7 @@ const websiteSchema = {
     '@context': 'https://schema.org',
     '@type': 'WebSite',
     '@id': `${SITE_URL}/#website`,
-    name: 'LedgerIQ',
+    name: 'SpendifiAI',
     url: SITE_URL,
     publisher: { '@id': `${SITE_URL}/#organization` },
 };
@@ -64,7 +64,7 @@ export default function PublicLayout({
     const metaDescription = description || DEFAULT_DESCRIPTION;
     const canonicalUrl = canonical || `${SITE_URL}${url}`;
     const ogImg = ogImage || DEFAULT_OG_IMAGE;
-    const fullTitle = title ? `${title} - LedgerIQ` : 'LedgerIQ - AI-Powered Expense Tracking';
+    const fullTitle = title ? `${title} - SpendifiAI` : 'SpendifiAI - AI-Powered Expense Tracking';
 
     const breadcrumbSchema = breadcrumbs?.length
         ? {
@@ -90,14 +90,14 @@ export default function PublicLayout({
 
                 {/* Open Graph */}
                 <meta property="og:type" content="website" />
-                <meta property="og:site_name" content="LedgerIQ" />
+                <meta property="og:site_name" content="SpendifiAI" />
                 <meta property="og:title" content={fullTitle} />
                 <meta property="og:description" content={metaDescription} />
                 <meta property="og:url" content={canonicalUrl} />
                 <meta property="og:image" content={ogImg} />
                 <meta property="og:image:width" content="1200" />
                 <meta property="og:image:height" content="630" />
-                <meta property="og:image:alt" content={`${title || 'LedgerIQ'} - AI Expense Tracking`} />
+                <meta property="og:image:alt" content={`${title || 'SpendifiAI'} - AI Expense Tracking`} />
 
                 {/* Twitter Card */}
                 <meta name="twitter:card" content="summary_large_image" />

@@ -1,6 +1,6 @@
 <?php
 
-// RTF Generator for LedgerIQ Product Overview
+// RTF Generator for SpendifiAI Product Overview
 // RTF is universally compatible with Word, Google Docs, LibreOffice, etc.
 
 $rtf = '';
@@ -24,35 +24,46 @@ $rtf .= '\viewkind1\viewscale100';
 $rtf .= '\pgwsxn12240\pghsxn15840\margl1440\margr1440\margt1440\margb1440'; // Letter, 1" margins
 
 // Helper functions
-function h1($text) {
-    return '\pard\qc\sb0\sa300{\f0\b\fs52\cf1 ' . esc($text) . '}\par' . "\n";
+function h1($text)
+{
+    return '\pard\qc\sb0\sa300{\f0\b\fs52\cf1 '.esc($text).'}\par'."\n";
 }
-function h2($text) {
-    return '\pard\keepn\sb480\sa200{\f0\b\fs36\cf1 ' . esc($text) . '}\par' . "\n";
+function h2($text)
+{
+    return '\pard\keepn\sb480\sa200{\f0\b\fs36\cf1 '.esc($text).'}\par'."\n";
 }
-function h3($text) {
-    return '\pard\keepn\sb360\sa120{\f0\b\fs28\cf2 ' . esc($text) . '}\par' . "\n";
+function h3($text)
+{
+    return '\pard\keepn\sb360\sa120{\f0\b\fs28\cf2 '.esc($text).'}\par'."\n";
 }
-function h4($text) {
-    return '\pard\keepn\sb240\sa80{\f0\b\fs24\cf3 ' . esc($text) . '}\par' . "\n";
+function h4($text)
+{
+    return '\pard\keepn\sb240\sa80{\f0\b\fs24\cf3 '.esc($text).'}\par'."\n";
 }
-function p($text) {
-    return '\pard\sb0\sa180\sl360\slmult1{\f0\fs22 ' . esc($text) . '}\par' . "\n";
+function p($text)
+{
+    return '\pard\sb0\sa180\sl360\slmult1{\f0\fs22 '.esc($text).'}\par'."\n";
 }
-function pcenter($text, $size = 22, $color = 0) {
-    $cf = $color > 0 ? '\cf' . $color : '';
-    return '\pard\qc\sb0\sa120{\f0\fs' . $size . $cf . ' ' . esc($text) . '}\par' . "\n";
+function pcenter($text, $size = 22, $color = 0)
+{
+    $cf = $color > 0 ? '\cf'.$color : '';
+
+    return '\pard\qc\sb0\sa120{\f0\fs'.$size.$cf.' '.esc($text).'}\par'."\n";
 }
-function bullet($text) {
-    return '\pard\li720\fi-360\sb0\sa100\sl320\slmult1{\f0\fs22 \u8226  ' . esc($text) . '}\par' . "\n";
+function bullet($text)
+{
+    return '\pard\li720\fi-360\sb0\sa100\sl320\slmult1{\f0\fs22 \u8226  '.esc($text).'}\par'."\n";
 }
-function linebreak() {
-    return '\pard\sb0\sa0\par' . "\n";
+function linebreak()
+{
+    return '\pard\sb0\sa0\par'."\n";
 }
-function pagebreak() {
-    return '\pard\page' . "\n";
+function pagebreak()
+{
+    return '\pard\page'."\n";
 }
-function esc($text) {
+function esc($text)
+{
     // Escape RTF special characters
     $text = str_replace('\\', '\\\\', $text);
     $text = str_replace('{', '\\{', $text);
@@ -63,15 +74,18 @@ function esc($text) {
     $text = str_replace("\xe2\x80\x99", "\\'92", $text); // right single quote
     $text = str_replace("\xe2\x80\x9c", "\\'93", $text); // left double quote
     $text = str_replace("\xe2\x80\x9d", "\\'94", $text); // right double quote
+
     return $text;
 }
 
 // Table helpers
-function tableStart() {
-    return '\pard\sb200\sa200' . "\n";
+function tableStart()
+{
+    return '\pard\sb200\sa200'."\n";
 }
 
-function tableRow($cells, $widths, $isHeader = false) {
+function tableRow($cells, $widths, $isHeader = false)
+{
     $rtf = '\trowd\trqc\trgaph108\trleft0';
     $pos = 0;
     foreach ($widths as $w) {
@@ -81,43 +95,45 @@ function tableRow($cells, $widths, $isHeader = false) {
         } else {
             $rtf .= '\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7';
         }
-        $rtf .= '\cellx' . $pos;
+        $rtf .= '\cellx'.$pos;
     }
     $rtf .= "\n";
     foreach ($cells as $i => $cell) {
         if ($isHeader) {
-            $rtf .= '\pard\intbl\qc{\f0\b\fs20\cf6 ' . esc($cell) . '}\cell' . "\n";
+            $rtf .= '\pard\intbl\qc{\f0\b\fs20\cf6 '.esc($cell).'}\cell'."\n";
         } else {
             $bold = ($i === 0) ? '\b' : '';
-            $rtf .= '\pard\intbl{\f0' . $bold . '\fs20 ' . esc($cell) . '}\cell' . "\n";
+            $rtf .= '\pard\intbl{\f0'.$bold.'\fs20 '.esc($cell).'}\cell'."\n";
         }
     }
-    $rtf .= '\row' . "\n";
+    $rtf .= '\row'."\n";
+
     return $rtf;
 }
 
-function tableRowGreen($cells, $widths) {
+function tableRowGreen($cells, $widths)
+{
     $rtf = '\trowd\trqc\trgaph108\trleft0';
     $pos = 0;
     foreach ($widths as $w) {
         $pos += $w;
         $rtf .= '\clbrdrt\brdrs\brdrw5\brdrcf7\clbrdrb\brdrs\brdrw5\brdrcf7\clbrdrl\brdrs\brdrw5\brdrcf7\clbrdrr\brdrs\brdrw5\brdrcf7';
-        $rtf .= '\cellx' . $pos;
+        $rtf .= '\cellx'.$pos;
     }
     $rtf .= "\n";
     foreach ($cells as $i => $cell) {
         if ($i === 0) {
-            $rtf .= '\pard\intbl{\f0\b\fs20 ' . esc($cell) . '}\cell' . "\n";
+            $rtf .= '\pard\intbl{\f0\b\fs20 '.esc($cell).'}\cell'."\n";
         } elseif ($i === 1) {
-            $rtf .= '\pard\intbl{\f0\b\fs20\cf5 ' . esc($cell) . '}\cell' . "\n";
+            $rtf .= '\pard\intbl{\f0\b\fs20\cf5 '.esc($cell).'}\cell'."\n";
         } else {
-            $rtf .= '\pard\intbl{\f0\fs20 ' . esc($cell) . '}\cell' . "\n";
+            $rtf .= '\pard\intbl{\f0\fs20 '.esc($cell).'}\cell'."\n";
         }
     }
-    $rtf .= '\row' . "\n";
+    $rtf .= '\row'."\n";
+
     return $rtf;
 }
-
 
 // ╔══════════════════════════════════════════════════════════════════════╗
 // ║  COVER PAGE                                                        ║
@@ -128,7 +144,7 @@ $rtf .= linebreak();
 $rtf .= linebreak();
 $rtf .= linebreak();
 $rtf .= linebreak();
-$rtf .= h1('LedgerIQ');
+$rtf .= h1('SpendifiAI');
 $rtf .= pcenter('AI-Powered Personal Finance Platform', 32, 3);
 $rtf .= linebreak();
 $rtf .= pcenter('Comprehensive Product Overview', 28, 1);
@@ -152,9 +168,9 @@ $rtf .= pagebreak();
 
 $rtf .= h2('Executive Summary');
 
-$rtf .= p('LedgerIQ is a free, AI-powered personal finance platform that helps individuals, freelancers, and small business owners take complete control of their financial lives. By combining bank-grade security, intelligent automation, and the power of Claude AI, LedgerIQ eliminates the tedious manual work of expense tracking, subscription management, savings optimization, and tax preparation.');
+$rtf .= p('SpendifiAI is a free, AI-powered personal finance platform that helps individuals, freelancers, and small business owners take complete control of their financial lives. By combining bank-grade security, intelligent automation, and the power of Claude AI, SpendifiAI eliminates the tedious manual work of expense tracking, subscription management, savings optimization, and tax preparation.');
 
-$rtf .= p('Unlike competitors that charge $8-15/month (Mint, YNAB, Copilot), LedgerIQ is 100% free with no premium tiers, no trial periods, and no credit card required. This is not a loss leader - it is a deliberate strategy to capture market share in the rapidly growing personal finance management sector.');
+$rtf .= p('Unlike competitors that charge $8-15/month (Mint, YNAB, Copilot), SpendifiAI is 100% free with no premium tiers, no trial periods, and no credit card required. This is not a loss leader - it is a deliberate strategy to capture market share in the rapidly growing personal finance management sector.');
 
 $rtf .= h3('Core Value Propositions');
 
@@ -176,15 +192,15 @@ $rtf .= pagebreak();
 
 $rtf .= h2('Bank Connectivity & Data Ingestion');
 
-$rtf .= p('LedgerIQ provides two complementary methods for importing financial data, ensuring every user can participate regardless of their bank or technical comfort level.');
+$rtf .= p('SpendifiAI provides two complementary methods for importing financial data, ensuring every user can participate regardless of their bank or technical comfort level.');
 
 $rtf .= h3('Plaid Bank Integration');
 
-$rtf .= p('Through Plaid - the same infrastructure trusted by Venmo, Robinhood, Coinbase, and thousands of financial applications - users can securely connect their bank accounts in under 60 seconds. Their banking credentials never touch LedgerIQ\'s servers.');
+$rtf .= p('Through Plaid - the same infrastructure trusted by Venmo, Robinhood, Coinbase, and thousands of financial applications - users can securely connect their bank accounts in under 60 seconds. Their banking credentials never touch SpendifiAI\'s servers.');
 
 $rtf .= h4('How It Works');
 $rtf .= bullet('User clicks "Connect Bank" and authenticates directly with their bank through Plaid\'s secure modal');
-$rtf .= bullet('Plaid returns an encrypted access token - LedgerIQ stores it with AES-256 encryption at rest');
+$rtf .= bullet('Plaid returns an encrypted access token - SpendifiAI stores it with AES-256 encryption at rest');
 $rtf .= bullet('Transactions sync automatically in real-time via webhooks (SYNC_UPDATES_AVAILABLE events)');
 $rtf .= bullet('Account balances, types, and metadata are imported alongside transactions');
 $rtf .= bullet('Users can disconnect at any time with one click - the encrypted token is immediately destroyed');
@@ -201,7 +217,7 @@ $rtf .= p('Users can link multiple banks and multiple account types (checking, s
 
 $rtf .= h3('Bank Statement Upload');
 
-$rtf .= p('For users whose banks are not supported by Plaid, or who prefer not to link their accounts electronically, LedgerIQ offers intelligent statement parsing. Users simply upload a PDF or CSV bank statement, and Claude AI extracts every transaction automatically.');
+$rtf .= p('For users whose banks are not supported by Plaid, or who prefer not to link their accounts electronically, SpendifiAI offers intelligent statement parsing. Users simply upload a PDF or CSV bank statement, and Claude AI extracts every transaction automatically.');
 
 $rtf .= h4('PDF Statement Processing');
 $rtf .= bullet('User uploads a PDF bank statement (up to 10 MB)');
@@ -220,7 +236,7 @@ $rtf .= bullet('The entire CSV is then parsed using the detected column mapping'
 $rtf .= bullet('This approach works with any CSV format from any institution - no pre-configured templates needed');
 
 $rtf .= h4('Duplicate Detection');
-$rtf .= p('Before importing, LedgerIQ automatically checks each parsed transaction against existing records. Matches are identified using amount (within $0.01 tolerance), date (exact match), and merchant name (Levenshtein distance threshold). Flagged duplicates are shown to the user for review before import, preventing double-counting.');
+$rtf .= p('Before importing, SpendifiAI automatically checks each parsed transaction against existing records. Matches are identified using amount (within $0.01 tolerance), date (exact match), and merchant name (Levenshtein distance threshold). Flagged duplicates are shown to the user for review before import, preventing double-counting.');
 
 $rtf .= h4('Post-Import Pipeline');
 $rtf .= p('After the user reviews and confirms the parsed transactions, they are imported into the same pipeline as Plaid transactions. The AI categorization engine processes them identically - there is no second-class treatment for uploaded data.');
@@ -233,7 +249,7 @@ $rtf .= pagebreak();
 
 $rtf .= h2('AI-Powered Transaction Categorization');
 
-$rtf .= p('At the heart of LedgerIQ is Claude AI\'s ability to understand and categorize financial transactions with human-like accuracy. This is not simple keyword matching - the AI considers context, account purpose, merchant patterns, and user history to make intelligent decisions.');
+$rtf .= p('At the heart of SpendifiAI is Claude AI\'s ability to understand and categorize financial transactions with human-like accuracy. This is not simple keyword matching - the AI considers context, account purpose, merchant patterns, and user history to make intelligent decisions.');
 
 $rtf .= h3('What the AI Considers');
 $rtf .= bullet('Merchant name and normalized merchant identifier');
@@ -267,7 +283,7 @@ $rtf .= bullet('Future transactions from that merchant inherit the user\'s prefe
 $rtf .= bullet('This "cascade" behavior means answering one question can resolve dozens of transactions simultaneously');
 
 $rtf .= h3('56 Expense Categories');
-$rtf .= p('LedgerIQ uses 56 expense categories (46 top-level, 10 subcategories) organized into logical groups: Housing & Utilities, Transportation, Food & Dining, Business Expenses, Personal & Health, Subscriptions & Entertainment, Household & Personal, Education & Wealth, and Transfer/Income categories. Of these, 12 categories have direct IRS Schedule C line mappings for tax export.');
+$rtf .= p('SpendifiAI uses 56 expense categories (46 top-level, 10 subcategories) organized into logical groups: Housing & Utilities, Transportation, Food & Dining, Business Expenses, Personal & Health, Subscriptions & Entertainment, Household & Personal, Education & Wealth, and Transfer/Income categories. Of these, 12 categories have direct IRS Schedule C line mappings for tax export.');
 
 $rtf .= h3('AI Question Types');
 
@@ -287,7 +303,7 @@ $rtf .= pagebreak();
 
 $rtf .= h2('Subscription Detection & Management');
 
-$rtf .= p('The average American spends $219/month on subscriptions, with studies showing that most people underestimate their recurring charges by 2-3x. LedgerIQ\'s Subscription Detective scans 6 months of transaction history to surface every recurring charge - especially the ones users have forgotten about.');
+$rtf .= p('The average American spends $219/month on subscriptions, with studies showing that most people underestimate their recurring charges by 2-3x. SpendifiAI\'s Subscription Detective scans 6 months of transaction history to surface every recurring charge - especially the ones users have forgotten about.');
 
 $rtf .= h3('Detection Algorithm');
 $rtf .= bullet('All transactions from the past 6 months are grouped by normalized merchant name');
@@ -297,7 +313,7 @@ $rtf .= bullet('Charges are classified by frequency: weekly, monthly, quarterly,
 $rtf .= bullet('A pre-populated registry of 49 known subscription merchants enhances accuracy');
 
 $rtf .= h3('"Stopped Billing" Detection - Finding Unused Subscriptions');
-$rtf .= p('This is where LedgerIQ provides immediate, concrete value. The system compares each subscription\'s last charge date against its expected billing cycle:');
+$rtf .= p('This is where SpendifiAI provides immediate, concrete value. The system compares each subscription\'s last charge date against its expected billing cycle:');
 
 $w3b = [2800, 5200, 8000];
 $rtf .= tableStart();
@@ -311,12 +327,12 @@ $rtf .= p('When a subscription is flagged as "stopped billing," it receives a pr
 
 $rtf .= h3('User Response System');
 $rtf .= p('For each subscription, users can take one of three actions:');
-$rtf .= bullet('Cancel - Mark the subscription for cancellation. LedgerIQ provides direct links to cancellation pages and tracks the projected savings.');
+$rtf .= bullet('Cancel - Mark the subscription for cancellation. SpendifiAI provides direct links to cancellation pages and tracks the projected savings.');
 $rtf .= bullet('Reduce - Downgrade to a cheaper plan. The AI suggests alternative tiers and calculates the savings difference.');
 $rtf .= bullet('Keep - Acknowledge the subscription and dismiss the alert. This prevents future nagging about services the user values.');
 
 $rtf .= h3('AI-Powered Alternatives');
-$rtf .= p('When a user considers canceling or reducing a subscription, LedgerIQ\'s AI can suggest cheaper alternatives. For example, if a user is paying $15.99/month for a streaming service, the AI might suggest a competitor at $7.99/month or a bundle that combines multiple services for less. Alternative suggestions are cached for 7 days to minimize API calls.');
+$rtf .= p('When a user considers canceling or reducing a subscription, SpendifiAI\'s AI can suggest cheaper alternatives. For example, if a user is paying $15.99/month for a streaming service, the AI might suggest a competitor at $7.99/month or a bundle that combines multiple services for less. Alternative suggestions are cached for 7 days to minimize API calls.');
 
 $rtf .= pagebreak();
 
@@ -326,7 +342,7 @@ $rtf .= pagebreak();
 
 $rtf .= h2('AI Savings Recommendations & Goal Tracking');
 
-$rtf .= p('LedgerIQ\'s savings engine goes beyond simple "spend less" advice. It analyzes 90 days of actual spending data - broken down by category, merchant, timing, and pattern - to generate specific, actionable recommendations with real dollar amounts pulled from the user\'s own transactions.');
+$rtf .= p('SpendifiAI\'s savings engine goes beyond simple "spend less" advice. It analyzes 90 days of actual spending data - broken down by category, merchant, timing, and pattern - to generate specific, actionable recommendations with real dollar amounts pulled from the user\'s own transactions.');
 
 $rtf .= h3('90-Day Spending Analysis');
 $rtf .= p('The AI receives a comprehensive spending profile including:');
@@ -374,7 +390,7 @@ $rtf .= pagebreak();
 
 $rtf .= h2('Tax Deduction Optimization & Export');
 
-$rtf .= p('For freelancers, self-employed individuals, and small business owners, tax deduction tracking is one of LedgerIQ\'s most valuable features. The AI automatically identifies tax-deductible expenses and maps them to IRS Schedule C line items, then exports accountant-ready reports in multiple formats.');
+$rtf .= p('For freelancers, self-employed individuals, and small business owners, tax deduction tracking is one of SpendifiAI\'s most valuable features. The AI automatically identifies tax-deductible expenses and maps them to IRS Schedule C line items, then exports accountant-ready reports in multiple formats.');
 
 $rtf .= h3('Automatic Tax Deductibility Detection');
 $rtf .= p('During categorization, Claude AI evaluates each transaction for tax deductibility based on the user\'s employment type and the expense category:');
@@ -398,11 +414,11 @@ $rtf .= bullet('Mortgage interest (Schedule A)');
 $rtf .= bullet('State and local taxes - SALT (Schedule A)');
 
 $rtf .= h3('IRS Schedule C Line Mapping');
-$rtf .= p('LedgerIQ maps 12 expense categories directly to IRS Schedule C lines:');
+$rtf .= p('SpendifiAI maps 12 expense categories directly to IRS Schedule C lines:');
 
 $w3c = [2800, 4000, 9200];
 $rtf .= tableStart();
-$rtf .= tableRow(['Schedule C Line', 'Description', 'LedgerIQ Categories'], $w3c, true);
+$rtf .= tableRow(['Schedule C Line', 'Description', 'SpendifiAI Categories'], $w3c, true);
 $rtf .= tableRow(['Line 8', 'Advertising', 'Marketing & Advertising'], $w3c);
 $rtf .= tableRow(['Line 9', 'Car & Truck', 'Gas & Fuel, Auto Maintenance, Transportation'], $w3c);
 $rtf .= tableRow(['Line 15', 'Insurance', 'Health Insurance, Home Insurance'], $w3c);
@@ -442,7 +458,7 @@ $rtf .= pagebreak();
 
 $rtf .= h2('Comprehensive Financial Dashboard');
 
-$rtf .= p('The LedgerIQ dashboard is an 8-widget financial command center that gives users a complete picture of their financial health at a glance. Data is cached for 60 seconds per user and can be filtered by account type (personal/business).');
+$rtf .= p('The SpendifiAI dashboard is an 8-widget financial command center that gives users a complete picture of their financial health at a glance. Data is cached for 60 seconds per user and can be filtered by account type (personal/business).');
 
 $rtf .= h3('1. Smart Greeting & Hero Metrics');
 $rtf .= p('A dynamic greeting adapts to financial health ("You can save $X/mo" vs. "$X/mo over budget"). Live income/expense indicators with directional arrows, savings rate badge (green if positive, red if deficit), and bank sync status.');
@@ -476,7 +492,7 @@ $rtf .= pagebreak();
 
 $rtf .= h2('Security Architecture');
 
-$rtf .= p('LedgerIQ treats security as a foundational requirement, not an afterthought. The platform implements defense-in-depth across every layer of the stack.');
+$rtf .= p('SpendifiAI treats security as a foundational requirement, not an afterthought. The platform implements defense-in-depth across every layer of the stack.');
 
 $rtf .= h3('Encryption');
 $rtf .= bullet('AES-256 encryption at rest for all sensitive data (Plaid tokens, bank account EINs, email credentials, 2FA secrets, transaction metadata)');
@@ -518,7 +534,7 @@ $rtf .= pagebreak();
 $rtf .= h2('Additional Features');
 
 $rtf .= h3('Email Receipt Parsing (In Development)');
-$rtf .= p('Users can connect their Gmail (via OAuth) or any IMAP email account. LedgerIQ scans for order confirmations and receipts, extracts product-level detail using Claude AI, and matches them to bank transactions. This provides itemized purchase tracking - for example, knowing that a $147.32 Amazon charge was specifically for office supplies and a printer cartridge, enabling more accurate tax categorization at the product level.');
+$rtf .= p('Users can connect their Gmail (via OAuth) or any IMAP email account. SpendifiAI scans for order confirmations and receipts, extracts product-level detail using Claude AI, and matches them to bank transactions. This provides itemized purchase tracking - for example, knowing that a $147.32 Amazon charge was specifically for office supplies and a printer cartridge, enabling more accurate tax categorization at the product level.');
 
 $rtf .= h3('AI Question Chat System');
 $rtf .= p('When the AI is uncertain about a transaction\'s category, it asks the user. Users interact through a dedicated Questions page where they can answer multiple-choice questions, provide free-text explanations, or engage in a back-and-forth chat with the AI for nuanced situations. Bulk answer mode lets users resolve multiple questions at once.');
@@ -537,11 +553,11 @@ $rtf .= pagebreak();
 
 $rtf .= h2('Competitive Landscape');
 
-$rtf .= p('LedgerIQ competes in the personal finance management space with a unique combination of AI intelligence and zero-cost pricing:');
+$rtf .= p('SpendifiAI competes in the personal finance management space with a unique combination of AI intelligence and zero-cost pricing:');
 
 $w6 = [2600, 2200, 2200, 2200, 2200, 2200];
 $rtf .= tableStart();
-$rtf .= tableRow(['Feature', 'LedgerIQ', 'Mint', 'YNAB', 'Copilot', 'Quicken'], $w6, true);
+$rtf .= tableRow(['Feature', 'SpendifiAI', 'Mint', 'YNAB', 'Copilot', 'Quicken'], $w6, true);
 $rtf .= tableRowGreen(['Price', 'FREE', 'Free*', '$14.99/mo', '$10.99/mo', '$5.99/mo'], $w6);
 $rtf .= tableRowGreen(['AI Categorize', 'Yes', 'Basic', 'Manual', 'Yes', 'Rules'], $w6);
 $rtf .= tableRowGreen(['Bank Sync', 'Plaid', 'Plaid', 'Plaid', 'Plaid', 'Plaid'], $w6);
@@ -552,7 +568,7 @@ $rtf .= tableRowGreen(['Tax Export', 'Sched C', 'No', 'No', 'No', 'Basic'], $w6)
 $rtf .= tableRowGreen(['2FA Support', 'TOTP', 'No', 'No', 'No', 'No'], $w6);
 
 $rtf .= linebreak();
-$rtf .= '\pard\sb0\sa120{\f0\i\fs18\cf4 * Mint (now Credit Karma) shifted to a credit-focused product in 2024, reducing its expense tracking capabilities.}\par' . "\n";
+$rtf .= '\pard\sb0\sa120{\f0\i\fs18\cf4 * Mint (now Credit Karma) shifted to a credit-focused product in 2024, reducing its expense tracking capabilities.}\par'."\n";
 
 $rtf .= pagebreak();
 
@@ -584,7 +600,7 @@ $rtf .= tableRow(['Excel Export', 'PhpSpreadsheet', 'Latest'], $w3d);
 $rtf .= tableRow(['PDF Export', 'DomPDF', 'Latest'], $w3d);
 
 $rtf .= h3('Test Coverage');
-$rtf .= p('LedgerIQ has 142 automated tests with 524 assertions covering: authentication (registration, login, 2FA, OAuth, password reset), Plaid integration (link, sync, webhooks), transactions (categorization, filtering), subscriptions (detection, responses), savings (recommendations, tracking, goals), statement uploads (parse, import, history), dashboard (all financial widgets), and AI questions (answer, bulk, chat).');
+$rtf .= p('SpendifiAI has 142 automated tests with 524 assertions covering: authentication (registration, login, 2FA, OAuth, password reset), Plaid integration (link, sync, webhooks), transactions (categorization, filtering), subscriptions (detection, responses), savings (recommendations, tracking, goals), statement uploads (parse, import, history), dashboard (all financial widgets), and AI questions (answer, bulk, chat).');
 
 $rtf .= h3('Application Scale');
 
@@ -611,7 +627,7 @@ $rtf .= pagebreak();
 
 $rtf .= h2('Summary');
 
-$rtf .= p('LedgerIQ represents a significant opportunity in the personal finance management space. By combining AI-powered intelligence with bank-grade security and a completely free pricing model, the platform is positioned to capture users who are currently underserved by expensive, feature-limited alternatives.');
+$rtf .= p('SpendifiAI represents a significant opportunity in the personal finance management space. By combining AI-powered intelligence with bank-grade security and a completely free pricing model, the platform is positioned to capture users who are currently underserved by expensive, feature-limited alternatives.');
 
 $rtf .= p('The platform\'s key differentiators are:');
 
@@ -624,14 +640,14 @@ $rtf .= bullet('Zero Cost Barrier - Free forever with no premium tiers removes a
 
 $rtf .= linebreak();
 $rtf .= linebreak();
-$rtf .= pcenter('For questions or a live demonstration, please contact the LedgerIQ team.', 22, 4);
+$rtf .= pcenter('For questions or a live demonstration, please contact the SpendifiAI team.', 22, 4);
 
 // Close RTF
 $rtf .= '}';
 
 // ── Save ────────────────────────────────────────────────────────────────
-$outputPath = __DIR__ . '/../public/LedgerIQ-Product-Overview.rtf';
+$outputPath = __DIR__.'/../public/SpendifiAI-Product-Overview.rtf';
 file_put_contents($outputPath, $rtf);
 
 echo "RTF saved to: $outputPath\n";
-echo "File size: " . number_format(filesize($outputPath)) . " bytes\n";
+echo 'File size: '.number_format(filesize($outputPath))." bytes\n";

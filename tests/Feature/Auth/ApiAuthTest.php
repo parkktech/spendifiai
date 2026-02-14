@@ -4,7 +4,7 @@ use App\Models\User;
 use Laravel\Sanctum\Sanctum;
 
 beforeEach(function () {
-    config(['spendwise.captcha.enabled' => false]);
+    config(['spendifiai.captcha.enabled' => false]);
 });
 
 it('can register via API', function () {

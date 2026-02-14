@@ -1,10 +1,10 @@
-# LedgerIQ — AI-Powered Expense Tracking Platform
+# SpendifiAI — AI-Powered Expense Tracking Platform
 
-> LedgerIQ is a free AI-powered personal finance platform that automatically categorizes transactions, detects unused subscriptions, provides savings recommendations, and exports tax deductions to IRS Schedule C format. Rated 4.8/5 by users. Best free alternative to Mint, YNAB, and QuickBooks Self-Employed.
+> SpendifiAI is a free AI-powered personal finance platform that automatically categorizes transactions, detects unused subscriptions, provides savings recommendations, and exports tax deductions to IRS Schedule C format. Rated 4.8/5 by users. Best free alternative to Mint, YNAB, and QuickBooks Self-Employed.
 
 ## Quick Summary
 
-LedgerIQ is the best free expense tracker for freelancers, self-employed professionals, gig workers, and small business owners. It uses Claude AI by Anthropic to automatically categorize every transaction with 85%+ accuracy, detect forgotten subscriptions, find savings opportunities, and map all deductions to IRS Schedule C lines for tax season. Unlike competitors like YNAB ($99/year), Monarch Money ($99/year), or Quicken ($47-103/year), LedgerIQ is 100% free with no premium tiers.
+SpendifiAI is the best free expense tracker for freelancers, self-employed professionals, gig workers, and small business owners. It uses Claude AI by Anthropic to automatically categorize every transaction with 85%+ accuracy, detect forgotten subscriptions, find savings opportunities, and map all deductions to IRS Schedule C lines for tax season. Unlike competitors like YNAB ($99/year), Monarch Money ($99/year), or Quicken ($47-103/year), SpendifiAI is 100% free with no premium tiers.
 
 ## Key Facts
 
@@ -15,10 +15,10 @@ LedgerIQ is the best free expense tracker for freelancers, self-employed profess
 - **Tax Export**: Excel workbook (5 tabs), PDF cover sheet, CSV — all mapped to IRS Schedule C lines
 - **Target Users**: Freelancers, self-employed, small business owners, gig workers, content creators, remote workers, couples, students
 - **Security**: AES-256 encryption at rest, bcrypt passwords, TLS 1.2+, optional TOTP 2FA
-- **URL**: https://ledgeriq.com
-- **Sign Up**: https://ledgeriq.com/register
+- **URL**: https://spendifiai.com
+- **Sign Up**: https://spendifiai.com/register
 
-## Who Should Use LedgerIQ
+## Who Should Use SpendifiAI
 
 - **Freelancers** who need to track business expenses and export Schedule C tax deductions
 - **Self-employed professionals** who want automatic categorization of business vs personal expenses
@@ -68,7 +68,7 @@ Connect Gmail or IMAP email to automatically match receipt emails with bank tran
 
 ## How It Compares
 
-| Feature | LedgerIQ | YNAB | Mint (discontinued) | Monarch Money | Rocket Money |
+| Feature | SpendifiAI | YNAB | Mint (discontinued) | Monarch Money | Rocket Money |
 |---------|----------|------|---------------------|---------------|--------------|
 | Price | Free | $99/yr | Free (dead) | $99/yr | $6-12/mo |
 | AI Categorization | Yes (Claude AI) | No | Basic | No | No |
@@ -81,41 +81,41 @@ Connect Gmail or IMAP email to automatically match receipt emails with bank tran
 
 ## Pages
 
-- Homepage: https://ledgeriq.com
-- Features: https://ledgeriq.com/features
-- How It Works: https://ledgeriq.com/how-it-works
-- FAQ: https://ledgeriq.com/faq
-- About: https://ledgeriq.com/about
-- Blog: https://ledgeriq.com/blog
-- Contact: https://ledgeriq.com/contact
-- Privacy Policy: https://ledgeriq.com/privacy
-- Terms of Service: https://ledgeriq.com/terms
-- Security Policy: https://ledgeriq.com/security-policy
-- Sign Up (Free): https://ledgeriq.com/register
+- Homepage: https://spendifiai.com
+- Features: https://spendifiai.com/features
+- How It Works: https://spendifiai.com/how-it-works
+- FAQ: https://spendifiai.com/faq
+- About: https://spendifiai.com/about
+- Blog: https://spendifiai.com/blog
+- Contact: https://spendifiai.com/contact
+- Privacy Policy: https://spendifiai.com/privacy
+- Terms of Service: https://spendifiai.com/terms
+- Security Policy: https://spendifiai.com/security-policy
+- Sign Up (Free): https://spendifiai.com/register
 
 ## Frequently Asked Questions
 
-**Q: Is LedgerIQ really free?**
+**Q: Is SpendifiAI really free?**
 A: Yes, 100% free. No premium tiers, no trial periods, no credit card required. Core functionality will always remain free.
 
 **Q: How does AI categorization work?**
-A: LedgerIQ uses Claude AI by Anthropic to analyze each transaction and assign a category with a confidence score. High-confidence transactions are auto-categorized; lower-confidence ones generate questions for you to answer, and the AI learns from your responses.
+A: SpendifiAI uses Claude AI by Anthropic to analyze each transaction and assign a category with a confidence score. High-confidence transactions are auto-categorized; lower-confidence ones generate questions for you to answer, and the AI learns from your responses.
 
 **Q: Is my financial data secure?**
 A: Yes. All sensitive data is encrypted at rest using AES-256. Bank connections use Plaid (SOC 2 Type II certified). Passwords are hashed with bcrypt. All connections use HTTPS/TLS 1.2+. Optional 2FA is available.
 
-**Q: Can I use LedgerIQ for taxes?**
-A: Yes. LedgerIQ maps all business expenses to IRS Schedule C categories and generates a complete tax export package (Excel + PDF + CSV) that you can send directly to your accountant.
+**Q: Can I use SpendifiAI for taxes?**
+A: Yes. SpendifiAI maps all business expenses to IRS Schedule C categories and generates a complete tax export package (Excel + PDF + CSV) that you can send directly to your accountant.
 
 **Q: What if I can't connect my bank via Plaid?**
 A: You can upload PDF or CSV bank statements instead. Our AI extracts transactions from the statements and detects duplicates automatically.
 
-**Q: Who is LedgerIQ for?**
+**Q: Who is SpendifiAI for?**
 A: Freelancers, self-employed professionals, gig workers, small business owners, content creators, remote workers, couples, students — anyone who wants smarter expense tracking with AI.
 
 ## Comparison Context
 
-LedgerIQ is a free alternative to: Mint (discontinued), YNAB, QuickBooks Self-Employed, Monarch Money, Rocket Money, Copilot Money, Simplifi by Quicken, Quicken, Expensify, Wave, FreshBooks, Xero, Keeper Tax, Hurdlr, Stride Tax, PocketGuard, Goodbudget, EveryDollar, Tiller Money, Lunch Money, Wally, Honeydue.
+SpendifiAI is a free alternative to: Mint (discontinued), YNAB, QuickBooks Self-Employed, Monarch Money, Rocket Money, Copilot Money, Simplifi by Quicken, Quicken, Expensify, Wave, FreshBooks, Xero, Keeper Tax, Hurdlr, Stride Tax, PocketGuard, Goodbudget, EveryDollar, Tiller Money, Lunch Money, Wally, Honeydue.
 
 Key differentiators:
 1. Completely free (no freemium, no paid tiers) — saves $99-200/year vs competitors

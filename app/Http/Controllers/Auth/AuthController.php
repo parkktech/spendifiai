@@ -30,7 +30,7 @@ class AuthController extends Controller
 
         event(new Registered($user));
 
-        $token = $user->createToken('ledgeriq')->plainTextToken;
+        $token = $user->createToken('spendifiai')->plainTextToken;
 
         return response()->json([
             'message' => 'Account created. Please verify your email.',
@@ -95,7 +95,7 @@ class AuthController extends Controller
         // Revoke old tokens (single active session)
         $user->tokens()->delete();
 
-        $token = $user->createToken('ledgeriq')->plainTextToken;
+        $token = $user->createToken('spendifiai')->plainTextToken;
 
         return response()->json([
             'message' => 'Logged in successfully.',

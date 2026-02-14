@@ -61,7 +61,7 @@ class TwoFactorController extends Controller
 
         // Generate QR code
         $qrCodeUrl = $this->google2fa->getQRCodeUrl(
-            config('spendwise.two_factor.issuer', 'LedgerIQ'),
+            config('spendifiai.two_factor.issuer', 'SpendifiAI'),
             $user->email,
             $secret
         );
@@ -98,7 +98,7 @@ class TwoFactorController extends Controller
         }
 
         // Generate recovery codes
-        $recoveryCodes = collect(range(1, config('spendwise.two_factor.recovery_codes', 8)))
+        $recoveryCodes = collect(range(1, config('spendifiai.two_factor.recovery_codes', 8)))
             ->map(fn () => Str::random(10).'-'.Str::random(10))
             ->toArray();
 
@@ -153,7 +153,7 @@ class TwoFactorController extends Controller
             return response()->json(['message' => 'Two-factor authentication is not enabled.'], 422);
         }
 
-        $recoveryCodes = collect(range(1, config('spendwise.two_factor.recovery_codes', 8)))
+        $recoveryCodes = collect(range(1, config('spendifiai.two_factor.recovery_codes', 8)))
             ->map(fn () => Str::random(10).'-'.Str::random(10))
             ->toArray();
 

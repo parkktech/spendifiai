@@ -7,9 +7,9 @@ import {
 } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { useApi } from '@/hooks/useApi';
-import StatCard from '@/Components/SpendWise/StatCard';
-import ExportModal from '@/Components/SpendWise/ExportModal';
-import type { TaxSummary, TaxLineItem } from '@/types/spendwise';
+import StatCard from '@/Components/SpendifiAI/StatCard';
+import ExportModal from '@/Components/SpendifiAI/ExportModal';
+import type { TaxSummary, TaxLineItem } from '@/types/spendifiai';
 
 const fmt = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
 const currentYear = new Date().getFullYear();

@@ -1,6 +1,6 @@
 {
     "$schema": "https://getcomposer.org/schema.json",
-    "name": "ledgeriq/app",
+    "name": "spendifiai/app",
     "type": "project",
     "description": "AI-powered expense tracking with Plaid bank integration",
     "keywords": ["laravel", "framework", "fintech", "expense-tracking"],

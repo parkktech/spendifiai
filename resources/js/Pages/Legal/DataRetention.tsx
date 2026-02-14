@@ -15,7 +15,7 @@ export default function DataRetention() {
     return (
         <PublicLayout
             title="Data Retention Policy"
-            description="LedgerIQ data retention policy. How long we keep your financial data, transaction records, AI analysis results, and what happens when you delete your account."
+            description="SpendifiAI data retention policy. How long we keep your financial data, transaction records, AI analysis results, and what happens when you delete your account."
             breadcrumbs={[{ name: 'Legal', url: '/data-retention' }, { name: 'Data Retention', url: '/data-retention' }]}
         >
             <div className="bg-gradient-to-b from-white to-sw-accent-light px-6 py-16">
@@ -42,7 +42,7 @@ export default function DataRetention() {
                         <section id="dr-1">
                             <h2 className="text-2xl font-semibold text-sw-text">1. Overview</h2>
                             <p className="mt-4 leading-relaxed text-sw-muted">
-                                LedgerIQ is committed to retaining your data only as long as necessary to provide our services. This policy describes what data we retain, for how long, and how you can request deletion. We believe in data minimization — we only keep what we need, and we delete it when it&apos;s no longer required.
+                                SpendifiAI is committed to retaining your data only as long as necessary to provide our services. This policy describes what data we retain, for how long, and how you can request deletion. We believe in data minimization — we only keep what we need, and we delete it when it&apos;s no longer required.
                             </p>
                         </section>
 
@@ -103,7 +103,7 @@ export default function DataRetention() {
                                 </div>
                                 <div className="rounded-xl border border-sw-border bg-white p-5">
                                     <h4 className="font-semibold text-sw-text">Via Email</h4>
-                                    <p className="mt-1 text-sm text-sw-muted">Send a request to <span className="font-medium text-sw-accent">privacy@ledgeriq.com</span> from the email associated with your account.</p>
+                                    <p className="mt-1 text-sm text-sw-muted">Send a request to <span className="font-medium text-sw-accent">privacy@spendifiai.com</span> from the email associated with your account.</p>
                                 </div>
                             </div>
                         </section>
@@ -131,7 +131,7 @@ export default function DataRetention() {
                             <p className="mt-4 leading-relaxed text-sw-muted">
                                 For questions about data retention or to request deletion, contact:
                             </p>
-                            <p className="mt-2 font-medium text-sw-accent">privacy@ledgeriq.com</p>
+                            <p className="mt-2 font-medium text-sw-accent">privacy@spendifiai.com</p>
                         </section>
 
                         <nav className="flex flex-wrap items-center gap-3 border-t border-sw-border pt-8 text-sm">

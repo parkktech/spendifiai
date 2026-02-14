@@ -34,7 +34,7 @@ class TaxExportService
         $data = $this->gatherTaxData($user, $year);
 
         $timestamp = now()->format('Y-m-d_His');
-        $baseName = "LedgerIQ_Tax_{$year}_{$timestamp}";
+        $baseName = "SpendifiAI_Tax_{$year}_{$timestamp}";
         $dir = "tax-exports/{$user->id}";
 
         Storage::disk('local')->makeDirectory($dir);
@@ -293,8 +293,8 @@ class TaxExportService
     {
         $spreadsheet = new Spreadsheet;
         $spreadsheet->getProperties()
-            ->setTitle("LedgerIQ Tax Export — {$data['year']}")
-            ->setCreator('LedgerIQ');
+            ->setTitle("SpendifiAI Tax Export — {$data['year']}")
+            ->setCreator('SpendifiAI');
 
         $this->createSummarySheet($spreadsheet, $data);
         $this->createScheduleCSheet($spreadsheet, $data);
@@ -333,7 +333,7 @@ class TaxExportService
 
         // Title
         $ws->mergeCells('A1:F1');
-        $ws->setCellValue('A1', "LedgerIQ Tax Export — {$data['year']}");
+        $ws->setCellValue('A1', "SpendifiAI Tax Export — {$data['year']}");
         $ws->getStyle('A1')->getFont()->setBold(true)->setSize(18)->setColor(new Color('1a5276'));
 
         $ws->mergeCells('A2:F2');

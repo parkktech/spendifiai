@@ -1,5 +1,5 @@
-# LedgerIQ — AI-Powered Expense Tracking
-# https://ledgeriq.com
+# SpendifiAI — AI-Powered Expense Tracking
+# https://spendifiai.com
 
 User-agent: *
 Allow: /
@@ -63,4 +63,4 @@ Allow: /
 User-agent: cohere-ai
 Allow: /
 
-Sitemap: https://ledgeriq.com/sitemap.xml
+Sitemap: https://spendifiai.com/sitemap.xml

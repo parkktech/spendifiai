@@ -3,45 +3,45 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>@yield('title'){{ str_contains(View::yieldContent('title'), 'LedgerIQ') ? '' : ' - LedgerIQ' }}</title>
+    <title>@yield('title'){{ str_contains(View::yieldContent('title'), 'SpendifiAI') ? '' : ' - SpendifiAI' }}</title>
     <meta name="description" content="@yield('description')">
     <link rel="canonical" href="@yield('canonical')">
 
     <!-- Open Graph -->
     <meta property="og:type" content="@yield('og_type', 'article')">
     <meta property="og:locale" content="en_US">
-    <meta property="og:site_name" content="LedgerIQ">
-    <meta property="og:title" content="@yield('title'){{ str_contains(View::yieldContent('title'), 'LedgerIQ') ? '' : ' - LedgerIQ' }}">
+    <meta property="og:site_name" content="SpendifiAI">
+    <meta property="og:title" content="@yield('title'){{ str_contains(View::yieldContent('title'), 'SpendifiAI') ? '' : ' - SpendifiAI' }}">
     <meta property="og:description" content="@yield('description')">
     <meta property="og:url" content="@yield('canonical')">
     @hasSection('og_image')
         <meta property="og:image" content="@yield('og_image')">
     @else
-        <meta property="og:image" content="https://ledgeriq.com/images/ledgeriq-og.png">
+        <meta property="og:image" content="https://spendifiai.com/images/spendifiai-og.png">
     @endif
     <meta property="og:image:width" content="1200">
     <meta property="og:image:height" content="630">
-    <meta property="og:image:alt" content="@yield('title') - LedgerIQ AI Expense Tracking">
+    <meta property="og:image:alt" content="@yield('title') - SpendifiAI AI Expense Tracking">
     @yield('og_article')
 
     <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:site" content="@ledgeriq">
-    <meta name="twitter:title" content="@yield('title'){{ str_contains(View::yieldContent('title'), 'LedgerIQ') ? '' : ' - LedgerIQ' }}">
+    <meta name="twitter:site" content="@spendifiai">
+    <meta name="twitter:title" content="@yield('title'){{ str_contains(View::yieldContent('title'), 'SpendifiAI') ? '' : ' - SpendifiAI' }}">
     <meta name="twitter:description" content="@yield('description')">
     @hasSection('og_image')
         <meta name="twitter:image" content="@yield('og_image')">
     @else
-        <meta name="twitter:image" content="https://ledgeriq.com/images/ledgeriq-og.png">
+        <meta name="twitter:image" content="https://spendifiai.com/images/spendifiai-og.png">
     @endif
-    <meta name="twitter:image:alt" content="@yield('title') - LedgerIQ AI Expense Tracking">
+    <meta name="twitter:image:alt" content="@yield('title') - SpendifiAI AI Expense Tracking">
 
     <!-- AI Discovery -->
     <link rel="author" href="/llms.txt">
 
     <!-- Favicon -->
     <link rel="icon" type="image/png" href="/favicon.png">
-    <link rel="apple-touch-icon" href="/images/ledgeriq-icon.png">
+    <link rel="apple-touch-icon" href="/images/spendifiai-icon.png">
     <meta name="theme-color" content="#2563eb">
 
     <!-- Fonts: Inter + Source Serif 4 -->
@@ -208,26 +208,26 @@
     {
         "@@context": "https://schema.org",
         "@@type": "Organization",
-        "@@id": "https://ledgeriq.com/#organization",
-        "name": "LedgerIQ",
-        "url": "https://ledgeriq.com",
+        "@@id": "https://spendifiai.com/#organization",
+        "name": "SpendifiAI",
+        "url": "https://spendifiai.com",
         "logo": {
             "@@type": "ImageObject",
-            "url": "https://ledgeriq.com/images/ledgeriq-icon.png",
+            "url": "https://spendifiai.com/images/spendifiai-icon.png",
             "width": 512,
             "height": 512
         },
-        "email": "support@ledgeriq.com",
+        "email": "support@spendifiai.com",
         "description": "AI-powered expense tracking that automatically categorizes transactions, detects unused subscriptions, finds savings, and prepares tax deductions. 100% free.",
         "contactPoint": {
             "@@type": "ContactPoint",
             "contactType": "customer support",
-            "email": "support@ledgeriq.com",
-            "url": "https://ledgeriq.com/contact"
+            "email": "support@spendifiai.com",
+            "url": "https://spendifiai.com/contact"
         },
         "sameAs": [
-            "https://ledgeriq.com/about",
-            "https://ledgeriq.com/blog"
+            "https://spendifiai.com/about",
+            "https://spendifiai.com/blog"
         ]
     }
     </script>
@@ -236,13 +236,13 @@
     {
         "@@context": "https://schema.org",
         "@@type": "WebSite",
-        "@@id": "https://ledgeriq.com/#website",
-        "name": "LedgerIQ",
-        "url": "https://ledgeriq.com",
-        "publisher": { "@@id": "https://ledgeriq.com/#organization" },
+        "@@id": "https://spendifiai.com/#website",
+        "name": "SpendifiAI",
+        "url": "https://spendifiai.com",
+        "publisher": { "@@id": "https://spendifiai.com/#organization" },
         "potentialAction": {
             "@@type": "SearchAction",
-            "target": "https://ledgeriq.com/blog?q={search_term_string}",
+            "target": "https://spendifiai.com/blog?q={search_term_string}",
             "query-input": "required name=search_term_string"
         }
     }
@@ -252,9 +252,9 @@
     {
         "@@context": "https://schema.org",
         "@@type": "SoftwareApplication",
-        "@@id": "https://ledgeriq.com/#software",
-        "name": "LedgerIQ",
-        "url": "https://ledgeriq.com",
+        "@@id": "https://spendifiai.com/#software",
+        "name": "SpendifiAI",
+        "url": "https://spendifiai.com",
         "applicationCategory": "FinanceApplication",
         "operatingSystem": "Web browser",
         "description": "Free AI-powered expense tracker with automatic transaction categorization, subscription detection, savings recommendations, and IRS Schedule C tax export.",
@@ -264,7 +264,7 @@
             "priceCurrency": "USD",
             "availability": "https://schema.org/InStock",
             "priceValidUntil": "2027-12-31",
-            "url": "https://ledgeriq.com/register",
+            "url": "https://spendifiai.com/register",
             "description": "100% free — no premium tiers, no trial periods, no credit card required"
         },
         "aggregateRating": {
@@ -288,20 +288,20 @@
                 "author": { "@@type": "Person", "name": "James K." },
                 "datePublished": "2025-12-03",
                 "reviewRating": { "@@type": "Rating", "ratingValue": "5", "bestRating": "5" },
-                "reviewBody": "Switched from YNAB to LedgerIQ and saved $99/year. The AI subscription detection found $340 in charges I forgot about."
+                "reviewBody": "Switched from YNAB to SpendifiAI and saved $99/year. The AI subscription detection found $340 in charges I forgot about."
             },
             {
                 "@@type": "Review",
                 "author": { "@@type": "Person", "name": "Maria L." },
                 "datePublished": "2026-01-10",
                 "reviewRating": { "@@type": "Rating", "ratingValue": "5", "bestRating": "5" },
-                "reviewBody": "As a gig worker, tracking deductions was a nightmare. LedgerIQ maps everything to Schedule C automatically. My accountant loves it."
+                "reviewBody": "As a gig worker, tracking deductions was a nightmare. SpendifiAI maps everything to Schedule C automatically. My accountant loves it."
             }
         ],
         "screenshot": {
             "@@type": "ImageObject",
-            "url": "https://ledgeriq.com/images/ledgeriq-og.png",
-            "caption": "LedgerIQ AI expense tracking dashboard",
+            "url": "https://spendifiai.com/images/spendifiai-og.png",
+            "caption": "SpendifiAI AI expense tracking dashboard",
             "width": 1200,
             "height": 630
         },
@@ -315,7 +315,7 @@
             "Email receipt matching",
             "Two-factor authentication"
         ],
-        "provider": { "@@id": "https://ledgeriq.com/#organization" }
+        "provider": { "@@id": "https://spendifiai.com/#organization" }
     }
     </script>
     @yield('jsonld')
@@ -337,7 +337,7 @@
                     <line x1="27.3" y1="9.5" x2="28" y2="9.5" stroke="white" stroke-width="1" stroke-linecap="round" opacity="0.7"/>
                     <defs><linearGradient id="nav-logo-grad" x1="0" y1="0" x2="40" y2="40" gradientUnits="userSpaceOnUse"><stop stop-color="#2563eb"/><stop offset="1" stop-color="#7c3aed"/></linearGradient></defs>
                 </svg>
-                <span class="text-xl font-bold tracking-tight text-slate-900">Ledger<span class="text-blue-600">IQ</span></span>
+                <span class="text-xl font-bold tracking-tight text-slate-900">Spendifi<span class="text-blue-600">AI</span></span>
             </a>
             <div class="hidden items-center gap-8 md:flex">
                 <a href="/features" class="text-sm font-medium text-slate-500 transition-colors hover:text-slate-900">Features</a>
@@ -416,7 +416,7 @@
                 </div>
             </div>
             <div class="mt-12 flex flex-col items-center justify-between gap-4 border-t border-slate-800 pt-8 sm:flex-row">
-                <p class="text-sm text-slate-500">&copy; {{ date('Y') }} LedgerIQ. All rights reserved.</p>
+                <p class="text-sm text-slate-500">&copy; {{ date('Y') }} SpendifiAI. All rights reserved.</p>
                 <div class="flex items-center gap-1 text-sm text-slate-500">
                     <span>Rated</span>
                     <div class="flex text-amber-400">

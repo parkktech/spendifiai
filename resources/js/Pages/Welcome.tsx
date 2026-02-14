@@ -105,15 +105,15 @@ export default function Welcome() {
     return (
         <PublicLayout
             title="AI Expense Tracker - Free Automatic Categorization & Tax Deductions"
-            description="Track expenses automatically with AI. LedgerIQ categorizes transactions, detects unused subscriptions, finds savings, and maps tax deductions to IRS Schedule C. 100% free, forever."
+            description="Track expenses automatically with AI. SpendifiAI categorizes transactions, detects unused subscriptions, finds savings, and maps tax deductions to IRS Schedule C. 100% free, forever."
         >
             <JsonLd
                 data={{
                     '@context': 'https://schema.org',
                     '@type': 'SoftwareApplication',
-                    '@id': 'https://ledgeriq.com/#software',
-                    name: 'LedgerIQ',
-                    url: 'https://ledgeriq.com',
+                    '@id': 'https://spendifiai.com/#software',
+                    name: 'SpendifiAI',
+                    url: 'https://spendifiai.com',
                     applicationCategory: 'FinanceApplication',
                     operatingSystem: 'Web browser',
                     description:
@@ -124,7 +124,7 @@ export default function Welcome() {
                         priceCurrency: 'USD',
                         availability: 'https://schema.org/InStock',
                         priceValidUntil: '2027-12-31',
-                        url: 'https://ledgeriq.com/register',
+                        url: 'https://spendifiai.com/register',
                         description: '100% free — no premium tiers, no trial periods, no credit card required',
                     },
                     aggregateRating: {
@@ -148,20 +148,20 @@ export default function Welcome() {
                             author: { '@type': 'Person', name: 'James K.' },
                             datePublished: '2025-12-03',
                             reviewRating: { '@type': 'Rating', ratingValue: '5', bestRating: '5' },
-                            reviewBody: 'Switched from YNAB to LedgerIQ and saved $99/year. The AI subscription detection found $340 in charges I forgot about. Incredible tool.',
+                            reviewBody: 'Switched from YNAB to SpendifiAI and saved $99/year. The AI subscription detection found $340 in charges I forgot about. Incredible tool.',
                         },
                         {
                             '@type': 'Review',
                             author: { '@type': 'Person', name: 'Maria L.' },
                             datePublished: '2026-01-10',
                             reviewRating: { '@type': 'Rating', ratingValue: '5', bestRating: '5' },
-                            reviewBody: 'As a gig worker, tracking deductions was a nightmare. LedgerIQ maps everything to Schedule C automatically. My accountant loves it.',
+                            reviewBody: 'As a gig worker, tracking deductions was a nightmare. SpendifiAI maps everything to Schedule C automatically. My accountant loves it.',
                         },
                     ],
                     screenshot: {
                         '@type': 'ImageObject',
-                        url: 'https://ledgeriq.com/images/ledgeriq-og.png',
-                        caption: 'LedgerIQ AI expense tracking dashboard',
+                        url: 'https://spendifiai.com/images/spendifiai-og.png',
+                        caption: 'SpendifiAI AI expense tracking dashboard',
                         width: 1200,
                         height: 630,
                     },
@@ -176,7 +176,7 @@ export default function Welcome() {
                         'Business and personal expense separation',
                         'Two-factor authentication and AES-256 encryption',
                     ],
-                    provider: { '@id': 'https://ledgeriq.com/#organization' },
+                    provider: { '@id': 'https://spendifiai.com/#organization' },
                 }}
             />
             {/* Hero */}
@@ -210,7 +210,7 @@ export default function Welcome() {
                         Completely Free. No Catches. No Premium Tier.
                     </h2>
                     <p className="mt-4 text-lg leading-relaxed text-blue-100">
-                        We believe everyone deserves smart money management. LedgerIQ is free for
+                        We believe everyone deserves smart money management. SpendifiAI is free for
                         individuals and small business owners — no hidden fees, no paywalls, no
                         upsells.
                     </p>
@@ -287,7 +287,7 @@ export default function Welcome() {
                 <SectionHeading
                     overline="SECURITY"
                     title="Your Data is Protected"
-                    subtitle="LedgerIQ uses the same security infrastructure trusted by Venmo, Robinhood, and thousands of financial apps."
+                    subtitle="SpendifiAI uses the same security infrastructure trusted by Venmo, Robinhood, and thousands of financial apps."
                 />
                 <div className="mx-auto mt-16 grid max-w-5xl grid-cols-1 gap-8 md:grid-cols-3">
                     {securityFeatures.map((feature) => (
@@ -321,7 +321,7 @@ export default function Welcome() {
             {/* Final CTA */}
             <CTASection
                 headline="Start Managing Your Money Smarter"
-                description="Join LedgerIQ today. Free forever, no credit card required. Takes less than 2 minutes to set up."
+                description="Join SpendifiAI today. Free forever, no credit card required. Takes less than 2 minutes to set up."
                 buttonText="Get Started Free"
                 buttonHref="/register"
             />

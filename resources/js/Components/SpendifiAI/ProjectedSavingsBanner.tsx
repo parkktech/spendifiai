@@ -1,5 +1,5 @@
 import { PiggyBank } from 'lucide-react';
-import type { ProjectedSavings } from '@/types/spendwise';
+import type { ProjectedSavings } from '@/types/spendifiai';
 
 interface ProjectedSavingsBannerProps {
   projection: ProjectedSavings;

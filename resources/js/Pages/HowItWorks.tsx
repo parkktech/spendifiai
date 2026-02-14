@@ -112,52 +112,52 @@ export default function HowItWorks() {
     return (
         <PublicLayout
             title="How It Works - Set Up AI Expense Tracking in 5 Minutes"
-            description="Get started with LedgerIQ in under 5 minutes. Create an account, connect your bank via Plaid or upload statements, and let AI categorize your transactions automatically."
+            description="Get started with SpendifiAI in under 5 minutes. Create an account, connect your bank via Plaid or upload statements, and let AI categorize your transactions automatically."
             breadcrumbs={[{ name: 'How It Works', url: '/how-it-works' }]}
         >
             <JsonLd
                 data={{
                     '@context': 'https://schema.org',
                     '@type': 'HowTo',
-                    name: 'How to Set Up AI Expense Tracking with LedgerIQ',
+                    name: 'How to Set Up AI Expense Tracking with SpendifiAI',
                     description: 'Get started with free AI-powered expense tracking in under 5 minutes. Connect your bank, let AI categorize transactions, and export tax deductions.',
                     totalTime: 'PT5M',
-                    tool: { '@type': 'SoftwareApplication', '@id': 'https://ledgeriq.com/#software' },
+                    tool: { '@type': 'SoftwareApplication', '@id': 'https://spendifiai.com/#software' },
                     step: [
                         {
                             '@type': 'HowToStep',
                             position: 1,
                             name: 'Create Your Free Account',
                             text: 'Sign up with email or Google OAuth. No credit card or payment information required.',
-                            url: 'https://ledgeriq.com/register',
+                            url: 'https://spendifiai.com/register',
                         },
                         {
                             '@type': 'HowToStep',
                             position: 2,
                             name: 'Connect Your Bank',
                             text: 'Link your bank accounts securely through Plaid, or upload PDF/CSV bank statements manually.',
-                            url: 'https://ledgeriq.com/how-it-works',
+                            url: 'https://spendifiai.com/how-it-works',
                         },
                         {
                             '@type': 'HowToStep',
                             position: 3,
                             name: 'Set Account Purposes',
                             text: 'Mark each account as personal, business, or mixed. This helps AI accurately categorize transactions.',
-                            url: 'https://ledgeriq.com/how-it-works',
+                            url: 'https://spendifiai.com/how-it-works',
                         },
                         {
                             '@type': 'HowToStep',
                             position: 4,
                             name: 'AI Categorizes Everything',
                             text: 'Claude AI processes your transactions, auto-categorizing at 85%+ confidence. Lower confidence items generate questions for you to answer.',
-                            url: 'https://ledgeriq.com/how-it-works',
+                            url: 'https://spendifiai.com/how-it-works',
                         },
                         {
                             '@type': 'HowToStep',
                             position: 5,
                             name: 'Track, Save, and Export Taxes',
                             text: 'View spending insights, get AI savings recommendations, detect unused subscriptions, and export IRS Schedule C tax-ready reports.',
-                            url: 'https://ledgeriq.com/how-it-works',
+                            url: 'https://spendifiai.com/how-it-works',
                         },
                     ],
                 }}
@@ -179,8 +179,8 @@ export default function HowItWorks() {
             {/* What Makes Us Different */}
             <section className="bg-sw-surface px-6 py-20">
                 <SectionHeading
-                    overline="WHY LEDGERIQ"
-                    title="What Makes LedgerIQ Different"
+                    overline="WHY SPENDIFIAI"
+                    title="What Makes SpendifiAI Different"
                 />
                 <div className="mx-auto mt-12 grid max-w-5xl grid-cols-1 gap-8 md:grid-cols-3">
                     <div className="rounded-2xl border border-sw-border bg-white p-8 text-center shadow-sm">

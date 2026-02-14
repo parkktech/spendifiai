@@ -184,11 +184,11 @@ class EnhanceSeoContent extends Command
 
     private function wrapCtaParagraphs(string $html): string
     {
-        // Wrap paragraphs that are CTAs (contain register/features links and "ready to" or "get started" or "try LedgerIQ")
+        // Wrap paragraphs that are CTAs (contain register/features links and "ready to" or "get started" or "try SpendifiAI")
         return preg_replace_callback('/<p>(.*?)<\/p>/s', function ($match) {
             $text = $match[1];
             $hasLink = str_contains($text, 'href="/register"') || str_contains($text, 'href="/features"');
-            $isCta = preg_match('/(Ready to|Get started|Get LedgerIQ|Sign up|Create your free|Start tracking)/i', $text);
+            $isCta = preg_match('/(Ready to|Get started|Get SpendifiAI|Sign up|Create your free|Start tracking)/i', $text);
 
             if ($hasLink && $isCta) {
                 return '<div class="inline-cta"><p>'.$text.'</p></div>';

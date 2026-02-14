@@ -92,18 +92,18 @@ class ExpandSeoContent extends Command
         if (! str_contains($page->content, 'Who Should Choose') && ! str_contains($page->content, 'Who Is It For')) {
             $sections[] = <<<HTML
 
-<h2>Who Should Choose LedgerIQ Over {$competitor}</h2>
-<p>LedgerIQ is the better choice if you:</p>
+<h2>Who Should Choose SpendifiAI Over {$competitor}</h2>
+<p>SpendifiAI is the better choice if you:</p>
 <ul>
-<li><strong>Want zero subscription costs</strong> — LedgerIQ is completely free with no premium tiers, while many competitors charge \$6-15/month or \$50-200/year</li>
-<li><strong>Need AI-powered categorization</strong> — Rule-based systems misclassify 15-30% of transactions. LedgerIQ's Claude AI achieves 85%+ accuracy by understanding context, not just merchant names</li>
+<li><strong>Want zero subscription costs</strong> — SpendifiAI is completely free with no premium tiers, while many competitors charge \$6-15/month or \$50-200/year</li>
+<li><strong>Need AI-powered categorization</strong> — Rule-based systems misclassify 15-30% of transactions. SpendifiAI's Claude AI achieves 85%+ accuracy by understanding context, not just merchant names</li>
 <li><strong>Track business expenses for taxes</strong> — Automatic IRS Schedule C mapping and export means less work at tax time and fewer missed deductions</li>
-<li><strong>Have subscriptions you've forgotten about</strong> — LedgerIQ's frequency-based detection finds recurring charges across weekly, monthly, quarterly, and annual billing cycles</li>
-<li><strong>Prefer bank statement uploads</strong> — Not everyone wants to link their bank electronically. LedgerIQ supports PDF and CSV statement imports with AI-powered transaction extraction</li>
+<li><strong>Have subscriptions you've forgotten about</strong> — SpendifiAI's frequency-based detection finds recurring charges across weekly, monthly, quarterly, and annual billing cycles</li>
+<li><strong>Prefer bank statement uploads</strong> — Not everyone wants to link their bank electronically. SpendifiAI supports PDF and CSV statement imports with AI-powered transaction extraction</li>
 </ul>
 
 <h3>When {$competitor} Might Be Better</h3>
-<p>No tool is perfect for everyone. {$competitor} could be a better fit if you need specific features like advanced investment tracking, joint account management with multiple users, or deep integration with a particular accounting workflow. However, for core expense tracking, categorization, and tax preparation, LedgerIQ offers more functionality at zero cost.</p>
+<p>No tool is perfect for everyone. {$competitor} could be a better fit if you need specific features like advanced investment tracking, joint account management with multiple users, or deep integration with a particular accounting workflow. However, for core expense tracking, categorization, and tax preparation, SpendifiAI offers more functionality at zero cost.</p>
 HTML;
         }
 
@@ -111,12 +111,12 @@ HTML;
             $sections[] = <<<HTML
 
 <h2>Making the Switch: Step-by-Step</h2>
-<p>Transitioning from {$competitor} to LedgerIQ is straightforward:</p>
+<p>Transitioning from {$competitor} to SpendifiAI is straightforward:</p>
 <ol>
 <li><strong>Export your data</strong> — Download your transaction history from {$competitor} as a CSV file if available</li>
-<li><strong>Create a LedgerIQ account</strong> — Sign up at <a href="/register">ledgeriq.com/register</a> (takes under 60 seconds)</li>
+<li><strong>Create a SpendifiAI account</strong> — Sign up at <a href="/register">spendifiai.com/register</a> (takes under 60 seconds)</li>
 <li><strong>Connect your bank</strong> — Link your accounts through Plaid, or upload your bank statements as PDF or CSV files</li>
-<li><strong>Let AI categorize</strong> — LedgerIQ will automatically categorize all imported transactions. Review any AI questions for low-confidence transactions</li>
+<li><strong>Let AI categorize</strong> — SpendifiAI will automatically categorize all imported transactions. Review any AI questions for low-confidence transactions</li>
 <li><strong>Set up your profile</strong> — Tag your accounts as business or personal, and the AI will use this context for more accurate categorization going forward</li>
 </ol>
 <p>Most users complete the full migration in under 10 minutes. Your historical transaction data remains accessible in your previous tool if you need to reference it.</p>
@@ -129,13 +129,13 @@ HTML;
 <h2>The Bottom Line: Which Tool Wins?</h2>
 <p>After comparing features, pricing, and real-world usability, the choice often comes down to what you value most:</p>
 <ul>
-<li><strong>For budget-conscious users</strong> — LedgerIQ wins definitively. It offers AI categorization, subscription detection, savings analysis, and tax export completely free. {$competitor} charges a subscription fee for comparable features</li>
-<li><strong>For freelancers and self-employed</strong> — LedgerIQ's IRS Schedule C mapping and tax export give it a clear advantage. Automatic business/personal expense separation with account purpose tagging means less work at tax time</li>
-<li><strong>For subscription management</strong> — LedgerIQ's frequency-based detection identifies recurring charges across all billing cycles (weekly, monthly, quarterly, annual) and flags unused subscriptions. Most competitors only detect monthly charges</li>
-<li><strong>For privacy-focused users</strong> — Both tools use Plaid for bank connections, but LedgerIQ's encryption at rest (AES-256) and optional two-factor authentication provide solid security. No financial tool should store your bank credentials directly</li>
-<li><strong>For getting started quickly</strong> — LedgerIQ's PDF and CSV statement upload means you can import transactions even without Plaid. Sign up, upload a statement, and see AI-categorized transactions in under 5 minutes</li>
+<li><strong>For budget-conscious users</strong> — SpendifiAI wins definitively. It offers AI categorization, subscription detection, savings analysis, and tax export completely free. {$competitor} charges a subscription fee for comparable features</li>
+<li><strong>For freelancers and self-employed</strong> — SpendifiAI's IRS Schedule C mapping and tax export give it a clear advantage. Automatic business/personal expense separation with account purpose tagging means less work at tax time</li>
+<li><strong>For subscription management</strong> — SpendifiAI's frequency-based detection identifies recurring charges across all billing cycles (weekly, monthly, quarterly, annual) and flags unused subscriptions. Most competitors only detect monthly charges</li>
+<li><strong>For privacy-focused users</strong> — Both tools use Plaid for bank connections, but SpendifiAI's encryption at rest (AES-256) and optional two-factor authentication provide solid security. No financial tool should store your bank credentials directly</li>
+<li><strong>For getting started quickly</strong> — SpendifiAI's PDF and CSV statement upload means you can import transactions even without Plaid. Sign up, upload a statement, and see AI-categorized transactions in under 5 minutes</li>
 </ul>
-<p>The strongest argument for LedgerIQ is simple: you get premium features without a premium price tag. If you are currently paying for expense tracking, switching saves you money immediately while gaining AI-powered capabilities.</p>
+<p>The strongest argument for SpendifiAI is simple: you get premium features without a premium price tag. If you are currently paying for expense tracking, switching saves you money immediately while gaining AI-powered capabilities.</p>
 HTML;
         }
 
@@ -145,9 +145,9 @@ HTML;
 <h2>Real-World Cost Comparison</h2>
 <p>The financial case for switching is straightforward when you look at what you actually pay over time:</p>
 <ul>
-<li><strong>Year 1 savings</strong> — If you are paying \$10/month for {$competitor}, switching to LedgerIQ saves \$120 in the first year alone. At \$15/month, that is \$180 back in your pocket</li>
-<li><strong>Hidden feature costs</strong> — Many competitors offer basic tracking for free but charge for the features that actually matter: bank connections, tax exports, categorization rules, and customer support. LedgerIQ includes everything at no cost</li>
-<li><strong>Subscription detection value</strong> — The average LedgerIQ user discovers \$200-400 in forgotten recurring charges within their first month. This more than offsets any switching effort</li>
+<li><strong>Year 1 savings</strong> — If you are paying \$10/month for {$competitor}, switching to SpendifiAI saves \$120 in the first year alone. At \$15/month, that is \$180 back in your pocket</li>
+<li><strong>Hidden feature costs</strong> — Many competitors offer basic tracking for free but charge for the features that actually matter: bank connections, tax exports, categorization rules, and customer support. SpendifiAI includes everything at no cost</li>
+<li><strong>Subscription detection value</strong> — The average SpendifiAI user discovers \$200-400 in forgotten recurring charges within their first month. This more than offsets any switching effort</li>
 <li><strong>Tax deduction capture</strong> — Automated Schedule C mapping catches deductions that manual tracking misses. Self-employed users typically find an additional \$500-2,000 in deductions they would have overlooked</li>
 </ul>
 <p>When you factor in both the direct savings from eliminating a paid subscription and the indirect savings from better expense visibility, the return on the 10 minutes spent switching is significant.</p>
@@ -170,8 +170,8 @@ HTML;
 <h2>How to Choose the Right Expense Tracker</h2>
 <p>When evaluating alternatives to {$product}, consider these factors:</p>
 <ul>
-<li><strong>Total cost of ownership</strong> — Many tools advertise low monthly prices but costs add up. A \$10/month app costs \$120/year. LedgerIQ is genuinely free with no hidden fees or premium tiers</li>
-<li><strong>Categorization accuracy</strong> — The biggest time-saver is automatic categorization. AI-powered tools like LedgerIQ achieve 85%+ accuracy vs 60-70% for rule-based systems, meaning far fewer manual corrections</li>
+<li><strong>Total cost of ownership</strong> — Many tools advertise low monthly prices but costs add up. A \$10/month app costs \$120/year. SpendifiAI is genuinely free with no hidden fees or premium tiers</li>
+<li><strong>Categorization accuracy</strong> — The biggest time-saver is automatic categorization. AI-powered tools like SpendifiAI achieve 85%+ accuracy vs 60-70% for rule-based systems, meaning far fewer manual corrections</li>
 <li><strong>Tax preparation features</strong> — If you are self-employed or freelance, look for IRS Schedule C mapping and export functionality. This can save hours during tax season and catch deductions you would otherwise miss</li>
 <li><strong>Bank connectivity options</strong> — Plaid integration covers 12,000+ institutions. But also check for statement upload support as a backup option</li>
 <li><strong>Data security</strong> — Verify the tool uses encryption at rest, secure bank connections, and offers two-factor authentication</li>
@@ -179,7 +179,7 @@ HTML;
 </ul>
 
 <h3>Why Free Does Not Mean Low Quality</h3>
-<p>Many users assume free tools must be inferior. LedgerIQ challenges this assumption by offering AI-powered features that most paid competitors lack. The key difference is the business model: while subscription-based tools need recurring revenue, LedgerIQ focuses on making expense tracking accessible to everyone, especially freelancers and self-employed individuals who are already managing tight budgets.</p>
+<p>Many users assume free tools must be inferior. SpendifiAI challenges this assumption by offering AI-powered features that most paid competitors lack. The key difference is the business model: while subscription-based tools need recurring revenue, SpendifiAI focuses on making expense tracking accessible to everyone, especially freelancers and self-employed individuals who are already managing tight budgets.</p>
 HTML;
         }
 
@@ -189,10 +189,10 @@ HTML;
 <h2>Key Features to Compare Before Switching</h2>
 <p>When evaluating any alternative to {$product}, these features separate tools that genuinely help from those that just look good in marketing:</p>
 <ul>
-<li><strong>Categorization method</strong> — Rule-based systems match merchant names to categories and typically achieve 60-70% accuracy. AI-powered tools like LedgerIQ analyze transaction context and achieve 85%+ accuracy, which means dramatically less manual correction work</li>
+<li><strong>Categorization method</strong> — Rule-based systems match merchant names to categories and typically achieve 60-70% accuracy. AI-powered tools like SpendifiAI analyze transaction context and achieve 85%+ accuracy, which means dramatically less manual correction work</li>
 <li><strong>Bank connectivity</strong> — Plaid integration is the gold standard, supporting 12,000+ institutions. Check whether the tool also supports statement uploads as a backup for banks with connectivity issues</li>
-<li><strong>Tax features</strong> — If you are self-employed, IRS Schedule C mapping is essential. LedgerIQ maps expenses to tax lines automatically and exports in Excel, PDF, and CSV formats ready for your accountant</li>
-<li><strong>Subscription monitoring</strong> — Recurring charge detection with unused subscription flagging is a feature that can pay for itself (or in LedgerIQ's case, save you hundreds since the tool is free). Look for frequency-based detection that catches weekly, monthly, quarterly, and annual billing cycles</li>
+<li><strong>Tax features</strong> — If you are self-employed, IRS Schedule C mapping is essential. SpendifiAI maps expenses to tax lines automatically and exports in Excel, PDF, and CSV formats ready for your accountant</li>
+<li><strong>Subscription monitoring</strong> — Recurring charge detection with unused subscription flagging is a feature that can pay for itself (or in SpendifiAI's case, save you hundreds since the tool is free). Look for frequency-based detection that catches weekly, monthly, quarterly, and annual billing cycles</li>
 <li><strong>Security standards</strong> — AES-256 encryption at rest, Plaid for bank credentials (SOC 2 Type II), and optional two-factor authentication should be baseline requirements for any financial tool</li>
 </ul>
 <p>The best expense tracker is the one you will actually use consistently. Prioritize ease of setup and automated features over manual customization options you will never configure.</p>
@@ -230,7 +230,7 @@ HTML;
 <h2>Common Tax Tracking Mistakes to Avoid</h2>
 <p>Even experienced freelancers make these costly errors:</p>
 <ul>
-<li><strong>Mixing business and personal expenses</strong> — This creates confusion at tax time and raises audit risk. Tag your accounts as business or personal in LedgerIQ, and the AI will use this context for every categorization</li>
+<li><strong>Mixing business and personal expenses</strong> — This creates confusion at tax time and raises audit risk. Tag your accounts as business or personal in SpendifiAI, and the AI will use this context for every categorization</li>
 <li><strong>Waiting until tax season to organize</strong> — Retroactively categorizing a year of transactions is painful and error-prone. Automated tracking throughout the year captures everything in real-time</li>
 <li><strong>Missing the home office deduction</strong> — If you work from home, you can deduct a portion of rent, utilities, internet, and insurance. The simplified method allows $5 per square foot up to 300 square feet ($1,500 max)</li>
 <li><strong>Forgetting about mileage</strong> — Business driving at the 2026 IRS standard rate adds up quickly. Even 100 miles per week at $0.70/mile is $3,640 per year in deductions</li>
@@ -238,7 +238,7 @@ HTML;
 </ul>
 
 <h3>How AI Improves Tax Deduction Accuracy</h3>
-<p>Traditional expense tracking relies on you remembering to categorize every purchase correctly. AI-powered tools like LedgerIQ analyze each transaction in context, considering the merchant, amount, frequency, and your account designation. This catches deductions that manual tracking often misses, like recurring software subscriptions, professional development purchases, and mixed-use expenses that are partially deductible.</p>
+<p>Traditional expense tracking relies on you remembering to categorize every purchase correctly. AI-powered tools like SpendifiAI analyze each transaction in context, considering the merchant, amount, frequency, and your account designation. This catches deductions that manual tracking often misses, like recurring software subscriptions, professional development purchases, and mixed-use expenses that are partially deductible.</p>
 HTML;
             }
         } elseif (str_contains($slug, 'budget') || str_contains($slug, 'spending') || (str_contains($slug, 'expense') && ! str_contains($slug, 'tax'))) {
@@ -264,11 +264,11 @@ HTML;
 <h2>Essential Tools for Freelance Financial Management</h2>
 <p>Successful freelancers use a combination of tools to stay on top of their finances:</p>
 <ul>
-<li><strong>Expense tracker with AI categorization</strong> — LedgerIQ handles automatic categorization, subscription detection, and tax export. The AI distinguishes business from personal expenses based on your account tags</li>
+<li><strong>Expense tracker with AI categorization</strong> — SpendifiAI handles automatic categorization, subscription detection, and tax export. The AI distinguishes business from personal expenses based on your account tags</li>
 <li><strong>Separate business bank account</strong> — Even a free checking account dedicated to business income and expenses simplifies everything from bookkeeping to tax preparation</li>
 <li><strong>Quarterly tax calendar</strong> — Set reminders for estimated tax payment deadlines (April 15, June 15, September 15, January 15) to avoid IRS penalties</li>
-<li><strong>Receipt documentation system</strong> — While digital bank records cover most deductions, keep receipts for cash payments and large purchases. LedgerIQ's email receipt matching can automate this for online purchases</li>
-<li><strong>Year-end tax package</strong> — Use LedgerIQ's export feature to generate an Excel workbook, PDF summary, or CSV file mapped to IRS Schedule C categories. This gives your accountant everything they need in one organized package</li>
+<li><strong>Receipt documentation system</strong> — While digital bank records cover most deductions, keep receipts for cash payments and large purchases. SpendifiAI's email receipt matching can automate this for online purchases</li>
+<li><strong>Year-end tax package</strong> — Use SpendifiAI's export feature to generate an Excel workbook, PDF summary, or CSV file mapped to IRS Schedule C categories. This gives your accountant everything they need in one organized package</li>
 </ul>
 HTML;
             }
@@ -313,9 +313,9 @@ HTML;
 <p>Financial tracking is only valuable if you stick with it. These habits help make it sustainable:</p>
 <ul>
 <li><strong>Automate everything possible</strong> — Bank connections that sync automatically eliminate the biggest friction point. You should never need to manually enter a transaction that went through your bank or credit card</li>
-<li><strong>Use the AI question system</strong> — When LedgerIQ asks about a transaction, take 10 seconds to answer. Each response improves future categorization accuracy for similar purchases</li>
+<li><strong>Use the AI question system</strong> — When SpendifiAI asks about a transaction, take 10 seconds to answer. Each response improves future categorization accuracy for similar purchases</li>
 <li><strong>Set up account purpose tags</strong> — Tagging accounts as business or personal is the single highest-impact action for categorization accuracy. The AI uses this context for every transaction from that account</li>
-<li><strong>Review subscriptions monthly</strong> — Services you signed up for six months ago may no longer provide value. LedgerIQ flags subscriptions that show usage pattern changes automatically</li>
+<li><strong>Review subscriptions monthly</strong> — Services you signed up for six months ago may no longer provide value. SpendifiAI flags subscriptions that show usage pattern changes automatically</li>
 <li><strong>Export before tax deadlines</strong> — Run a tax export at least two weeks before filing deadlines. This gives you time to verify categories and catch any miscategorized expenses before they reach your accountant</li>
 </ul>
 <p>The goal is not perfection but consistency. A tracking system that captures 95% of your expenses automatically is dramatically better than manually logging 60% of them sporadically.</p>
@@ -335,15 +335,15 @@ HTML;
 <h2>Record-Keeping Best Practices for Tax Compliance</h2>
 <p>The IRS requires adequate documentation for all claimed deductions. Poor record-keeping is the most common reason deductions are denied during audits. Here is how to stay protected:</p>
 <ul>
-<li><strong>Digital bank records</strong> — Transaction records from your bank or credit card are generally sufficient documentation for most deductions under $75. LedgerIQ automatically preserves these with timestamps, merchant names, and categorization</li>
-<li><strong>Receipt retention</strong> — For expenses over $75, keep the original receipt or a clear digital photo. LedgerIQ's email receipt matching can capture online purchase receipts automatically from Gmail</li>
+<li><strong>Digital bank records</strong> — Transaction records from your bank or credit card are generally sufficient documentation for most deductions under $75. SpendifiAI automatically preserves these with timestamps, merchant names, and categorization</li>
+<li><strong>Receipt retention</strong> — For expenses over $75, keep the original receipt or a clear digital photo. SpendifiAI's email receipt matching can capture online purchase receipts automatically from Gmail</li>
 <li><strong>Business purpose notes</strong> — For meals, travel, and entertainment expenses, document the business purpose: who you met with, what was discussed, and how it relates to your business activity</li>
 <li><strong>Mileage logs</strong> — If claiming vehicle deductions, maintain a contemporaneous log with date, destination, business purpose, and miles driven. The IRS standard rate for 2026 is $0.70 per mile</li>
 <li><strong>Home office measurements</strong> — If claiming the regular home office deduction, document the square footage of your dedicated workspace and the total square footage of your home</li>
 </ul>
 
 <h3>How Long to Keep Tax Records</h3>
-<p>The general rule is three years from the filing date, but certain situations require longer retention. If you underreported income by more than 25%, keep records for six years. For property-related deductions, keep records until three years after you dispose of the property. LedgerIQ stores your transaction history and exports indefinitely, so you always have access to historical data.</p>
+<p>The general rule is three years from the filing date, but certain situations require longer retention. If you underreported income by more than 25%, keep records for six years. For property-related deductions, keep records until three years after you dispose of the property. SpendifiAI stores your transaction history and exports indefinitely, so you always have access to historical data.</p>
 HTML;
         }
 
@@ -358,7 +358,7 @@ HTML;
 <li><strong>Q3: September 15</strong> — Covers income from June through August</li>
 <li><strong>Q4: January 15</strong> — Covers income from September through December</li>
 </ul>
-<p>The safe harbor rule lets you avoid penalties by paying either 100% of last year's tax liability or 90% of the current year's estimated liability (110% of last year's if your AGI exceeded $150,000). Using LedgerIQ's tax export, you can track your deductible expenses throughout the year and estimate your quarterly liability more accurately.</p>
+<p>The safe harbor rule lets you avoid penalties by paying either 100% of last year's tax liability or 90% of the current year's estimated liability (110% of last year's if your AGI exceeded $150,000). Using SpendifiAI's tax export, you can track your deductible expenses throughout the year and estimate your quarterly liability more accurately.</p>
 HTML;
         }
 
@@ -399,7 +399,7 @@ HTML;
 <li><strong>Mixed-use expense allocation</strong> — Equipment, vehicles, and even home office space often serve both business and personal purposes. Proper tracking establishes the business-use percentage needed for accurate deductions</li>
 <li><strong>Client-billable expenses</strong> — Tracking which expenses are reimbursable versus absorbed costs is critical for maintaining healthy profit margins and accurate invoicing</li>
 </ul>
-<p>LedgerIQ's AI categorization learns the specific spending patterns of your industry as you use it, improving accuracy with every transaction it processes.</p>
+<p>SpendifiAI's AI categorization learns the specific spending patterns of your industry as you use it, improving accuracy with every transaction it processes.</p>
 HTML;
         }
 
@@ -410,7 +410,7 @@ HTML;
 <p>Getting the most value from automated expense tracking requires some initial configuration specific to your industry:</p>
 <ol>
 <li><strong>Separate your accounts</strong> — If you have not already, open a dedicated business checking account and credit card. This is the single most impactful step for clean financial tracking and tax preparation</li>
-<li><strong>Tag account purposes</strong> — In LedgerIQ, mark your business accounts as "business" and personal accounts as "personal." The AI uses this signal as the strongest indicator for categorization</li>
+<li><strong>Tag account purposes</strong> — In SpendifiAI, mark your business accounts as "business" and personal accounts as "personal." The AI uses this signal as the strongest indicator for categorization</li>
 <li><strong>Import historical data</strong> — Upload 3-6 months of bank statements to give the AI a foundation of your spending patterns. This accelerates the learning process significantly</li>
 <li><strong>Review the first categorization batch</strong> — Spend 10-15 minutes reviewing how the AI categorized your initial transactions. Correcting any errors teaches the system your industry-specific patterns</li>
 <li><strong>Check subscription detection results</strong> — Industry professionals often accumulate software subscriptions, association memberships, and recurring service fees. Review the detected subscriptions to identify any you have forgotten about</li>
@@ -425,7 +425,7 @@ HTML;
 <h2>Preparing for Tax Season</h2>
 <p>The real payoff of year-round expense tracking comes when tax season arrives. Instead of scrambling to organize receipts and reconstruct spending, you simply export your data:</p>
 <ul>
-<li><strong>Run the tax export</strong> — Generate an Excel, PDF, or CSV report with all expenses mapped to IRS Schedule C categories. LedgerIQ handles the category-to-tax-line mapping automatically</li>
+<li><strong>Run the tax export</strong> — Generate an Excel, PDF, or CSV report with all expenses mapped to IRS Schedule C categories. SpendifiAI handles the category-to-tax-line mapping automatically</li>
 <li><strong>Review flagged items</strong> — Check any transactions the AI categorized with lower confidence. These are worth a quick manual review before filing</li>
 <li><strong>Send to your accountant</strong> — Use the email export feature to send the organized report directly to your tax professional. The Schedule C mapping saves them significant time and reduces your preparation costs</li>
 <li><strong>Save for records</strong> — Download a copy for your records. The IRS requires documentation retention for at least three years from the filing date</li>
@@ -442,16 +442,16 @@ HTML;
         $sections = [];
 
         if (! str_contains($page->content, 'How It Works') && ! str_contains($page->content, 'Under the Hood') && ! str_contains($page->content, 'Technical Details')) {
-            $featureName = str_replace([' - LedgerIQ', ' | LedgerIQ'], '', $page->title);
+            $featureName = str_replace([' - SpendifiAI', ' | SpendifiAI'], '', $page->title);
             $sections[] = <<<HTML
 
 <h2>How {$featureName} Works Under the Hood</h2>
 <p>Understanding the technology behind this feature helps you use it more effectively and trust the results:</p>
 <ul>
-<li><strong>AI-powered analysis</strong> — LedgerIQ uses Claude AI from Anthropic to process transaction data. Unlike rule-based systems that match merchant names to categories, AI understands context: the same store might be a business expense for supplies or a personal purchase depending on your account type and purchase pattern</li>
+<li><strong>AI-powered analysis</strong> — SpendifiAI uses Claude AI from Anthropic to process transaction data. Unlike rule-based systems that match merchant names to categories, AI understands context: the same store might be a business expense for supplies or a personal purchase depending on your account type and purchase pattern</li>
 <li><strong>Confidence scoring</strong> — Every automated action includes a confidence score. High-confidence results (85%+) are applied automatically. Medium-confidence results (60-84%) are applied but flagged for review. Low-confidence results generate questions so you make the final decision</li>
 <li><strong>Continuous learning</strong> — When you correct a categorization or answer an AI question, that feedback improves future accuracy. The system builds a profile of your specific spending patterns over time</li>
-<li><strong>Privacy-first architecture</strong> — Your financial data is encrypted at rest using AES-256. Bank credentials are handled exclusively by Plaid and never touch LedgerIQ's servers. Two-factor authentication adds an additional security layer</li>
+<li><strong>Privacy-first architecture</strong> — Your financial data is encrypted at rest using AES-256. Bank credentials are handled exclusively by Plaid and never touch SpendifiAI's servers. Two-factor authentication adds an additional security layer</li>
 </ul>
 <p>This architecture ensures accuracy improves over time while maintaining the security standards expected for financial data.</p>
 HTML;
@@ -465,7 +465,7 @@ HTML;
 <ul>
 <li><strong>Manual entry</strong> — Traditional apps require you to log each expense by hand. This is accurate when done consistently but has a 40-60% abandonment rate within the first month because it requires constant effort</li>
 <li><strong>Rule-based automation</strong> — Tools that use merchant-name matching can auto-categorize common purchases but fail on ambiguous transactions, new merchants, and context-dependent expenses. Accuracy typically plateaus at 60-70%</li>
-<li><strong>AI-powered categorization</strong> — LedgerIQ's approach analyzes transaction context including merchant, amount, frequency, account type, and spending patterns. This achieves 85%+ accuracy and continues improving as the system learns your specific patterns</li>
+<li><strong>AI-powered categorization</strong> — SpendifiAI's approach analyzes transaction context including merchant, amount, frequency, account type, and spending patterns. This achieves 85%+ accuracy and continues improving as the system learns your specific patterns</li>
 </ul>
 <p>The practical impact is significant: with AI-powered tracking, you spend minutes per month on expense management instead of hours. The system handles the routine categorization work and only asks for your input when it genuinely needs human judgment.</p>
 HTML;

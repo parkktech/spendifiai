@@ -716,7 +716,7 @@ All factories MUST use the actual enum values, not raw strings:
 ## Sources
 
 ### Primary (HIGH confidence)
-- Codebase analysis: All 18 models, 7 enums, 10 API controllers, 7 services, 13 migrations, routes, middleware, policies -- read directly from `/var/www/html/ledgeriq/`
+- Codebase analysis: All 18 models, 7 enums, 10 API controllers, 7 services, 13 migrations, routes, middleware, policies -- read directly from `/var/www/html/spendifiai/`
 - Grep verification: Only `User` model has `HasFactory` trait -- all other 17 models confirmed missing via `grep -r HasFactory app/Models/`
 - [Laravel 12.x Testing Docs](https://laravel.com/docs/12.x/testing) - Testing framework setup
 - [Laravel 12.x Mocking Docs](https://laravel.com/docs/12.x/mocking) - Http::fake, Mail::fake, etc.

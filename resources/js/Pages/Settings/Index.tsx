@@ -12,10 +12,10 @@ import {
   Lock,
   Smartphone,
 } from 'lucide-react';
-import ConfirmDialog from '@/Components/SpendWise/ConfirmDialog';
-import Badge from '@/Components/SpendWise/Badge';
+import ConfirmDialog from '@/Components/SpendifiAI/ConfirmDialog';
+import Badge from '@/Components/SpendifiAI/Badge';
 import { useApi, useApiPost } from '@/hooks/useApi';
-import type { UserFinancialProfile, UserFinancialProfileResponse } from '@/types/spendwise';
+import type { UserFinancialProfile, UserFinancialProfileResponse } from '@/types/spendifiai';
 import axios from 'axios';
 
 function SuccessToast({ message }: { message: string }) {

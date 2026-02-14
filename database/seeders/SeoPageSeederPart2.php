@@ -103,10 +103,10 @@ class SeoPageSeederPart2 extends Seeder
 
 <h2>Step-by-Step: Setting Up Automatic Tracking</h2>
 <h3>Step 1: Connect Your Bank Accounts</h3>
-<p>The fastest path to automated tracking is linking your bank directly. LedgerIQ uses Plaid to establish a read-only, encrypted connection to over 12,000 financial institutions. The process takes about 30 seconds per account. You select your bank, log in with your credentials on your bank's own secure page, and authorize read access.</p>
+<p>The fastest path to automated tracking is linking your bank directly. SpendifiAI uses Plaid to establish a read-only, encrypted connection to over 12,000 financial institutions. The process takes about 30 seconds per account. You select your bank, log in with your credentials on your bank's own secure page, and authorize read access.</p>
 
 <h3>Step 2: Upload Historical Statements</h3>
-<p>If you want to track expenses from before you connected your bank, you can upload PDF or CSV bank statements. LedgerIQ's AI parses the statement, extracts every transaction, and categorizes each one. This gives you a complete picture of your spending history without waiting months for data to accumulate.</p>
+<p>If you want to track expenses from before you connected your bank, you can upload PDF or CSV bank statements. SpendifiAI's AI parses the statement, extracts every transaction, and categorizes each one. This gives you a complete picture of your spending history without waiting months for data to accumulate.</p>
 
 <h3>Step 3: Review AI Categorization</h3>
 <p>After your transactions are imported, the AI assigns categories with a confidence score. Transactions above 85% confidence are categorized automatically. Those between 40% and 85% are presented as quick multiple-choice questions. You can answer a batch of 20 questions in under a minute, and your answers improve future accuracy.</p>
@@ -148,7 +148,7 @@ HTML;
             'excerpt' => 'Stop tracking expenses manually. Learn how AI and bank sync can automatically categorize every transaction and give you a real-time view of your spending.',
             'content' => $content,
             'faq_items' => json_encode([
-                ['question' => 'Is automatic expense tracking safe?', 'answer' => 'Yes. Tools like LedgerIQ use Plaid for bank connections, which establishes a read-only encrypted link. Your bank credentials are never stored by the expense tracking app.'],
+                ['question' => 'Is automatic expense tracking safe?', 'answer' => 'Yes. Tools like SpendifiAI use Plaid for bank connections, which establishes a read-only encrypted link. Your bank credentials are never stored by the expense tracking app.'],
                 ['question' => 'How accurate is AI expense categorization?', 'answer' => 'Modern AI categorization achieves over 85% accuracy on the first pass. Transactions the AI is unsure about are flagged for quick review, and your corrections improve future accuracy.'],
                 ['question' => 'Can I track expenses from multiple bank accounts?', 'answer' => 'Yes. You can connect multiple checking, savings, and credit card accounts. You can also upload PDF or CSV statements for accounts that do not support direct bank connections.'],
                 ['question' => 'Does automatic tracking work for cash expenses?', 'answer' => 'Automatic tracking captures electronic transactions only. For cash expenses, you would need to manually add them or photograph receipts for import.'],
@@ -168,7 +168,7 @@ HTML;
 
 <h2>How the AI Categorization Process Works</h2>
 <h3>Data Input</h3>
-<p>The AI receives transaction data including the merchant descriptor, amount, date, and your account type (personal, business, or mixed). LedgerIQ pulls this data automatically through Plaid bank sync or from uploaded PDF and CSV bank statements.</p>
+<p>The AI receives transaction data including the merchant descriptor, amount, date, and your account type (personal, business, or mixed). SpendifiAI pulls this data automatically through Plaid bank sync or from uploaded PDF and CSV bank statements.</p>
 
 <h3>Analysis and Confidence Scoring</h3>
 <p>The AI model evaluates each transaction and assigns a category along with a confidence score from 0 to 1. This score reflects how certain the model is about its classification:</p>
@@ -206,20 +206,20 @@ HTML;
 <li>Vehicle expenses (mileage, fuel, maintenance)</li>
 <li>Home office expenses</li>
 </ul>
-<p>LedgerIQ maps these categories directly to IRS Schedule C lines, so your tax preparation is streamlined from the start.</p>
+<p>SpendifiAI maps these categories directly to IRS Schedule C lines, so your tax preparation is streamlined from the start.</p>
 
 <h2>Best Practices for AI Categorization</h2>
 <h3>1. Tag Your Accounts by Purpose</h3>
-<p>The single strongest signal for accurate AI categorization is knowing whether an account is personal, business, or mixed. When you connect a bank account in LedgerIQ, tag it with its primary purpose. This context helps the AI make better initial guesses.</p>
+<p>The single strongest signal for accurate AI categorization is knowing whether an account is personal, business, or mixed. When you connect a bank account in SpendifiAI, tag it with its primary purpose. This context helps the AI make better initial guesses.</p>
 
 <h3>2. Answer AI Questions Promptly</h3>
-<p>When the AI flags a transaction for review, answering quickly improves your reports and trains the model. LedgerIQ batches these questions so you can clear them in a few minutes.</p>
+<p>When the AI flags a transaction for review, answering quickly improves your reports and trains the model. SpendifiAI batches these questions so you can clear them in a few minutes.</p>
 
 <h3>3. Review Monthly Summaries</h3>
 <p>Even high-confidence categorization is not perfect 100% of the time. A monthly review of your spending breakdown helps you catch any miscategorized transactions before they affect reports or tax filings.</p>
 
 <h3>4. Use the Chat Feature for Complex Transactions</h3>
-<p>Some transactions are genuinely ambiguous. A charge at a hotel could be business travel or a personal vacation. LedgerIQ's AI chat feature lets you have a brief conversation to explain the context, resulting in the correct classification.</p>
+<p>Some transactions are genuinely ambiguous. A charge at a hotel could be business travel or a personal vacation. SpendifiAI's AI chat feature lets you have a brief conversation to explain the context, resulting in the correct classification.</p>
 
 <blockquote><strong>Tip:</strong> For mixed-use expenses like a phone bill that covers both personal and business use, categorize it under the primary purpose and note the split percentage for tax time.</blockquote>
 
@@ -247,7 +247,7 @@ HTML;
                 ['question' => 'How does AI categorize expenses differently from rule-based systems?', 'answer' => 'Rule-based systems use simple keyword matching (e.g., "Starbucks" = Coffee). AI models understand context, considering account type, amount, spending patterns, and merchant descriptor variations to make more nuanced and accurate categorizations.'],
                 ['question' => 'What happens when the AI categorizes a transaction incorrectly?', 'answer' => 'You can correct the category with a single click. The correction is applied immediately to your reports and helps the AI learn your preferences for future similar transactions.'],
                 ['question' => 'Can AI categorization handle transactions in different currencies?', 'answer' => 'Yes. The AI focuses on the merchant name and transaction context rather than the currency. Multi-currency transactions are categorized the same way as domestic ones.'],
-                ['question' => 'Is AI categorization accurate enough for tax filing?', 'answer' => 'AI categorization provides an excellent starting point for tax preparation. With regular review and correction of flagged transactions, the resulting categories are reliable for tax filing. LedgerIQ maps categories to IRS Schedule C lines for easy export.'],
+                ['question' => 'Is AI categorization accurate enough for tax filing?', 'answer' => 'AI categorization provides an excellent starting point for tax preparation. With regular review and correction of flagged transactions, the resulting categories are reliable for tax filing. SpendifiAI maps categories to IRS Schedule C lines for easy export.'],
             ]),
             'is_published' => true,
             'published_at' => now(),
@@ -264,7 +264,7 @@ HTML;
 
 <h2>How to Find All Your Subscriptions</h2>
 <h3>Method 1: Automated Detection</h3>
-<p>The most reliable way to find every subscription is to let software scan your transaction history. LedgerIQ's subscription detection feature analyzes your bank transactions to identify recurring charges by pattern: same merchant, similar amount, regular intervals. It detects weekly, monthly, quarterly, and annual billing cycles automatically.</p>
+<p>The most reliable way to find every subscription is to let software scan your transaction history. SpendifiAI's subscription detection feature analyzes your bank transactions to identify recurring charges by pattern: same merchant, similar amount, regular intervals. It detects weekly, monthly, quarterly, and annual billing cycles automatically.</p>
 
 <h3>Method 2: Manual Bank Statement Review</h3>
 <p>If you prefer a manual approach, download the last three months of statements from every bank account and credit card. Search for charges that repeat. Pay special attention to small charges under $15, as these are the most commonly overlooked.</p>
@@ -281,8 +281,8 @@ HTML;
 <li><strong>Would I subscribe again today?</strong> If the answer is no, cancel it.</li>
 </ul>
 
-<h3>LedgerIQ's Stopped Billing Detection</h3>
-<p>LedgerIQ goes beyond simple listing by detecting subscriptions that appear to have stopped billing. The system uses frequency-based analysis: if a monthly subscription has not charged in over 60 days, or a weekly service has been silent for 21 days, it flags the subscription as potentially stopped. This helps you identify services where your payment method may have expired, preventing unexpected reactivation.</p>
+<h3>SpendifiAI's Stopped Billing Detection</h3>
+<p>SpendifiAI goes beyond simple listing by detecting subscriptions that appear to have stopped billing. The system uses frequency-based analysis: if a monthly subscription has not charged in over 60 days, or a weekly service has been silent for 21 days, it flags the subscription as potentially stopped. This helps you identify services where your payment method may have expired, preventing unexpected reactivation.</p>
 
 <h2>How to Cancel Subscriptions Effectively</h2>
 <h3>Step 1: Check for Cancellation Fees</h3>
@@ -300,7 +300,7 @@ HTML;
 <blockquote><strong>Tip:</strong> Set a calendar reminder for two days after the next billing date to verify the charge did not go through. This catches services that did not process your cancellation correctly.</blockquote>
 
 <h2>Tracking Your Savings</h2>
-<p>After canceling unused subscriptions, track how much you are saving. LedgerIQ's savings tracking feature lets you record each cancellation with its monthly amount and projects your annual savings. Seeing the cumulative impact is motivating and helps you stay disciplined about new subscription sign-ups.</p>
+<p>After canceling unused subscriptions, track how much you are saving. SpendifiAI's savings tracking feature lets you record each cancellation with its monthly amount and projects your annual savings. Seeing the cumulative impact is motivating and helps you stay disciplined about new subscription sign-ups.</p>
 
 <h2>Preventing Future Subscription Creep</h2>
 <ul>
@@ -325,7 +325,7 @@ HTML;
             'content' => $content,
             'faq_items' => json_encode([
                 ['question' => 'How many unused subscriptions does the average person have?', 'answer' => 'Research suggests the average person has 3-5 subscriptions they have forgotten about or no longer actively use, costing $50-$150 per month combined.'],
-                ['question' => 'Can a subscription tracker find annual charges too?', 'answer' => 'Yes. LedgerIQ detects weekly, monthly, quarterly, and annual billing cycles by analyzing transaction patterns over time. Annual charges are the easiest to forget, so this detection is especially valuable.'],
+                ['question' => 'Can a subscription tracker find annual charges too?', 'answer' => 'Yes. SpendifiAI detects weekly, monthly, quarterly, and annual billing cycles by analyzing transaction patterns over time. Annual charges are the easiest to forget, so this detection is especially valuable.'],
                 ['question' => 'What if I cancel a subscription but keep getting charged?', 'answer' => 'Save your cancellation confirmation and dispute the charge with your credit card company. Most banks will reverse unauthorized recurring charges within 1-2 billing cycles.'],
                 ['question' => 'Should I cancel all my subscriptions?', 'answer' => 'No. The goal is to cancel subscriptions you do not use or that do not provide enough value. Keep the ones you actively use and enjoy, but review them quarterly to make sure that remains true.'],
                 ['question' => 'Is it better to cancel or pause a subscription?', 'answer' => 'If a service offers a pause option, that can be useful for seasonal services. However, paused accounts sometimes reactivate automatically, so set a reminder to check.'],
@@ -351,7 +351,7 @@ HTML;
 
 <h2>Supported File Formats</h2>
 <h3>PDF Statements</h3>
-<p>PDF is the most common format for bank statements. When you download a statement from your bank's website, it typically comes as a PDF. LedgerIQ uses AI-powered parsing to extract transaction data from PDF statements. The AI reads the document structure, identifies transaction tables, and extracts dates, descriptions, and amounts.</p>
+<p>PDF is the most common format for bank statements. When you download a statement from your bank's website, it typically comes as a PDF. SpendifiAI uses AI-powered parsing to extract transaction data from PDF statements. The AI reads the document structure, identifies transaction tables, and extracts dates, descriptions, and amounts.</p>
 
 <h3>CSV Files</h3>
 <p>Many banks also offer CSV (comma-separated values) exports. CSV files are structured data and are generally easier to parse. If your bank offers both formats, CSV may give slightly more reliable results since there is no need to interpret visual layout.</p>
@@ -360,8 +360,8 @@ HTML;
 <h3>Step 1: Download Your Statement</h3>
 <p>Log into your bank's website and navigate to the statements section. Download the statement for the period you want to track. For PDF statements, make sure the file is a real PDF with selectable text, not a scanned image.</p>
 
-<h3>Step 2: Upload to LedgerIQ</h3>
-<p>Navigate to the Connect page and select the statement upload option. Drag and drop your file or click to browse. LedgerIQ accepts PDF files up to 10MB and CSV files up to 5MB. You can upload multiple statements in sequence.</p>
+<h3>Step 2: Upload to SpendifiAI</h3>
+<p>Navigate to the Connect page and select the statement upload option. Drag and drop your file or click to browse. SpendifiAI accepts PDF files up to 10MB and CSV files up to 5MB. You can upload multiple statements in sequence.</p>
 
 <h3>Step 3: Review Parsed Transactions</h3>
 <p>After upload, the AI parses your statement and presents the extracted transactions for review. Check that the dates, descriptions, and amounts look correct. The AI handles most statement formats well, but unusual layouts may occasionally need manual adjustment.</p>
@@ -390,7 +390,7 @@ HTML;
 <p>This usually happens with statements that use unusual number formatting. Review the parsed amounts before importing, and correct any that look wrong.</p>
 
 <h2>Combining Upload and Bank Sync</h2>
-<p>The most comprehensive approach is to use both methods. Connect your active accounts through Plaid for ongoing automatic tracking, and upload historical statements or statements from accounts that do not support direct connections. LedgerIQ merges both data sources into a single unified view of your finances.</p>
+<p>The most comprehensive approach is to use both methods. Connect your active accounts through Plaid for ongoing automatic tracking, and upload historical statements or statements from accounts that do not support direct connections. SpendifiAI merges both data sources into a single unified view of your finances.</p>
 HTML;
 
         return [
@@ -403,7 +403,7 @@ HTML;
             'excerpt' => 'Cannot connect your bank directly? Learn how to upload PDF and CSV bank statements to track expenses, with AI-powered parsing that extracts every transaction.',
             'content' => $content,
             'faq_items' => json_encode([
-                ['question' => 'What bank statement formats are supported?', 'answer' => 'LedgerIQ supports PDF and CSV bank statement uploads. PDF statements are parsed using AI, while CSV files are processed directly as structured data. Both formats result in fully categorized transactions.'],
+                ['question' => 'What bank statement formats are supported?', 'answer' => 'SpendifiAI supports PDF and CSV bank statement uploads. PDF statements are parsed using AI, while CSV files are processed directly as structured data. Both formats result in fully categorized transactions.'],
                 ['question' => 'Can I upload credit card statements too?', 'answer' => 'Yes. Credit card statements in PDF or CSV format can be uploaded and parsed the same way as bank statements. The AI categorizes credit card transactions using the same system.'],
                 ['question' => 'How accurate is PDF statement parsing?', 'answer' => 'AI-powered PDF parsing is highly accurate for standard bank statement formats. It correctly extracts dates, descriptions, and amounts in the vast majority of cases. We recommend reviewing the parsed transactions before importing.'],
                 ['question' => 'Will uploaded transactions duplicate my bank connection data?', 'answer' => 'If you upload a statement covering a period already covered by your bank connection, there may be duplicate transactions. Review imported transactions and remove any duplicates.'],
@@ -436,29 +436,29 @@ HTML;
 
 <h2>Step-by-Step: Connecting Your Bank</h2>
 <h3>Step 1: Initiate the Connection</h3>
-<p>In LedgerIQ, navigate to the Connect page and click "Link Bank Account." This opens the Plaid Link interface, a secure widget that runs in your browser.</p>
+<p>In SpendifiAI, navigate to the Connect page and click "Link Bank Account." This opens the Plaid Link interface, a secure widget that runs in your browser.</p>
 
 <h3>Step 2: Find Your Bank</h3>
 <p>Search for your bank by name. Plaid supports over 12,000 institutions including all major banks, credit unions, and online banks. Select your bank from the list.</p>
 
 <h3>Step 3: Authenticate</h3>
-<p>Enter your bank credentials on Plaid's secure page. If your bank requires multi-factor authentication, you will complete that step here as well. Remember, LedgerIQ never sees these credentials.</p>
+<p>Enter your bank credentials on Plaid's secure page. If your bank requires multi-factor authentication, you will complete that step here as well. Remember, SpendifiAI never sees these credentials.</p>
 
 <h3>Step 4: Select Accounts</h3>
 <p>Choose which accounts you want to connect. You can select checking, savings, credit card, and investment accounts. You do not have to connect all accounts. Select only the ones you want to track.</p>
 
 <h3>Step 5: Confirm and Sync</h3>
-<p>After authorization, Plaid establishes the connection and begins syncing your recent transactions. Initial sync typically takes 30-60 seconds. LedgerIQ then categorizes your transactions using AI.</p>
+<p>After authorization, Plaid establishes the connection and begins syncing your recent transactions. Initial sync typically takes 30-60 seconds. SpendifiAI then categorizes your transactions using AI.</p>
 
 <h2>What Data Is Shared?</h2>
-<p>Through the Plaid connection, LedgerIQ receives:</p>
+<p>Through the Plaid connection, SpendifiAI receives:</p>
 <ul>
 <li>Account names and types (checking, savings, credit)</li>
 <li>Account balances (current and available)</li>
 <li>Transaction history (date, merchant, amount, category)</li>
 <li>Institution name</li>
 </ul>
-<p>LedgerIQ does NOT receive:</p>
+<p>SpendifiAI does NOT receive:</p>
 <ul>
 <li>Your bank login credentials</li>
 <li>Your Social Security number</li>
@@ -468,10 +468,10 @@ HTML;
 
 <h2>Managing Your Connection</h2>
 <h3>Reconnecting</h3>
-<p>Occasionally, bank connections need to be refreshed. This happens when your bank changes its security protocols or when your password changes. LedgerIQ will notify you if a reconnection is needed, and the process takes less than a minute.</p>
+<p>Occasionally, bank connections need to be refreshed. This happens when your bank changes its security protocols or when your password changes. SpendifiAI will notify you if a reconnection is needed, and the process takes less than a minute.</p>
 
 <h3>Disconnecting</h3>
-<p>You can disconnect any bank account at any time from LedgerIQ's Connect page. Disconnecting stops all data syncing immediately. You can also revoke access directly through Plaid's portal or your bank's connected apps settings.</p>
+<p>You can disconnect any bank account at any time from SpendifiAI's Connect page. Disconnecting stops all data syncing immediately. You can also revoke access directly through Plaid's portal or your bank's connected apps settings.</p>
 
 <blockquote><strong>Tip:</strong> After connecting your bank, tag each account with its purpose (personal, business, or mixed). This significantly improves AI categorization accuracy for all future transactions.</blockquote>
 
@@ -479,14 +479,14 @@ HTML;
 <h3>What if Plaid is breached?</h3>
 <p>Plaid's multi-layered security makes a breach extremely unlikely, but even in that scenario, your bank credentials are not stored in a retrievable format. The access tokens are institution-specific and can be revoked instantly.</p>
 
-<h3>Can I use LedgerIQ without Plaid?</h3>
-<p>Yes. LedgerIQ supports manual bank statement uploads in PDF and CSV format as an alternative to direct bank connections. You can also use a combination of both methods.</p>
+<h3>Can I use SpendifiAI without Plaid?</h3>
+<p>Yes. SpendifiAI supports manual bank statement uploads in PDF and CSV format as an alternative to direct bank connections. You can also use a combination of both methods.</p>
 
 <h3>Does Plaid sell my data?</h3>
-<p>Plaid's data practices are governed by their privacy policy and the permissions you grant. LedgerIQ only uses your transaction data for the expense tracking features you see in the app. Review Plaid's privacy policy for their specific data handling practices.</p>
+<p>Plaid's data practices are governed by their privacy policy and the permissions you grant. SpendifiAI only uses your transaction data for the expense tracking features you see in the app. Review Plaid's privacy policy for their specific data handling practices.</p>
 
 <h2>The Bottom Line</h2>
-<p>Connecting your bank through Plaid is one of the safest ways to share financial data with an application. Your credentials stay with Plaid, the connection is read-only, and you can disconnect at any time. Combined with LedgerIQ's own encryption practices, your financial data is protected at every step.</p>
+<p>Connecting your bank through Plaid is one of the safest ways to share financial data with an application. Your credentials stay with Plaid, the connection is read-only, and you can disconnect at any time. Combined with SpendifiAI's own encryption practices, your financial data is protected at every step.</p>
 HTML;
 
         return [
@@ -500,10 +500,10 @@ HTML;
             'content' => $content,
             'faq_items' => json_encode([
                 ['question' => 'Is connecting my bank through Plaid safe?', 'answer' => 'Yes. Plaid uses AES-256 encryption, maintains SOC 2 Type II certification, and never shares your bank credentials with the connected app. The connection is read-only, so no one can move money or make changes to your accounts.'],
-                ['question' => 'Does the app store my bank password?', 'answer' => 'No. When you connect through Plaid, you enter your credentials on Plaid\'s secure page. LedgerIQ never sees, receives, or stores your bank login information.'],
-                ['question' => 'Can I disconnect my bank at any time?', 'answer' => 'Yes. You can disconnect from within LedgerIQ, through Plaid\'s portal, or through your bank\'s connected apps settings. Disconnecting stops all data syncing immediately.'],
-                ['question' => 'What if my bank is not supported by Plaid?', 'answer' => 'If your bank does not support Plaid, you can upload PDF or CSV bank statements directly to LedgerIQ. The AI will parse and categorize your transactions the same way.'],
-                ['question' => 'How often does Plaid sync my transactions?', 'answer' => 'Plaid syncs transactions automatically, typically within a few hours of transactions posting to your account. LedgerIQ also allows manual sync if you want to pull the latest data immediately.'],
+                ['question' => 'Does the app store my bank password?', 'answer' => 'No. When you connect through Plaid, you enter your credentials on Plaid\'s secure page. SpendifiAI never sees, receives, or stores your bank login information.'],
+                ['question' => 'Can I disconnect my bank at any time?', 'answer' => 'Yes. You can disconnect from within SpendifiAI, through Plaid\'s portal, or through your bank\'s connected apps settings. Disconnecting stops all data syncing immediately.'],
+                ['question' => 'What if my bank is not supported by Plaid?', 'answer' => 'If your bank does not support Plaid, you can upload PDF or CSV bank statements directly to SpendifiAI. The AI will parse and categorize your transactions the same way.'],
+                ['question' => 'How often does Plaid sync my transactions?', 'answer' => 'Plaid syncs transactions automatically, typically within a few hours of transactions posting to your account. SpendifiAI also allows manual sync if you want to pull the latest data immediately.'],
             ]),
             'is_published' => true,
             'published_at' => now(),
@@ -554,15 +554,15 @@ HTML;
 
 <h2>Organizing Expenses for Schedule C</h2>
 <h3>Track Throughout the Year</h3>
-<p>The single most important thing you can do for tax season is track expenses as they happen. Waiting until April to sort through a year of bank statements is stressful and leads to missed deductions. Use an automated tracker like LedgerIQ that categorizes transactions in real time and maps them to Schedule C lines.</p>
+<p>The single most important thing you can do for tax season is track expenses as they happen. Waiting until April to sort through a year of bank statements is stressful and leads to missed deductions. Use an automated tracker like SpendifiAI that categorizes transactions in real time and maps them to Schedule C lines.</p>
 
 <h3>Separate Business and Personal</h3>
-<p>Use a dedicated business bank account and credit card. This creates a clean separation that makes tax preparation straightforward and provides clear documentation if you are ever audited. LedgerIQ's account purpose tagging (personal, business, or mixed) helps the AI correctly classify transactions even if you use a single account for both.</p>
+<p>Use a dedicated business bank account and credit card. This creates a clean separation that makes tax preparation straightforward and provides clear documentation if you are ever audited. SpendifiAI's account purpose tagging (personal, business, or mixed) helps the AI correctly classify transactions even if you use a single account for both.</p>
 
 <h3>Save Documentation</h3>
-<p>For every deduction, you need documentation: receipts, invoices, contracts, or bank statements showing the charge. Digital records are accepted by the IRS. LedgerIQ stores your transaction history with merchant details, dates, and amounts, providing a solid documentation trail.</p>
+<p>For every deduction, you need documentation: receipts, invoices, contracts, or bank statements showing the charge. Digital records are accepted by the IRS. SpendifiAI stores your transaction history with merchant details, dates, and amounts, providing a solid documentation trail.</p>
 
-<blockquote><strong>Tip:</strong> Export your categorized transactions to Excel, PDF, or CSV at the end of each quarter. This makes estimated tax payments more accurate and reduces year-end stress. LedgerIQ's tax export feature maps your expenses directly to Schedule C lines.</blockquote>
+<blockquote><strong>Tip:</strong> Export your categorized transactions to Excel, PDF, or CSV at the end of each quarter. This makes estimated tax payments more accurate and reduces year-end stress. SpendifiAI's tax export feature maps your expenses directly to Schedule C lines.</blockquote>
 
 <h2>Common Mistakes to Avoid</h2>
 <ul>
@@ -573,7 +573,7 @@ HTML;
 </ul>
 
 <h2>Getting Help</h2>
-<p>While this guide covers the major categories, tax law is complex and changes frequently. Consider working with a tax professional, especially in your first year of self-employment. Having well-organized, categorized expenses makes their job easier and reduces their fees. LedgerIQ can export your data directly to your accountant in their preferred format.</p>
+<p>While this guide covers the major categories, tax law is complex and changes frequently. Consider working with a tax professional, especially in your first year of self-employment. Having well-organized, categorized expenses makes their job easier and reduces their fees. SpendifiAI can export your data directly to your accountant in their preferred format.</p>
 HTML;
 
         return [
@@ -644,10 +644,10 @@ HTML;
 <li><strong>Measure your space:</strong> Record the square footage of your office and your total home. Take photos of your workspace for your records.</li>
 <li><strong>Keep utility bills:</strong> Save 12 months of electricity, gas, water, internet, and phone bills. Track the business-use percentage applied to each.</li>
 <li><strong>Track improvements separately:</strong> If you make improvements to your office (new flooring, built-in shelves), track these as direct expenses for full deduction.</li>
-<li><strong>Use automated tracking:</strong> LedgerIQ can categorize your utility payments and housing costs automatically. Tag them as business expenses with your calculated percentage.</li>
+<li><strong>Use automated tracking:</strong> SpendifiAI can categorize your utility payments and housing costs automatically. Tag them as business expenses with your calculated percentage.</li>
 </ul>
 
-<blockquote><strong>Tip:</strong> If you use the regular method, track your home expenses monthly rather than trying to reconstruct them at tax time. LedgerIQ's AI categorization can automatically identify utility and housing payments as they come in.</blockquote>
+<blockquote><strong>Tip:</strong> If you use the regular method, track your home expenses monthly rather than trying to reconstruct them at tax time. SpendifiAI's AI categorization can automatically identify utility and housing payments as they come in.</blockquote>
 
 <h2>Common Mistakes</h2>
 <ul>
@@ -723,10 +723,10 @@ HTML;
 <p>The simplest thing you can do for expense tracking is separate your business and personal finances. Open a checking account and credit card for business use only. This makes categorization trivial and provides clean records for your accountant.</p>
 
 <h3>Step 2: Connect Your Accounts</h3>
-<p>Link your business bank account and credit card to LedgerIQ using Plaid. Tag these accounts as "business" so the AI knows to categorize every transaction as a business expense. Transactions from personal accounts are categorized separately.</p>
+<p>Link your business bank account and credit card to SpendifiAI using Plaid. Tag these accounts as "business" so the AI knows to categorize every transaction as a business expense. Transactions from personal accounts are categorized separately.</p>
 
 <h3>Step 3: Set Up Category Mapping</h3>
-<p>LedgerIQ maps expense categories to IRS Schedule C lines automatically. Review the default mappings to ensure they match your business type. For example, a graphic designer might want "Adobe Creative Cloud" mapped to "Office Expenses" rather than "Other Expenses."</p>
+<p>SpendifiAI maps expense categories to IRS Schedule C lines automatically. Review the default mappings to ensure they match your business type. For example, a graphic designer might want "Adobe Creative Cloud" mapped to "Office Expenses" rather than "Other Expenses."</p>
 
 <h3>Step 4: Handle Mixed-Use Expenses</h3>
 <p>Some expenses serve both personal and business purposes. Your phone bill, internet service, and vehicle expenses are common examples. Track the full amount and note the business-use percentage. A common approach is to use your phone's screen time data or call logs to estimate business use.</p>
@@ -747,19 +747,19 @@ HTML;
 <li>Check that subscription charges match expected amounts</li>
 </ul>
 
-<blockquote><strong>Tip:</strong> The best time to categorize expenses is when they happen. LedgerIQ's AI handles most categorization automatically, but answering flagged questions promptly keeps your records clean and reduces month-end work.</blockquote>
+<blockquote><strong>Tip:</strong> The best time to categorize expenses is when they happen. SpendifiAI's AI handles most categorization automatically, but answering flagged questions promptly keeps your records clean and reduces month-end work.</blockquote>
 
 <h2>Quarterly Tax Estimation</h2>
 <p>Freelancers must pay estimated taxes quarterly. Accurate expense tracking makes this calculation straightforward:</p>
 <ul>
-<li>Export your quarterly income and expenses from LedgerIQ</li>
+<li>Export your quarterly income and expenses from SpendifiAI</li>
 <li>Subtract deductible expenses from gross income</li>
 <li>Apply your estimated tax rate (typically 25-35% for self-employment tax plus income tax)</li>
 <li>Pay the estimated amount by the quarterly deadline</li>
 </ul>
 
 <h2>Tax Season Preparation</h2>
-<p>When tax season arrives, well-organized freelancers save hours of preparation time. With LedgerIQ, you can export your full year of categorized expenses to Excel, PDF, or CSV, already mapped to Schedule C lines. Send this export directly to your accountant or use it to file your own return.</p>
+<p>When tax season arrives, well-organized freelancers save hours of preparation time. With SpendifiAI, you can export your full year of categorized expenses to Excel, PDF, or CSV, already mapped to Schedule C lines. Send this export directly to your accountant or use it to file your own return.</p>
 
 <h2>Common Freelancer Expense Tracking Mistakes</h2>
 <ul>
@@ -812,7 +812,7 @@ HTML;
 <h3>Choose Your Tracking Method</h3>
 <p>Modern small businesses have several options for expense tracking:</p>
 <ul>
-<li><strong>AI-powered apps:</strong> Tools like LedgerIQ connect to your business bank account and automatically categorize expenses using AI. This is the lowest-effort option with the highest accuracy.</li>
+<li><strong>AI-powered apps:</strong> Tools like SpendifiAI connect to your business bank account and automatically categorize expenses using AI. This is the lowest-effort option with the highest accuracy.</li>
 <li><strong>Accounting software:</strong> QuickBooks, FreshBooks, and Xero offer expense tracking as part of full accounting suites. Best for businesses that need invoicing and payroll alongside expense tracking.</li>
 <li><strong>Spreadsheets:</strong> Manual tracking in Excel or Google Sheets works for very small operations but becomes unsustainable as transaction volume grows.</li>
 </ul>
@@ -825,7 +825,7 @@ HTML;
 <p>The longer you wait to record an expense, the more likely you are to forget details or lose the receipt. With automated bank syncing, most expenses are captured without any action on your part. For cash purchases, snap a photo of the receipt immediately.</p>
 
 <h3>Categorize as You Go</h3>
-<p>Do not let uncategorized transactions pile up. LedgerIQ's AI categorizes most transactions automatically, but some require your input. Answer categorization questions weekly to keep your records current.</p>
+<p>Do not let uncategorized transactions pile up. SpendifiAI's AI categorizes most transactions automatically, but some require your input. Answer categorization questions weekly to keep your records current.</p>
 
 <h3>Review Monthly</h3>
 <p>Set aside 30 minutes each month to review your expense summary. Look for unusual charges, verify that categories are correct, and compare spending to your budget. This monthly review catches errors early and keeps you aware of spending trends.</p>
@@ -892,7 +892,7 @@ HTML;
             'content' => $content,
             'faq_items' => json_encode([
                 ['question' => 'How long should I keep business expense records?', 'answer' => 'The IRS requires you to keep records for at least 3 years from the date you filed the return. However, 7 years is recommended, as the IRS can audit up to 6 years back in cases of substantial underreporting.'],
-                ['question' => 'What is the easiest way to track small business expenses?', 'answer' => 'Connect your business bank account to an AI-powered expense tracker like LedgerIQ. Transactions are imported and categorized automatically, requiring minimal manual effort while maintaining accurate records.'],
+                ['question' => 'What is the easiest way to track small business expenses?', 'answer' => 'Connect your business bank account to an AI-powered expense tracker like SpendifiAI. Transactions are imported and categorized automatically, requiring minimal manual effort while maintaining accurate records.'],
                 ['question' => 'Do I need an accountant if I use expense tracking software?', 'answer' => 'Expense tracking software organizes your data, but a tax professional can identify strategies and deductions you might miss. Many small businesses use tracking software year-round and consult an accountant at tax time.'],
                 ['question' => 'Can I deduct expenses paid with a personal credit card?', 'answer' => 'Yes, business expenses are deductible regardless of how they are paid. However, mixing personal and business transactions makes tracking harder. A dedicated business account is strongly recommended.'],
             ]),
@@ -920,26 +920,26 @@ HTML;
 
 <h2>Automating Receipt Capture</h2>
 <h3>Method 1: Bank Transaction Records</h3>
-<p>The foundation of automated receipt tracking is connecting your bank accounts. When you link your accounts through Plaid in LedgerIQ, every transaction is recorded with the date, merchant, and amount. For most expenses under $75, this bank record serves as sufficient documentation.</p>
+<p>The foundation of automated receipt tracking is connecting your bank accounts. When you link your accounts through Plaid in SpendifiAI, every transaction is recorded with the date, merchant, and amount. For most expenses under $75, this bank record serves as sufficient documentation.</p>
 
 <h3>Method 2: Email Receipt Parsing</h3>
-<p>Many purchases generate email receipts automatically. LedgerIQ can connect to your email account and scan for receipt emails. The AI extracts transaction details from these emails and matches them to your bank transactions, providing an additional layer of documentation.</p>
+<p>Many purchases generate email receipts automatically. SpendifiAI can connect to your email account and scan for receipt emails. The AI extracts transaction details from these emails and matches them to your bank transactions, providing an additional layer of documentation.</p>
 
 <h3>Method 3: Statement Upload for Historical Records</h3>
-<p>For historical transactions or accounts not connected to your bank, upload PDF or CSV statements. LedgerIQ's AI parses the statement and imports every transaction with full categorization. This fills gaps in your documentation for past expenses.</p>
+<p>For historical transactions or accounts not connected to your bank, upload PDF or CSV statements. SpendifiAI's AI parses the statement and imports every transaction with full categorization. This fills gaps in your documentation for past expenses.</p>
 
 <h2>Building Your Automated System</h2>
 <h3>Step 1: Connect All Business Accounts</h3>
 <p>Link every bank account and credit card you use for business through Plaid. This ensures every electronic transaction is captured automatically with no manual entry required.</p>
 
 <h3>Step 2: Set Up Email Receipt Matching</h3>
-<p>Connect your email account so LedgerIQ can identify and parse receipt emails. This adds itemized details to your transaction records — information that is not always available from bank data alone.</p>
+<p>Connect your email account so SpendifiAI can identify and parse receipt emails. This adds itemized details to your transaction records — information that is not always available from bank data alone.</p>
 
 <h3>Step 3: Create a Cash Expense Routine</h3>
 <p>Cash purchases are the one area where automation cannot fully replace manual effort. For cash business expenses, photograph the receipt immediately using your phone. Set a weekly reminder to add any cash expenses to your tracking system.</p>
 
 <h3>Step 4: Tag Business Purpose</h3>
-<p>For meals, travel, and entertainment, add a brief note about the business purpose. This takes seconds per transaction but is essential for audit protection. LedgerIQ's AI can prompt you for this information on relevant expense categories.</p>
+<p>For meals, travel, and entertainment, add a brief note about the business purpose. This takes seconds per transaction but is essential for audit protection. SpendifiAI's AI can prompt you for this information on relevant expense categories.</p>
 
 <h2>Organizing Your Digital Records</h2>
 <ul>
@@ -1003,7 +1003,7 @@ HTML;
 <h2>Step 1: Audit Your Subscriptions</h2>
 <p>Before you can reduce costs, you need a complete picture. There are several ways to find every subscription:</p>
 <ul>
-<li><strong>Automated detection:</strong> LedgerIQ scans your bank transactions and identifies recurring charges automatically. It detects weekly, monthly, quarterly, and annual billing cycles.</li>
+<li><strong>Automated detection:</strong> SpendifiAI scans your bank transactions and identifies recurring charges automatically. It detects weekly, monthly, quarterly, and annual billing cycles.</li>
 <li><strong>Bank statement review:</strong> Download three months of statements and highlight every recurring charge.</li>
 <li><strong>Email search:</strong> Search your inbox for "subscription," "recurring," and "billing" to find services you may have forgotten.</li>
 </ul>
@@ -1012,7 +1012,7 @@ HTML;
 <p>For each subscription, ask yourself three questions:</p>
 <ul>
 <li><strong>How often do I use this?</strong> Track your actual usage. If you subscribe to three streaming services but only watch one regularly, the other two are candidates for cancellation.</li>
-<li><strong>Is there a cheaper alternative?</strong> Many premium services have free tiers or lower-cost competitors. LedgerIQ's AI can suggest alternatives for common subscription services.</li>
+<li><strong>Is there a cheaper alternative?</strong> Many premium services have free tiers or lower-cost competitors. SpendifiAI's AI can suggest alternatives for common subscription services.</li>
 <li><strong>Can I share this subscription?</strong> Family plans for streaming, music, and cloud storage often cost less per person than individual subscriptions.</li>
 </ul>
 
@@ -1040,13 +1040,13 @@ HTML;
 <li><strong>Review quarterly:</strong> Schedule a 15-minute quarterly review of all active subscriptions.</li>
 </ul>
 
-<blockquote><strong>Tip:</strong> When you cancel a subscription, transfer the same amount to a savings account. You will not miss the money, and it builds your savings automatically. LedgerIQ tracks these savings so you can see the cumulative impact.</blockquote>
+<blockquote><strong>Tip:</strong> When you cancel a subscription, transfer the same amount to a savings account. You will not miss the money, and it builds your savings automatically. SpendifiAI tracks these savings so you can see the cumulative impact.</blockquote>
 
 <h2>How Much Can You Save?</h2>
 <p>Most people can reduce their subscription spending by 30-50% through a thorough audit. On a typical $219/month subscription bill, that is $65-$110 per month, or $780-$1,320 per year. Those savings can fund an emergency fund, pay down debt, or cover a vacation.</p>
 
 <h2>Tracking Your Progress</h2>
-<p>After making cuts, track your actual subscription spending month over month. LedgerIQ's subscription tracking feature shows you your total monthly subscription cost and highlights any new charges. If spending starts creeping up again, you will see it immediately.</p>
+<p>After making cuts, track your actual subscription spending month over month. SpendifiAI's subscription tracking feature shows you your total monthly subscription cost and highlights any new charges. If spending starts creeping up again, you will see it immediately.</p>
 HTML;
 
         return [
@@ -1091,7 +1091,7 @@ HTML;
 <li>Learning from your corrections to improve over time</li>
 <li>Flagging uncertain transactions for your quick review instead of guessing wrong</li>
 </ul>
-<p>LedgerIQ's AI categorization uses confidence thresholds to balance automation with accuracy. Transactions the AI is highly confident about are categorized instantly, while uncertain ones are queued for your input.</p>
+<p>SpendifiAI's AI categorization uses confidence thresholds to balance automation with accuracy. Transactions the AI is highly confident about are categorized instantly, while uncertain ones are queued for your input.</p>
 
 <h2>AI-Powered Savings Recommendations</h2>
 <p>Beyond categorization, AI can analyze your spending to find savings opportunities that go further than simple category limits:</p>
@@ -1110,17 +1110,17 @@ HTML;
 <p>Once connected, the AI processes your transaction history and categorizes every expense. Answer any flagged questions to improve accuracy. After this initial setup, new transactions are categorized automatically.</p>
 
 <h3>Step 3: Review AI-Generated Insights</h3>
-<p>Your dashboard shows spending breakdowns, trends, and AI recommendations. LedgerIQ presents a budget waterfall chart that visualizes how income flows through your expense categories, making it easy to see where your money goes.</p>
+<p>Your dashboard shows spending breakdowns, trends, and AI recommendations. SpendifiAI presents a budget waterfall chart that visualizes how income flows through your expense categories, making it easy to see where your money goes.</p>
 
 <h3>Step 4: Act on Recommendations</h3>
-<p>AI recommendations are only valuable if you act on them. When the system identifies an unused subscription or a spending category that is growing, take action. LedgerIQ lets you respond to savings recommendations with cancel, reduce, or keep decisions and tracks the projected impact.</p>
+<p>AI recommendations are only valuable if you act on them. When the system identifies an unused subscription or a spending category that is growing, take action. SpendifiAI lets you respond to savings recommendations with cancel, reduce, or keep decisions and tracks the projected impact.</p>
 
 <h2>Practical AI Budgeting Tips</h2>
 <ul>
 <li><strong>Trust the data over your intuition:</strong> Most people are surprised by how much they actually spend in certain categories. Let the AI-generated numbers guide your budget rather than your estimates.</li>
 <li><strong>Start with your biggest categories:</strong> Focus savings efforts on your top three spending categories first. A 10% reduction in a $500/month category saves more than eliminating a $10 subscription.</li>
 <li><strong>Review weekly at first:</strong> Until you are comfortable with AI-generated categories, review your transactions weekly. After a few weeks, shift to monthly reviews.</li>
-<li><strong>Use the chat feature for questions:</strong> If a transaction is ambiguous, use LedgerIQ's AI chat to discuss it rather than guessing the category.</li>
+<li><strong>Use the chat feature for questions:</strong> If a transaction is ambiguous, use SpendifiAI's AI chat to discuss it rather than guessing the category.</li>
 </ul>
 
 <blockquote><strong>Tip:</strong> AI budgeting works best with at least three months of transaction data. If you are just getting started, upload historical bank statements to give the AI more data to work with from day one.</blockquote>
@@ -1171,7 +1171,7 @@ HTML;
 
 <h2>How AI Makes Zero-Based Budgeting Easier</h2>
 <h3>Automatic Category Tracking</h3>
-<p>Instead of manually entering every purchase into a category, AI categorizes your transactions automatically. LedgerIQ assigns each transaction to a budget category the moment it syncs from your bank, so you always know how much of each allocation you have used.</p>
+<p>Instead of manually entering every purchase into a category, AI categorizes your transactions automatically. SpendifiAI assigns each transaction to a budget category the moment it syncs from your bank, so you always know how much of each allocation you have used.</p>
 
 <h3>Historical Spending Analysis</h3>
 <p>The hardest part of ZBB is setting realistic category amounts. AI analyzes your past three months of spending to suggest category allocations based on your actual habits. This gives you a realistic starting point rather than aspirational numbers.</p>
@@ -1219,7 +1219,7 @@ HTML;
 <p>Zero-based budgeting is especially effective for households because it forces alignment on spending priorities. Both partners participate in the allocation process, agree on category amounts, and share visibility into spending. AI-powered tracking means both partners can see real-time category balances without manual coordination.</p>
 
 <h2>Getting Started Today</h2>
-<p>Zero-based budgeting combined with AI tracking is one of the most effective financial management strategies available. Start by connecting your accounts to LedgerIQ, reviewing your AI-generated spending categories, and allocating your next month's income. The first month is a learning experience, and you will improve each month.</p>
+<p>Zero-based budgeting combined with AI tracking is one of the most effective financial management strategies available. Start by connecting your accounts to SpendifiAI, reviewing your AI-generated spending categories, and allocating your next month's income. The first month is a learning experience, and you will improve each month.</p>
 HTML;
 
         return [
@@ -1288,7 +1288,7 @@ HTML;
 <p>Start with your take-home pay. For a monthly income of $5,000 after taxes, your targets would be $2,500 for needs, $1,500 for wants, and $1,000 for savings and debt.</p>
 
 <h3>Step 2: Connect and Categorize</h3>
-<p>Connect your bank accounts to LedgerIQ. The AI automatically categorizes every transaction and can map each category into the needs, wants, or savings bucket. Your dashboard shows how your actual spending compares to the 50/30/20 targets.</p>
+<p>Connect your bank accounts to SpendifiAI. The AI automatically categorizes every transaction and can map each category into the needs, wants, or savings bucket. Your dashboard shows how your actual spending compares to the 50/30/20 targets.</p>
 
 <h3>Step 3: Identify Misallocations</h3>
 <p>Most people discover their needs exceed 50% or their wants crowd out savings. The AI spending analysis shows you exactly where you stand. Common issues include housing costs that exceed 30% of income on their own, or subscription spending that inflates the wants category beyond 30%.</p>
@@ -1311,7 +1311,7 @@ HTML;
 <ul>
 <li><strong>Automatic categorization:</strong> Every transaction is sorted into needs, wants, or savings without manual effort.</li>
 <li><strong>Real-time progress:</strong> Your dashboard shows the current percentage split so you can course-correct mid-month.</li>
-<li><strong>Subscription detection:</strong> LedgerIQ identifies recurring charges that may be pushing your wants category over 30%.</li>
+<li><strong>Subscription detection:</strong> SpendifiAI identifies recurring charges that may be pushing your wants category over 30%.</li>
 <li><strong>Savings recommendations:</strong> AI analyzes your spending and suggests specific cuts to help you reach the 20% savings target.</li>
 </ul>
 
@@ -1378,7 +1378,7 @@ HTML;
 
 <h2>How AI Helps You Build Your Emergency Fund Faster</h2>
 <h3>Finding Hidden Savings</h3>
-<p>AI-powered expense analysis reveals spending you may not realize is happening. LedgerIQ's savings recommendations scan your transaction history and identify specific areas where you can redirect money to savings:</p>
+<p>AI-powered expense analysis reveals spending you may not realize is happening. SpendifiAI's savings recommendations scan your transaction history and identify specific areas where you can redirect money to savings:</p>
 <ul>
 <li>Unused subscriptions you forgot about</li>
 <li>Categories where spending has gradually increased</li>
@@ -1387,26 +1387,26 @@ HTML;
 </ul>
 
 <h3>Projected Savings Tracking</h3>
-<p>When you act on a savings recommendation, such as canceling a $15/month subscription, LedgerIQ projects your annual savings and tracks it over time. Seeing that a few small changes save $500+ per year is motivating and helps you stay committed to your emergency fund goal.</p>
+<p>When you act on a savings recommendation, such as canceling a $15/month subscription, SpendifiAI projects your annual savings and tracks it over time. Seeing that a few small changes save $500+ per year is motivating and helps you stay committed to your emergency fund goal.</p>
 
 <h3>Personalized Action Plans</h3>
-<p>LedgerIQ generates a personalized savings plan based on your financial profile. If you set a target of $5,000 in emergency savings within 12 months, the AI calculates the monthly savings needed and suggests specific expense reductions to hit that target.</p>
+<p>SpendifiAI generates a personalized savings plan based on your financial profile. If you set a target of $5,000 in emergency savings within 12 months, the AI calculates the monthly savings needed and suggests specific expense reductions to hit that target.</p>
 
 <h2>Step-by-Step: Building Your Emergency Fund</h2>
 <h3>Step 1: Set Your Target</h3>
-<p>Calculate your monthly essential expenses. Multiply by your target number of months. Set this as your emergency fund goal in LedgerIQ's savings target feature.</p>
+<p>Calculate your monthly essential expenses. Multiply by your target number of months. Set this as your emergency fund goal in SpendifiAI's savings target feature.</p>
 
 <h3>Step 2: Automate a Base Amount</h3>
 <p>Set up an automatic transfer from checking to savings on each payday. Start with whatever amount you can manage, even $25 per paycheck. The key is consistency, not the amount.</p>
 
 <h3>Step 3: Add Savings from AI Recommendations</h3>
-<p>Review LedgerIQ's savings recommendations. For every subscription you cancel or expense you reduce, redirect that exact amount to your emergency fund. These incremental additions accelerate your progress significantly.</p>
+<p>Review SpendifiAI's savings recommendations. For every subscription you cancel or expense you reduce, redirect that exact amount to your emergency fund. These incremental additions accelerate your progress significantly.</p>
 
 <h3>Step 4: Deposit Windfalls</h3>
 <p>Tax refunds, bonuses, cash gifts, and side income should go directly to your emergency fund until it is fully funded. These lump-sum additions can cover months of regular savings in a single deposit.</p>
 
 <h3>Step 5: Track and Celebrate Milestones</h3>
-<p>Monitor your progress monthly. Celebrate milestones: the first $500, the first $1,000, each additional month of expenses saved. LedgerIQ's savings tracking chart shows your progress visually, which reinforces the saving habit.</p>
+<p>Monitor your progress monthly. Celebrate milestones: the first $500, the first $1,000, each additional month of expenses saved. SpendifiAI's savings tracking chart shows your progress visually, which reinforces the saving habit.</p>
 
 <blockquote><strong>Tip:</strong> Keep your emergency fund in a high-yield savings account, separate from your checking account. The separation makes it slightly harder to spend impulsively, and the higher interest rate helps your fund grow faster.</blockquote>
 
@@ -1461,7 +1461,7 @@ HTML;
 <li>Personal loans (6-36% APR)</li>
 <li>Medical bills (often 0% if on a payment plan)</li>
 </ul>
-<p>Connect all accounts with debt to LedgerIQ so you have a complete picture. The AI automatically tracks your debt payments and categorizes them correctly.</p>
+<p>Connect all accounts with debt to SpendifiAI so you have a complete picture. The AI automatically tracks your debt payments and categorizes them correctly.</p>
 
 <h2>The Debt Snowball Method</h2>
 <h3>How It Works</h3>
@@ -1502,10 +1502,10 @@ HTML;
 
 <h2>How AI Tracking Accelerates Debt Payoff</h2>
 <h3>Finding Extra Payment Money</h3>
-<p>LedgerIQ's AI savings recommendations identify areas where you can cut spending and redirect that money to debt payments. Canceling unused subscriptions, reducing dining out spending, or switching to cheaper service providers all free up money for extra debt payments.</p>
+<p>SpendifiAI's AI savings recommendations identify areas where you can cut spending and redirect that money to debt payments. Canceling unused subscriptions, reducing dining out spending, or switching to cheaper service providers all free up money for extra debt payments.</p>
 
 <h3>Tracking Progress</h3>
-<p>Seeing your debt decrease month over month is the best motivation to keep going. LedgerIQ tracks your payment history and projects your debt-free date based on current payment patterns. Accelerating payments even slightly can shave months or years off your timeline.</p>
+<p>Seeing your debt decrease month over month is the best motivation to keep going. SpendifiAI tracks your payment history and projects your debt-free date based on current payment patterns. Accelerating payments even slightly can shave months or years off your timeline.</p>
 
 <h3>Preventing New Debt</h3>
 <p>The biggest threat to a debt payoff plan is accumulating new debt while paying off old debt. AI-powered budget tracking helps you live within your means by alerting you when spending exceeds your plan.</p>
@@ -1561,7 +1561,7 @@ HTML;
 
 <h3>Hybrid (Recommended)</h3>
 <p>Both partners contribute a set percentage of income to a joint account for shared expenses. Each keeps the remainder in personal accounts for individual spending. This balances transparency with autonomy.</p>
-<p>Regardless of structure, connect all relevant accounts to LedgerIQ. Tag joint accounts and personal accounts so the AI categorizes transactions with the right context.</p>
+<p>Regardless of structure, connect all relevant accounts to SpendifiAI. Tag joint accounts and personal accounts so the AI categorizes transactions with the right context.</p>
 
 <h2>Setting Up Your Couples Budget</h2>
 <h3>Step 1: Full Financial Disclosure</h3>
@@ -1593,7 +1593,7 @@ HTML;
 <li>Celebrate wins (debt paid off, savings milestone reached)</li>
 </ul>
 
-<blockquote><strong>Tip:</strong> Use LedgerIQ's dashboard during your monthly meeting. The budget waterfall chart and spending breakdowns give both partners an objective view of where money went, removing the emotion from financial discussions.</blockquote>
+<blockquote><strong>Tip:</strong> Use SpendifiAI's dashboard during your monthly meeting. The budget waterfall chart and spending breakdowns give both partners an objective view of where money went, removing the emotion from financial discussions.</blockquote>
 
 <h2>Handling Different Money Personalities</h2>
 <h3>Saver + Spender</h3>
@@ -1616,7 +1616,7 @@ HTML;
 <li><strong>Transparency:</strong> Both partners should have access to all shared financial accounts and tracking tools.</li>
 <li><strong>No secret spending:</strong> Agree on a threshold above which purchases are discussed first. Common thresholds are $50-$200.</li>
 <li><strong>Regular check-ins:</strong> Monthly budget meetings build financial trust through consistent communication.</li>
-<li><strong>Shared visibility:</strong> Using a tool like LedgerIQ where both partners can see the same data eliminates information asymmetry.</li>
+<li><strong>Shared visibility:</strong> Using a tool like SpendifiAI where both partners can see the same data eliminates information asymmetry.</li>
 </ul>
 HTML;
 
@@ -1690,11 +1690,11 @@ HTML;
 <p>Textbooks can cost $1,000+ per semester at retail. Save by renting instead of buying, using library reserve copies, sharing with classmates, buying previous editions (confirm with professor), and checking for free online versions or open educational resources.</p>
 
 <h3>Track Small Spending</h3>
-<p>The coffee, snack, and impulse purchases that seem insignificant add up fast on a student budget. A $5 daily coffee habit costs $150/month. Tracking reveals these patterns. Connect your debit card to LedgerIQ and the AI categorizes every purchase automatically, so you see exactly where your money goes.</p>
+<p>The coffee, snack, and impulse purchases that seem insignificant add up fast on a student budget. A $5 daily coffee habit costs $150/month. Tracking reveals these patterns. Connect your debit card to SpendifiAI and the AI categorizes every purchase automatically, so you see exactly where your money goes.</p>
 
 <h2>Setting Up Automated Tracking</h2>
 <h3>Step 1: Connect Your Bank Account</h3>
-<p>Link your checking account and any credit card to LedgerIQ using Plaid. This takes less than a minute and ensures every transaction is captured.</p>
+<p>Link your checking account and any credit card to SpendifiAI using Plaid. This takes less than a minute and ensures every transaction is captured.</p>
 
 <h3>Step 2: Let AI Categorize</h3>
 <p>The AI automatically sorts your spending into categories. Review the categorization weekly (takes about 2 minutes) to answer any questions the AI has about unfamiliar transactions.</p>
@@ -1713,7 +1713,7 @@ HTML;
 <li><strong>Ignoring credit card interest:</strong> If you use a credit card, pay the full balance monthly. Carrying a balance at 20%+ interest is the most expensive mistake a student can make.</li>
 <li><strong>Peer spending pressure:</strong> Friends going out nightly, ordering delivery daily, or buying new gadgets frequently are not budgeting role models. Suggest free or cheap alternatives for socializing.</li>
 <li><strong>No emergency savings:</strong> Even $500 in savings prevents a car repair or unexpected expense from derailing your semester. Build this cushion early.</li>
-<li><strong>Subscription accumulation:</strong> Free trials convert to paid subscriptions silently. Use LedgerIQ's subscription detection to identify and cancel any you have forgotten about.</li>
+<li><strong>Subscription accumulation:</strong> Free trials convert to paid subscriptions silently. Use SpendifiAI's subscription detection to identify and cancel any you have forgotten about.</li>
 </ul>
 
 <h2>Building Financial Habits for Life</h2>
@@ -1759,7 +1759,7 @@ HTML;
 
 <h2>How AI Helps You Save More</h2>
 <h3>Finding Hidden Money in Your Budget</h3>
-<p>LedgerIQ's AI analyzes your spending across all categories and identifies specific areas where you can redirect money to retirement savings:</p>
+<p>SpendifiAI's AI analyzes your spending across all categories and identifies specific areas where you can redirect money to retirement savings:</p>
 <ul>
 <li><strong>Unused subscriptions:</strong> The average person pays for 3-5 subscriptions they do not actively use. Canceling these can free up $50-$150/month.</li>
 <li><strong>Spending creep:</strong> AI detects when categories like dining or shopping have gradually increased without you noticing.</li>
@@ -1768,10 +1768,10 @@ HTML;
 </ul>
 
 <h3>Personalized Savings Plans</h3>
-<p>Set a retirement savings target in LedgerIQ, and the AI generates a personalized action plan. It calculates how much you need to save monthly, identifies specific expense reductions to reach that target, and tracks your progress over time.</p>
+<p>Set a retirement savings target in SpendifiAI, and the AI generates a personalized action plan. It calculates how much you need to save monthly, identifies specific expense reductions to reach that target, and tracks your progress over time.</p>
 
 <h3>Tracking Savings Progress</h3>
-<p>LedgerIQ's savings tracking shows you how much you have saved each month, projects your trajectory, and highlights when you are falling behind. This visibility keeps retirement savings top of mind rather than something you think about once a year.</p>
+<p>SpendifiAI's savings tracking shows you how much you have saved each month, projects your trajectory, and highlights when you are falling behind. This visibility keeps retirement savings top of mind rather than something you think about once a year.</p>
 
 <h2>Retirement Account Types</h2>
 <h3>401(k) or 403(b)</h3>
@@ -1788,7 +1788,7 @@ HTML;
 <p>If your employer matches 401(k) contributions, this is the highest-return investment available to you. A 50% match on 6% of salary is an immediate 50% return on your money.</p>
 
 <h3>Step 2: Audit Your Spending with AI</h3>
-<p>Connect your accounts to LedgerIQ and review the AI-generated savings recommendations. Identify expenses you can reduce or eliminate. Direct every dollar saved toward increasing your retirement contributions.</p>
+<p>Connect your accounts to SpendifiAI and review the AI-generated savings recommendations. Identify expenses you can reduce or eliminate. Direct every dollar saved toward increasing your retirement contributions.</p>
 
 <h3>Step 3: Automate Increases</h3>
 <p>Most 401(k) plans allow automatic annual contribution increases of 1%. Enable this feature so your savings rate grows with your salary without requiring action each year.</p>
@@ -1811,7 +1811,7 @@ HTML;
 </ul>
 
 <h2>Getting Started</h2>
-<p>The best time to start saving for retirement was years ago. The second best time is today. Connect your accounts to LedgerIQ, see where AI finds savings opportunities, and redirect that money to your retirement accounts. Even modest changes, compounded over decades, make an enormous difference.</p>
+<p>The best time to start saving for retirement was years ago. The second best time is today. Connect your accounts to SpendifiAI, see where AI finds savings opportunities, and redirect that money to your retirement accounts. Even modest changes, compounded over decades, make an enormous difference.</p>
 HTML;
 
         return [
@@ -1888,7 +1888,7 @@ HTML;
 <h3>Step 1: Open a Separate Account</h3>
 <p>The most important step is separating side hustle finances from personal finances. Open a dedicated checking account and credit card for your side hustle. Run all income and expenses through these accounts. This makes tracking trivial and provides clean documentation for the IRS.</p>
 
-<h3>Step 2: Connect to LedgerIQ</h3>
+<h3>Step 2: Connect to SpendifiAI</h3>
 <p>Link your side hustle bank account and credit card using Plaid. Tag these accounts as "business" so the AI categorizes every transaction as a business expense. This single step automates the majority of your expense tracking.</p>
 
 <h3>Step 3: Track Mileage Separately</h3>
@@ -1910,14 +1910,14 @@ HTML;
 <li><strong>Q3:</strong> Due September 15 (for June-August income)</li>
 <li><strong>Q4:</strong> Due January 15 (for September-December income)</li>
 </ul>
-<p>Export your quarterly income and expenses from LedgerIQ to calculate these payments accurately. Subtract deductible expenses from gross income, then apply your combined tax rate (income tax + 15.3% self-employment tax).</p>
+<p>Export your quarterly income and expenses from SpendifiAI to calculate these payments accurately. Subtract deductible expenses from gross income, then apply your combined tax rate (income tax + 15.3% self-employment tax).</p>
 
-<blockquote><strong>Tip:</strong> Set aside 25-35% of every side hustle payment for taxes in a separate savings account. This prevents the nasty surprise of a large tax bill you cannot pay. LedgerIQ can categorize your side hustle income automatically to help you track the total.</blockquote>
+<blockquote><strong>Tip:</strong> Set aside 25-35% of every side hustle payment for taxes in a separate savings account. This prevents the nasty surprise of a large tax bill you cannot pay. SpendifiAI can categorize your side hustle income automatically to help you track the total.</blockquote>
 
 <h2>Tax Season Preparation</h2>
 <p>With organized tracking throughout the year, tax season becomes straightforward:</p>
 <ul>
-<li>Export your categorized expenses from LedgerIQ to Excel, PDF, or CSV</li>
+<li>Export your categorized expenses from SpendifiAI to Excel, PDF, or CSV</li>
 <li>Expenses are already mapped to Schedule C lines</li>
 <li>Send the export to your tax preparer or use it to file your own return</li>
 <li>Include your mileage log for vehicle deductions</li>
@@ -1980,7 +1980,7 @@ HTML;
 <p>As a sole proprietor, pay yourself through regular transfers from your business checking to your personal checking. This is called an owner's draw. Make these transfers on a regular schedule (weekly or biweekly) for a consistent amount, mimicking a paycheck. This discipline makes both accounts easier to manage.</p>
 
 <h3>Step 3: Tag Accounts in Your Tracker</h3>
-<p>In LedgerIQ, connect both personal and business accounts. Tag each account with its purpose: personal, business, or mixed. This is the single most important signal for AI categorization accuracy. When the AI knows an account is business-only, every transaction from that account is treated as a business expense automatically.</p>
+<p>In SpendifiAI, connect both personal and business accounts. Tag each account with its purpose: personal, business, or mixed. This is the single most important signal for AI categorization accuracy. When the AI knows an account is business-only, every transaction from that account is treated as a business expense automatically.</p>
 
 <h3>Step 4: Handle Mixed-Use Expenses</h3>
 <p>Some expenses genuinely serve both purposes. Your phone, internet, home office, and vehicle are common examples. The best practice is to pay these from your personal account and reimburse yourself from your business account for the business-use percentage. Document how you calculated the percentage.</p>
@@ -2000,16 +2000,16 @@ HTML;
 <li><strong>Automatic categorization:</strong> Transactions from business-tagged accounts are automatically categorized as business expenses with Schedule C mapping.</li>
 <li><strong>Anomaly detection:</strong> If a personal-looking transaction appears in your business account (like a grocery store), the AI flags it for review.</li>
 <li><strong>Expense reporting:</strong> Generate separate reports for business and personal spending, making tax preparation straightforward.</li>
-<li><strong>Tax export:</strong> LedgerIQ exports business expenses mapped to Schedule C lines, ready for your accountant or tax software.</li>
+<li><strong>Tax export:</strong> SpendifiAI exports business expenses mapped to Schedule C lines, ready for your accountant or tax software.</li>
 </ul>
 
-<blockquote><strong>Tip:</strong> At the end of each month, review both your business and personal accounts for any misplaced transactions. A monthly 10-minute review catches errors before they compound. LedgerIQ highlights transactions that look out of place based on account purpose tagging.</blockquote>
+<blockquote><strong>Tip:</strong> At the end of each month, review both your business and personal accounts for any misplaced transactions. A monthly 10-minute review catches errors before they compound. SpendifiAI highlights transactions that look out of place based on account purpose tagging.</blockquote>
 
 <h2>What to Do If Expenses Are Currently Mixed</h2>
 <p>If you have been mixing business and personal expenses, you can still clean things up:</p>
 <ul>
 <li><strong>Going forward:</strong> Open dedicated business accounts immediately. All new business transactions go through business accounts starting today.</li>
-<li><strong>For past transactions:</strong> Upload your bank statements to LedgerIQ. The AI will categorize transactions, and you can manually tag business expenses. This retroactive categorization recovers deductions you might otherwise miss.</li>
+<li><strong>For past transactions:</strong> Upload your bank statements to SpendifiAI. The AI will categorize transactions, and you can manually tag business expenses. This retroactive categorization recovers deductions you might otherwise miss.</li>
 <li><strong>For tax filing:</strong> Export your categorized business expenses for the tax year. While mixed accounts are messier, the deductions are still valid if properly documented.</li>
 </ul>
 
@@ -2029,8 +2029,8 @@ HTML;
             'faq_items' => json_encode([
                 ['question' => 'Do I legally need a separate business bank account?', 'answer' => 'Sole proprietors are not legally required to have a separate account, but it is strongly recommended for tax compliance, audit protection, and accurate financial tracking. LLCs and corporations should always have separate accounts to maintain liability protection.'],
                 ['question' => 'How do I handle expenses that are both business and personal?', 'answer' => 'Pay mixed-use expenses (phone, internet, vehicle) from your personal account and reimburse yourself from your business account for the calculated business-use percentage. Keep documentation of how you determined the percentage.'],
-                ['question' => 'Can AI help separate business and personal expenses?', 'answer' => 'Yes. LedgerIQ lets you tag accounts by purpose (personal, business, mixed). The AI uses this context to categorize transactions accurately and flag any that look out of place. Business expenses are automatically mapped to Schedule C categories.'],
-                ['question' => 'What if I already have mixed expenses from this year?', 'answer' => 'Open dedicated business accounts immediately for future transactions. For past transactions, upload your bank statements to LedgerIQ and use AI categorization to identify and tag business expenses. The deductions are still valid if properly documented.'],
+                ['question' => 'Can AI help separate business and personal expenses?', 'answer' => 'Yes. SpendifiAI lets you tag accounts by purpose (personal, business, mixed). The AI uses this context to categorize transactions accurately and flag any that look out of place. Business expenses are automatically mapped to Schedule C categories.'],
+                ['question' => 'What if I already have mixed expenses from this year?', 'answer' => 'Open dedicated business accounts immediately for future transactions. For past transactions, upload your bank statements to SpendifiAI and use AI categorization to identify and tag business expenses. The deductions are still valid if properly documented.'],
             ]),
             'is_published' => true,
             'published_at' => now(),
@@ -2086,10 +2086,10 @@ HTML;
 <h2>How Expense Tracking Impacts Your Quarterly Payments</h2>
 <p>Accurate expense tracking directly reduces your quarterly tax payments. Every legitimate business expense lowers your taxable income, which lowers both your income tax and self-employment tax. Without organized expenses, you either overpay (losing cash flow) or underpay (triggering penalties).</p>
 
-<h3>Using LedgerIQ for Quarterly Tax Prep</h3>
+<h3>Using SpendifiAI for Quarterly Tax Prep</h3>
 <p>With your business accounts connected and AI categorization running continuously, preparing for quarterly payments takes minutes:</p>
 <ul>
-<li>Open your LedgerIQ tax summary for the current quarter</li>
+<li>Open your SpendifiAI tax summary for the current quarter</li>
 <li>Review categorized expenses mapped to Schedule C lines</li>
 <li>Export the quarterly report to calculate net income</li>
 <li>Apply your tax rates to determine the payment amount</li>
@@ -2107,12 +2107,12 @@ HTML;
 </ul>
 
 <h2>State Estimated Taxes</h2>
-<p>Most states with income tax also require quarterly estimated payments. Deadlines typically align with federal deadlines but may differ. Check your state's tax authority for specific requirements and rates. LedgerIQ's expense categorization works for both federal and state tax preparation.</p>
+<p>Most states with income tax also require quarterly estimated payments. Deadlines typically align with federal deadlines but may differ. Check your state's tax authority for specific requirements and rates. SpendifiAI's expense categorization works for both federal and state tax preparation.</p>
 
 <h2>Quarterly Tax Checklist</h2>
 <p>Two weeks before each quarterly deadline, complete this checklist:</p>
 <ul>
-<li>Review and finalize expense categorization for the quarter in LedgerIQ</li>
+<li>Review and finalize expense categorization for the quarter in SpendifiAI</li>
 <li>Export the quarterly expense report</li>
 <li>Calculate net self-employment income (gross minus deductible expenses)</li>
 <li>Apply self-employment tax rate (15.3% on 92.35% of net income)</li>
@@ -2160,7 +2160,7 @@ HTML;
 
 <h2>How AI Finds Hidden Deductions</h2>
 <h3>Comprehensive Transaction Scanning</h3>
-<p>AI does not rely on your memory. It scans every transaction from the entire tax year, identifying business expenses by merchant type, amount patterns, and account purpose. LedgerIQ's AI reviews thousands of transactions and maps each business expense to the appropriate Schedule C category automatically.</p>
+<p>AI does not rely on your memory. It scans every transaction from the entire tax year, identifying business expenses by merchant type, amount patterns, and account purpose. SpendifiAI's AI reviews thousands of transactions and maps each business expense to the appropriate Schedule C category automatically.</p>
 
 <h3>Pattern Recognition</h3>
 <p>AI recognizes recurring charges that indicate subscription services, detects transactions at business-related merchants, and identifies spending patterns consistent with deductible categories. A charge at a coworking space, a software vendor, or a professional organization is flagged as a potential deduction even if you did not think to track it.</p>
@@ -2198,13 +2198,13 @@ HTML;
 <p>The AI can only find deductions in data it can see. Connect every bank account and credit card, both personal and business. Tag each account with its purpose so the AI applies the right categorization logic.</p>
 
 <h3>Step 2: Upload Historical Statements</h3>
-<p>If you are doing this mid-year or retroactively, upload PDF or CSV bank statements for the months not covered by your bank connection. LedgerIQ's AI parses and categorizes these transactions identically to live bank data.</p>
+<p>If you are doing this mid-year or retroactively, upload PDF or CSV bank statements for the months not covered by your bank connection. SpendifiAI's AI parses and categorizes these transactions identically to live bank data.</p>
 
 <h3>Step 3: Answer AI Questions</h3>
 <p>When the AI flags transactions for review, answer the questions. Each answer helps the AI correctly categorize that transaction and improves accuracy for similar future transactions. Unanswered questions mean potential deductions sit unclaimed.</p>
 
 <h3>Step 4: Review the Tax Summary</h3>
-<p>LedgerIQ's tax center shows your deductions organized by Schedule C line. Review each category to ensure nothing is miscategorized and look for categories with lower-than-expected totals, which may indicate missed deductions.</p>
+<p>SpendifiAI's tax center shows your deductions organized by Schedule C line. Review each category to ensure nothing is miscategorized and look for categories with lower-than-expected totals, which may indicate missed deductions.</p>
 
 <h3>Step 5: Export for Filing</h3>
 <p>Export your categorized deductions to Excel, PDF, or CSV. Send the export directly to your accountant or use it to complete your Schedule C. The Schedule C line mapping eliminates the guesswork of which deduction goes where.</p>
@@ -2228,7 +2228,7 @@ HTML;
                 ['question' => 'How much in tax deductions does the average person miss?', 'answer' => 'Self-employed individuals miss an estimated $1,000-$3,000 in legitimate deductions annually. The most commonly missed categories are software subscriptions, home office, professional development, and business use of phone and internet.'],
                 ['question' => 'Can AI really find deductions I missed?', 'answer' => 'Yes. AI scans every transaction systematically rather than relying on your memory. It identifies business-related merchants, recurring subscription charges, and spending patterns that indicate deductible expenses. It is especially effective at catching small recurring charges that add up.'],
                 ['question' => 'What is the easiest deduction most people miss?', 'answer' => 'The home office deduction using the simplified method. If you work from home regularly, you can deduct $5 per square foot up to 300 square feet ($1,500 max) with minimal documentation required.'],
-                ['question' => 'Do I need receipts for every deduction?', 'answer' => 'Bank and credit card statements are sufficient for most expenses under $75. For expenses over $75, meals, and travel, keep receipts or records showing the business purpose. LedgerIQ stores transaction records that serve as documentation.'],
+                ['question' => 'Do I need receipts for every deduction?', 'answer' => 'Bank and credit card statements are sufficient for most expenses under $75. For expenses over $75, meals, and travel, keep receipts or records showing the business purpose. SpendifiAI stores transaction records that serve as documentation.'],
             ]),
             'is_published' => true,
             'published_at' => now(),
@@ -2251,7 +2251,7 @@ HTML;
 
 <h2>How AI Automates Expense Reporting</h2>
 <h3>Automatic Data Capture</h3>
-<p>When you connect your bank accounts and credit cards, every transaction is captured automatically with the date, merchant name, and amount. No manual entry required. LedgerIQ pulls this data through Plaid's secure bank connection, ensuring completeness and accuracy.</p>
+<p>When you connect your bank accounts and credit cards, every transaction is captured automatically with the date, merchant name, and amount. No manual entry required. SpendifiAI pulls this data through Plaid's secure bank connection, ensuring completeness and accuracy.</p>
 
 <h3>Intelligent Categorization</h3>
 <p>AI assigns expense categories based on the merchant, amount, and your account context. A charge at an office supply store is categorized as office expenses. A charge at an airline is categorized as travel. The AI handles thousands of merchant variations and gets it right the vast majority of the time.</p>
@@ -2264,20 +2264,20 @@ HTML;
 
 <h2>Setting Up Automated Expense Reports</h2>
 <h3>Step 1: Connect Your Accounts</h3>
-<p>Link all business bank accounts and credit cards to LedgerIQ using Plaid. For business-only accounts, tag them as "business" so the AI treats every transaction as a business expense.</p>
+<p>Link all business bank accounts and credit cards to SpendifiAI using Plaid. For business-only accounts, tag them as "business" so the AI treats every transaction as a business expense.</p>
 
 <h3>Step 2: Configure Categories</h3>
-<p>Review the default expense categories and adjust for your business type. LedgerIQ's categories map to Schedule C lines, but you can customize the mapping if your business has unique expense types.</p>
+<p>Review the default expense categories and adjust for your business type. SpendifiAI's categories map to Schedule C lines, but you can customize the mapping if your business has unique expense types.</p>
 
 <h3>Step 3: Connect Email for Receipts</h3>
-<p>Link your email account so LedgerIQ can scan for receipt emails. The AI extracts transaction details from receipts and matches them to your bank transactions, adding itemized detail to your expense records.</p>
+<p>Link your email account so SpendifiAI can scan for receipt emails. The AI extracts transaction details from receipts and matches them to your bank transactions, adding itemized detail to your expense records.</p>
 
 <h3>Step 4: Review Weekly</h3>
 <p>Spend 5 minutes each week reviewing the AI's categorization. Answer any questions about ambiguous transactions. This minimal effort ensures your reports are accurate when you need them.</p>
 
 <h2>Generating Reports</h2>
 <h3>Tax Reports</h3>
-<p>LedgerIQ generates tax-ready expense reports with expenses organized by Schedule C line. Export to Excel for detailed analysis, PDF for formal documentation, or CSV for import into tax software. Send the report directly to your accountant via email.</p>
+<p>SpendifiAI generates tax-ready expense reports with expenses organized by Schedule C line. Export to Excel for detailed analysis, PDF for formal documentation, or CSV for import into tax software. Send the report directly to your accountant via email.</p>
 
 <h3>Monthly Summaries</h3>
 <p>Monthly expense summaries show total spending by category with comparisons to previous months. These summaries help you track business spending trends and identify areas where costs are growing.</p>
@@ -2322,7 +2322,7 @@ HTML;
             'faq_items' => json_encode([
                 ['question' => 'How does automated expense reporting work?', 'answer' => 'Your bank accounts and credit cards are connected through a secure API. Every transaction is captured automatically and categorized by AI. When you need a report, you export the categorized data to Excel, PDF, or CSV with one click.'],
                 ['question' => 'Is automated expense reporting accurate?', 'answer' => 'AI categorization achieves over 85% accuracy. Uncertain transactions are flagged for your quick review. With weekly 5-minute reviews, accuracy approaches 99%. This is typically more accurate than manual data entry.'],
-                ['question' => 'Can I generate tax-ready expense reports?', 'answer' => 'Yes. LedgerIQ maps expenses to IRS Schedule C categories automatically. You can export reports organized by tax line to Excel, PDF, or CSV, and send them directly to your accountant.'],
+                ['question' => 'Can I generate tax-ready expense reports?', 'answer' => 'Yes. SpendifiAI maps expenses to IRS Schedule C categories automatically. You can export reports organized by tax line to Excel, PDF, or CSV, and send them directly to your accountant.'],
                 ['question' => 'How much time does automated expense reporting save?', 'answer' => 'Most users save 2-4 hours per month compared to manual expense reporting. The setup takes less than 10 minutes, and ongoing maintenance is about 5 minutes per week for reviewing AI categorizations.'],
             ]),
             'is_published' => true,
@@ -2364,13 +2364,13 @@ HTML;
 
 <h2>How AI-Powered Tracking Supports Your Goals</h2>
 <h3>Baseline Analysis</h3>
-<p>Before setting goals, you need to understand your current financial situation. LedgerIQ's AI analyzes your transaction history to show you exactly where your money goes. This data-driven baseline prevents unrealistic goal-setting and reveals opportunities you might not expect.</p>
+<p>Before setting goals, you need to understand your current financial situation. SpendifiAI's AI analyzes your transaction history to show you exactly where your money goes. This data-driven baseline prevents unrealistic goal-setting and reveals opportunities you might not expect.</p>
 
 <h3>Automated Progress Tracking</h3>
 <p>Once you set a goal, AI tracks your progress automatically. If your goal is to reduce dining spending to $300/month, the AI categorizes every restaurant and delivery transaction and shows your running total against the target. No manual logging required.</p>
 
 <h3>Savings Target Planning</h3>
-<p>LedgerIQ lets you set a savings target with a dollar amount and deadline. The AI calculates your required monthly savings and generates a personalized action plan with specific expense reductions to reach your target. Each action is tracked independently so you can see which changes are having the most impact.</p>
+<p>SpendifiAI lets you set a savings target with a dollar amount and deadline. The AI calculates your required monthly savings and generates a personalized action plan with specific expense reductions to reach your target. Each action is tracked independently so you can see which changes are having the most impact.</p>
 
 <h3>Proactive Recommendations</h3>
 <p>AI does not just track. It actively helps you find money for your goals. Savings recommendations identify unused subscriptions, spending increases you might not have noticed, and cheaper alternatives for services you use. Each recommendation shows the projected annual savings if you act on it.</p>
@@ -2392,7 +2392,7 @@ HTML;
 </ul>
 
 <h3>Step 3: Set Your SMART Goal</h3>
-<p>Define your specific target amount and deadline. Enter it into LedgerIQ's savings target feature. The AI calculates the monthly savings required and suggests an action plan.</p>
+<p>Define your specific target amount and deadline. Enter it into SpendifiAI's savings target feature. The AI calculates the monthly savings required and suggests an action plan.</p>
 
 <h3>Step 4: Act on AI Recommendations</h3>
 <p>Review the savings recommendations and commit to specific actions. Cancel unused subscriptions. Reduce a spending category. Switch to a cheaper alternative. Each action you take is tracked and contributes to your goal progress.</p>
@@ -2403,7 +2403,7 @@ HTML;
 <h2>Staying Motivated</h2>
 <ul>
 <li><strong>Celebrate milestones:</strong> Acknowledge every 25% of your goal. Small celebrations maintain motivation.</li>
-<li><strong>Visualize progress:</strong> LedgerIQ's savings tracking chart shows your trajectory over time. Seeing the line go up each month is powerful reinforcement.</li>
+<li><strong>Visualize progress:</strong> SpendifiAI's savings tracking chart shows your trajectory over time. Seeing the line go up each month is powerful reinforcement.</li>
 <li><strong>Share your goals:</strong> Telling a friend, partner, or online community about your goal creates accountability.</li>
 <li><strong>Focus on the why:</strong> Remember what the goal means for your life. An emergency fund means peace of mind. Debt freedom means financial flexibility. A down payment means a home for your family.</li>
 </ul>

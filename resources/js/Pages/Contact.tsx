@@ -14,8 +14,8 @@ export default function Contact() {
 
     return (
         <PublicLayout
-            title="Contact Us - LedgerIQ Support"
-            description="Get in touch with the LedgerIQ team. Email us at support@ledgeriq.com or use our contact form for questions about AI expense tracking, bank connections, or tax exports."
+            title="Contact Us - SpendifiAI Support"
+            description="Get in touch with the SpendifiAI team. Email us at support@spendifiai.com or use our contact form for questions about AI expense tracking, bank connections, or tax exports."
             breadcrumbs={[{ name: 'Contact', url: '/contact' }]}
         >
             <HeroSection
@@ -103,7 +103,7 @@ export default function Contact() {
                                 <Mail className="h-5 w-5" />
                             </div>
                             <h2 className="font-semibold text-sw-text">Email Us</h2>
-                            <p className="mt-1 text-sm text-sw-muted">support@ledgeriq.com</p>
+                            <p className="mt-1 text-sm text-sw-muted">support@spendifiai.com</p>
                         </div>
                         <div className="rounded-2xl border border-sw-border bg-white p-6 shadow-sm">
                             <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-lg bg-sw-accent-light text-sw-accent">

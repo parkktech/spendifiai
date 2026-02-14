@@ -20,7 +20,7 @@ use Illuminate\Support\Facades\Route;
 
 /*
 |--------------------------------------------------------------------------
-| API Routes — LedgerIQ
+| API Routes — SpendifiAI
 |--------------------------------------------------------------------------
 |
 | All routes are prefixed with /api automatically.
@@ -55,8 +55,8 @@ Route::prefix('auth')->group(function () {
     // reCAPTCHA config for frontend
     Route::get('/captcha-config', function () {
         return response()->json([
-            'enabled' => config('spendwise.captcha.enabled'),
-            'site_key' => config('spendwise.captcha.site_key'),
+            'enabled' => config('spendifiai.captcha.enabled'),
+            'site_key' => config('spendifiai.captcha.site_key'),
         ]);
     });
 });
@@ -100,7 +100,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
         });
     });
 
-    // ─── LedgerIQ API v1 ───
+    // ─── SpendifiAI API v1 ───
     Route::prefix('v1')->middleware('throttle:120,1')->group(function () {
 
         // Dashboard

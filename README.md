@@ -1,4 +1,4 @@
-# LedgerIQ
+# SpendifiAI
 
 AI-powered personal finance platform that connects to your bank accounts, automatically categorizes transactions using Claude AI, detects subscriptions, recommends savings opportunities, and generates tax-ready export packages.
 
@@ -82,8 +82,8 @@ AI-powered personal finance platform that connects to your bank accounts, automa
 
 ```bash
 # Clone the repository
-git clone <repository-url> ledgeriq
-cd ledgeriq
+git clone <repository-url> spendifiai
+cd spendifiai
 
 # Install PHP dependencies
 composer install
@@ -162,18 +162,18 @@ app/
   Policies/           # Transaction, BankAccount, AIQuestion, Subscription
   Services/           # 10 service classes (business logic layer)
 config/
-  spendwise.php       # AI thresholds, Plaid settings, app config
+  spendifiai.php      # AI thresholds, Plaid settings, app config
 database/
   factories/          # Model factories for all 18 models
   migrations/         # 11 migrations
   seeders/            # ExpenseCategorySeeder (50+ IRS categories)
 resources/
   js/
-    Components/SpendWise/  # 15+ reusable React components
+    Components/SpendifiAI/ # 15+ reusable React components
     Layouts/               # AppLayout, AuthLayout, PublicLayout, GuestLayout
     Pages/                 # 28 Inertia page components
     hooks/                 # useApi, useApiPost custom hooks
-    types/                 # TypeScript interfaces (spendwise.d.ts)
+    types/                 # TypeScript interfaces (spendifiai.d.ts)
 routes/
   api.php             # 50+ API routes (auth, v1, webhooks)
   web.php             # 14 Inertia page routes + marketing + legal

@@ -14,13 +14,13 @@ jobs:
       postgres:
         image: postgres:15
         env:
-          POSTGRES_USER: spendwise_test
+          POSTGRES_USER: spendifiai_test
           POSTGRES_PASSWORD: password
-          POSTGRES_DB: spendwise_test
+          POSTGRES_DB: spendifiai_test
         ports:
           - 5432:5432
         options: >-
-          --health-cmd="pg_isready -U spendwise_test"
+          --health-cmd="pg_isready -U spendifiai_test"
           --health-interval=10s
           --health-timeout=5s
           --health-retries=5
@@ -41,8 +41,8 @@ jobs:
       DB_CONNECTION: pgsql
       DB_HOST: 127.0.0.1
       DB_PORT: 5432
-      DB_DATABASE: spendwise_test
-      DB_USERNAME: spendwise_test
+      DB_DATABASE: spendifiai_test
+      DB_USERNAME: spendifiai_test
       DB_PASSWORD: password
       CACHE_STORE: array
       QUEUE_CONNECTION: sync

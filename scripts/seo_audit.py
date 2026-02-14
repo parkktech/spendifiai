@@ -6,16 +6,16 @@ import json
 import os
 import re
 
-SCREENSHOTS_DIR = "/var/www/html/ledgeriq/screenshots"
+SCREENSHOTS_DIR = "/var/www/html/spendifiai/screenshots"
 
 PAGES = [
-    {"url": "http://www.ledgeriq.loc/", "name": "homepage"},
-    {"url": "http://www.ledgeriq.loc/features", "name": "features"},
-    {"url": "http://www.ledgeriq.loc/how-it-works", "name": "how-it-works"},
-    {"url": "http://www.ledgeriq.loc/about", "name": "about"},
-    {"url": "http://www.ledgeriq.loc/faq", "name": "faq"},
-    {"url": "http://www.ledgeriq.loc/blog", "name": "blog-index"},
-    {"url": "http://www.ledgeriq.loc/blog/tax", "name": "blog-tax"},
+    {"url": "http://www.spendifiai.loc/", "name": "homepage"},
+    {"url": "http://www.spendifiai.loc/features", "name": "features"},
+    {"url": "http://www.spendifiai.loc/how-it-works", "name": "how-it-works"},
+    {"url": "http://www.spendifiai.loc/about", "name": "about"},
+    {"url": "http://www.spendifiai.loc/faq", "name": "faq"},
+    {"url": "http://www.spendifiai.loc/blog", "name": "blog-index"},
+    {"url": "http://www.spendifiai.loc/blog/tax", "name": "blog-tax"},
 ]
 
 def extract_page_data(page):
@@ -40,7 +40,7 @@ def extract_page_data(page):
         const links = Array.from(document.querySelectorAll('a'));
         const internalLinks = links.filter(a => {
             const href = a.href || '';
-            return href.includes('ledgeriq.loc') || (href.startsWith('/') && !href.startsWith('//'));
+            return href.includes('spendifiai.loc') || (href.startsWith('/') && !href.startsWith('//'));
         }).map(a => ({
             href: a.href,
             text: a.textContent.trim().substring(0, 100),
@@ -49,7 +49,7 @@ def extract_page_data(page):
 
         const externalLinks = links.filter(a => {
             const href = a.href || '';
-            return href.startsWith('http') && !href.includes('ledgeriq.loc');
+            return href.startsWith('http') && !href.includes('spendifiai.loc');
         }).map(a => ({
             href: a.href,
             text: a.textContent.trim().substring(0, 100),
@@ -198,7 +198,7 @@ def audit_page(browser, page_info, viewport_width=1920, viewport_height=1080):
 def discover_blog_articles(browser):
     """Find blog article links from the blog index and category pages."""
     articles = []
-    for url in ["http://www.ledgeriq.loc/blog", "http://www.ledgeriq.loc/blog/tax"]:
+    for url in ["http://www.spendifiai.loc/blog", "http://www.spendifiai.loc/blog/tax"]:
         context = browser.new_context(viewport={'width': 1920, 'height': 1080})
         page = context.new_page()
         try:
@@ -233,7 +233,7 @@ def discover_blog_articles(browser):
         context = browser.new_context(viewport={'width': 1920, 'height': 1080})
         page = context.new_page()
         try:
-            page.goto("http://www.ledgeriq.loc/blog", wait_until='networkidle', timeout=15000)
+            page.goto("http://www.spendifiai.loc/blog", wait_until='networkidle', timeout=15000)
             found = page.evaluate(r"""() => {
                 const links = Array.from(document.querySelectorAll('a'));
                 const blogLinks = links.filter(a => {

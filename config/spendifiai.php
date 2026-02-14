@@ -76,7 +76,7 @@ return [
     */
     'two_factor' => [
         'enabled' => env('TWO_FACTOR_ENABLED', true),
-        'issuer' => env('APP_NAME', 'LedgerIQ'),
+        'issuer' => env('APP_NAME', 'SpendifiAI'),
         'digits' => 6,
         'period' => 30,
         'algorithm' => 'sha1',

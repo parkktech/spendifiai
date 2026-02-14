@@ -2,7 +2,7 @@
 
 @section('title', $page->title)
 @section('description', $page->meta_description)
-@section('canonical', 'https://ledgeriq.com/blog/' . $page->slug)
+@section('canonical', 'https://spendifiai.com/blog/' . $page->slug)
 @if($page->featured_image)
     @section('og_image', $page->featured_image)
 @endif
@@ -10,7 +10,7 @@
 @section('og_article')
     <meta property="article:published_time" content="{{ $page->published_at?->toIso8601String() }}">
     <meta property="article:modified_time" content="{{ $page->updated_at->toIso8601String() }}">
-    <meta property="article:author" content="https://ledgeriq.com/about">
+    <meta property="article:author" content="https://spendifiai.com/about">
     <meta property="article:section" content="{{ ucfirst($page->category) }}">
 @endsection
 
@@ -41,23 +41,23 @@
     "@@type": "Article",
     "headline": @json($page->h1),
     "description": @json($page->meta_description),
-    "url": "https://ledgeriq.com/blog/{{ $page->slug }}",
+    "url": "https://spendifiai.com/blog/{{ $page->slug }}",
     "datePublished": "{{ $page->published_at?->toIso8601String() }}",
     "dateModified": "{{ $page->updated_at->toIso8601String() }}",
     "author": {
         "@@type": "Person",
-        "name": "LedgerIQ Team",
-        "url": "https://ledgeriq.com/about"
+        "name": "SpendifiAI Team",
+        "url": "https://spendifiai.com/about"
     },
     "publisher": {
-        "@@id": "https://ledgeriq.com/#organization"
+        "@@id": "https://spendifiai.com/#organization"
     },
     "isPartOf": {
-        "@@id": "https://ledgeriq.com/#website"
+        "@@id": "https://spendifiai.com/#website"
     },
     "mainEntityOfPage": {
         "@@type": "WebPage",
-        "@@id": "https://ledgeriq.com/blog/{{ $page->slug }}"
+        "@@id": "https://spendifiai.com/blog/{{ $page->slug }}"
     },
     "image": {
         "@@type": "ImageObject",
@@ -72,7 +72,7 @@
     "keywords": @json($page->keywords ?? []),
     "about": {
         "@@type": "SoftwareApplication",
-        "@@id": "https://ledgeriq.com/#software"
+        "@@id": "https://spendifiai.com/#software"
     }
 }
 </script>
@@ -81,10 +81,10 @@
     "@@context": "https://schema.org",
     "@@type": "BreadcrumbList",
     "itemListElement": [
-        { "@@type": "ListItem", "position": 1, "name": "Home", "item": "https://ledgeriq.com" },
-        { "@@type": "ListItem", "position": 2, "name": "Blog", "item": "https://ledgeriq.com/blog" },
-        { "@@type": "ListItem", "position": 3, "name": "{{ $categoryLabels[$page->category] ?? ucfirst($page->category) }}", "item": "https://ledgeriq.com/blog/{{ $page->category }}" },
-        { "@@type": "ListItem", "position": 4, "name": @json($page->title), "item": "https://ledgeriq.com/blog/{{ $page->slug }}" }
+        { "@@type": "ListItem", "position": 1, "name": "Home", "item": "https://spendifiai.com" },
+        { "@@type": "ListItem", "position": 2, "name": "Blog", "item": "https://spendifiai.com/blog" },
+        { "@@type": "ListItem", "position": 3, "name": "{{ $categoryLabels[$page->category] ?? ucfirst($page->category) }}", "item": "https://spendifiai.com/blog/{{ $page->category }}" },
+        { "@@type": "ListItem", "position": 4, "name": @json($page->title), "item": "https://spendifiai.com/blog/{{ $page->slug }}" }
     ]
 }
 </script>
@@ -160,7 +160,7 @@
             <div class="flex h-8 w-8 items-center justify-center rounded-full bg-blue-100 text-blue-600">
                 <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z"/></svg>
             </div>
-            <span class="font-medium text-slate-700">LedgerIQ Team</span>
+            <span class="font-medium text-slate-700">SpendifiAI Team</span>
         </div>
         <span class="text-slate-300">|</span>
         @if($page->published_at)
@@ -233,7 +233,7 @@
             <div class="absolute inset-0 opacity-10" style="background-image: radial-gradient(circle at 80% 20%, white 0%, transparent 50%);"></div>
             <div class="relative">
                 <h2 class="font-serif-display text-2xl font-bold text-white sm:text-3xl">Track Your Expenses Automatically with AI</h2>
-                <p class="mx-auto mt-4 max-w-xl text-blue-100">LedgerIQ categorizes transactions, detects unused subscriptions, finds savings, and exports tax deductions. 100% free.</p>
+                <p class="mx-auto mt-4 max-w-xl text-blue-100">SpendifiAI categorizes transactions, detects unused subscriptions, finds savings, and exports tax deductions. 100% free.</p>
                 <div class="mt-8 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
                     <a href="/register" class="inline-flex items-center gap-2 rounded-lg bg-white px-8 py-3.5 text-lg font-semibold text-blue-700 shadow-md transition-all hover:bg-blue-50 hover:shadow-lg">
                         Get Started Free
@@ -289,7 +289,7 @@
 <div class="border-t border-slate-200 bg-slate-50 px-6 py-16">
     <div class="mx-auto max-w-7xl">
         <div class="mb-8 text-center">
-            <h2 class="font-serif-display text-2xl font-bold text-slate-900">Explore More from LedgerIQ</h2>
+            <h2 class="font-serif-display text-2xl font-bold text-slate-900">Explore More from SpendifiAI</h2>
             <p class="mt-2 text-slate-500">Discover guides across all our categories</p>
         </div>
         <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">

@@ -42,19 +42,19 @@ class TaxPackageMail extends Mailable
 
         if (isset($this->files['xlsx']) && file_exists($this->files['xlsx'])) {
             $attachments[] = Attachment::fromPath($this->files['xlsx'])
-                ->as("LedgerIQ_Tax_{$this->year}.xlsx")
+                ->as("SpendifiAI_Tax_{$this->year}.xlsx")
                 ->withMime('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
         }
 
         if (isset($this->files['pdf']) && file_exists($this->files['pdf'])) {
             $attachments[] = Attachment::fromPath($this->files['pdf'])
-                ->as("LedgerIQ_Tax_Summary_{$this->year}.pdf")
+                ->as("SpendifiAI_Tax_Summary_{$this->year}.pdf")
                 ->withMime('application/pdf');
         }
 
         if (isset($this->files['csv']) && file_exists($this->files['csv'])) {
             $attachments[] = Attachment::fromPath($this->files['csv'])
-                ->as("LedgerIQ_Transactions_{$this->year}.csv")
+                ->as("SpendifiAI_Transactions_{$this->year}.csv")
                 ->withMime('text/csv');
         }
 

@@ -1,16 +1,16 @@
 <?php
 
-require __DIR__ . '/../vendor/autoload.php';
+require __DIR__.'/../vendor/autoload.php';
 
-use PhpOffice\PhpWord\PhpWord;
 use PhpOffice\PhpWord\IOFactory;
-use PhpOffice\PhpWord\SimpleType\Jc;
+use PhpOffice\PhpWord\PhpWord;
 use PhpOffice\PhpWord\Settings;
+use PhpOffice\PhpWord\SimpleType\Jc;
 
 // Force Zip extension
 Settings::setZipClass(Settings::PCLZIP);
 
-$phpWord = new PhpWord();
+$phpWord = new PhpWord;
 
 $phpWord->setDefaultFontName('Calibri');
 $phpWord->setDefaultFontSize(11);
@@ -44,7 +44,7 @@ $greenBold = ['size' => 10, 'bold' => true, 'color' => '16a34a'];
 $section = $phpWord->addSection();
 
 $section->addTextBreak(5);
-$section->addTitle('LedgerIQ', 1);
+$section->addTitle('SpendifiAI', 1);
 $section->addText('AI-Powered Personal Finance Platform', ['size' => 16, 'color' => '555555'], $centered);
 $section->addTextBreak(1);
 $section->addText('Comprehensive Product Overview', ['size' => 14, 'bold' => true, 'color' => '1a56db'], $centered);
@@ -61,12 +61,12 @@ $section = $phpWord->addSection();
 $section->addTitle('Executive Summary', 2);
 
 $section->addText(
-    'LedgerIQ is a free, AI-powered personal finance platform that helps individuals, freelancers, and small business owners take complete control of their financial lives. By combining bank-grade security, intelligent automation, and the power of Claude AI, LedgerIQ eliminates the tedious manual work of expense tracking, subscription management, savings optimization, and tax preparation.',
+    'SpendifiAI is a free, AI-powered personal finance platform that helps individuals, freelancers, and small business owners take complete control of their financial lives. By combining bank-grade security, intelligent automation, and the power of Claude AI, SpendifiAI eliminates the tedious manual work of expense tracking, subscription management, savings optimization, and tax preparation.',
     null, $body
 );
 
 $section->addText(
-    'Unlike competitors that charge $8-15/month (Mint, YNAB, Copilot), LedgerIQ is 100% free with no premium tiers, no trial periods, and no credit card required. This is not a loss leader - it is a deliberate strategy to capture market share in the rapidly growing personal finance management sector.',
+    'Unlike competitors that charge $8-15/month (Mint, YNAB, Copilot), SpendifiAI is 100% free with no premium tiers, no trial periods, and no credit card required. This is not a loss leader - it is a deliberate strategy to capture market share in the rapidly growing personal finance management sector.',
     null, $body
 );
 
@@ -98,26 +98,28 @@ $section = $phpWord->addSection();
 $section->addTitle('Bank Connectivity & Data Ingestion', 2);
 
 $section->addText(
-    'LedgerIQ provides two complementary methods for importing financial data, ensuring every user can participate regardless of their bank or technical comfort level.',
+    'SpendifiAI provides two complementary methods for importing financial data, ensuring every user can participate regardless of their bank or technical comfort level.',
     null, $body
 );
 
 $section->addTitle('Plaid Bank Integration', 3);
 
 $section->addText(
-    'Through Plaid - the same infrastructure trusted by Venmo, Robinhood, Coinbase, and thousands of financial applications - users can securely connect their bank accounts in under 60 seconds. Their banking credentials never touch LedgerIQ\'s servers.',
+    'Through Plaid - the same infrastructure trusted by Venmo, Robinhood, Coinbase, and thousands of financial applications - users can securely connect their bank accounts in under 60 seconds. Their banking credentials never touch SpendifiAI\'s servers.',
     null, $body
 );
 
 $section->addTitle('How It Works', 4);
 $items = [
     'User clicks "Connect Bank" and authenticates directly with their bank through Plaid\'s secure modal',
-    'Plaid returns an encrypted access token - LedgerIQ stores it with AES-256 encryption at rest',
+    'Plaid returns an encrypted access token - SpendifiAI stores it with AES-256 encryption at rest',
     'Transactions sync automatically in real-time via webhooks (SYNC_UPDATES_AVAILABLE events)',
     'Account balances, types, and metadata are imported alongside transactions',
     'Users can disconnect at any time with one click - the encrypted token is immediately destroyed',
 ];
-foreach ($items as $b) { $section->addListItem($b, 0, null, null, $body); }
+foreach ($items as $b) {
+    $section->addListItem($b, 0, null, null, $body);
+}
 
 $section->addTitle('Security Credentials', 4);
 $items = [
@@ -127,7 +129,9 @@ $items = [
     'Webhook signature verification prevents tampering',
     'Idempotency logging prevents duplicate transaction processing',
 ];
-foreach ($items as $b) { $section->addListItem($b, 0, null, null, $body); }
+foreach ($items as $b) {
+    $section->addListItem($b, 0, null, null, $body);
+}
 
 $section->addTitle('Multi-Account Support', 4);
 $section->addText(
@@ -138,7 +142,7 @@ $section->addText(
 $section->addTitle('Bank Statement Upload', 3);
 
 $section->addText(
-    'For users whose banks are not supported by Plaid, or who prefer not to link their accounts electronically, LedgerIQ offers intelligent statement parsing. Users simply upload a PDF or CSV bank statement, and Claude AI extracts every transaction automatically.',
+    'For users whose banks are not supported by Plaid, or who prefer not to link their accounts electronically, SpendifiAI offers intelligent statement parsing. Users simply upload a PDF or CSV bank statement, and Claude AI extracts every transaction automatically.',
     null, $body
 );
 
@@ -151,7 +155,9 @@ $items = [
     'Merchant names are cleaned - card numbers, reference IDs, and city/state suffixes are stripped',
     'Example: "AMAZON.COM*RT3K2 AMZN.COM/BIL WA" becomes "Amazon"',
 ];
-foreach ($items as $b) { $section->addListItem($b, 0, null, null, $body); }
+foreach ($items as $b) {
+    $section->addListItem($b, 0, null, null, $body);
+}
 
 $section->addTitle('CSV Statement Processing', 4);
 $items = [
@@ -162,11 +168,13 @@ $items = [
     'The entire CSV is then parsed using the detected column mapping',
     'This approach works with any CSV format from any institution - no pre-configured templates needed',
 ];
-foreach ($items as $b) { $section->addListItem($b, 0, null, null, $body); }
+foreach ($items as $b) {
+    $section->addListItem($b, 0, null, null, $body);
+}
 
 $section->addTitle('Duplicate Detection', 4);
 $section->addText(
-    'Before importing, LedgerIQ automatically checks each parsed transaction against existing records. Matches are identified using amount (within $0.01 tolerance), date (exact match), and merchant name (Levenshtein distance threshold). Flagged duplicates are shown to the user for review before import, preventing double-counting.',
+    'Before importing, SpendifiAI automatically checks each parsed transaction against existing records. Matches are identified using amount (within $0.01 tolerance), date (exact match), and merchant name (Levenshtein distance threshold). Flagged duplicates are shown to the user for review before import, preventing double-counting.',
     null, $body
 );
 
@@ -184,7 +192,7 @@ $section = $phpWord->addSection();
 $section->addTitle('AI-Powered Transaction Categorization', 2);
 
 $section->addText(
-    'At the heart of LedgerIQ is Claude AI\'s ability to understand and categorize financial transactions with human-like accuracy. This is not simple keyword matching - the AI considers context, account purpose, merchant patterns, and user history to make intelligent decisions.',
+    'At the heart of SpendifiAI is Claude AI\'s ability to understand and categorize financial transactions with human-like accuracy. This is not simple keyword matching - the AI considers context, account purpose, merchant patterns, and user history to make intelligent decisions.',
     null, $body
 );
 
@@ -200,7 +208,9 @@ $items = [
     'Business type and home office status',
     'Tax filing status and custom categorization rules',
 ];
-foreach ($items as $b) { $section->addListItem($b, 0, null, null, $body); }
+foreach ($items as $b) {
+    $section->addListItem($b, 0, null, null, $body);
+}
 
 $section->addTitle('Confidence-Based Routing', 3);
 
@@ -242,11 +252,13 @@ $items = [
     'Future transactions from that merchant inherit the user\'s preference',
     'This "cascade" behavior means answering one question can resolve dozens of transactions simultaneously',
 ];
-foreach ($items as $b) { $section->addListItem($b, 0, null, null, $body); }
+foreach ($items as $b) {
+    $section->addListItem($b, 0, null, null, $body);
+}
 
 $section->addTitle('56 Expense Categories', 3);
 $section->addText(
-    'LedgerIQ uses 56 expense categories (46 top-level, 10 subcategories) organized into logical groups: Housing & Utilities, Transportation, Food & Dining, Business Expenses, Personal & Health, Subscriptions & Entertainment, Household & Personal, Education & Wealth, and Transfer/Income categories. Of these, 12 categories have direct IRS Schedule C line mappings for tax export.',
+    'SpendifiAI uses 56 expense categories (46 top-level, 10 subcategories) organized into logical groups: Housing & Utilities, Transportation, Food & Dining, Business Expenses, Personal & Health, Subscriptions & Entertainment, Household & Personal, Education & Wealth, and Transfer/Income categories. Of these, 12 categories have direct IRS Schedule C line mappings for tax export.',
     null, $body
 );
 
@@ -277,7 +289,7 @@ $section = $phpWord->addSection();
 $section->addTitle('Subscription Detection & Management', 2);
 
 $section->addText(
-    'The average American spends $219/month on subscriptions, with studies showing that most people underestimate their recurring charges by 2-3x. LedgerIQ\'s Subscription Detective scans 6 months of transaction history to surface every recurring charge - especially the ones users have forgotten about.',
+    'The average American spends $219/month on subscriptions, with studies showing that most people underestimate their recurring charges by 2-3x. SpendifiAI\'s Subscription Detective scans 6 months of transaction history to surface every recurring charge - especially the ones users have forgotten about.',
     null, $body
 );
 
@@ -290,12 +302,14 @@ $items = [
     'Charges are classified by frequency: weekly, monthly, quarterly, or annual',
     'A pre-populated registry of 49 known subscription merchants enhances accuracy',
 ];
-foreach ($items as $b) { $section->addListItem($b, 0, null, null, $body); }
+foreach ($items as $b) {
+    $section->addListItem($b, 0, null, null, $body);
+}
 
 $section->addTitle('"Stopped Billing" Detection - Finding Unused Subscriptions', 3);
 
 $section->addText(
-    'This is where LedgerIQ provides immediate, concrete value. The system compares each subscription\'s last charge date against its expected billing cycle:',
+    'This is where SpendifiAI provides immediate, concrete value. The system compares each subscription\'s last charge date against its expected billing cycle:',
     null, $body
 );
 
@@ -328,15 +342,17 @@ $section->addTitle('User Response System', 3);
 $section->addText('For each subscription, users can take one of three actions:', null, $body);
 
 $items = [
-    'Cancel - Mark the subscription for cancellation. LedgerIQ provides direct links to cancellation pages and tracks the projected savings.',
+    'Cancel - Mark the subscription for cancellation. SpendifiAI provides direct links to cancellation pages and tracks the projected savings.',
     'Reduce - Downgrade to a cheaper plan. The AI suggests alternative tiers and calculates the savings difference.',
     'Keep - Acknowledge the subscription and dismiss the alert. This prevents future nagging about services the user values.',
 ];
-foreach ($items as $b) { $section->addListItem($b, 0, null, null, $body); }
+foreach ($items as $b) {
+    $section->addListItem($b, 0, null, null, $body);
+}
 
 $section->addTitle('AI-Powered Alternatives', 3);
 $section->addText(
-    'When a user considers canceling or reducing a subscription, LedgerIQ\'s AI can suggest cheaper alternatives. For example, if a user is paying $15.99/month for a streaming service, the AI might suggest a competitor at $7.99/month or a bundle that combines multiple services for less. Alternative suggestions are cached for 7 days to minimize API calls.',
+    'When a user considers canceling or reducing a subscription, SpendifiAI\'s AI can suggest cheaper alternatives. For example, if a user is paying $15.99/month for a streaming service, the AI might suggest a competitor at $7.99/month or a bundle that combines multiple services for less. Alternative suggestions are cached for 7 days to minimize API calls.',
     null, $body
 );
 
@@ -348,7 +364,7 @@ $section = $phpWord->addSection();
 $section->addTitle('AI Savings Recommendations & Goal Tracking', 2);
 
 $section->addText(
-    'LedgerIQ\'s savings engine goes beyond simple "spend less" advice. It analyzes 90 days of actual spending data - broken down by category, merchant, timing, and pattern - to generate specific, actionable recommendations with real dollar amounts pulled from the user\'s own transactions.',
+    'SpendifiAI\'s savings engine goes beyond simple "spend less" advice. It analyzes 90 days of actual spending data - broken down by category, merchant, timing, and pattern - to generate specific, actionable recommendations with real dollar amounts pulled from the user\'s own transactions.',
     null, $body
 );
 
@@ -364,7 +380,9 @@ $items = [
     'Late-night purchasing patterns (potential impulse indicator)',
     'Total transaction volume for context',
 ];
-foreach ($items as $b) { $section->addListItem($b, 0, null, null, $body); }
+foreach ($items as $b) {
+    $section->addListItem($b, 0, null, null, $body);
+}
 
 $section->addTitle('Recommendation Quality', 3);
 $section->addText('Each AI recommendation includes:', null, $body);
@@ -405,7 +423,9 @@ $items = [
     'Actions are priority-ordered (1 = do first) for maximum impact',
     'Progress is tracked with a visual progress bar and on-track indicators',
 ];
-foreach ($items as $b) { $section->addListItem($b, 0, null, null, $body); }
+foreach ($items as $b) {
+    $section->addListItem($b, 0, null, null, $body);
+}
 
 $section->addTitle('Response & Tracking System', 3);
 $section->addText(
@@ -421,7 +441,7 @@ $section = $phpWord->addSection();
 $section->addTitle('Tax Deduction Optimization & Export', 2);
 
 $section->addText(
-    'For freelancers, self-employed individuals, and small business owners, tax deduction tracking is one of LedgerIQ\'s most valuable features. The AI automatically identifies tax-deductible expenses and maps them to IRS Schedule C line items, then exports accountant-ready reports in multiple formats.',
+    'For freelancers, self-employed individuals, and small business owners, tax deduction tracking is one of SpendifiAI\'s most valuable features. The AI automatically identifies tax-deductible expenses and maps them to IRS Schedule C line items, then exports accountant-ready reports in multiple formats.',
     null, $body
 );
 
@@ -444,7 +464,9 @@ $items = [
     'Professional services (legal, accounting)',
     'Shipping and postage',
 ];
-foreach ($items as $b) { $section->addListItem($b, 0, null, null, $body); }
+foreach ($items as $b) {
+    $section->addListItem($b, 0, null, null, $body);
+}
 
 $section->addTitle('Universal Deductions', 4);
 $items = [
@@ -453,16 +475,18 @@ $items = [
     'Mortgage interest (Schedule A)',
     'State and local taxes - SALT (Schedule A)',
 ];
-foreach ($items as $b) { $section->addListItem($b, 0, null, null, $body); }
+foreach ($items as $b) {
+    $section->addListItem($b, 0, null, null, $body);
+}
 
 $section->addTitle('IRS Schedule C Line Mapping', 3);
-$section->addText('LedgerIQ maps 12 expense categories directly to IRS Schedule C lines:', null, $body);
+$section->addText('SpendifiAI maps 12 expense categories directly to IRS Schedule C lines:', null, $body);
 
 $table = $section->addTable('dataTable');
 $table->addRow();
 $table->addCell(2200)->addText('Schedule C Line', $hFont);
 $table->addCell(2800)->addText('Description', $hFont);
-$table->addCell(5000)->addText('LedgerIQ Categories', $hFont);
+$table->addCell(5000)->addText('SpendifiAI Categories', $hFont);
 
 $rows = [
     ['Line 8', 'Advertising', 'Marketing & Advertising'],
@@ -495,7 +519,9 @@ $items = [
     'All Deductible Transactions - Full detail: date, merchant, amount, category, tax line, AI confidence, verification status',
     'Business Subscriptions - Recurring business expenses with annual projections',
 ];
-foreach ($items as $b) { $section->addListItem($b, 0, null, null, $body); }
+foreach ($items as $b) {
+    $section->addListItem($b, 0, null, null, $body);
+}
 
 $section->addTitle('PDF Cover Sheet', 4);
 $section->addText(
@@ -523,7 +549,7 @@ $section = $phpWord->addSection();
 $section->addTitle('Comprehensive Financial Dashboard', 2);
 
 $section->addText(
-    'The LedgerIQ dashboard is an 8-widget financial command center that gives users a complete picture of their financial health at a glance. Data is cached for 60 seconds per user and can be filtered by account type (personal/business).',
+    'The SpendifiAI dashboard is an 8-widget financial command center that gives users a complete picture of their financial health at a glance. Data is cached for 60 seconds per user and can be filtered by account type (personal/business).',
     null, $body
 );
 
@@ -583,7 +609,7 @@ $section = $phpWord->addSection();
 $section->addTitle('Security Architecture', 2);
 
 $section->addText(
-    'LedgerIQ treats security as a foundational requirement, not an afterthought. The platform implements defense-in-depth across every layer of the stack.',
+    'SpendifiAI treats security as a foundational requirement, not an afterthought. The platform implements defense-in-depth across every layer of the stack.',
     null, $body
 );
 
@@ -594,7 +620,9 @@ $items = [
     'TLS/HTTPS for all data in transit',
     'HSTS header with 1-year max-age, includeSubDomains, and preload directive',
 ];
-foreach ($items as $b) { $section->addListItem($b, 0, null, null, $body); }
+foreach ($items as $b) {
+    $section->addListItem($b, 0, null, null, $body);
+}
 
 $section->addTitle('Authentication & Access Control', 3);
 $items = [
@@ -607,7 +635,9 @@ $items = [
     'Email verification for new accounts',
     'Account lockout protection after failed attempts',
 ];
-foreach ($items as $b) { $section->addListItem($b, 0, null, null, $body); }
+foreach ($items as $b) {
+    $section->addListItem($b, 0, null, null, $body);
+}
 
 $section->addTitle('Security Headers', 3);
 $items = [
@@ -618,7 +648,9 @@ $items = [
     'Permissions-Policy - Disables camera, microphone, and geolocation access',
     'Strict-Transport-Security - Forces HTTPS with preload',
 ];
-foreach ($items as $b) { $section->addListItem($b, 0, null, null, $body); }
+foreach ($items as $b) {
+    $section->addListItem($b, 0, null, null, $body);
+}
 
 $section->addTitle('Data Protection', 3);
 $items = [
@@ -628,7 +660,9 @@ $items = [
     'Idempotency logging prevents duplicate webhook processing',
     'Users can disconnect banks and delete accounts at any time',
 ];
-foreach ($items as $b) { $section->addListItem($b, 0, null, null, $body); }
+foreach ($items as $b) {
+    $section->addListItem($b, 0, null, null, $body);
+}
 
 // ╔══════════════════════════════════════════════════════════════════════╗
 // ║  ADDITIONAL FEATURES                                               ║
@@ -639,7 +673,7 @@ $section->addTitle('Additional Features', 2);
 
 $section->addTitle('Email Receipt Parsing (In Development)', 3);
 $section->addText(
-    'Users can connect their Gmail (via OAuth) or any IMAP email account. LedgerIQ scans for order confirmations and receipts, extracts product-level detail using Claude AI, and matches them to bank transactions. This provides itemized purchase tracking - for example, knowing that a $147.32 Amazon charge was specifically for office supplies and a printer cartridge, enabling more accurate tax categorization at the product level.',
+    'Users can connect their Gmail (via OAuth) or any IMAP email account. SpendifiAI scans for order confirmations and receipts, extracts product-level detail using Claude AI, and matches them to bank transactions. This provides itemized purchase tracking - for example, knowing that a $147.32 Amazon charge was specifically for office supplies and a printer cartridge, enabling more accurate tax categorization at the product level.',
     null, $body
 );
 
@@ -669,14 +703,14 @@ $section = $phpWord->addSection();
 $section->addTitle('Competitive Landscape', 2);
 
 $section->addText(
-    'LedgerIQ competes in the personal finance management space with a unique combination of AI intelligence and zero-cost pricing:',
+    'SpendifiAI competes in the personal finance management space with a unique combination of AI intelligence and zero-cost pricing:',
     null, $body
 );
 
 $table = $section->addTable('dataTable');
 $table->addRow();
 $table->addCell(1800)->addText('Feature', $hFont);
-$table->addCell(1500)->addText('LedgerIQ', $hFont);
+$table->addCell(1500)->addText('SpendifiAI', $hFont);
 $table->addCell(1500)->addText('Mint', $hFont);
 $table->addCell(1500)->addText('YNAB', $hFont);
 $table->addCell(1500)->addText('Copilot', $hFont);
@@ -752,7 +786,7 @@ foreach ($techRows as $row) {
 
 $section->addTitle('Test Coverage', 3);
 $section->addText(
-    'LedgerIQ has 142 automated tests with 524 assertions covering: authentication (registration, login, 2FA, OAuth, password reset), Plaid integration (link, sync, webhooks), transactions (categorization, filtering), subscriptions (detection, responses), savings (recommendations, tracking, goals), statement uploads (parse, import, history), dashboard (all financial widgets), and AI questions (answer, bulk, chat).',
+    'SpendifiAI has 142 automated tests with 524 assertions covering: authentication (registration, login, 2FA, OAuth, password reset), Plaid integration (link, sync, webhooks), transactions (categorization, filtering), subscriptions (detection, responses), savings (recommendations, tracking, goals), statement uploads (parse, import, history), dashboard (all financial widgets), and AI questions (answer, bulk, chat).',
     null, $body
 );
 
@@ -791,7 +825,7 @@ $section = $phpWord->addSection();
 $section->addTitle('Summary', 2);
 
 $section->addText(
-    'LedgerIQ represents a significant opportunity in the personal finance management space. By combining AI-powered intelligence with bank-grade security and a completely free pricing model, the platform is positioned to capture users who are currently underserved by expensive, feature-limited alternatives.',
+    'SpendifiAI represents a significant opportunity in the personal finance management space. By combining AI-powered intelligence with bank-grade security and a completely free pricing model, the platform is positioned to capture users who are currently underserved by expensive, feature-limited alternatives.',
     null, $body
 );
 
@@ -805,21 +839,23 @@ $items = [
     'Production Quality - 142 automated tests, comprehensive security, and modern architecture ensure reliability and maintainability.',
     'Zero Cost Barrier - Free forever with no premium tiers removes all friction from user acquisition.',
 ];
-foreach ($items as $b) { $section->addListItem($b, 0, null, null, $body); }
+foreach ($items as $b) {
+    $section->addListItem($b, 0, null, null, $body);
+}
 
 $section->addTextBreak(2);
 
 $section->addText(
-    'For questions or a live demonstration, please contact the LedgerIQ team.',
+    'For questions or a live demonstration, please contact the SpendifiAI team.',
     ['italic' => true, 'color' => '888888'],
     $centered
 );
 
 // ── Save using IOFactory ────────────────────────────────────────────────
-$outputPath = __DIR__ . '/../public/LedgerIQ-Product-Overview.docx';
+$outputPath = __DIR__.'/../public/SpendifiAI-Product-Overview.docx';
 
 $writer = IOFactory::createWriter($phpWord, 'Word2007');
 $writer->save($outputPath);
 
 echo "Document saved to: $outputPath\n";
-echo "File size: " . number_format(filesize($outputPath)) . " bytes\n";
+echo 'File size: '.number_format(filesize($outputPath))." bytes\n";

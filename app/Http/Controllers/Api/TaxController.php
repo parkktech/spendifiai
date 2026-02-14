@@ -162,9 +162,9 @@ class TaxController extends Controller
             'cc' => auth()->user()->email,
             'summary' => $result['summary'],
             'files_sent' => [
-                'LedgerIQ_Tax_'.$validated['year'].'.xlsx',
-                'LedgerIQ_Tax_Summary_'.$validated['year'].'.pdf',
-                'LedgerIQ_Transactions_'.$validated['year'].'.csv',
+                'SpendifiAI_Tax_'.$validated['year'].'.xlsx',
+                'SpendifiAI_Tax_Summary_'.$validated['year'].'.pdf',
+                'SpendifiAI_Transactions_'.$validated['year'].'.csv',
             ],
         ]);
     }
@@ -181,7 +181,7 @@ class TaxController extends Controller
 
         // Find the most recent export for this year
         $dir = storage_path('app/tax-exports/'.auth()->id());
-        $pattern = "{$dir}/LedgerIQ_Tax_{$year}_*.{$type}";
+        $pattern = "{$dir}/SpendifiAI_Tax_{$year}_*.{$type}";
         $files = glob($pattern);
 
         if (empty($files)) {
@@ -199,7 +199,7 @@ class TaxController extends Controller
 
         return response()->download(
             $latestFile,
-            "LedgerIQ_Tax_{$year}.{$type}",
+            "SpendifiAI_Tax_{$year}.{$type}",
             ['Content-Type' => $mimeTypes[$type]]
         );
     }

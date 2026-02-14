@@ -1,6 +1,6 @@
 import { CreditCard, Calendar, Tag } from 'lucide-react';
-import Badge from '@/Components/SpendWise/Badge';
-import type { Subscription } from '@/types/spendwise';
+import Badge from '@/Components/SpendifiAI/Badge';
+import type { Subscription } from '@/types/spendifiai';
 
 interface SubscriptionCardProps {
   subscription: Subscription;
