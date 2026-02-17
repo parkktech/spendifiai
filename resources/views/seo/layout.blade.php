@@ -44,10 +44,10 @@
     <link rel="apple-touch-icon" href="/images/spendifiai-icon.png">
     <meta name="theme-color" content="#2563eb">
 
-    <!-- Fonts: Inter + Source Serif 4 -->
+    <!-- Fonts: Source Serif 4 (Inter is self-hosted via CSS) -->
     <link rel="preconnect" href="https://fonts.bunny.net">
     <link rel="preconnect" href="https://fonts.bunny.net" crossorigin>
-    <link href="https://fonts.bunny.net/css?family=inter:400,500,600,700|source-serif-4:400,600,700&display=swap" rel="stylesheet">
+    <link href="https://fonts.bunny.net/css?family=source-serif-4:400,600,700&display=swap" rel="stylesheet">
 
     @vite(['resources/js/app.tsx'])
 

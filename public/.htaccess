@@ -5,6 +5,15 @@
 
     RewriteEngine On
 
+    # Force HTTPS (works behind Cloudflare proxy)
+    RewriteCond %{HTTPS} off [OR]
+    RewriteCond %{HTTP:X-Forwarded-Proto} !https
+    RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
+    # Force www
+    RewriteCond %{HTTP_HOST} ^spendifiai\.com$ [NC]
+    RewriteRule ^ https://www.spendifiai.com%{REQUEST_URI} [L,R=301]
+
     # Handle Authorization Header
     RewriteCond %{HTTP:Authorization} .
     RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]

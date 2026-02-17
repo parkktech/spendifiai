@@ -353,11 +353,6 @@
         <link rel="apple-touch-icon" href="/images/spendifiai-icon.png">
         <meta name="theme-color" content="#2563eb">
 
-        <!-- Fonts -->
-        <link rel="preconnect" href="https://fonts.bunny.net">
-        <link rel="preconnect" href="https://fonts.bunny.net" crossorigin>
-        <link href="https://fonts.bunny.net/css?family=inter:300,400,500,600,700,800&display=swap" rel="stylesheet" />
-
         <!-- Scripts -->
         @routes
         @viteReactRefresh
