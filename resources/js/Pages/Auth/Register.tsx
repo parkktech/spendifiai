@@ -2,6 +2,7 @@ import InputError from '@/Components/InputError';
 import InputLabel from '@/Components/InputLabel';
 import PrimaryButton from '@/Components/PrimaryButton';
 import TextInput from '@/Components/TextInput';
+import GoogleLoginButton from '@/Components/GoogleLoginButton';
 import GuestLayout from '@/Layouts/GuestLayout';
 import { Head, Link, router } from '@inertiajs/react';
 import { FormEventHandler, useState } from 'react';
@@ -143,6 +144,28 @@ export default function Register() {
                         Register
                     </PrimaryButton>
                 </div>
+
+                <div className="mt-6">
+                    <div className="relative">
+                        <div className="absolute inset-0 flex items-center">
+                            <div className="w-full border-t border-sw-border"></div>
+                        </div>
+                        <div className="relative flex justify-center text-sm">
+                            <span className="px-2 bg-sw-bg text-sw-muted">Or continue with</span>
+                        </div>
+                    </div>
+                    <GoogleLoginButton />
+                </div>
+
+                <p className="mt-4 text-center text-sm text-sw-muted">
+                    Already have an account?{' '}
+                    <Link
+                        href={route('login')}
+                        className="text-sw-accent font-medium hover:text-sw-accent-hover"
+                    >
+                        Sign in
+                    </Link>
+                </p>
             </form>
         </GuestLayout>
     );

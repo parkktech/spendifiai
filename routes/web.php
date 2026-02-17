@@ -32,6 +32,9 @@ Route::get('/terms', fn () => Inertia::render('Legal/TermsOfService'))->name('te
 Route::get('/data-retention', fn () => Inertia::render('Legal/DataRetention'))->name('data-retention');
 Route::get('/security-policy', fn () => Inertia::render('Legal/Security'))->name('security-policy');
 
+// ── Google OAuth Frontend Callback ──
+Route::get('/auth/callback', fn () => Inertia::render('Auth/GoogleCallback'))->name('auth.callback');
+
 // ── Inertia SPA Pages (with Sanctum token auth for SPA) ──
 Route::middleware(['auth:sanctum', 'verified'])->group(function () {
     Route::get('/dashboard', fn () => Inertia::render('Dashboard'))->name('dashboard');
