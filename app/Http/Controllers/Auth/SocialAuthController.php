@@ -20,10 +20,9 @@ class SocialAuthController extends Controller
      *
      * GET /auth/google/redirect
      *
-     * Scopes:
-     * - openid, email, profile: Basic auth
-     * - https://www.googleapis.com/auth/gmail.readonly: Read emails for receipt parsing
-     * - https://www.googleapis.com/auth/gmail.modify: Archive/label emails (future)
+     * Only requests basic auth scopes (openid, email, profile).
+     * Gmail scopes are requested separately via the Email Connection flow
+     * on the Connect page to avoid triggering Google's restricted scope warning.
      */
     public function redirectToGoogle(): RedirectResponse|JsonResponse
     {
@@ -31,8 +30,6 @@ class SocialAuthController extends Controller
             'openid',
             'email',
             'profile',
-            'https://www.googleapis.com/auth/gmail.readonly',
-            'https://www.googleapis.com/auth/gmail.modify',
         ];
 
         // For SPA: return the redirect URL as JSON
