@@ -1,4 +1,5 @@
 import { Link } from '@inertiajs/react';
+import ApplicationLogo from '@/Components/ApplicationLogo';
 
 const footerLinks = {
     Product: [
@@ -38,27 +39,8 @@ export default function Footer() {
                 <div className="grid gap-12 sm:grid-cols-2 lg:grid-cols-5">
                     {/* Brand column */}
                     <div className="lg:col-span-2">
-                        <a href="/" className="flex items-center gap-2.5">
-                            <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" className="h-9 w-9 shrink-0">
-                                <rect width="40" height="40" rx="10" fill="url(#footer-logo-grad)" />
-                                <path d="M8 28.5 Q20 31 32 28.5" stroke="white" strokeWidth="2.2" strokeLinecap="round" fill="none" />
-                                <rect x="12.5" y="22" width="3.5" height="6.5" rx="1.5" fill="white" fillOpacity="0.55" />
-                                <rect x="18" y="17" width="3.5" height="11.5" rx="1.5" fill="white" fillOpacity="0.75" />
-                                <rect x="23.5" y="12" width="3.5" height="16.5" rx="1.5" fill="white" />
-                                <circle cx="25.25" cy="9.5" r="1.6" fill="white" fillOpacity="0.9" />
-                                <line x1="25.25" y1="6" x2="25.25" y2="7.5" stroke="white" strokeWidth="1" strokeLinecap="round" opacity="0.7" />
-                                <line x1="22.5" y1="9.5" x2="23.2" y2="9.5" stroke="white" strokeWidth="1" strokeLinecap="round" opacity="0.7" />
-                                <line x1="27.3" y1="9.5" x2="28" y2="9.5" stroke="white" strokeWidth="1" strokeLinecap="round" opacity="0.7" />
-                                <defs>
-                                    <linearGradient id="footer-logo-grad" x1="0" y1="0" x2="40" y2="40" gradientUnits="userSpaceOnUse">
-                                        <stop stopColor="#2563eb" />
-                                        <stop offset="1" stopColor="#7c3aed" />
-                                    </linearGradient>
-                                </defs>
-                            </svg>
-                            <span className="text-xl font-bold tracking-tight text-white">
-                                Spendifi<span className="text-blue-400">AI</span>
-                            </span>
+                        <a href="/">
+                            <ApplicationLogo dark gradientId="footer-logo-grad" />
                         </a>
                         <p className="mt-4 max-w-xs text-sm leading-relaxed text-slate-400">
                             AI-powered expense tracking that helps you save money, track taxes, and take control of your finances. 100% free, forever.

@@ -62,23 +62,25 @@ export default function ApplicationLogo({
     showTagline = false,
     iconSize = 36,
     gradientId = 'app-logo-gradient',
+    dark = false,
     ...props
 }: HTMLAttributes<HTMLDivElement> & {
     showText?: boolean;
     showTagline?: boolean;
     iconSize?: number;
     gradientId?: string;
+    dark?: boolean;
 }) {
     return (
         <div className={`flex items-center gap-2.5 ${className}`} {...props}>
             <LogoIcon size={iconSize} id={gradientId} />
             {showText && (
                 <div>
-                    <span className="text-xl font-bold tracking-tight text-sw-text">
-                        Spendifi<span className="text-sw-accent">AI</span>
+                    <span className={`text-xl font-bold tracking-tight ${dark ? 'text-white' : 'text-sw-text'}`}>
+                        Spendifi<span className={dark ? 'text-blue-400' : 'text-sw-accent'}>AI</span>
                     </span>
                     {showTagline && (
-                        <div className="text-[10px] text-sw-dim font-medium tracking-wide">
+                        <div className={`text-[10px] font-medium tracking-wide ${dark ? 'text-slate-400' : 'text-sw-dim'}`}>
                             AI-Powered Financial Intelligence
                         </div>
                     )}

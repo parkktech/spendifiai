@@ -375,7 +375,7 @@
                             <line x1="27.3" y1="9.5" x2="28" y2="9.5" stroke="white" stroke-width="1" stroke-linecap="round" opacity="0.7"/>
                             <defs><linearGradient id="footer-logo-grad" x1="0" y1="0" x2="40" y2="40" gradientUnits="userSpaceOnUse"><stop stop-color="#2563eb"/><stop offset="1" stop-color="#7c3aed"/></linearGradient></defs>
                         </svg>
-                        <span class="text-xl font-bold tracking-tight text-white">Ledger<span class="text-blue-400">IQ</span></span>
+                        <span class="text-xl font-bold tracking-tight text-white">Spendifi<span class="text-blue-400">AI</span></span>
                     </div>
                     <p class="mt-4 max-w-xs text-sm leading-relaxed text-slate-400">
                         AI-powered expense tracking that helps you save money, track taxes, and take control of your finances. 100% free, forever.
