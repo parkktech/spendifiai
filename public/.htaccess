@@ -5,12 +5,13 @@
 
     RewriteEngine On
 
-    # Force HTTPS (works behind Cloudflare proxy)
+    # Force HTTPS (skip .loc local dev)
+    RewriteCond %{HTTP_HOST} !\.loc$ [NC]
     RewriteCond %{HTTPS} off [OR]
     RewriteCond %{HTTP:X-Forwarded-Proto} !https
     RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
 
-    # Force www
+    # Force www (skip .loc local dev)
     RewriteCond %{HTTP_HOST} ^spendifiai\.com$ [NC]
     RewriteRule ^ https://www.spendifiai.com%{REQUEST_URI} [L,R=301]
 
