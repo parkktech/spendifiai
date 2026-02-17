@@ -17,7 +17,22 @@ class SecurityHeaders
         $response->headers->set('Referrer-Policy', 'strict-origin-when-cross-origin');
         $response->headers->set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
         $response->headers->set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload');
-        $response->headers->set('Content-Security-Policy', "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.bunny.net; font-src 'self' https://fonts.bunny.net; img-src 'self' data: https://images.unsplash.com https://spendifiai.com; connect-src 'self'; frame-ancestors 'none';");
+
+        // In development, disable CSP to allow Vite dev server
+        if (app()->environment('local', 'development')) {
+            $csp = "default-src *; script-src * 'unsafe-inline' 'unsafe-eval'; style-src * 'unsafe-inline';";
+        } else {
+            // Production CSP - strict
+            $csp = "default-src 'self'; "
+                . "script-src 'self' 'unsafe-inline' 'unsafe-eval'; "
+                . "style-src 'self' 'unsafe-inline' https://fonts.bunny.net; "
+                . "font-src 'self' https://fonts.bunny.net; "
+                . "img-src 'self' data: https://images.unsplash.com https://spendifiai.com; "
+                . "connect-src 'self'; "
+                . "frame-ancestors 'none';";
+        }
+
+        $response->headers->set('Content-Security-Policy', $csp);
         $response->headers->remove('X-Powered-By');
         $response->headers->remove('Server');
 
