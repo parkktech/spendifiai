@@ -20,7 +20,12 @@ use App\Policies\SavingsPlanActionPolicy;
 use App\Policies\SavingsRecommendationPolicy;
 use App\Policies\SubscriptionPolicy;
 use App\Policies\TransactionPolicy;
+use App\Listeners\LogMailableMessage;
+use Illuminate\Mail\Events\MessageSending;
+use Illuminate\Mail\Events\MessageSent;
+use Illuminate\Mail\Events\MailFailed;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Route;
@@ -36,6 +41,11 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        // ── Mail Event Logging ──
+        Event::listen(MessageSending::class, [LogMailableMessage::class, 'handleSending']);
+        Event::listen(MessageSent::class, [LogMailableMessage::class, 'handleSent']);
+        Event::listen(MailFailed::class, [LogMailableMessage::class, 'handleFailed']);
+
         // ── Route Model Binding ──
         // Automatically resolve {transaction}, {account}, {question} from URL
         Route::model('transaction', Transaction::class);

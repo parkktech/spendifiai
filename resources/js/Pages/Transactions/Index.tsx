@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { Head } from '@inertiajs/react';
+import { Head, usePage } from '@inertiajs/react';
 import {
   Receipt,
   AlertTriangle,
@@ -15,6 +15,7 @@ import {
 import TransactionRow from '@/Components/SpendifiAI/TransactionRow';
 import FilterBar, { FilterState } from '@/Components/SpendifiAI/FilterBar';
 import StatCard from '@/Components/SpendifiAI/StatCard';
+import ConnectBankPrompt from '@/Components/SpendifiAI/ConnectBankPrompt';
 import { useApi, useApiPost } from '@/hooks/useApi';
 import type { PaginatedResponse, Transaction, ExpenseCategory } from '@/types/spendifiai';
 
@@ -30,11 +31,12 @@ function buildUrl(filters: FilterState, page: number): string {
 }
 
 export default function TransactionsIndex() {
+  const { auth } = usePage().props as unknown as { auth: { hasBankConnected: boolean } };
   const [filters, setFilters] = useState<FilterState>({});
   const [page, setPage] = useState(1);
   const url = buildUrl(filters, page);
-  const { data, loading, error, refresh, mutate } = useApi<PaginatedResponse<Transaction>>(url);
-  const { data: categoriesData } = useApi<ExpenseCategory[]>('/api/v1/categories');
+  const { data, loading, error, refresh, mutate } = useApi<PaginatedResponse<Transaction>>(url, { enabled: auth.hasBankConnected });
+  const { data: categoriesData } = useApi<ExpenseCategory[]>('/api/v1/categories', { enabled: auth.hasBankConnected });
   const { submit: updateCategory } = useApiPost<unknown, { category: string }>('', 'PATCH');
   const { submit: categorizeNow, loading: categorizing } = useApiPost<{
     message: string;
@@ -220,6 +222,14 @@ export default function TransactionsIndex() {
         </div>
       )}
 
+      {/* Connect Bank Prompt */}
+      {!loading && !error && !data && (
+        <ConnectBankPrompt
+          feature="transactions"
+          description="Link your bank account to see all your transactions, track spending, and get AI-powered categorization."
+        />
+      )}
+
       {/* Loading */}
       {loading && (
         <div className="flex items-center justify-center py-16">
@@ -228,7 +238,7 @@ export default function TransactionsIndex() {
       )}
 
       {/* Transaction list */}
-      {!loading && !error && transactions.length > 0 && (
+      {!loading && !error && data && transactions.length > 0 && (
         <div aria-live="polite" className="rounded-2xl border border-sw-border bg-sw-card p-6">
           {transactions.map((tx) => (
             <TransactionRow
@@ -243,7 +253,7 @@ export default function TransactionsIndex() {
       )}
 
       {/* Empty state */}
-      {!loading && !error && transactions.length === 0 && (
+      {!loading && !error && data && transactions.length === 0 && (
         <div className="rounded-2xl border border-sw-border bg-sw-card p-12 text-center">
           <Inbox size={40} className="mx-auto text-sw-dim mb-3" />
           <h3 className="text-sm font-semibold text-sw-text mb-1">No transactions found</h3>

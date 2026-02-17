@@ -1,18 +1,20 @@
 import { useState } from 'react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { Head } from '@inertiajs/react';
+import { Head, usePage } from '@inertiajs/react';
 import { RefreshCw, AlertTriangle, TrendingUp, Loader2 } from 'lucide-react';
 import { useApi, useApiPost } from '@/hooks/useApi';
 import StatCard from '@/Components/SpendifiAI/StatCard';
 import SubscriptionCard from '@/Components/SpendifiAI/SubscriptionCard';
 import ViewModeToggle from '@/Components/SpendifiAI/ViewModeToggle';
+import ConnectBankPrompt from '@/Components/SpendifiAI/ConnectBankPrompt';
 import type { SubscriptionsResponse } from '@/types/spendifiai';
 
 const fmt = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
 
 export default function SubscriptionsIndex() {
+  const { auth } = usePage().props as unknown as { auth: { hasBankConnected: boolean } };
   const [viewMode, setViewMode] = useState<'all' | 'personal' | 'business'>('all');
-  const { data, loading, error, refresh } = useApi<SubscriptionsResponse>('/api/v1/subscriptions');
+  const { data, loading, error, refresh } = useApi<SubscriptionsResponse>('/api/v1/subscriptions', { enabled: auth.hasBankConnected });
   const detect = useApiPost('/api/v1/subscriptions/detect');
 
   const items = data?.subscriptions ?? [];
@@ -130,8 +132,16 @@ export default function SubscriptionsIndex() {
         </div>
       )}
 
+      {/* Connect Bank Prompt */}
+      {!loading && !error && !data && (
+        <ConnectBankPrompt
+          feature="subscriptions"
+          description="Link your bank account to detect recurring charges and find ways to cut costs."
+        />
+      )}
+
       {/* Empty state */}
-      {!loading && filtered.length === 0 && !error && (
+      {!loading && filtered.length === 0 && data && (
         <div className="rounded-2xl border border-sw-border bg-sw-card p-12 text-center">
           <RefreshCw size={40} className="mx-auto text-sw-dim mb-3" />
           <h3 className="text-sm font-semibold text-sw-text mb-1">No subscriptions detected yet</h3>

@@ -3,23 +3,51 @@ import InputLabel from '@/Components/InputLabel';
 import PrimaryButton from '@/Components/PrimaryButton';
 import TextInput from '@/Components/TextInput';
 import GuestLayout from '@/Layouts/GuestLayout';
-import { Head, Link, useForm } from '@inertiajs/react';
-import { FormEventHandler } from 'react';
+import { Head, Link, router } from '@inertiajs/react';
+import { FormEventHandler, useState } from 'react';
+import axios from 'axios';
 
 export default function Register() {
-    const { data, setData, post, processing, errors, reset } = useForm({
-        name: '',
-        email: '',
-        password: '',
-        password_confirmation: '',
-    });
+    const [name, setName] = useState('');
+    const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
+    const [passwordConfirmation, setPasswordConfirmation] = useState('');
+    const [processing, setProcessing] = useState(false);
+    const [errors, setErrors] = useState<Record<string, string[]>>({});
 
-    const submit: FormEventHandler = (e) => {
+    const submit: FormEventHandler = async (e) => {
         e.preventDefault();
+        setErrors({});
+        setProcessing(true);
 
-        post(route('register'), {
-            onFinish: () => reset('password', 'password_confirmation'),
-        });
+        try {
+            const response = await axios.post('/api/auth/register', {
+                name,
+                email,
+                password,
+                password_confirmation: passwordConfirmation,
+            });
+
+            // Store token in localStorage and cookie
+            if (response.data.token) {
+                localStorage.setItem('auth_token', response.data.token);
+                // Also set cookie for server-side requests (hard refresh, initial page load)
+                // Calculate expiry: 24 hours from now
+                const date = new Date();
+                date.setTime(date.getTime() + (24 * 60 * 60 * 1000));
+                const expires = `expires=${date.toUTCString()}`;
+                document.cookie = `auth_token=${response.data.token}; ${expires}; path=/; secure; samesite=lax`;
+                window.axios.defaults.headers.common['Authorization'] = `Bearer ${response.data.token}`;
+                console.log('✅ Token stored in localStorage and cookie, auth header set after registration');
+            }
+
+            // Redirect to verify email page
+            router.visit('/email-verification-notice');
+        } catch (error: any) {
+            setErrors(error.response?.data?.errors || { email: ['Registration failed'] });
+        } finally {
+            setProcessing(false);
+        }
     };
 
     return (
@@ -33,15 +61,15 @@ export default function Register() {
                     <TextInput
                         id="name"
                         name="name"
-                        value={data.name}
+                        value={name}
                         className="mt-1 block w-full"
                         autoComplete="name"
                         isFocused={true}
-                        onChange={(e) => setData('name', e.target.value)}
+                        onChange={(e) => setName(e.target.value)}
                         required
                     />
 
-                    <InputError message={errors.name} className="mt-2" />
+                    <InputError message={errors.name?.[0]} className="mt-2" />
                 </div>
 
                 <div className="mt-4">
@@ -51,14 +79,14 @@ export default function Register() {
                         id="email"
                         type="email"
                         name="email"
-                        value={data.email}
+                        value={email}
                         className="mt-1 block w-full"
                         autoComplete="username"
-                        onChange={(e) => setData('email', e.target.value)}
+                        onChange={(e) => setEmail(e.target.value)}
                         required
                     />
 
-                    <InputError message={errors.email} className="mt-2" />
+                    <InputError message={errors.email?.[0]} className="mt-2" />
                 </div>
 
                 <div className="mt-4">
@@ -68,14 +96,14 @@ export default function Register() {
                         id="password"
                         type="password"
                         name="password"
-                        value={data.password}
+                        value={password}
                         className="mt-1 block w-full"
                         autoComplete="new-password"
-                        onChange={(e) => setData('password', e.target.value)}
+                        onChange={(e) => setPassword(e.target.value)}
                         required
                     />
 
-                    <InputError message={errors.password} className="mt-2" />
+                    <InputError message={errors.password?.[0]} className="mt-2" />
                 </div>
 
                 <div className="mt-4">
@@ -88,17 +116,17 @@ export default function Register() {
                         id="password_confirmation"
                         type="password"
                         name="password_confirmation"
-                        value={data.password_confirmation}
+                        value={passwordConfirmation}
                         className="mt-1 block w-full"
                         autoComplete="new-password"
                         onChange={(e) =>
-                            setData('password_confirmation', e.target.value)
+                            setPasswordConfirmation(e.target.value)
                         }
                         required
                     />
 
                     <InputError
-                        message={errors.password_confirmation}
+                        message={errors.password_confirmation?.[0]}
                         className="mt-2"
                     />
                 </div>

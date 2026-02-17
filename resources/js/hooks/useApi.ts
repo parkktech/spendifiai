@@ -3,6 +3,7 @@ import axios, { AxiosError, AxiosRequestConfig, Method } from 'axios';
 
 interface UseApiOptions {
   immediate?: boolean;
+  enabled?: boolean;
 }
 
 interface UseApiReturn<T> {
@@ -19,6 +20,7 @@ export function useApi<T>(url: string, options?: UseApiOptions): UseApiReturn<T>
   const [error, setError] = useState<string | null>(null);
   const mountedRef = useRef(true);
   const immediate = options?.immediate !== false;
+  const enabled = options?.enabled !== false;
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -31,6 +33,11 @@ export function useApi<T>(url: string, options?: UseApiOptions): UseApiReturn<T>
     } catch (err) {
       if (mountedRef.current) {
         const axiosError = err as AxiosError<{ message?: string }>;
+        // Don't show error for 403 — it's expected when bank not connected or profile incomplete
+        if (axiosError.response?.status === 403) {
+          setError(null);
+          return;
+        }
         setError(axiosError.response?.data?.message || axiosError.message || 'An error occurred');
       }
     } finally {
@@ -42,13 +49,13 @@ export function useApi<T>(url: string, options?: UseApiOptions): UseApiReturn<T>
 
   useEffect(() => {
     mountedRef.current = true;
-    if (immediate) {
+    if (immediate && enabled) {
       fetchData();
     }
     return () => {
       mountedRef.current = false;
     };
-  }, [fetchData, immediate]);
+  }, [fetchData, immediate, enabled]);
 
   const mutate = useCallback((newData: T) => {
     setData(newData);

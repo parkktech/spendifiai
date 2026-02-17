@@ -49,6 +49,11 @@ Route::prefix('auth')->group(function () {
     Route::post('/reset-password', [PasswordResetController::class, 'resetPassword'])
         ->middleware('throttle:5,1');
 
+    // Email verification (public — signed URLs are self-verifying)
+    // Note: Web route handles this instead (routes/web.php)
+    // Route::get('/email/verify/{id}/{hash}', [EmailVerificationController::class, 'verify'])
+    //     ->middleware(['signed']);
+
     // Google OAuth (stateless — no CSRF)
     Route::get('/google/redirect', [SocialAuthController::class, 'redirectToGoogle']);
 
@@ -80,10 +85,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::post('/change-password', [PasswordResetController::class, 'changePassword'])
             ->middleware('throttle:5,1');
 
-        // Email verification
-        Route::get('/email/verify/{id}/{hash}', [EmailVerificationController::class, 'verify'])
-            ->middleware(['signed'])
-            ->name('api.verification.verify');
+        // Email verification resend (authenticated only)
         Route::post('/email/resend', [EmailVerificationController::class, 'resend'])
             ->middleware('throttle:3,1');
 

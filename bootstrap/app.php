@@ -15,6 +15,7 @@ return Application::configure(basePath: dirname(__DIR__))
         // Inertia middleware (from Breeze React starter kit)
         $middleware->web(prepend: [
             \App\Http\Middleware\RemoveTrailingSlash::class,
+            \App\Http\Middleware\ExtractTokenFromCookie::class,
         ]);
 
         $middleware->web(append: [

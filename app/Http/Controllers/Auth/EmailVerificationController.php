@@ -17,15 +17,27 @@ class EmailVerificationController extends Controller
      */
     public function verify(EmailVerificationRequest $request): JsonResponse
     {
-        if ($request->user()->hasVerifiedEmail()) {
-            return response()->json(['message' => 'Email already verified.']);
+        // EmailVerificationRequest extracts user from signed {id}/{hash} URL params
+        $user = \App\Models\User::findOrFail($request->route('id'));
+
+        if ($user->hasVerifiedEmail()) {
+            return response()->json([
+                'message' => 'Email already verified.',
+                'token' => $user->tokens()->latest()->first()?->plainTextToken,
+            ]);
         }
 
-        if ($request->user()->markEmailAsVerified()) {
-            event(new Verified($request->user()));
+        if ($user->markEmailAsVerified()) {
+            event(new Verified($user));
         }
 
-        return response()->json(['message' => 'Email verified successfully.']);
+        // Create auth token so user is logged in after verification
+        $token = $user->createToken('spendifiai')->plainTextToken;
+
+        return response()->json([
+            'message' => 'Email verified successfully.',
+            'token' => $token,
+        ]);
     }
 
     /**

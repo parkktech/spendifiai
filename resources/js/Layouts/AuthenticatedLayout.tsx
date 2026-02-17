@@ -223,7 +223,12 @@ export default function AuthenticatedLayout({
                       <Settings size={14} /> Settings
                     </Link>
                     <button
-                      onClick={() => router.post('/logout')}
+                      onClick={() => {
+                        // Clear authentication tokens before logout
+                        localStorage.removeItem('auth_token');
+                        document.cookie = 'auth_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+                        router.post('/logout');
+                      }}
                       role="menuitem"
                       className="flex items-center gap-2 w-full px-4 py-2 text-sm text-sw-muted hover:text-sw-danger hover:bg-sw-card-hover transition"
                     >

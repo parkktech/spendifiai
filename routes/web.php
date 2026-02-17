@@ -4,6 +4,8 @@ use App\Http\Controllers\Auth\SocialAuthController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\SeoPageController;
 use App\Http\Controllers\SitemapController;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -30,8 +32,8 @@ Route::get('/terms', fn () => Inertia::render('Legal/TermsOfService'))->name('te
 Route::get('/data-retention', fn () => Inertia::render('Legal/DataRetention'))->name('data-retention');
 Route::get('/security-policy', fn () => Inertia::render('Legal/Security'))->name('security-policy');
 
-// ── Inertia SPA Pages ──
-Route::middleware(['auth', 'verified'])->group(function () {
+// ── Inertia SPA Pages (with Sanctum token auth for SPA) ──
+Route::middleware(['auth:sanctum', 'verified'])->group(function () {
     Route::get('/dashboard', fn () => Inertia::render('Dashboard'))->name('dashboard');
     Route::get('/transactions', fn () => Inertia::render('Transactions/Index'))->name('transactions');
     Route::get('/subscriptions', fn () => Inertia::render('Subscriptions/Index'))->name('subscriptions');
@@ -48,6 +50,39 @@ Route::middleware('auth')->group(function () {
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
+
+// ── Email Verification (from email link) ──
+Route::get('/email/verify/{id}/{hash}', function (Request $request, $id, $hash) {
+    $user = \App\Models\User::find($id);
+
+    if (!$user) {
+        return redirect('/login')->with('error', 'Invalid verification link');
+    }
+
+    // Verify the hash signature
+    if (!hash_equals($hash, sha1($user->getEmailForVerification()))) {
+        return redirect('/login')->with('error', 'Invalid verification link');
+    }
+
+    // Mark email as verified
+    if (!$user->hasVerifiedEmail()) {
+        $user->markEmailAsVerified();
+    }
+
+    // Check if user is already logged in
+    if ($request->user()) {
+        // User is already authenticated — refresh their session
+        Auth::login($user, true);
+        return redirect('/dashboard');
+    }
+
+    // User is not logged in — create token and store it as a cookie
+    $token = $user->createToken('spendifiai')->plainTextToken;
+
+    // Redirect to dashboard with token stored in cookie
+    return redirect('/dashboard')
+        ->cookie('auth_token', $token, 43200, '/', null, true, false); // 30 days, secure (HTTPS), not httpOnly so JS can read it
+})->name('verification.verify');
 
 // ── Google OAuth Callback (browser redirect from Google) ──
 Route::get('/auth/google/callback', [SocialAuthController::class, 'handleGoogleCallback']);

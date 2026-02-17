@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { Head } from '@inertiajs/react';
+import { Head, usePage } from '@inertiajs/react';
 import {
   FileText, DollarSign, Briefcase, Download, Send,
   ChevronDown, ChevronRight, Receipt, Mail, Building2,
@@ -8,6 +8,7 @@ import {
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { useApi } from '@/hooks/useApi';
 import StatCard from '@/Components/SpendifiAI/StatCard';
+import ConnectBankPrompt from '@/Components/SpendifiAI/ConnectBankPrompt';
 import ExportModal from '@/Components/SpendifiAI/ExportModal';
 import type { TaxSummary, TaxLineItem } from '@/types/spendifiai';
 
@@ -29,18 +30,22 @@ interface MergedCategory {
 }
 
 export default function TaxIndex() {
+  const { auth } = usePage().props as unknown as { auth: { hasBankConnected: boolean } };
   const [year, setYear] = useState(currentYear);
   const [exportOpen, setExportOpen] = useState(false);
   const [exportMode, setExportMode] = useState<'download' | 'email'>('download');
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
 
   const { data: summary, loading, error, refresh } = useApi<TaxSummary>(
-    `/api/v1/tax/summary?year=${year}`
+    `/api/v1/tax/summary?year=${year}`,
+    { enabled: auth.hasBankConnected }
   );
 
   useEffect(() => {
-    refresh();
-  }, [year]); // eslint-disable-line react-hooks/exhaustive-deps
+    if (auth.hasBankConnected) {
+      refresh();
+    }
+  }, [year, auth.hasBankConnected]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Merge categories from both sources and attach line items
   const sortedDeductions = useMemo(() => {
@@ -173,6 +178,14 @@ export default function TaxIndex() {
         />
       </div>
 
+      {/* Connect Bank Prompt */}
+      {!loading && !error && !summary && (
+        <ConnectBankPrompt
+          feature="tax"
+          description="Link your bank account to start tracking deductible expenses and prepare for tax season."
+        />
+      )}
+
       {/* Error state */}
       {error && (
         <div className="rounded-xl border border-sw-danger/30 bg-sw-danger/5 p-6 text-center mb-6">
@@ -200,7 +213,7 @@ export default function TaxIndex() {
       )}
 
       {/* Empty state */}
-      {!loading && !error && sortedDeductions.length === 0 && (
+      {!loading && !error && summary && sortedDeductions.length === 0 && (
         <div className="rounded-2xl border border-sw-border bg-sw-card p-12 text-center">
           <FileText size={40} className="mx-auto text-sw-dim mb-3" />
           <h3 className="text-sm font-semibold text-sw-text mb-1">No tax data available for {year}</h3>

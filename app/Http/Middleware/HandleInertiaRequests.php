@@ -34,6 +34,7 @@ class HandleInertiaRequests extends Middleware
             ...parent::share($request),
             'auth' => [
                 'user' => $request->user(),
+                'hasBankConnected' => $request->user()?->hasBankConnected() ?? false,
             ],
             'canLogin' => Route::has('login'),
             'canRegister' => Route::has('register'),

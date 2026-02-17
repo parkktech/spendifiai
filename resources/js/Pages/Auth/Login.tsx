@@ -4,8 +4,9 @@ import InputLabel from '@/Components/InputLabel';
 import PrimaryButton from '@/Components/PrimaryButton';
 import TextInput from '@/Components/TextInput';
 import GuestLayout from '@/Layouts/GuestLayout';
-import { Head, Link, useForm } from '@inertiajs/react';
-import { FormEventHandler } from 'react';
+import { Head, Link, router } from '@inertiajs/react';
+import { FormEventHandler, useState } from 'react';
+import axios from 'axios';
 
 export default function Login({
     status,
@@ -14,18 +15,44 @@ export default function Login({
     status?: string;
     canResetPassword: boolean;
 }) {
-    const { data, setData, post, processing, errors, reset } = useForm({
-        email: '',
-        password: '',
-        remember: false as boolean,
-    });
+    const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
+    const [remember, setRemember] = useState(false);
+    const [processing, setProcessing] = useState(false);
+    const [errors, setErrors] = useState<Record<string, string>>({});
 
-    const submit: FormEventHandler = (e) => {
+    const submit: FormEventHandler = async (e) => {
         e.preventDefault();
+        setErrors({});
+        setProcessing(true);
 
-        post(route('login'), {
-            onFinish: () => reset('password'),
-        });
+        try {
+            const response = await axios.post('/api/auth/login', {
+                email,
+                password,
+                remember,
+            });
+
+            // Store token in localStorage and cookie
+            if (response.data.token) {
+                localStorage.setItem('auth_token', response.data.token);
+                // Also set cookie for server-side requests (hard refresh, initial page load)
+                // Calculate expiry: 24 hours from now
+                const date = new Date();
+                date.setTime(date.getTime() + (24 * 60 * 60 * 1000));
+                const expires = `expires=${date.toUTCString()}`;
+                document.cookie = `auth_token=${response.data.token}; ${expires}; path=/; secure; samesite=lax`;
+                window.axios.defaults.headers.common['Authorization'] = `Bearer ${response.data.token}`;
+                console.log('✅ Token stored in localStorage and cookie, auth header set');
+            }
+
+            // Redirect to dashboard
+            router.visit('/dashboard');
+        } catch (error: any) {
+            setErrors(error.response?.data?.errors || { email: 'Invalid credentials' });
+        } finally {
+            setProcessing(false);
+        }
     };
 
     return (
@@ -46,11 +73,11 @@ export default function Login({
                         id="email"
                         type="email"
                         name="email"
-                        value={data.email}
+                        value={email}
                         className="mt-1 block w-full"
                         autoComplete="username"
                         isFocused={true}
-                        onChange={(e) => setData('email', e.target.value)}
+                        onChange={(e) => setEmail(e.target.value)}
                     />
 
                     <InputError message={errors.email} className="mt-2" />
@@ -63,10 +90,10 @@ export default function Login({
                         id="password"
                         type="password"
                         name="password"
-                        value={data.password}
+                        value={password}
                         className="mt-1 block w-full"
                         autoComplete="current-password"
-                        onChange={(e) => setData('password', e.target.value)}
+                        onChange={(e) => setPassword(e.target.value)}
                     />
 
                     <InputError message={errors.password} className="mt-2" />
@@ -76,12 +103,9 @@ export default function Login({
                     <label className="flex items-center">
                         <Checkbox
                             name="remember"
-                            checked={data.remember}
+                            checked={remember}
                             onChange={(e) =>
-                                setData(
-                                    'remember',
-                                    (e.target.checked || false) as false,
-                                )
+                                setRemember(e.target.checked)
                             }
                         />
                         <span className="ms-2 text-sm text-sw-muted">

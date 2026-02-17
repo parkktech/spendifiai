@@ -252,40 +252,47 @@ export default function SettingsIndex() {
               </div>
             )}
 
-            <div className="space-y-3 max-w-sm">
-              <input
-                type="password"
-                value={passwordForm.current_password}
-                onChange={(e) => setPasswordForm({ ...passwordForm, current_password: e.target.value })}
-                placeholder="Current password"
-                aria-label="Current password"
-                className={inputClasses}
-              />
-              <input
-                type="password"
-                value={passwordForm.password}
-                onChange={(e) => setPasswordForm({ ...passwordForm, password: e.target.value })}
-                placeholder="New password"
-                aria-label="New password"
-                className={inputClasses}
-              />
-              <input
-                type="password"
-                value={passwordForm.password_confirmation}
-                onChange={(e) => setPasswordForm({ ...passwordForm, password_confirmation: e.target.value })}
-                placeholder="Confirm new password"
-                aria-label="Confirm new password"
-                className={inputClasses}
-              />
-              <button
-                onClick={handlePasswordChange}
-                disabled={passwordLoading || !passwordForm.current_password || !passwordForm.password}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-sw-accent text-white text-sm font-semibold hover:bg-sw-accent-hover transition disabled:opacity-50"
-              >
-                {passwordLoading ? <Loader2 size={14} className="animate-spin" /> : <Lock size={14} />}
-                Update Password
-              </button>
-            </div>
+            <form onSubmit={(e) => { e.preventDefault(); handlePasswordChange(); }} className="max-w-sm">
+              {/* Hidden username field for accessibility/autofill */}
+              <input type="text" value={authUser.email} readOnly hidden aria-hidden="true" autoComplete="username" />
+              <div className="space-y-3">
+                <input
+                  type="password"
+                  value={passwordForm.current_password}
+                  onChange={(e) => setPasswordForm({ ...passwordForm, current_password: e.target.value })}
+                  placeholder="Current password"
+                  aria-label="Current password"
+                  className={inputClasses}
+                  autoComplete="current-password"
+                />
+                <input
+                  type="password"
+                  value={passwordForm.password}
+                  onChange={(e) => setPasswordForm({ ...passwordForm, password: e.target.value })}
+                  placeholder="New password"
+                  aria-label="New password"
+                  className={inputClasses}
+                  autoComplete="new-password"
+                />
+                <input
+                  type="password"
+                  value={passwordForm.password_confirmation}
+                  onChange={(e) => setPasswordForm({ ...passwordForm, password_confirmation: e.target.value })}
+                  placeholder="Confirm new password"
+                  aria-label="Confirm new password"
+                  className={inputClasses}
+                  autoComplete="new-password"
+                />
+                <button
+                  type="submit"
+                  disabled={passwordLoading || !passwordForm.current_password || !passwordForm.password}
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-sw-accent text-white text-sm font-semibold hover:bg-sw-accent-hover transition disabled:opacity-50"
+                >
+                  {passwordLoading ? <Loader2 size={14} className="animate-spin" /> : <Lock size={14} />}
+                  Update Password
+                </button>
+              </div>
+            </form>
           </div>
 
           {/* 2FA */}

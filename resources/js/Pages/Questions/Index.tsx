@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { Head } from '@inertiajs/react';
+import { Head, usePage } from '@inertiajs/react';
 import {
   HelpCircle,
   CheckCircle,
@@ -13,12 +13,14 @@ import {
 } from 'lucide-react';
 import QuestionCard from '@/Components/SpendifiAI/QuestionCard';
 import Badge from '@/Components/SpendifiAI/Badge';
+import ConnectBankPrompt from '@/Components/SpendifiAI/ConnectBankPrompt';
 import { useApi, useApiPost } from '@/hooks/useApi';
 import type { AIQuestion } from '@/types/spendifiai';
 import axios from 'axios';
 
 export default function QuestionsIndex() {
-  const { data, loading, error, refresh } = useApi<AIQuestion[]>('/api/v1/questions?status=pending');
+  const { auth } = usePage().props as unknown as { auth: { hasBankConnected: boolean } };
+  const { data, loading, error, refresh } = useApi<AIQuestion[]>('/api/v1/questions?status=pending', { enabled: auth.hasBankConnected });
   const [bulkMode, setBulkMode] = useState(false);
   const [bulkAnswers, setBulkAnswers] = useState<Record<number, string>>({});
   const [bulkSubmitting, setBulkSubmitting] = useState(false);
@@ -91,6 +93,14 @@ export default function QuestionsIndex() {
         </button>
       </div>
 
+      {/* Connect Bank Prompt */}
+      {!loading && !error && !data && (
+        <ConnectBankPrompt
+          feature="questions"
+          description="Link your bank account to see AI categorization questions that help improve accuracy."
+        />
+      )}
+
       {/* Error */}
       {error && (
         <div className="rounded-2xl border border-sw-danger/30 bg-sw-danger/5 p-6 text-center mb-6">
@@ -113,7 +123,7 @@ export default function QuestionsIndex() {
       )}
 
       {/* Empty state */}
-      {!loading && !error && questions.length === 0 && (
+      {!loading && !error && data && questions.length === 0 && (
         <div className="rounded-2xl border border-sw-border bg-sw-card p-12 text-center">
           <CheckCircle size={40} className="mx-auto text-sw-accent mb-3" />
           <h3 className="text-sm font-semibold text-sw-text mb-1">All caught up!</h3>

@@ -1,19 +1,21 @@
 import { useState } from 'react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { Head } from '@inertiajs/react';
+import { Head, usePage } from '@inertiajs/react';
 import { PiggyBank, Target, Zap, Loader2, Activity, Calendar } from 'lucide-react';
 import { useApi, useApiPost } from '@/hooks/useApi';
 import StatCard from '@/Components/SpendifiAI/StatCard';
 import RecommendationCard from '@/Components/SpendifiAI/RecommendationCard';
+import ConnectBankPrompt from '@/Components/SpendifiAI/ConnectBankPrompt';
 import type { RecommendationsResponse, SavingsTargetResponse } from '@/types/spendifiai';
 
 const fmt = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
 
 export default function SavingsIndex() {
+  const { auth } = usePage().props as unknown as { auth: { hasBankConnected: boolean } };
   const { data: recsData, loading: recsLoading, error: recsError, refresh: refreshRecs } =
-    useApi<RecommendationsResponse>('/api/v1/savings');
+    useApi<RecommendationsResponse>('/api/v1/savings', { enabled: auth.hasBankConnected });
   const { data: targetData, loading: targetLoading, refresh: refreshTarget } =
-    useApi<SavingsTargetResponse>('/api/v1/savings/target');
+    useApi<SavingsTargetResponse>('/api/v1/savings/target', { enabled: auth.hasBankConnected });
 
   const analyze = useApiPost('/api/v1/savings/analyze');
   const dismiss = useApiPost('/api/v1/savings');
@@ -300,61 +302,71 @@ export default function SavingsIndex() {
         )}
       </div>
 
+      {/* Connect Bank Prompt */}
+      {!recsLoading && !recsError && !recsData && (
+        <ConnectBankPrompt
+          feature="savings"
+          description="Link your bank account to get AI-powered savings recommendations based on your spending patterns."
+        />
+      )}
+
       {/* Section 2: Recommendations */}
-      <div className="mb-6">
-        <h2 className="text-sm font-semibold text-sw-text mb-4 flex items-center gap-2">
-          <PiggyBank size={16} className="text-sw-accent" />
-          Recommendations
-        </h2>
+      {recsData && (
+        <div className="mb-6">
+          <h2 className="text-sm font-semibold text-sw-text mb-4 flex items-center gap-2">
+            <PiggyBank size={16} className="text-sw-accent" />
+            Recommendations
+          </h2>
 
-        {recsError && (
-          <div className="rounded-xl border border-sw-danger/30 bg-sw-danger/5 p-4 text-center mb-4">
-            <p className="text-sm text-sw-danger mb-2">{recsError}</p>
-            <button
-              onClick={refreshRecs}
-              className="text-xs text-sw-accent hover:text-sw-accent-hover transition"
-            >
-              Try again
-            </button>
-          </div>
-        )}
+          {recsError && (
+            <div className="rounded-xl border border-sw-danger/30 bg-sw-danger/5 p-4 text-center mb-4">
+              <p className="text-sm text-sw-danger mb-2">{recsError}</p>
+              <button
+                onClick={refreshRecs}
+                className="text-xs text-sw-accent hover:text-sw-accent-hover transition"
+              >
+                Try again
+              </button>
+            </div>
+          )}
 
-        {recsLoading && !recsData && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            {Array.from({ length: 4 }).map((_, i) => (
-              <div key={i} className="rounded-lg border border-sw-border bg-sw-card p-4 animate-pulse">
-                <div className="h-4 bg-sw-border rounded w-2/3 mb-3" />
-                <div className="h-3 bg-sw-border rounded w-full mb-2" />
-                <div className="h-3 bg-sw-border rounded w-3/4 mb-3" />
-                <div className="h-6 bg-sw-border rounded w-1/4" />
-              </div>
-            ))}
-          </div>
-        )}
+          {recsLoading && !recsData && (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="rounded-lg border border-sw-border bg-sw-card p-4 animate-pulse">
+                  <div className="h-4 bg-sw-border rounded w-2/3 mb-3" />
+                  <div className="h-3 bg-sw-border rounded w-full mb-2" />
+                  <div className="h-3 bg-sw-border rounded w-3/4 mb-3" />
+                  <div className="h-6 bg-sw-border rounded w-1/4" />
+                </div>
+              ))}
+            </div>
+          )}
 
-        {!recsLoading && recs.length === 0 && !recsError && (
-          <div className="rounded-2xl border border-sw-border bg-sw-card p-12 text-center">
-            <PiggyBank size={40} className="mx-auto text-sw-dim mb-3" />
-            <h3 className="text-sm font-semibold text-sw-text mb-1">No recommendations yet</h3>
-            <p className="text-xs text-sw-muted max-w-md mx-auto">
-              Run a savings analysis to get personalized recommendations based on your spending patterns.
-            </p>
-          </div>
-        )}
+          {!recsLoading && recs.length === 0 && !recsError && (
+            <div className="rounded-2xl border border-sw-border bg-sw-card p-12 text-center">
+              <PiggyBank size={40} className="mx-auto text-sw-dim mb-3" />
+              <h3 className="text-sm font-semibold text-sw-text mb-1">No recommendations yet</h3>
+              <p className="text-xs text-sw-muted max-w-md mx-auto">
+                Run a savings analysis to get personalized recommendations based on your spending patterns.
+              </p>
+            </div>
+          )}
 
-        {!recsLoading && recs.length > 0 && (
-          <div aria-live="polite" className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            {recs.map((rec) => (
-              <RecommendationCard
-                key={rec.id}
-                recommendation={rec}
-                onDismiss={handleDismiss}
-                onApply={handleApply}
-              />
-            ))}
-          </div>
-        )}
-      </div>
+          {!recsLoading && recs.length > 0 && (
+            <div aria-live="polite" className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              {recs.map((rec) => (
+                <RecommendationCard
+                  key={rec.id}
+                  recommendation={rec}
+                  onDismiss={handleDismiss}
+                  onApply={handleApply}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Section 3: Pulse Check */}
       <div className="rounded-2xl border border-sw-border bg-sw-card p-6">
