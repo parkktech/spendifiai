@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Models\EmailConnection;
 use App\Models\User;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\JsonResponse;
@@ -18,14 +19,27 @@ class SocialAuthController extends Controller
      * Redirect to Google OAuth consent screen.
      *
      * GET /auth/google/redirect
+     *
+     * Scopes:
+     * - openid, email, profile: Basic auth
+     * - https://www.googleapis.com/auth/gmail.readonly: Read emails for receipt parsing
+     * - https://www.googleapis.com/auth/gmail.modify: Archive/label emails (future)
      */
     public function redirectToGoogle(): RedirectResponse|JsonResponse
     {
+        $scopes = [
+            'openid',
+            'email',
+            'profile',
+            'https://www.googleapis.com/auth/gmail.readonly',
+            'https://www.googleapis.com/auth/gmail.modify',
+        ];
+
         // For SPA: return the redirect URL as JSON
         if (request()->wantsJson()) {
             return response()->json([
                 'url' => Socialite::driver('google')
-                    ->scopes(['openid', 'email', 'profile'])
+                    ->scopes($scopes)
                     ->stateless()
                     ->redirect()
                     ->getTargetUrl(),
@@ -33,7 +47,7 @@ class SocialAuthController extends Controller
         }
 
         return Socialite::driver('google')
-            ->scopes(['openid', 'email', 'profile'])
+            ->scopes($scopes)
             ->redirect();
     }
 
@@ -89,6 +103,9 @@ class SocialAuthController extends Controller
             $isNewUser = true;
         }
 
+        // Auto-create Gmail email connection if user granted Gmail access
+        $this->createGmailConnectionIfNeeded($user, $googleUser);
+
         // Generate API token
         $user->tokens()->delete();
         $token = $user->createToken('spendifiai-google')->plainTextToken;
@@ -119,6 +136,53 @@ class SocialAuthController extends Controller
         // in access logs, Referrer headers, or browser history synced to servers.
         // The frontend reads it via window.location.hash and then clears the URL.
         return redirect("{$frontendUrl}/auth/callback#token={$token}&new={$isNewUser}");
+    }
+
+    /**
+     * Auto-create Gmail email connection if user granted Gmail API scopes.
+     *
+     * Checks if the access token has Gmail scopes, then creates an EmailConnection
+     * record so the user can immediately start parsing emails without additional setup.
+     */
+    private function createGmailConnectionIfNeeded($user, $googleUser): void
+    {
+        try {
+            // Check if we got an access token (only if user authorized Gmail scopes)
+            $token = $googleUser->token ?? null;
+            $refreshToken = $googleUser->refreshToken ?? null;
+
+            if (! $token) {
+                return; // User didn't grant Gmail access
+            }
+
+            // Use existing connection or create new one
+            $connection = EmailConnection::firstOrCreate(
+                ['user_id' => $user->id, 'provider' => 'gmail'],
+                [
+                    'email_address' => $user->email,
+                    'connection_type' => 'oauth',
+                    'access_token' => $token,
+                    'refresh_token' => $refreshToken,
+                    'token_expires_at' => now()->addSeconds($googleUser->expiresIn ?? 3600),
+                    'status' => 'active',
+                ]
+            );
+
+            // Update tokens if reconnecting
+            if ($connection->wasRecentlyCreated === false) {
+                $connection->update([
+                    'access_token' => $token,
+                    'refresh_token' => $refreshToken,
+                    'token_expires_at' => now()->addSeconds($googleUser->expiresIn ?? 3600),
+                ]);
+            }
+        } catch (\Exception $e) {
+            // Don't break login if email connection setup fails
+            \Log::warning('Failed to create Gmail connection for user', [
+                'user_id' => $user->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
     }
 
     /**
