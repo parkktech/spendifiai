@@ -9,16 +9,19 @@
 - **Frontend:** React 19 + Inertia 2 + TypeScript + Tailwind CSS v4
 - **AI:** Anthropic Claude API (Sonnet) for transaction categorization, savings analysis, statement parsing
 - **Bank Integration:** Plaid API (sandbox) + manual bank statement upload (PDF/CSV)
-- **Auth:** Laravel Sanctum + Fortify, Google OAuth (Socialite), optional TOTP 2FA
+- **Auth:** Laravel Sanctum (bearer token + secure cookie), Google OAuth (Socialite), optional TOTP 2FA
+- **Email:** SendGrid SMTP for transactional email (verification, password reset, tax export)
 - **Testing:** Pest PHP 3 (131 tests, 459 assertions)
-- **Queue:** Redis-backed Laravel queues
+- **Queue:** Redis-backed Laravel queues with cron scheduler
 - **Code Style:** Laravel Pint
 
-## PROJECT STATUS: ~85% COMPLETE
+## PROJECT STATUS: ~90% COMPLETE
 
 ### What's Built and Working
 
 - Full authentication system (register, login, 2FA, Google OAuth, password reset, email verify)
+- Token-based auth persistence (localStorage + secure cookie + ExtractTokenFromCookie middleware)
+- Google OAuth login button on auth pages (basic scopes only — no Gmail at login)
 - Plaid bank linking (sandbox), manual bank statement upload (PDF via spatie/pdf-to-text, CSV)
 - AI-powered transaction categorization with confidence thresholds
 - AI question system (multiple-choice + free-text chat with AI for low-confidence transactions)
@@ -27,9 +30,12 @@
 - Savings recommendations via Claude AI analysis
 - Interactive savings response system (cancel/reduce/keep with projected savings tracking)
 - Dashboard with Budget Waterfall, Monthly Bills, Home Affordability, Where to Cut
-- 8 full Inertia pages + 6 marketing/legal pages
+- Conditional API calls — pages skip requests when bank not connected (`useApi` `enabled` option)
+- 8 full Inertia pages + 6 marketing/legal pages + auth pages (login, register, callback, verify, reset)
 - Tax export (Excel + PDF + CSV) with IRS Schedule C mapping
-- Email connection system (Google OAuth + IMAP)
+- Email connection system (Google OAuth + IMAP) with separate Gmail scope flow
+- Environment-aware CSP middleware (permissive in dev, strict in production)
+- Cron scheduler + Redis queue worker configured
 - 131 Pest tests passing across all features
 
 ### What's Remaining
@@ -38,6 +44,7 @@
 - Notifications (unused subscription alerts, budget threshold, weekly digest)
 - Deployment config (Docker, CI/CD)
 - Production Plaid credentials
+- Google OAuth verification for Gmail restricted scopes (gmail.readonly)
 
 ## ARCHITECTURE
 
@@ -81,17 +88,26 @@
 | EmailConnectionController | index(), connect(), connectImap(), testConnection(), setupInstructions(), callback(), sync(), disconnect() |
 | UserProfileController | updateFinancial(), showFinancial(), deleteAccount() |
 
-### Auth Controllers (5) — `app/Http/Controllers/Auth/`
+### Auth Controllers (6) — `app/Http/Controllers/Auth/`
 
 | Controller | Purpose |
 |-----------|---------|
-| AuthController | register, login, logout, me |
-| SocialAuthController | Google OAuth redirect + callback |
+| AuthController | register, login, logout, me (API token-based) |
+| AuthenticatedSessionController | Renders Login/Register pages via Inertia |
+| SocialAuthController | Google OAuth redirect (basic scopes) + callback with auto-login |
 | TwoFactorController | enable, confirm, disable, status, regenerateRecoveryCodes |
 | PasswordResetController | sendResetLink, resetPassword, changePassword |
 | EmailVerificationController | verify, resend |
 
-### Services (10) — `app/Services/`
+### Middleware — `app/Http/Middleware/`
+
+| Middleware | Purpose |
+|-----------|---------|
+| ExtractTokenFromCookie | Reads `auth_token` cookie and sets Authorization header for Sanctum on SSR requests |
+| SecurityHeaders | X-Frame-Options, HSTS, CSP (environment-aware: permissive in dev, strict in production) |
+| HandleInertiaRequests | Shares `auth.hasBankConnected` prop for conditional API calls |
+
+### Services (12) — `app/Services/`
 
 | Service | Purpose |
 |---------|---------|
@@ -105,6 +121,8 @@
 | TaxExportService | Excel + PDF + CSV generation, email to accountant |
 | CaptchaService | reCAPTCHA v3 server-side verification |
 | AI/AlternativeSuggestionService | AI-powered cheaper alternatives for subscriptions/expenses (7-day cache) |
+| Email/GmailService | Gmail OAuth flow, email fetching, receipt search (separate from login OAuth) |
+| Email/ImapEmailService | IMAP email connection, provider detection, setup instructions |
 
 ### Frontend Pages — `resources/js/Pages/`
 
@@ -118,22 +136,48 @@
 | Connect/Index | /connect | Plaid link + statement upload wizard + email connections |
 | Questions/Index | /questions | AI categorization questions with chat |
 | Settings/Index | /settings | Financial profile, 2FA, account deletion |
+| Auth/Login | /login | Email/password + Google OAuth login |
+| Auth/Register | /register | Registration + Google OAuth signup |
+| Auth/GoogleCallback | /auth/callback | Handles Google OAuth redirect, stores token |
+| Auth/VerifyEmail | /email-verification-notice | Email verification prompt |
+| Auth/ForgotPassword | /forgot-password | Password reset request |
+| Auth/ResetPassword | /reset-password | New password form |
 | Welcome | / | Marketing landing page |
 | Features, HowItWorks, About, FAQ, Contact | /features etc. | Marketing pages |
 | Legal/* | /privacy, /terms, /data-retention, /security-policy | Legal pages (Plaid-required) |
 
-### Key Frontend Components — `resources/js/Components/SpendifiAI/`
+### Key Frontend Components — `resources/js/Components/`
 
-ActionResponsePanel, Badge, ConfirmDialog, ConnectionMethodChooser, FileDropZone,
+**SpendifiAI/**: ActionResponsePanel, Badge, ConfirmDialog, ConnectionMethodChooser, FileDropZone,
 PlaidLinkButton, ProcessingStatus, ProjectedSavingsBanner, QuestionCard, SavingsTrackingChart,
 StatCard, StatementUploadWizard, StepIndicator, TransactionReviewTable, UploadHistory
 
+**Auth/Shared**: GoogleLoginButton (official Google brand colors), ConnectBankPrompt (shown when no bank connected)
+
 ### Custom Hooks — `resources/js/hooks/`
 
-- `useApi` — GET requests with loading/error/refresh
+- `useApi` — GET requests with loading/error/refresh + `enabled` option for conditional fetching
 - `useApiPost` — POST requests with loading/error states
 
 ## CRITICAL ARCHITECTURE DECISIONS
+
+### Token-Based Authentication
+Login/Register use API endpoints that return Sanctum bearer tokens. Tokens are stored in:
+1. `localStorage` — for JavaScript `Authorization` header on API calls
+2. Secure cookie (`auth_token`) — for server-side Inertia requests (hard refresh, initial page load)
+
+`ExtractTokenFromCookie` middleware reads the cookie and sets the Authorization header before Sanctum processes the request. This ensures authentication persists across page refreshes without relying on Laravel sessions.
+
+### Conditional API Calls
+Pages that need bank data check `auth.hasBankConnected` (shared via `HandleInertiaRequests`) and pass `enabled: false` to `useApi` when no bank is connected. This prevents 403 errors and unnecessary API calls. Pages show `ConnectBankPrompt` instead.
+
+### Google OAuth Scopes
+Login requests **basic scopes only** (`openid`, `email`, `profile`) to avoid Google's "unverified app" warning for restricted scopes. Gmail API access (`gmail.readonly`) is requested separately via the Email Connection flow on the Connect page through `GmailService`, which has its own OAuth flow.
+
+### Content Security Policy
+`SecurityHeaders` middleware applies environment-aware CSP:
+- **Development** (`local`, `development`): Permissive CSP to allow Vite dev server HMR
+- **Production**: Strict CSP — `default-src 'self'`, whitelisted fonts.bunny.net, images
 
 ### Encryption
 Every sensitive field uses Laravel model casts — **never call encrypt()/decrypt() manually**.
@@ -203,16 +247,20 @@ SavingsLedgerStatus, SubscriptionStatus
 - `$hidden` on every model with sensitive fields
 - TEXT columns for any encrypted field
 - Rate limiting on auth endpoints
-- Sanctum bearer token auth on API routes
+- Sanctum bearer token auth on API routes (token in localStorage + cookie)
 - Tailwind CSS v4 with `sw-*` custom theme tokens
 - `Number()` wrapping for all decimal values in TypeScript arithmetic
+- Environment-aware CSP (permissive in dev, strict in production)
+- Google OAuth login uses basic scopes only; Gmail scopes via separate email connection flow
+- `useApi` hook `enabled` option to skip API calls when preconditions not met (e.g., no bank connected)
+- Production assets via `npm run build`; never run Vite dev server in production
 
 ## COMMANDS
 
 ```bash
 # Development
 php artisan serve                           # Start dev server
-npm run dev                                 # Vite dev server
+npm run dev                                 # Vite dev server (dev only — stop before production)
 php artisan queue:work redis --tries=3      # Process jobs
 php artisan schedule:work                   # Scheduled tasks
 
@@ -241,7 +289,9 @@ Key vars (see `.env.example`):
 - `DB_PASSWORD` — PostgreSQL password
 - `ANTHROPIC_API_KEY` — console.anthropic.com
 - `PLAID_CLIENT_ID` / `PLAID_SECRET` — Pre-set for sandbox
-- `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` — Optional, for OAuth
+- `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` — Used for both login (basic scopes) and email connection (Gmail scopes)
+- `MAIL_*` — SendGrid SMTP for transactional email
+- `CACHE_STORE=redis` / `QUEUE_CONNECTION=redis` — Redis for cache and queues
 
 ## TEST COVERAGE (131 tests)
 
