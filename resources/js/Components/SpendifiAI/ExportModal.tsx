@@ -42,12 +42,23 @@ export default function ExportModal({ open, onClose, year, mode, onExport }: Exp
     try {
       if (mode === 'download') {
         const response = await axios.post('/api/v1/tax/export', { year });
-        // Download each selected format using the API download route
+        // Download each selected format via axios (includes auth header)
         const formatMap: Record<string, string> = { excel: 'xlsx', pdf: 'pdf', csv: 'csv' };
         for (const fmt of selectedFormats) {
           const type = formatMap[fmt] ?? fmt;
           if (response.data?.downloads?.[type]) {
-            window.open(`/api/v1/tax/download/${year}/${type}`, '_blank');
+            const dlResponse = await axios.get(`/api/v1/tax/download/${year}/${type}`, {
+              responseType: 'blob',
+            });
+            const blob = new Blob([dlResponse.data]);
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = response.data.downloads[type].filename || `SpendifiAI_Tax_${year}.${type}`;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            URL.revokeObjectURL(url);
           }
         }
         setSuccess(true);

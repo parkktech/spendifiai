@@ -28,7 +28,8 @@ export default function GoogleCallback() {
       const date = new Date();
       date.setTime(date.getTime() + (24 * 60 * 60 * 1000));
       const expires = `expires=${date.toUTCString()}`;
-      document.cookie = `auth_token=${token}; ${expires}; path=/; secure; samesite=lax`;
+      const secure = window.location.protocol === 'https:' ? ' secure;' : '';
+      document.cookie = `auth_token=${token}; ${expires}; path=/;${secure} samesite=lax`;
 
       // Set Authorization header
       window.axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;

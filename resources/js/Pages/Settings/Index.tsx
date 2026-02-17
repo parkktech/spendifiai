@@ -40,6 +40,7 @@ export default function SettingsIndex() {
     tax_filing_status: '',
     monthly_income: '',
     business_type: '',
+    has_home_office: false,
   });
   const [profileSuccess, setProfileSuccess] = useState(false);
 
@@ -50,6 +51,7 @@ export default function SettingsIndex() {
         tax_filing_status: profile.tax_filing_status || '',
         monthly_income: profile.monthly_income !== null ? String(profile.monthly_income) : '',
         business_type: profile.business_type || '',
+        has_home_office: profile.has_home_office ?? false,
       });
     }
   }, [profile]);
@@ -60,6 +62,7 @@ export default function SettingsIndex() {
       tax_filing_status: profileForm.tax_filing_status || null,
       monthly_income: profileForm.monthly_income ? Number(profileForm.monthly_income) : null,
       business_type: profileForm.business_type || null,
+      has_home_office: profileForm.has_home_office,
     });
     setProfileSuccess(true);
     setTimeout(() => setProfileSuccess(false), 3000);
@@ -211,6 +214,20 @@ export default function SettingsIndex() {
                 placeholder="e.g., Software Development"
                 className={inputClasses}
               />
+            </div>
+
+            <div>
+              <label className={labelClasses}>Home Office</label>
+              <label className="flex items-center gap-2 mt-1.5 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={profileForm.has_home_office}
+                  onChange={(e) => setProfileForm({ ...profileForm, has_home_office: e.target.checked })}
+                  className="w-4 h-4 rounded border-sw-border bg-sw-bg text-sw-accent focus:ring-sw-accent focus:ring-offset-0"
+                />
+                <span className="text-sm text-sw-text">I have a dedicated home office</span>
+              </label>
+              <p className="text-[11px] text-sw-dim mt-1">Enables home office deduction tracking (Schedule C Line 30)</p>
             </div>
 
           </div>

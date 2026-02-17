@@ -179,8 +179,8 @@ class TaxController extends Controller
             abort(404, 'Invalid file type');
         }
 
-        // Find the most recent export for this year
-        $dir = storage_path('app/tax-exports/'.auth()->id());
+        // Find the most recent export for this year (local disk root is storage/app/private/)
+        $dir = storage_path('app/private/tax-exports/'.auth()->id());
         $pattern = "{$dir}/SpendifiAI_Tax_{$year}_*.{$type}";
         $files = glob($pattern);
 
