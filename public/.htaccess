@@ -5,10 +5,9 @@
 
     RewriteEngine On
 
-    # Force HTTPS (skip .loc local dev)
+    # Force HTTPS (skip .loc local dev, Cloudflare-aware)
     RewriteCond %{HTTP_HOST} !\.loc$ [NC]
-    RewriteCond %{HTTPS} off [OR]
-    RewriteCond %{HTTP:X-Forwarded-Proto} !https
+    RewriteCond %{HTTP:X-Forwarded-Proto} =http
     RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
 
     # Force www (skip .loc local dev)
