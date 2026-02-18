@@ -1,18 +1,9 @@
 <IfModule mod_rewrite.c>
-   # <IfModule mod_negotiation.c>
-   #     Options -MultiViews -Indexes
-   # </IfModule>
-
     RewriteEngine On
 
     # Force www (skip .loc local dev)
     RewriteCond %{HTTP_HOST} ^spendifiai\.com$ [NC]
     RewriteRule ^ https://www.spendifiai.com%{REQUEST_URI} [L,R=301]
-
-    # Prevent redirect loops: stop Apache vhost from redirecting HTTP→HTTPS
-    # (Cloudflare Flexible mode connects via HTTP; HTTPS is handled at the edge)
-    RewriteCond %{HTTP:X-Forwarded-Proto} .
-    RewriteRule ^ - [E=HTTPS:on]
 
     # Handle Authorization Header
     RewriteCond %{HTTP:Authorization} .
