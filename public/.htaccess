@@ -5,14 +5,14 @@
 
     RewriteEngine On
 
-    # Force HTTPS (skip .loc local dev, Cloudflare-aware)
-    RewriteCond %{HTTP_HOST} !\.loc$ [NC]
-    RewriteCond %{HTTP:X-Forwarded-Proto} =http
-    RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
-
     # Force www (skip .loc local dev)
     RewriteCond %{HTTP_HOST} ^spendifiai\.com$ [NC]
     RewriteRule ^ https://www.spendifiai.com%{REQUEST_URI} [L,R=301]
+
+    # Prevent redirect loops: stop Apache vhost from redirecting HTTP→HTTPS
+    # (Cloudflare Flexible mode connects via HTTP; HTTPS is handled at the edge)
+    RewriteCond %{HTTP:X-Forwarded-Proto} .
+    RewriteRule ^ - [E=HTTPS:on]
 
     # Handle Authorization Header
     RewriteCond %{HTTP:Authorization} .
