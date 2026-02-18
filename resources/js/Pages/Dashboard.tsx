@@ -38,6 +38,8 @@ import ProjectedSavingsBanner from '@/Components/SpendifiAI/ProjectedSavingsBann
 import SavingsTrackingChart from '@/Components/SpendifiAI/SavingsTrackingChart';
 import CostOfLivingBreakdown from '@/Components/SpendifiAI/CostOfLivingBreakdown';
 import PrimaryVsExtraCard from '@/Components/SpendifiAI/PrimaryVsExtraCard';
+import TimelineFilter from '@/Components/SpendifiAI/TimelineFilter';
+import TopStoresSection from '@/Components/SpendifiAI/TopStoresSection';
 import { useApi, useApiPost } from '@/hooks/useApi';
 import type { DashboardData, RecurringBill, BudgetWaterfall, HomeAffordability } from '@/types/spendifiai';
 
@@ -54,10 +56,12 @@ function formatCompact(amount: number): string {
 
 // --- Budget Waterfall Section ---
 
-function BudgetWaterfallSection({ waterfall }: { waterfall: BudgetWaterfall }) {
+function BudgetWaterfallSection({ waterfall, displayMode = 'dollars' }: { waterfall: BudgetWaterfall; displayMode?: 'dollars' | 'percent' }) {
   const surplus = waterfall.monthly_surplus;
   const canSave = waterfall.can_save;
   const rate = waterfall.savings_rate;
+  const showPct = displayMode === 'percent' && waterfall.monthly_income > 0;
+  const pctOf = (amount: number) => `${Math.round((amount / waterfall.monthly_income) * 100)}%`;
 
   return (
     <div className="rounded-2xl border border-sw-border bg-sw-card p-6">
@@ -129,33 +133,33 @@ function BudgetWaterfallSection({ waterfall }: { waterfall: BudgetWaterfall }) {
             <div className="w-3 h-3 rounded-sm bg-emerald-500" />
             <span className="text-sm text-sw-text">Monthly Income</span>
           </div>
-          <span className="text-sm font-bold text-emerald-700">{fmt.format(waterfall.monthly_income)}</span>
+          <span className="text-sm font-bold text-emerald-700">{showPct ? '100%' : fmt.format(waterfall.monthly_income)}</span>
         </div>
         <div className="flex items-center justify-between py-1.5">
           <div className="flex items-center gap-2.5">
             <div className="w-3 h-3 rounded-sm bg-red-400" />
             <span className="text-sm text-sw-text">Essential Bills</span>
           </div>
-          <span className="text-sm font-semibold text-red-600">-{fmt.format(waterfall.essential_bills)}</span>
+          <span className="text-sm font-semibold text-red-600">-{showPct ? pctOf(waterfall.essential_bills) : fmt.format(waterfall.essential_bills)}</span>
         </div>
         <div className="flex items-center justify-between py-1.5">
           <div className="flex items-center gap-2.5">
             <div className="w-3 h-3 rounded-sm bg-amber-400" />
             <span className="text-sm text-sw-text">Non-Essential Subscriptions</span>
           </div>
-          <span className="text-sm font-semibold text-amber-600">-{fmt.format(waterfall.non_essential_subscriptions)}</span>
+          <span className="text-sm font-semibold text-amber-600">-{showPct ? pctOf(waterfall.non_essential_subscriptions) : fmt.format(waterfall.non_essential_subscriptions)}</span>
         </div>
         <div className="flex items-center justify-between py-1.5">
           <div className="flex items-center gap-2.5">
             <div className="w-3 h-3 rounded-sm bg-orange-400" />
             <span className="text-sm text-sw-text">Other Spending</span>
           </div>
-          <span className="text-sm font-semibold text-orange-600">-{fmt.format(waterfall.discretionary_spending)}</span>
+          <span className="text-sm font-semibold text-orange-600">-{showPct ? pctOf(waterfall.discretionary_spending) : fmt.format(waterfall.discretionary_spending)}</span>
         </div>
         <div className="border-t border-sw-border pt-2.5 flex items-center justify-between">
           <span className="text-sm font-bold text-sw-text">{canSave ? 'Monthly Surplus' : 'Monthly Deficit'}</span>
           <span className={`text-lg font-bold ${canSave ? 'text-emerald-700' : 'text-red-600'}`}>
-            {canSave ? '+' : ''}{fmt.format(surplus)}
+            {canSave ? '+' : ''}{showPct ? `${Math.abs(rate)}%` : fmt.format(surplus)}
           </span>
         </div>
       </div>
@@ -175,10 +179,13 @@ function BudgetWaterfallSection({ waterfall }: { waterfall: BudgetWaterfall }) {
 
 // --- Monthly Bills Section ---
 
-function MonthlyBillsSection({ bills, totalMonthly }: { bills: RecurringBill[]; totalMonthly: number }) {
+function MonthlyBillsSection({ bills, totalMonthly, monthlyIncome, displayMode = 'dollars' }: { bills: RecurringBill[]; totalMonthly: number; monthlyIncome?: number; displayMode?: 'dollars' | 'percent' }) {
   const [showAll, setShowAll] = useState(false);
   const essentialBills = bills.filter(b => b.is_essential);
   const nonEssentialBills = bills.filter(b => !b.is_essential);
+  const showPct = displayMode === 'percent' && monthlyIncome && monthlyIncome > 0;
+  const essentialTotal = essentialBills.reduce((s, b) => s + Number(b.amount), 0);
+  const nonEssentialTotal = nonEssentialBills.reduce((s, b) => s + Number(b.amount), 0);
   const displayBills = showAll ? bills : bills.slice(0, 8);
 
   return (
@@ -194,8 +201,12 @@ function MonthlyBillsSection({ bills, totalMonthly }: { bills: RecurringBill[]; 
           </div>
         </div>
         <div className="text-right">
-          <div className="text-lg font-bold text-sw-text">{fmt.format(totalMonthly)}/mo</div>
-          <div className="text-[11px] text-sw-dim">{fmt.format(totalMonthly * 12)}/yr</div>
+          <div className="text-lg font-bold text-sw-text">
+            {showPct ? `${Math.round((totalMonthly / monthlyIncome!) * 100)}% of income` : `${fmt.format(totalMonthly)}/mo`}
+          </div>
+          <div className="text-[11px] text-sw-dim">
+            {showPct ? `${fmt.format(totalMonthly)}/mo` : `${fmt.format(totalMonthly * 12)}/yr`}
+          </div>
         </div>
       </div>
 
@@ -203,12 +214,16 @@ function MonthlyBillsSection({ bills, totalMonthly }: { bills: RecurringBill[]; 
       <div className="grid grid-cols-2 gap-3 mb-4">
         <div className="rounded-lg bg-slate-50 border border-slate-200 p-3">
           <div className="text-[11px] text-sw-muted font-medium uppercase tracking-wider mb-1">Essential</div>
-          <div className="text-base font-bold text-sw-text">{fmt.format(essentialBills.reduce((s, b) => s + Number(b.amount), 0))}</div>
+          <div className="text-base font-bold text-sw-text">
+            {showPct ? `${Math.round((essentialTotal / monthlyIncome!) * 100)}%` : fmt.format(essentialTotal)}
+          </div>
           <div className="text-[11px] text-sw-dim">{essentialBills.length} bills</div>
         </div>
         <div className="rounded-lg bg-amber-50 border border-amber-200 p-3">
           <div className="text-[11px] text-amber-700 font-medium uppercase tracking-wider mb-1">Non-Essential</div>
-          <div className="text-base font-bold text-amber-700">{fmt.format(nonEssentialBills.reduce((s, b) => s + Number(b.amount), 0))}</div>
+          <div className="text-base font-bold text-amber-700">
+            {showPct ? `${Math.round((nonEssentialTotal / monthlyIncome!) * 100)}%` : fmt.format(nonEssentialTotal)}
+          </div>
           <div className="text-[11px] text-amber-600">{nonEssentialBills.length} could be cut</div>
         </div>
       </div>
@@ -249,8 +264,12 @@ function MonthlyBillsSection({ bills, totalMonthly }: { bills: RecurringBill[]; 
               </div>
             </div>
             <div className="text-right shrink-0">
-              <div className="text-sm font-semibold text-sw-text">{fmt.format(bill.amount)}/mo</div>
-              <div className="text-[10px] text-sw-dim">{fmt.format(bill.annual_cost)}/yr</div>
+              <div className="text-sm font-semibold text-sw-text">
+                {showPct ? `${((Number(bill.amount) / monthlyIncome!) * 100).toFixed(1)}%` : `${fmt.format(bill.amount)}/mo`}
+              </div>
+              <div className="text-[10px] text-sw-dim">
+                {showPct ? `${fmt.format(bill.amount)}/mo` : `${fmt.format(bill.annual_cost)}/yr`}
+              </div>
             </div>
           </div>
         ))}
@@ -711,7 +730,21 @@ function LoadingSkeleton() {
 // --- Main Dashboard ---
 
 export default function Dashboard() {
-  const { data, loading, error, refresh } = useApi<DashboardData>('/api/v1/dashboard');
+  const [periodStart, setPeriodStart] = useState<string | null>(null);
+  const [periodEnd, setPeriodEnd] = useState<string | null>(null);
+  const [avgMode, setAvgMode] = useState<'total' | 'monthly_avg'>('total');
+  const [displayMode, setDisplayMode] = useState<'dollars' | 'percent'>('dollars');
+
+  const dashboardUrl = useMemo(() => {
+    const params = new URLSearchParams();
+    if (periodStart) params.set('period_start', periodStart);
+    if (periodEnd) params.set('period_end', periodEnd);
+    if (avgMode !== 'total') params.set('avg_mode', avgMode);
+    const query = params.toString();
+    return `/api/v1/dashboard${query ? '?' + query : ''}`;
+  }, [periodStart, periodEnd, avgMode]);
+
+  const { data, loading, error, refresh } = useApi<DashboardData>(dashboardUrl);
   const { submit: analyzeSpending, loading: analyzing } = useApiPost('/api/v1/savings/analyze');
   const { submit: dismissRec } = useApiPost('', 'POST');
   const { submit: respondToAction } = useApiPost('', 'POST');
@@ -914,6 +947,19 @@ export default function Dashboard() {
         </div>
       )}
 
+      {/* Timeline Filter — always visible, persists during loading */}
+      {!error && (
+        <TimelineFilter
+          onPeriodChange={(start, end, mode) => {
+            setPeriodStart(start);
+            setPeriodEnd(end);
+            setAvgMode(mode);
+          }}
+          onDisplayModeChange={(mode) => setDisplayMode(mode)}
+          currentPeriod={data?.period}
+        />
+      )}
+
       {data && (
         <div aria-live="polite" className="space-y-6">
           {/* SECTION A: Smart Greeting + Hero Metrics */}
@@ -964,7 +1010,7 @@ export default function Dashboard() {
 
           {/* SECTION B: Budget Reality Check + Home Affordability (side by side) */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-            <BudgetWaterfallSection waterfall={data.budget_waterfall} />
+            <BudgetWaterfallSection waterfall={data.budget_waterfall} displayMode={displayMode} />
             <HomeAffordabilitySection affordability={data.home_affordability} />
           </div>
 
@@ -989,9 +1035,19 @@ export default function Dashboard() {
             />
           )}
 
+          {/* SECTION B3: Top Stores */}
+          {data.top_stores && data.top_stores.length > 0 && (
+            <TopStoresSection
+              stores={data.top_stores}
+              total={data.top_stores_total}
+              period={data.period}
+              avgMode={avgMode}
+            />
+          )}
+
           {/* SECTION C: Your Monthly Bills */}
           {data.recurring_bills.length > 0 && (
-            <MonthlyBillsSection bills={data.recurring_bills} totalMonthly={data.total_monthly_bills} />
+            <MonthlyBillsSection bills={data.recurring_bills} totalMonthly={data.total_monthly_bills} monthlyIncome={data.budget_waterfall.monthly_income} displayMode={displayMode} />
           )}
 
           {/* SECTION D: Your Money Moves — Action Feed */}

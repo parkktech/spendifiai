@@ -1,5 +1,18 @@
 export type ActionResponseType = 'cancelled' | 'reduced' | 'kept';
 
+export interface TransactionOrderItem {
+  id: number;
+  product_name: string;
+  product_description: string | null;
+  quantity: number;
+  total_price: number;
+  ai_category: string | null;
+  user_category: string | null;
+  expense_type: 'personal' | 'business';
+  tax_deductible: boolean;
+  tax_deductible_confidence: number | null;
+}
+
 export interface Transaction {
   id: number;
   merchant_name: string;
@@ -18,6 +31,7 @@ export interface Transaction {
   matched_order_id: number | null;
   category: string;
   account?: BankAccount;
+  order_items?: TransactionOrderItem[];
 }
 
 export interface BankAccount {
@@ -237,6 +251,9 @@ export interface DashboardData {
   primary_vs_extra: PrimaryVsExtra;
   projected_savings: ProjectedSavings;
   savings_history: SavingsHistoryEntry[];
+  top_stores: TopStore[];
+  top_stores_total: number;
+  period: PeriodMeta;
 }
 
 export interface TaxLineItem {
@@ -482,4 +499,85 @@ export interface SavingsHistoryEntry {
   verified_savings: number;
   subscription_savings: number;
   recommendation_savings: number;
+}
+
+// --- Timeline / Period Types ---
+
+export type TimelinePeriod =
+  | 'this_month'
+  | 'last_month'
+  | 'last_3_months'
+  | 'last_6_months'
+  | 'last_year'
+  | 'ytd'
+  | 'custom';
+
+export interface PeriodMeta {
+  start: string;
+  end: string;
+  months: number;
+  avg_mode: 'total' | 'monthly_avg';
+  is_custom: boolean;
+}
+
+// --- Top Stores Types ---
+
+export interface TopStore {
+  store_name: string;
+  total_spent: number;
+  transaction_count: number;
+  avg_per_visit: number;
+  pct_of_total: number;
+  first_visit: string;
+  last_visit: string;
+  has_order_items: boolean;
+  tax_deductible_total: number;
+  tax_deductible_count: number;
+}
+
+export interface StoreMonthlyTrend {
+  month: string;
+  month_start: string;
+  total: number;
+  count: number;
+}
+
+export interface StoreTransaction {
+  id: number;
+  month: string;
+  date: string;
+  merchant_name: string;
+  amount: number;
+  description: string | null;
+  category: string;
+  expense_type: string;
+  tax_deductible: boolean;
+  is_reconciled: boolean;
+  order_items: StoreOrderItem[];
+}
+
+export interface StoreOrderItem {
+  id: number;
+  product_name: string;
+  product_description: string | null;
+  quantity: number;
+  total_price: number;
+  ai_category: string | null;
+  user_category: string | null;
+  expense_type: 'personal' | 'business';
+  tax_deductible: boolean;
+  tax_deductible_confidence: number | null;
+  order: {
+    id: number;
+    order_date: string;
+    order_number: string | null;
+    total: number;
+  };
+}
+
+export interface StoreDetail {
+  store_name: string;
+  monthly_trend: StoreMonthlyTrend[];
+  transactions: Record<string, StoreTransaction[]>;
+  order_items: StoreOrderItem[];
 }

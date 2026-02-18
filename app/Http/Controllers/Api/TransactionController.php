@@ -19,7 +19,7 @@ class TransactionController extends Controller
     public function index(Request $request): JsonResponse
     {
         $query = Transaction::where('user_id', auth()->id())
-            ->with('bankAccount:id,name,mask,purpose,nickname');
+            ->with(['bankAccount:id,name,mask,purpose,nickname', 'matchedOrder.items']);
 
         // Account purpose filter (the key one)
         if ($request->filled('purpose')) {

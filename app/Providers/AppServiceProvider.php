@@ -2,13 +2,15 @@
 
 namespace App\Providers;
 
+use App\Http\Middleware\Enforce2FA;
 use App\Http\Middleware\EnsureBankConnected;
 use App\Http\Middleware\EnsureProfileComplete;
-use App\Http\Middleware\Enforce2FA;
 use App\Http\Middleware\VerifyCaptcha;
+use App\Listeners\LogMailableMessage;
 use App\Models\AIQuestion;
 use App\Models\BankAccount;
 use App\Models\BankConnection;
+use App\Models\OrderItem;
 use App\Models\SavingsPlanAction;
 use App\Models\SavingsRecommendation;
 use App\Models\Subscription;
@@ -16,14 +18,14 @@ use App\Models\Transaction;
 use App\Policies\AIQuestionPolicy;
 use App\Policies\BankAccountPolicy;
 use App\Policies\BankConnectionPolicy;
+use App\Policies\OrderItemPolicy;
 use App\Policies\SavingsPlanActionPolicy;
 use App\Policies\SavingsRecommendationPolicy;
 use App\Policies\SubscriptionPolicy;
 use App\Policies\TransactionPolicy;
-use App\Listeners\LogMailableMessage;
+use Illuminate\Mail\Events\MailFailed;
 use Illuminate\Mail\Events\MessageSending;
 use Illuminate\Mail\Events\MessageSent;
-use Illuminate\Mail\Events\MailFailed;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
@@ -55,6 +57,7 @@ class AppServiceProvider extends ServiceProvider
         Route::model('rec', SavingsRecommendation::class);
         Route::model('action', SavingsPlanAction::class);
         Route::model('connection', BankConnection::class);
+        Route::model('item', OrderItem::class);
 
         // ── Middleware Aliases ──
         Route::aliasMiddleware('bank.connected', EnsureBankConnected::class);
@@ -70,6 +73,7 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(Subscription::class, SubscriptionPolicy::class);
         Gate::policy(SavingsRecommendation::class, SavingsRecommendationPolicy::class);
         Gate::policy(SavingsPlanAction::class, SavingsPlanActionPolicy::class);
+        Gate::policy(OrderItem::class, OrderItemPolicy::class);
 
         // ── Vite Prefetch (from Breeze starter kit) ──
         Vite::prefetch(concurrency: 3);
@@ -79,8 +83,8 @@ class AppServiceProvider extends ServiceProvider
             DB::listen(function ($query) {
                 if ($query->time > 100) {
                     Log::warning('Slow query', [
-                        'sql'  => $query->sql,
-                        'time' => $query->time . 'ms',
+                        'sql' => $query->sql,
+                        'time' => $query->time.'ms',
                     ]);
                 }
             });

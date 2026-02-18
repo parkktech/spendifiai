@@ -9,6 +9,7 @@ use App\Models\ParsedEmail;
 use App\Services\AI\EmailParserService;
 use App\Services\Email\GmailService;
 use App\Services\Email\ImapEmailService;
+use App\Services\Email\MicrosoftOutlookService;
 use Carbon\Carbon;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -31,7 +32,7 @@ class ProcessOrderEmails implements ShouldQueue
         protected ?string $sinceDate = null
     ) {}
 
-    public function handle(GmailService $gmailService, ImapEmailService $imapService, EmailParserService $parser): void
+    public function handle(GmailService $gmailService, ImapEmailService $imapService, MicrosoftOutlookService $microsoftService, EmailParserService $parser): void
     {
         $connection = $this->emailConnection;
         $connection->update(['sync_status' => 'syncing']);
@@ -42,9 +43,13 @@ class ProcessOrderEmails implements ShouldQueue
                 : null;
 
             // Step 1: Fetch emails — route to correct service based on connection type
-            $emails = $connection->connection_type === 'imap'
-                ? $this->fetchViaImap($imapService, $connection, $since)
-                : $this->fetchViaGmail($gmailService, $connection, $since);
+            $emails = match ($connection->connection_type) {
+                'imap' => $this->fetchViaImap($imapService, $connection, $since),
+                'oauth' => $connection->provider === 'outlook'
+                    ? $this->fetchViaMicrosoft($microsoftService, $connection, $since)
+                    : $this->fetchViaGmail($gmailService, $connection, $since),
+                default => $this->fetchViaGmail($gmailService, $connection, $since),
+            };
 
             $count = count($emails);
             Log::info("Found {$count} new potential order emails", [
@@ -209,6 +214,37 @@ class ProcessOrderEmails implements ShouldQueue
                 ];
             } catch (\Exception $e) {
                 Log::error("Failed to fetch Gmail content for {$messageId}", [
+                    'error' => $e->getMessage(),
+                    'connection_id' => $connection->id,
+                ]);
+            }
+        }
+
+        return $emails;
+    }
+
+    /**
+     * Fetch emails via Microsoft Graph OAuth API — returns message IDs, then fetches full content.
+     */
+    protected function fetchViaMicrosoft(MicrosoftOutlookService $microsoftService, EmailConnection $connection, ?Carbon $since): array
+    {
+        $messageIds = $microsoftService->fetchOrderEmails($connection, $since);
+
+        $emails = [];
+        foreach ($messageIds as $messageId) {
+            try {
+                $emailContent = $microsoftService->getEmailContent($connection, $messageId);
+                $emails[] = [
+                    'message_id' => $messageId,
+                    'thread_id' => null,
+                    'subject' => $emailContent['subject'] ?? '',
+                    'from' => $emailContent['from'] ?? '',
+                    'date' => $emailContent['date'] ?? '',
+                    'body' => $emailContent['body'] ?? '',
+                    'snippet' => $emailContent['snippet'] ?? '',
+                ];
+            } catch (\Exception $e) {
+                Log::error("Failed to fetch Microsoft email content for {$messageId}", [
                     'error' => $e->getMessage(),
                     'connection_id' => $connection->id,
                 ]);

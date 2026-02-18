@@ -3,11 +3,13 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\DashboardRequest;
 use App\Http\Resources\SavingsRecommendationResource;
 use App\Http\Resources\TransactionResource;
 use App\Models\AIQuestion;
 use App\Models\BankAccount;
 use App\Models\BankConnection;
+use App\Models\OrderItem;
 use App\Models\SavingsRecommendation;
 use App\Models\SavingsTarget;
 use App\Models\Subscription;
@@ -28,33 +30,55 @@ class DashboardController extends Controller
      * Dashboard composite data: spending summary, categories, questions,
      * recent transactions, trend, sync status, and accounts summary.
      */
-    public function index(Request $request): JsonResponse
+    public function index(DashboardRequest $request): JsonResponse
     {
         $user = auth()->user();
         $viewMode = $request->input('view', 'all');
-        $cacheKey = "dashboard:{$user->id}:{$viewMode}";
+        $avgMode = $request->input('avg_mode', 'total');
 
-        return response()->json(Cache::remember($cacheKey, 60, function () use ($user, $viewMode) {
+        // Timeline filter: custom date range or default to current month
+        $periodStart = $request->filled('period_start')
+            ? Carbon::parse($request->input('period_start'))->startOfDay()
+            : null;
+        $periodEnd = $request->filled('period_end')
+            ? Carbon::parse($request->input('period_end'))->endOfDay()
+            : null;
+
+        $periodStartKey = $periodStart?->format('Y-m-d') ?? '';
+        $periodEndKey = $periodEnd?->format('Y-m-d') ?? '';
+        $cacheKey = "dashboard:{$user->id}:{$viewMode}:{$periodStartKey}:{$periodEndKey}";
+
+        return response()->json(Cache::remember($cacheKey, 60, function () use ($user, $viewMode, $periodStart, $periodEnd, $avgMode) {
             $now = Carbon::now();
-            $monthStart = $now->copy()->startOfMonth();
-            $lastMonthStart = $now->copy()->subMonth()->startOfMonth();
-            $lastMonthEnd = $now->copy()->subMonth()->endOfMonth();
+
+            // When custom period is set, use it; otherwise default to current month
+            $isCustomPeriod = $periodStart !== null && $periodEnd !== null;
+            $monthStart = $isCustomPeriod ? $periodStart : $now->copy()->startOfMonth();
+            $monthEnd = $isCustomPeriod ? $periodEnd : $now->copy()->endOfDay();
+
+            // Compute prior period for comparison (same duration, shifted back)
+            $periodDays = $monthStart->diffInDays($monthEnd);
+            $lastMonthEnd = $monthStart->copy()->subDay()->endOfDay();
+            $lastMonthStart = $lastMonthEnd->copy()->subDays($periodDays)->startOfDay();
+
+            // Period months for the selected date range
+            $periodMonths = max((int) $monthStart->diffInMonths($monthEnd), 1);
 
             // Base query builder that respects the view filter
             $txQuery = fn () => Transaction::where('user_id', $user->id)
                 ->when($viewMode === 'personal', fn ($q) => $q->where('account_purpose', 'personal'))
                 ->when($viewMode === 'business', fn ($q) => $q->where('account_purpose', 'business'));
 
-            // This month's spending (outgoing)
+            // This period's spending (outgoing)
             $thisMonth = $txQuery()
                 ->where('amount', '>', 0)
-                ->where('transaction_date', '>=', $monthStart)
+                ->whereBetween('transaction_date', [$monthStart, $monthEnd])
                 ->sum('amount');
 
-            // This month's income (incoming — negative amounts, excluding transfers)
+            // This period's income (incoming — negative amounts, excluding transfers)
             $thisMonthIncome = $txQuery()
                 ->where('amount', '<', 0)
-                ->where('transaction_date', '>=', $monthStart)
+                ->whereBetween('transaction_date', [$monthStart, $monthEnd])
                 ->whereNotIn('plaid_category', ['TRANSFER_IN', 'TRANSFER_OUT'])
                 ->sum(DB::raw('ABS(amount)'));
 
@@ -75,12 +99,12 @@ class DashboardController extends Controller
                 ? round((($thisMonth - $lastMonth) / $lastMonth) * 100, 1)
                 : 0;
 
-            // Category breakdown (this month)
+            // Category breakdown (this period)
             // Use the query builder directly to avoid the model's `category` accessor
             // which overrides the COALESCE alias.
             $categories = $txQuery()
                 ->where('amount', '>', 0)
-                ->where('transaction_date', '>=', $monthStart)
+                ->whereBetween('transaction_date', [$monthStart, $monthEnd])
                 ->toBase()
                 ->select(
                     DB::raw("COALESCE(user_category, ai_category, 'Uncategorized') as category"),
@@ -111,10 +135,13 @@ class DashboardController extends Controller
                 ->where('status', 'active')
                 ->sum('monthly_savings');
 
-            // Tax deductible YTD
+            // Tax deductible (within selected period, or YTD for default)
             $taxDeductible = $txQuery()
                 ->where('tax_deductible', true)
-                ->where('transaction_date', '>=', $now->copy()->startOfYear())
+                ->whereBetween('transaction_date', [
+                    $isCustomPeriod ? $monthStart : $now->copy()->startOfYear(),
+                    $monthEnd,
+                ])
                 ->sum('amount');
 
             // Items needing review
@@ -159,10 +186,10 @@ class DashboardController extends Controller
                 ];
             }
 
-            // Applied recommendations this month (for momentum tracker)
+            // Applied recommendations in period (for momentum tracker)
             $appliedThisMonth = SavingsRecommendation::where('user_id', $user->id)
                 ->where('status', 'applied')
-                ->where('applied_at', '>=', $monthStart)
+                ->whereBetween('applied_at', [$monthStart, $monthEnd])
                 ->orderByDesc('monthly_savings')
                 ->select('id', 'title', 'monthly_savings', 'category', 'applied_at')
                 ->get();
@@ -184,16 +211,18 @@ class DashboardController extends Controller
                 ->whereIn('review_status', ['pending_ai', 'needs_review'])
                 ->count();
 
-            // Recent transactions
+            // Recent transactions (within period if custom)
             $recent = $txQuery()
+                ->when($isCustomPeriod, fn ($q) => $q->whereBetween('transaction_date', [$monthStart, $monthEnd]))
                 ->with('bankAccount:id,name,mask,purpose,nickname')
                 ->orderByDesc('transaction_date')
                 ->limit(20)
                 ->get();
 
-            // Monthly spending trend (6 months) — includes income + expenses
+            // Monthly spending trend — includes income + expenses
+            $trendStart = $isCustomPeriod ? $monthStart : $now->copy()->subMonths(6)->startOfMonth();
             $trend = $txQuery()
-                ->where('transaction_date', '>=', $now->copy()->subMonths(6)->startOfMonth())
+                ->whereBetween('transaction_date', [$trendStart, $monthEnd])
                 ->whereNotIn('plaid_category', ['TRANSFER_IN', 'TRANSFER_OUT'])
                 ->select(
                     DB::raw("TO_CHAR(transaction_date, 'Mon') as month"),
@@ -206,14 +235,16 @@ class DashboardController extends Controller
                 ->get();
 
             // Top savings opportunity categories — highest discretionary spending
+            $oppsStart = $isCustomPeriod ? $monthStart : $now->copy()->subMonths(3)->startOfMonth();
+            $oppsMonths = max((int) $oppsStart->diffInMonths($monthEnd), 1);
             $savingsOpportunities = $txQuery()
                 ->where('amount', '>', 0)
-                ->where('transaction_date', '>=', $now->copy()->subMonths(3)->startOfMonth())
+                ->whereBetween('transaction_date', [$oppsStart, $monthEnd])
                 ->toBase()
                 ->select(
                     DB::raw("COALESCE(user_category, ai_category, 'Uncategorized') as category"),
                     DB::raw('SUM(amount) as total_3mo'),
-                    DB::raw('ROUND(SUM(amount) / 3, 2) as monthly_avg'),
+                    DB::raw("ROUND(SUM(amount) / {$oppsMonths}, 2) as monthly_avg"),
                     DB::raw('COUNT(*) as transaction_count'),
                     DB::raw('ROUND(AVG(amount), 2) as avg_transaction')
                 )
@@ -254,7 +285,8 @@ class DashboardController extends Controller
             // --- Income Detection (early for use in home affordability) ---
             $userOverrides = UserFinancialOverride::getOverridesFor($user->id);
             $incomeDetector = app(IncomeDetectorService::class);
-            $incomeSources = $incomeDetector->analyze($user->id, $viewMode, 3, $userOverrides);
+            $incomeMonths = $isCustomPeriod ? $periodMonths : 3;
+            $incomeSources = $incomeDetector->analyze($user->id, $viewMode, $incomeMonths, $userOverrides);
 
             // --- Home Affordability Calculator ---
             $reliableIncome = $incomeSources['reliable_monthly'];
@@ -339,13 +371,13 @@ class DashboardController extends Controller
                 'Childcare & Kids' => 'Childcare',
             ];
 
-            // Query 3-month average for essential categories from transactions
-            $threeMonthsAgo = $now->copy()->subMonths(3)->startOfMonth();
-            $monthsElapsed = max((int) $threeMonthsAgo->diffInMonths($now->copy()->startOfMonth()), 1);
+            // Query average for essential categories from transactions
+            $essentialStart = $isCustomPeriod ? $monthStart : $now->copy()->subMonths(3)->startOfMonth();
+            $monthsElapsed = max((int) $essentialStart->diffInMonths($isCustomPeriod ? $monthEnd : $now->copy()->startOfMonth()), 1);
 
             $essentialSpending = $txQuery()
                 ->where('amount', '>', 0)
-                ->where('transaction_date', '>=', $threeMonthsAgo)
+                ->whereBetween('transaction_date', [$essentialStart, $monthEnd])
                 ->where(function ($q) use ($essentialCategoryMap, $essentialAiCategoryMap) {
                     $q->whereIn('plaid_detailed_category', array_keys($essentialCategoryMap))
                         ->orWhereIn(DB::raw('COALESCE(user_category, ai_category)'), array_keys($essentialAiCategoryMap));
@@ -563,6 +595,53 @@ class DashboardController extends Controller
                     : 0,
             ];
 
+            // --- Top Stores by Spend ---
+            $topStores = $txQuery()
+                ->where('amount', '>', 0)
+                ->whereBetween('transaction_date', [$monthStart, $monthEnd])
+                ->toBase()
+                ->select(
+                    DB::raw("COALESCE(NULLIF(merchant_normalized, ''), merchant_name, 'Unknown') as store_name"),
+                    DB::raw('SUM(amount) as total_spent'),
+                    DB::raw('COUNT(*) as transaction_count'),
+                    DB::raw('ROUND(AVG(amount), 2) as avg_per_visit'),
+                    DB::raw('MIN(transaction_date) as first_visit'),
+                    DB::raw('MAX(transaction_date) as last_visit'),
+                    DB::raw('BOOL_OR(matched_order_id IS NOT NULL) as has_order_items'),
+                    DB::raw('SUM(CASE WHEN tax_deductible THEN amount ELSE 0 END) as tax_deductible_total'),
+                    DB::raw('COUNT(CASE WHEN tax_deductible THEN 1 END) as tax_deductible_count')
+                )
+                ->groupBy('store_name')
+                ->orderByDesc('total_spent')
+                ->limit(15)
+                ->get();
+
+            $topStoresTotal = (float) $topStores->sum('total_spent');
+
+            $topStoresFormatted = $topStores->map(fn ($store) => [
+                'store_name' => $store->store_name,
+                'total_spent' => round((float) $store->total_spent, 2),
+                'transaction_count' => (int) $store->transaction_count,
+                'avg_per_visit' => round((float) $store->avg_per_visit, 2),
+                'pct_of_total' => $topStoresTotal > 0
+                    ? round(((float) $store->total_spent / $topStoresTotal) * 100, 1)
+                    : 0,
+                'first_visit' => $store->first_visit,
+                'last_visit' => $store->last_visit,
+                'has_order_items' => (bool) $store->has_order_items,
+                'tax_deductible_total' => round((float) $store->tax_deductible_total, 2),
+                'tax_deductible_count' => (int) $store->tax_deductible_count,
+            ])->values();
+
+            // --- Period Metadata ---
+            $periodMeta = [
+                'start' => $monthStart->format('Y-m-d'),
+                'end' => ($isCustomPeriod ? $monthEnd : $now)->format('Y-m-d'),
+                'months' => $periodMonths,
+                'avg_mode' => $avgMode,
+                'is_custom' => $isCustomPeriod,
+            ];
+
             return [
                 'view_mode' => $viewMode,
                 'summary' => [
@@ -609,6 +688,123 @@ class DashboardController extends Controller
                 'primary_vs_extra' => $primaryVsExtra,
                 'projected_savings' => app(SavingsTrackingService::class)->getProjectedSavings($user->id),
                 'savings_history' => app(SavingsTrackingService::class)->getSavingsHistory($user->id, 6),
+                'top_stores' => $topStoresFormatted,
+                'top_stores_total' => round($topStoresTotal, 2),
+                'period' => $periodMeta,
+            ];
+        }));
+    }
+
+    /**
+     * Store detail: monthly spending trend + reconciled order items.
+     */
+    public function storeDetail(Request $request, string $storeName): JsonResponse
+    {
+        $user = auth()->user();
+        $storeName = urldecode($storeName);
+
+        $cacheKey = "store_detail:{$user->id}:{$storeName}";
+
+        return response()->json(Cache::remember($cacheKey, 300, function () use ($user, $storeName) {
+            $storeFilter = function ($q) use ($storeName) {
+                $q->where('merchant_normalized', $storeName)
+                    ->orWhere('merchant_name', $storeName);
+            };
+
+            // Monthly spending trend at this store
+            $monthlyTrend = Transaction::where('user_id', $user->id)
+                ->where('amount', '>', 0)
+                ->where($storeFilter)
+                ->toBase()
+                ->select(
+                    DB::raw("TO_CHAR(transaction_date, 'Mon YYYY') as month"),
+                    DB::raw("DATE_TRUNC('month', transaction_date) as month_start"),
+                    DB::raw('SUM(amount) as total'),
+                    DB::raw('COUNT(*) as count')
+                )
+                ->groupBy('month', 'month_start')
+                ->orderBy('month_start')
+                ->limit(12)
+                ->get()
+                ->map(fn ($row) => [
+                    'month' => $row->month,
+                    'month_start' => Carbon::parse($row->month_start)->format('Y-m-d'),
+                    'total' => round((float) $row->total, 2),
+                    'count' => (int) $row->count,
+                ]);
+
+            // Individual transactions grouped by month for drill-down
+            $transactions = Transaction::where('user_id', $user->id)
+                ->where('amount', '>', 0)
+                ->where($storeFilter)
+                ->with(['matchedOrder.items' => function ($q) {
+                    $q->select('id', 'order_id', 'product_name', 'product_description', 'quantity',
+                        'total_price', 'ai_category', 'user_category', 'expense_type',
+                        'tax_deductible', 'tax_deductible_confidence');
+                }])
+                ->orderByDesc('transaction_date')
+                ->limit(200)
+                ->get()
+                ->map(function ($tx) {
+                    $monthKey = $tx->transaction_date->format('M Y');
+
+                    return [
+                        'id' => $tx->id,
+                        'month' => $monthKey,
+                        'date' => $tx->transaction_date->format('Y-m-d'),
+                        'merchant_name' => $tx->merchant_name,
+                        'amount' => round((float) $tx->amount, 2),
+                        'description' => $tx->description,
+                        'category' => $tx->user_category ?? $tx->ai_category ?? 'Uncategorized',
+                        'expense_type' => $tx->expense_type,
+                        'tax_deductible' => (bool) $tx->tax_deductible,
+                        'is_reconciled' => (bool) $tx->is_reconciled,
+                        'order_items' => $tx->matchedOrder?->items?->map(fn ($item) => [
+                            'id' => $item->id,
+                            'product_name' => $item->product_name,
+                            'product_description' => $item->product_description,
+                            'quantity' => $item->quantity,
+                            'total_price' => round((float) $item->total_price, 2),
+                            'ai_category' => $item->ai_category,
+                            'user_category' => $item->user_category,
+                            'expense_type' => $item->expense_type,
+                            'tax_deductible' => (bool) $item->tax_deductible,
+                            'tax_deductible_confidence' => $item->tax_deductible_confidence,
+                        ])?->values() ?? [],
+                    ];
+                })
+                ->groupBy('month');
+
+            // Reconciled order items for this store
+            // Use flexible matching: exact, case-insensitive, and ILIKE partial match
+            // so "PCI Race Radios" matches bank's "PCI RACE" and vice versa
+            $storeNameLower = strtolower($storeName);
+            $orderItems = OrderItem::where('order_items.user_id', $user->id)
+                ->whereHas('order', function ($q) use ($storeName, $storeNameLower) {
+                    $q->where(function ($inner) use ($storeName, $storeNameLower) {
+                        $inner->where('merchant_normalized', $storeName)
+                            ->orWhere('merchant', $storeName)
+                            ->orWhereRaw('LOWER(merchant_normalized) = ?', [$storeNameLower])
+                            ->orWhereRaw('LOWER(merchant) = ?', [$storeNameLower])
+                            ->orWhere('merchant_normalized', 'ILIKE', '%'.$storeName.'%')
+                            ->orWhere('merchant', 'ILIKE', '%'.$storeName.'%');
+                    });
+                })
+                ->with('order:id,order_date,order_number,total')
+                ->select(
+                    'id', 'order_id', 'product_name', 'product_description', 'quantity',
+                    'total_price', 'ai_category', 'user_category', 'expense_type',
+                    'tax_deductible', 'tax_deductible_confidence'
+                )
+                ->orderByDesc('created_at')
+                ->limit(50)
+                ->get();
+
+            return [
+                'store_name' => $storeName,
+                'monthly_trend' => $monthlyTrend,
+                'transactions' => $transactions,
+                'order_items' => $orderItems,
             ];
         }));
     }
@@ -635,12 +831,24 @@ class DashboardController extends Controller
             ['classification' => $validated['classification']]
         );
 
-        // Clear dashboard cache for all view modes
-        Cache::forget("dashboard:{$userId}:all");
-        Cache::forget("dashboard:{$userId}:personal");
-        Cache::forget("dashboard:{$userId}:business");
+        // Clear dashboard cache (flush by tag pattern)
+        $this->clearDashboardCache($userId);
 
         return response()->json(['message' => 'Classification updated']);
+    }
+
+    /**
+     * Clear all dashboard caches for a user (default + any custom period caches).
+     */
+    private function clearDashboardCache(int $userId): void
+    {
+        foreach (['all', 'personal', 'business'] as $view) {
+            // Default cache (no period params)
+            Cache::forget("dashboard:{$userId}:{$view}::");
+
+            // Legacy cache key (without period suffix) for backward compat
+            Cache::forget("dashboard:{$userId}:{$view}");
+        }
     }
 
     /**

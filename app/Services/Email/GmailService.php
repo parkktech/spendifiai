@@ -4,20 +4,23 @@ namespace App\Services\Email;
 
 use App\Models\EmailConnection;
 use App\Models\ParsedEmail;
+use Carbon\Carbon;
 use Google\Client as GoogleClient;
 use Google\Service\Gmail;
 use Google\Service\Gmail\Message;
 use Illuminate\Support\Facades\Log;
-use Carbon\Carbon;
 
 class GmailService
 {
     protected GoogleClient $client;
+
     protected Gmail $gmail;
 
     /**
      * Search queries that catch order confirmation emails from virtually any retailer.
      * These cast a wide net — Claude handles filtering out false positives.
+     * Broad coverage is critical: niche retailers (PCI Race Radios, Kartek, etc.)
+     * use non-standard subject lines that narrow queries miss.
      */
     protected array $searchQueries = [
         'subject:(order confirmation) -label:trash',
@@ -29,11 +32,22 @@ class GmailService
         'subject:(subscription renewal) -label:trash',
         'subject:(invoice) -label:trash',
         'subject:(your receipt) -label:trash',
+        'subject:(thank you for your order) -label:trash',
+        'subject:(order has been placed) -label:trash',
+        'subject:(order details) -label:trash',
+        'subject:(new order) -label:trash',
+        'subject:(shipping confirmation) -label:trash',
+        'subject:(delivery confirmation) -label:trash',
+        'subject:(order has shipped) -label:trash',
+        'subject:(payment confirmation) -label:trash',
+        'subject:(purchase receipt) -label:trash',
+        'subject:(order number) -label:trash',
+        'subject:(thank you for your purchase) -label:trash',
     ];
 
     public function __construct()
     {
-        $this->client = new GoogleClient();
+        $this->client = new GoogleClient;
         $this->client->setClientId(config('services.google.client_id'));
         $this->client->setClientSecret(config('services.google.client_secret'));
         $this->client->setRedirectUri(config('services.google.redirect_uri'));
@@ -110,11 +124,13 @@ class GmailService
     ): array {
         $this->authenticateConnection($connection);
 
-        $since = $since ?? $connection->last_synced_at ?? Carbon::now()->subYear();
+        // Match Plaid's lookback: Jan 1 of previous year (not just 1 year ago)
+        // so email orders align with the full transaction history
+        $since = $since ?? $connection->last_synced_at ?? Carbon::now()->subYear()->startOfYear();
         $messageIds = [];
 
         foreach ($this->searchQueries as $query) {
-            $fullQuery = $query . ' after:' . $since->format('Y/m/d');
+            $fullQuery = $query.' after:'.$since->format('Y/m/d');
 
             try {
                 $results = $this->gmail->users_messages->listUsersMessages('me', [
@@ -137,7 +153,7 @@ class GmailService
 
                         // Skip already-processed emails (uses correct column name)
                         $exists = ParsedEmail::where('email_message_id', $gmailId)->exists();
-                        if (!$exists) {
+                        if (! $exists) {
                             $messageIds[] = $gmailId;
                         }
                     }
@@ -268,9 +284,11 @@ class GmailService
         $text = preg_replace('/\n{3,}/', "\n\n", $text);
         $text = trim($text);
 
-        // Truncate to ~4000 chars to stay within reasonable token limits for Claude
-        if (strlen($text) > 4000) {
-            $text = substr($text, 0, 4000) . "\n...[truncated]";
+        // Truncate to ~8000 chars — larger limit catches order items in emails
+        // that have verbose marketing/header content before the actual line items.
+        // Claude Sonnet handles this token count easily within the 2000 output limit.
+        if (strlen($text) > 8000) {
+            $text = substr($text, 0, 8000)."\n...[truncated]";
         }
 
         return $text;

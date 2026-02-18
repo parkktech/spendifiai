@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head } from '@inertiajs/react';
 import {
@@ -66,17 +66,16 @@ const PROVIDER_INSTRUCTIONS: Record<string, { title: string; passwordLabel: stri
     note: 'Your regular Gmail password will NOT work. You must use an App Password. This requires 2-Step Verification to be enabled first.',
   },
   outlook: {
-    title: 'Outlook / Hotmail / MSN — App Password Required',
-    passwordLabel: 'App Password',
-    placeholder: 'Your Microsoft App Password',
+    title: 'Outlook / Hotmail / MSN — Secure Sign-in',
+    passwordLabel: '',
+    placeholder: '',
     steps: [
-      { text: 'Sign in to your Microsoft account security page', link: 'https://account.microsoft.com/security' },
-      { text: 'Enable two-step verification if not already on (required for App Passwords)', link: 'https://account.microsoft.com/security/two-step-verification' },
-      { text: 'Go to Advanced security options → App passwords', link: 'https://account.live.com/proofs/AppPassword' },
-      { text: 'Click "Create a new app password"' },
-      { text: 'Copy the generated password and paste it below' },
+      { text: 'Click "Connect with Microsoft" below' },
+      { text: 'Sign in with your Microsoft account if prompted' },
+      { text: 'Review the permissions and click "Accept"' },
+      { text: 'You\'ll be redirected back here once connected' },
     ],
-    note: 'Microsoft requires an App Password for IMAP access. Your regular Outlook/Hotmail password will NOT work. You must enable two-step verification first.',
+    note: 'We use secure Microsoft OAuth to read your email. We only request read-only access to scan for order receipts. Your password is never shared with us.',
   },
   yahoo: {
     title: 'Yahoo Mail — App Password Required',
@@ -169,6 +168,8 @@ export default function ConnectIndex() {
   const [customEncryption, setCustomEncryption] = useState('ssl');
   const [testResult, setTestResult] = useState<{ success: boolean; error?: string; folders?: string[] } | null>(null);
   const [connectError, setConnectError] = useState<string | null>(null);
+  const [oauthConnecting, setOauthConnecting] = useState(false);
+  const [oauthSuccess, setOauthSuccess] = useState<string | null>(null);
 
   // Statement uploads
   const { data: uploadHistoryData, refresh: refreshUploads } = useApi<{ uploads: StatementUploadHistory[] }>('/api/v1/statements/history');
@@ -181,6 +182,27 @@ export default function ConnectIndex() {
   const connectedCount = accountsList.length;
   const uploadedCount = uploadHistory.length;
   const providerInfo = PROVIDER_INSTRUCTIONS[selectedProvider];
+  const isOAuthProvider = selectedProvider === 'outlook';
+
+  // Check URL params on mount for OAuth callback results
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const connected = params.get('email_connected');
+    const error = params.get('email_error');
+
+    if (connected) {
+      setOauthSuccess(`Successfully connected ${connected}`);
+      window.history.replaceState({}, '', '/connect');
+      refreshEmails();
+    }
+
+    if (error) {
+      setConnectError(error);
+      setShowEmailForm(true);
+      setSelectedProvider('outlook');
+      window.history.replaceState({}, '', '/connect');
+    }
+  }, []);
 
   const handleSync = async () => {
     await syncPlaid();
@@ -241,6 +263,32 @@ export default function ConnectIndex() {
       refreshEmails();
     } else {
       setConnectError('Connection failed. Please test your connection first to check your credentials.');
+    }
+  };
+
+  const handleConnectOAuth = async (provider: string) => {
+    setOauthConnecting(true);
+    setConnectError(null);
+    try {
+      const token = localStorage.getItem('auth_token');
+      const response = await fetch(`/api/v1/email/connect/${provider}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+        },
+      });
+      const data = await response.json();
+      if (data.auth_url) {
+        window.location.href = data.auth_url;
+      } else if (data.error) {
+        setConnectError(data.error);
+        setOauthConnecting(false);
+      }
+    } catch {
+      setConnectError('Failed to start authentication. Please try again.');
+      setOauthConnecting(false);
     }
   };
 
@@ -536,6 +584,22 @@ export default function ConnectIndex() {
           This helps break down vague bank charges into individual products for better categorization and tax tracking.
         </p>
 
+        {/* OAuth success banner */}
+        {oauthSuccess && (
+          <div className="rounded-lg border border-emerald-200 bg-emerald-50/50 p-3 mb-4">
+            <div className="flex items-center gap-2">
+              <CheckCircle2 size={16} className="text-sw-success" />
+              <span className="text-xs font-semibold text-sw-success">{oauthSuccess}</span>
+              <button
+                onClick={() => setOauthSuccess(null)}
+                className="ml-auto text-sw-dim hover:text-sw-text text-xs"
+              >
+                Dismiss
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Existing email connections */}
         {emailLoading && (
           <div className="flex items-center justify-center py-6">
@@ -638,17 +702,19 @@ export default function ConnectIndex() {
               </div>
             </div>
 
-            {/* Email address */}
-            <div>
-              <label className="block text-xs font-medium text-sw-muted mb-1.5">Email Address</label>
-              <input
-                type="email"
-                value={emailAddress}
-                onChange={(e) => setEmailAddress(e.target.value)}
-                placeholder="you@example.com"
-                className="w-full px-3 py-2.5 rounded-lg border border-sw-border bg-sw-card text-sw-text text-sm placeholder:text-sw-dim focus:outline-none focus:border-sw-accent"
-              />
-            </div>
+            {/* Email address — hidden for OAuth providers */}
+            {!isOAuthProvider && (
+              <div>
+                <label className="block text-xs font-medium text-sw-muted mb-1.5">Email Address</label>
+                <input
+                  type="email"
+                  value={emailAddress}
+                  onChange={(e) => setEmailAddress(e.target.value)}
+                  placeholder="you@example.com"
+                  className="w-full px-3 py-2.5 rounded-lg border border-sw-border bg-sw-card text-sw-text text-sm placeholder:text-sw-dim focus:outline-none focus:border-sw-accent"
+                />
+              </div>
+            )}
 
             {/* Setup instructions — always visible based on selected provider */}
             <div className="rounded-lg border border-blue-200 bg-blue-50/50 p-4">
@@ -678,141 +744,184 @@ export default function ConnectIndex() {
                     ))}
                   </ol>
                   {providerInfo.note && (
-                    <div className="mt-3 p-2.5 rounded-md bg-amber-50 border border-amber-200">
-                      <p className="text-[11px] text-amber-700 font-medium leading-relaxed">{providerInfo.note}</p>
+                    <div className="mt-3 p-2.5 rounded-md bg-emerald-50 border border-emerald-200">
+                      <p className="text-[11px] text-emerald-700 font-medium leading-relaxed">{providerInfo.note}</p>
                     </div>
                   )}
                 </div>
               </div>
             </div>
 
-            {/* App password / password */}
-            <div>
-              <label className="block text-xs font-medium text-sw-muted mb-1.5">
-                {providerInfo.passwordLabel}
-              </label>
-              <div className="relative">
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  value={emailPassword}
-                  onChange={(e) => setEmailPassword(e.target.value)}
-                  placeholder={providerInfo.placeholder}
-                  className="w-full px-3 py-2.5 rounded-lg border border-sw-border bg-sw-card text-sw-text text-sm placeholder:text-sw-dim focus:outline-none focus:border-sw-accent pr-10"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-sw-dim hover:text-sw-text transition"
-                >
-                  {showPassword ? <EyeOff size={14} /> : <Eye size={14} />}
-                </button>
-              </div>
-            </div>
+            {/* OAuth flow — Connect with Microsoft button */}
+            {isOAuthProvider && (
+              <>
+                {/* Connect / API errors */}
+                {connectError && (
+                  <div className="rounded-lg border border-red-200 bg-red-50/50 p-3">
+                    <div className="flex items-start gap-2">
+                      <XCircle size={16} className="text-sw-danger shrink-0 mt-0.5" />
+                      <div>
+                        <p className="text-xs font-semibold text-sw-danger">Connection Error</p>
+                        <p className="text-[11px] text-sw-danger mt-1">{connectError}</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
 
-            {/* Custom IMAP settings */}
-            {selectedProvider === 'other' && (
-              <div className="space-y-3 pt-1">
-                <p className="text-xs font-medium text-sw-muted">Custom IMAP Server Settings</p>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-[11px] text-sw-dim mb-1">IMAP Host</label>
-                    <input
-                      type="text"
-                      value={customHost}
-                      onChange={(e) => setCustomHost(e.target.value)}
-                      placeholder="imap.example.com"
-                      className="w-full px-3 py-2 rounded-lg border border-sw-border bg-sw-card text-sw-text text-sm placeholder:text-sw-dim focus:outline-none focus:border-sw-accent"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[11px] text-sw-dim mb-1">Port</label>
-                    <input
-                      type="number"
-                      value={customPort}
-                      onChange={(e) => setCustomPort(e.target.value)}
-                      placeholder="993"
-                      className="w-full px-3 py-2 rounded-lg border border-sw-border bg-sw-card text-sw-text text-sm placeholder:text-sw-dim focus:outline-none focus:border-sw-accent"
-                    />
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-[11px] text-sw-dim mb-1">Encryption</label>
-                  <select
-                    value={customEncryption}
-                    onChange={(e) => setCustomEncryption(e.target.value)}
-                    className="w-full px-3 py-2 rounded-lg border border-sw-border bg-sw-card text-sw-text text-sm focus:outline-none focus:border-sw-accent"
+                <div className="pt-1">
+                  <button
+                    onClick={() => handleConnectOAuth('outlook')}
+                    disabled={oauthConnecting}
+                    className="inline-flex items-center gap-3 px-5 py-3 rounded-lg bg-[#2f2f2f] text-white text-sm font-semibold hover:bg-[#1a1a1a] transition disabled:opacity-50 disabled:cursor-not-allowed w-full justify-center"
                   >
-                    <option value="ssl">SSL (recommended)</option>
-                    <option value="tls">TLS</option>
-                  </select>
+                    {oauthConnecting ? (
+                      <Loader2 size={16} className="animate-spin" />
+                    ) : (
+                      <svg width="16" height="16" viewBox="0 0 21 21" fill="none">
+                        <rect x="1" y="1" width="9" height="9" fill="#F25022" />
+                        <rect x="11" y="1" width="9" height="9" fill="#7FBA00" />
+                        <rect x="1" y="11" width="9" height="9" fill="#00A4EF" />
+                        <rect x="11" y="11" width="9" height="9" fill="#FFB900" />
+                      </svg>
+                    )}
+                    {oauthConnecting ? 'Redirecting to Microsoft...' : 'Connect with Microsoft'}
+                  </button>
                 </div>
-              </div>
+              </>
             )}
 
-            {/* Test result */}
-            {testResult && (
-              <div className={`rounded-lg border p-3 ${testResult.success ? 'border-emerald-200 bg-emerald-50/50' : 'border-red-200 bg-red-50/50'}`}>
-                <div className="flex items-center gap-2">
-                  {testResult.success ? (
-                    <>
-                      <CheckCircle2 size={16} className="text-sw-success" />
-                      <span className="text-xs font-semibold text-sw-success">Connection successful!</span>
-                    </>
-                  ) : (
-                    <>
-                      <XCircle size={16} className="text-sw-danger" />
-                      <span className="text-xs font-semibold text-sw-danger">Connection failed</span>
-                    </>
-                  )}
-                </div>
-                {testResult.error && (
-                  <p className="text-[11px] text-sw-danger mt-1">{testResult.error}</p>
-                )}
-                {testResult.folders && testResult.folders.length > 0 && (
-                  <p className="text-[11px] text-sw-muted mt-1">
-                    Found folders: {testResult.folders.join(', ')}
-                  </p>
-                )}
-              </div>
-            )}
-
-            {/* Connect / API errors */}
-            {(connectError || connectApiError || testApiError) && !testResult && (
-              <div className="rounded-lg border border-red-200 bg-red-50/50 p-3">
-                <div className="flex items-start gap-2">
-                  <XCircle size={16} className="text-sw-danger shrink-0 mt-0.5" />
-                  <div>
-                    <p className="text-xs font-semibold text-sw-danger">Connection Error</p>
-                    <p className="text-[11px] text-sw-danger mt-1">
-                      {connectError || connectApiError || testApiError}
-                    </p>
-                    <p className="text-[11px] text-sw-muted mt-2">
-                      Make sure you are using an App Password (not your regular password) and that IMAP access is enabled for your account.
-                    </p>
+            {/* IMAP flow — password, test, connect */}
+            {!isOAuthProvider && (
+              <>
+                {/* App password / password */}
+                <div>
+                  <label className="block text-xs font-medium text-sw-muted mb-1.5">
+                    {providerInfo.passwordLabel}
+                  </label>
+                  <div className="relative">
+                    <input
+                      type={showPassword ? 'text' : 'password'}
+                      value={emailPassword}
+                      onChange={(e) => setEmailPassword(e.target.value)}
+                      placeholder={providerInfo.placeholder}
+                      className="w-full px-3 py-2.5 rounded-lg border border-sw-border bg-sw-card text-sw-text text-sm placeholder:text-sw-dim focus:outline-none focus:border-sw-accent pr-10"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-sw-dim hover:text-sw-text transition"
+                    >
+                      {showPassword ? <EyeOff size={14} /> : <Eye size={14} />}
+                    </button>
                   </div>
                 </div>
-              </div>
-            )}
 
-            {/* Action buttons */}
-            <div className="flex items-center gap-3 pt-1">
-              <button
-                onClick={handleTestConnection}
-                disabled={testing || !emailAddress || !emailPassword}
-                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg border border-sw-border text-sw-muted text-sm font-medium hover:text-sw-text hover:bg-sw-card-hover transition disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {testing ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle2 size={14} />}
-                Test Connection
-              </button>
-              <button
-                onClick={handleConnectEmail}
-                disabled={connecting || !emailAddress || !emailPassword}
-                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-sw-accent text-white text-sm font-semibold hover:bg-sw-accent-hover transition disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {connecting ? <Loader2 size={14} className="animate-spin" /> : <ArrowRight size={14} />}
-                Connect Email
-              </button>
-            </div>
+                {/* Custom IMAP settings */}
+                {selectedProvider === 'other' && (
+                  <div className="space-y-3 pt-1">
+                    <p className="text-xs font-medium text-sw-muted">Custom IMAP Server Settings</p>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-[11px] text-sw-dim mb-1">IMAP Host</label>
+                        <input
+                          type="text"
+                          value={customHost}
+                          onChange={(e) => setCustomHost(e.target.value)}
+                          placeholder="imap.example.com"
+                          className="w-full px-3 py-2 rounded-lg border border-sw-border bg-sw-card text-sw-text text-sm placeholder:text-sw-dim focus:outline-none focus:border-sw-accent"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[11px] text-sw-dim mb-1">Port</label>
+                        <input
+                          type="number"
+                          value={customPort}
+                          onChange={(e) => setCustomPort(e.target.value)}
+                          placeholder="993"
+                          className="w-full px-3 py-2 rounded-lg border border-sw-border bg-sw-card text-sw-text text-sm placeholder:text-sw-dim focus:outline-none focus:border-sw-accent"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-[11px] text-sw-dim mb-1">Encryption</label>
+                      <select
+                        value={customEncryption}
+                        onChange={(e) => setCustomEncryption(e.target.value)}
+                        className="w-full px-3 py-2 rounded-lg border border-sw-border bg-sw-card text-sw-text text-sm focus:outline-none focus:border-sw-accent"
+                      >
+                        <option value="ssl">SSL (recommended)</option>
+                        <option value="tls">TLS</option>
+                      </select>
+                    </div>
+                  </div>
+                )}
+
+                {/* Test result */}
+                {testResult && (
+                  <div className={`rounded-lg border p-3 ${testResult.success ? 'border-emerald-200 bg-emerald-50/50' : 'border-red-200 bg-red-50/50'}`}>
+                    <div className="flex items-center gap-2">
+                      {testResult.success ? (
+                        <>
+                          <CheckCircle2 size={16} className="text-sw-success" />
+                          <span className="text-xs font-semibold text-sw-success">Connection successful!</span>
+                        </>
+                      ) : (
+                        <>
+                          <XCircle size={16} className="text-sw-danger" />
+                          <span className="text-xs font-semibold text-sw-danger">Connection failed</span>
+                        </>
+                      )}
+                    </div>
+                    {testResult.error && (
+                      <p className="text-[11px] text-sw-danger mt-1">{testResult.error}</p>
+                    )}
+                    {testResult.folders && testResult.folders.length > 0 && (
+                      <p className="text-[11px] text-sw-muted mt-1">
+                        Found folders: {testResult.folders.join(', ')}
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                {/* Connect / API errors */}
+                {(connectError || connectApiError || testApiError) && !testResult && (
+                  <div className="rounded-lg border border-red-200 bg-red-50/50 p-3">
+                    <div className="flex items-start gap-2">
+                      <XCircle size={16} className="text-sw-danger shrink-0 mt-0.5" />
+                      <div>
+                        <p className="text-xs font-semibold text-sw-danger">Connection Error</p>
+                        <p className="text-[11px] text-sw-danger mt-1">
+                          {connectError || connectApiError || testApiError}
+                        </p>
+                        <p className="text-[11px] text-sw-muted mt-2">
+                          Make sure you are using an App Password (not your regular password) and that IMAP access is enabled for your account.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Action buttons */}
+                <div className="flex items-center gap-3 pt-1">
+                  <button
+                    onClick={handleTestConnection}
+                    disabled={testing || !emailAddress || !emailPassword}
+                    className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg border border-sw-border text-sw-muted text-sm font-medium hover:text-sw-text hover:bg-sw-card-hover transition disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {testing ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle2 size={14} />}
+                    Test Connection
+                  </button>
+                  <button
+                    onClick={handleConnectEmail}
+                    disabled={connecting || !emailAddress || !emailPassword}
+                    className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-sw-accent text-white text-sm font-semibold hover:bg-sw-accent-hover transition disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {connecting ? <Loader2 size={14} className="animate-spin" /> : <ArrowRight size={14} />}
+                    Connect Email
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         )}
       </div>

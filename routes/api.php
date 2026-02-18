@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\AIQuestionController;
 use App\Http\Controllers\Api\BankAccountController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\EmailConnectionController;
+use App\Http\Controllers\Api\OrderItemController;
 use App\Http\Controllers\Api\PlaidController;
 use App\Http\Controllers\Api\SavingsController;
 use App\Http\Controllers\Api\StatementUploadController;
@@ -73,6 +74,12 @@ Route::prefix('auth')->group(function () {
 Route::post('/v1/webhooks/plaid', [\App\Http\Controllers\Api\PlaidWebhookController::class, 'handle']);
 
 // ══════════════════════════════════════════════════════════
+// OAUTH CALLBACKS (no auth — user identity via encrypted state)
+// ══════════════════════════════════════════════════════════
+
+Route::get('/v1/email/callback/outlook', [EmailConnectionController::class, 'outlookCallback']);
+
+// ══════════════════════════════════════════════════════════
 // AUTHENTICATED ROUTES
 // ══════════════════════════════════════════════════════════
 
@@ -107,6 +114,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
         // Dashboard
         Route::get('/dashboard', [DashboardController::class, 'index']);
+        Route::get('/dashboard/store/{storeName}', [DashboardController::class, 'storeDetail']);
         Route::post('/dashboard/classify', [DashboardController::class, 'classify']);
 
         // Expense Categories (reference data)
@@ -177,6 +185,9 @@ Route::middleware(['auth:sanctum'])->group(function () {
                 Route::get('/pulse', [SavingsController::class, 'pulseCheck'])
                     ->middleware('throttle:10,1');
             });
+
+            // Order Items
+            Route::patch('/order-items/{item}/expense-type', [OrderItemController::class, 'updateExpenseType']);
 
             // Tax
             Route::prefix('tax')->middleware('profile.complete')->group(function () {

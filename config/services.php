@@ -13,7 +13,7 @@ return [
     ],
 
     'ses' => [
-        'key'    => env('AWS_ACCESS_KEY_ID'),
+        'key' => env('AWS_ACCESS_KEY_ID'),
         'secret' => env('AWS_SECRET_ACCESS_KEY'),
         'region' => env('AWS_DEFAULT_REGION', 'us-east-1'),
     ],
@@ -21,7 +21,7 @@ return [
     'slack' => [
         'notifications' => [
             'bot_user_oauth_token' => env('SLACK_BOT_USER_OAUTH_TOKEN'),
-            'channel'              => env('SLACK_BOT_USER_DEFAULT_CHANNEL'),
+            'channel' => env('SLACK_BOT_USER_DEFAULT_CHANNEL'),
         ],
     ],
 
@@ -31,9 +31,20 @@ return [
     |--------------------------------------------------------------------------
     */
     'google' => [
-        'client_id'     => env('GOOGLE_CLIENT_ID'),
+        'client_id' => env('GOOGLE_CLIENT_ID'),
         'client_secret' => env('GOOGLE_CLIENT_SECRET'),
-        'redirect'      => env('GOOGLE_REDIRECT_URI', '/auth/google/callback'),
+        'redirect' => env('GOOGLE_REDIRECT_URI', '/auth/google/callback'),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Microsoft OAuth (Outlook / Hotmail / Live / MSN)
+    |--------------------------------------------------------------------------
+    */
+    'microsoft' => [
+        'client_id' => env('MICROSOFT_CLIENT_ID'),
+        'client_secret' => env('MICROSOFT_CLIENT_SECRET'),
+        'redirect_uri' => env('MICROSOFT_REDIRECT_URI', '/api/v1/email/callback/outlook'),
     ],
 
     /*
@@ -43,8 +54,8 @@ return [
     */
     'plaid' => [
         'client_id' => env('PLAID_CLIENT_ID'),
-        'secret'    => env('PLAID_SECRET'),
-        'env'       => env('PLAID_ENV', 'sandbox'),
+        'secret' => env('PLAID_SECRET'),
+        'env' => env('PLAID_ENV', 'sandbox'),
     ],
 
     /*
@@ -54,7 +65,7 @@ return [
     */
     'anthropic' => [
         'api_key' => env('ANTHROPIC_API_KEY'),
-        'model'   => env('ANTHROPIC_MODEL', 'claude-sonnet-4-20250514'),
+        'model' => env('ANTHROPIC_MODEL', 'claude-sonnet-4-20250514'),
     ],
 
 ];

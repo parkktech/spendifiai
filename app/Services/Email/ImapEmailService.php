@@ -32,6 +32,7 @@ class ImapEmailService
 
     /**
      * Search queries to find order/receipt emails.
+     * Broad coverage catches niche retailers that use non-standard subjects.
      */
     protected array $searchSubjects = [
         'order confirmation',
@@ -43,6 +44,17 @@ class ImapEmailService
         'subscription renewal',
         'invoice',
         'your receipt',
+        'thank you for your order',
+        'order has been placed',
+        'order details',
+        'new order',
+        'shipping confirmation',
+        'delivery confirmation',
+        'order has shipped',
+        'payment confirmation',
+        'purchase receipt',
+        'order number',
+        'thank you for your purchase',
     ];
 
     /**
@@ -165,7 +177,13 @@ class ImapEmailService
 
             $client->connect();
             $folders = $client->getFolders();
-            $client->disconnect();
+
+            // Disconnect may throw NOOP error on some providers (e.g. Outlook) — harmless
+            try {
+                $client->disconnect();
+            } catch (\Exception) {
+                // Ignore disconnect errors — connection was already verified
+            }
 
             return [
                 'success' => true,
@@ -175,12 +193,14 @@ class ImapEmailService
         } catch (ConnectionFailedException $e) {
             return [
                 'success' => false,
-                'error' => 'Connection failed. Check your credentials and server settings. '.$e->getMessage(),
+                'error' => 'Could not connect. Check your email, password, and make sure you\'re using an App Password if required.',
             ];
         } catch (\Exception $e) {
+            Log::warning('IMAP connection test failed', ['email' => $email, 'error' => $e->getMessage()]);
+
             return [
                 'success' => false,
-                'error' => 'Connection error: '.$e->getMessage(),
+                'error' => 'Could not connect. Check your email, password, and make sure you\'re using an App Password if required.',
             ];
         }
     }
@@ -230,7 +250,8 @@ class ImapEmailService
      */
     public function fetchOrderEmails(EmailConnection $connection, ?\Carbon\Carbon $since = null): array
     {
-        $since = $since ?? $connection->last_synced_at ?? now()->subYear();
+        // Match Plaid's lookback: Jan 1 of previous year
+        $since = $since ?? $connection->last_synced_at ?? now()->subYear()->startOfYear();
 
         $cm = new ClientManager;
         $client = $cm->make([
@@ -281,7 +302,12 @@ class ImapEmailService
             }
         }
 
-        $client->disconnect();
+        // Disconnect may throw NOOP error on some providers — harmless
+        try {
+            $client->disconnect();
+        } catch (\Exception) {
+            // Ignore disconnect errors
+        }
 
         // Deduplicate by message_id
         $unique = collect($messageIds)->unique('message_id')->values()->toArray();
@@ -323,8 +349,8 @@ class ImapEmailService
         $text = preg_replace('/\n{3,}/', "\n\n", $text);
         $text = trim($text);
 
-        if (strlen($text) > 4000) {
-            $text = substr($text, 0, 4000)."\n...[truncated]";
+        if (strlen($text) > 8000) {
+            $text = substr($text, 0, 8000)."\n...[truncated]";
         }
 
         return $text;

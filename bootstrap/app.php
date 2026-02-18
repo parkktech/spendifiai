@@ -24,6 +24,10 @@ return Application::configure(basePath: dirname(__DIR__))
             \App\Http\Middleware\SecurityHeaders::class,
         ]);
 
+        // Exclude auth_token from cookie encryption — it's set by JavaScript
+        // and read raw by ExtractTokenFromCookie middleware
+        $middleware->encryptCookies(except: ['auth_token']);
+
         // Sanctum SPA authentication
         $middleware->statefulApi();
 

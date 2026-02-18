@@ -33,6 +33,22 @@ class TransactionResource extends JsonResource
 
             'account' => new BankAccountResource($this->whenLoaded('bankAccount')),
             'ai_question' => new AIQuestionResource($this->whenLoaded('aiQuestion')),
+            'order_items' => $this->when(
+                $this->relationLoaded('matchedOrder') && $this->matchedOrder?->relationLoaded('items'),
+                fn () => $this->matchedOrder->items->map(fn ($item) => [
+                    'id' => $item->id,
+                    'product_name' => $item->product_name,
+                    'product_description' => $item->product_description,
+                    'quantity' => $item->quantity,
+                    'total_price' => (float) $item->total_price,
+                    'ai_category' => $item->ai_category,
+                    'user_category' => $item->user_category,
+                    'expense_type' => $item->expense_type,
+                    'tax_deductible' => (bool) $item->tax_deductible,
+                    'tax_deductible_confidence' => $item->tax_deductible_confidence,
+                ]),
+                []
+            ),
         ];
     }
 }

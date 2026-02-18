@@ -36,12 +36,26 @@ if (token) {
     console.log('⚠️ No token found in localStorage or cookies');
 }
 
-// Add interceptor to always check for token
+// Add interceptor to always check for token + method spoofing for PATCH/DELETE
+// Apache/Cloudflare blocks PATCH/DELETE methods, so convert to POST with _method
 window.axios.interceptors.request.use((config) => {
     const currentToken = localStorage.getItem('auth_token') || getCookie('auth_token');
     if (currentToken) {
         config.headers.Authorization = `Bearer ${currentToken}`;
     }
+
+    // Method spoofing: convert PATCH/PUT/DELETE to POST with _method field
+    const method = config.method?.toUpperCase();
+    if (method && ['PATCH', 'PUT', 'DELETE'].includes(method)) {
+        const originalMethod = method;
+        config.method = 'POST';
+        if (config.data && typeof config.data === 'object' && !(config.data instanceof FormData)) {
+            config.data = { ...config.data, _method: originalMethod };
+        } else if (!config.data) {
+            config.data = { _method: originalMethod };
+        }
+    }
+
     return config;
 });
 

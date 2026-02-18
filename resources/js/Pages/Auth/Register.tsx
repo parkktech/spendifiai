@@ -33,7 +33,7 @@ export default function Register() {
             if (response.data.token) {
                 localStorage.setItem('auth_token', response.data.token);
                 const date = new Date();
-                date.setTime(date.getTime() + (24 * 60 * 60 * 1000));
+                date.setTime(date.getTime() + (30 * 24 * 60 * 60 * 1000)); // 30 days
                 const expires = `expires=${date.toUTCString()}`;
                 const secure = window.location.protocol === 'https:' ? ' secure;' : '';
                 document.cookie = `auth_token=${response.data.token}; ${expires}; path=/;${secure} samesite=lax`;
