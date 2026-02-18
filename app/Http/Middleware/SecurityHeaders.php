@@ -22,13 +22,14 @@ class SecurityHeaders
         if (app()->environment('local', 'development')) {
             $csp = "default-src *; script-src * 'unsafe-inline' 'unsafe-eval'; style-src * 'unsafe-inline';";
         } else {
-            // Production CSP - strict
+            // Production CSP
             $csp = "default-src 'self'; "
-                . "script-src 'self' 'unsafe-inline' 'unsafe-eval'; "
+                . "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.plaid.com; "
                 . "style-src 'self' 'unsafe-inline' https://fonts.bunny.net; "
-                . "font-src 'self' https://fonts.bunny.net; "
-                . "img-src 'self' data: https://images.unsplash.com https://spendifiai.com; "
-                . "connect-src 'self'; "
+                . "font-src 'self' data: https://fonts.bunny.net; "
+                . "img-src 'self' data: https://images.unsplash.com https://spendifiai.com https://*.googleusercontent.com; "
+                . "connect-src 'self' https://*.plaid.com; "
+                . "frame-src 'self' https://cdn.plaid.com https://accounts.google.com; "
                 . "frame-ancestors 'none';";
         }
 
