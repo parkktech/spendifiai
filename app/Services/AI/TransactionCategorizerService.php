@@ -3,6 +3,7 @@
 namespace App\Services\AI;
 
 use App\Models\AIQuestion;
+use App\Models\Order;
 use App\Models\Transaction;
 use App\Models\UserFinancialProfile;
 use Illuminate\Support\Collection;
@@ -40,18 +41,45 @@ class TransactionCategorizerService
         $profile = UserFinancialProfile::where('user_id', $userId)->first();
         $systemPrompt = $this->buildCategorizationPrompt($profile);
 
+        // Pre-load matched orders for transactions that have been reconciled
+        $txIds = $transactions->pluck('id')->toArray();
+        $matchedOrders = Order::whereIn('matched_transaction_id', $txIds)
+            ->where('is_reconciled', true)
+            ->with('items')
+            ->get()
+            ->keyBy('matched_transaction_id');
+
         // Prepare transaction data for Claude
-        $txData = $transactions->map(fn (Transaction $tx) => [
-            'id' => $tx->id,
-            'merchant' => $tx->merchant_name,
-            'amount' => $tx->amount,
-            'date' => $tx->transaction_date->format('Y-m-d'),
-            'description' => $tx->description,
-            'channel' => $tx->payment_channel,
-            'plaid_cat' => $tx->plaid_category,
-            'account_purpose' => $tx->account_purpose, // personal, business, mixed
-            'account_name' => $tx->bankAccount?->nickname ?? $tx->bankAccount?->name,
-        ])->toArray();
+        $txData = $transactions->map(function (Transaction $tx) use ($matchedOrders) {
+            $data = [
+                'id' => $tx->id,
+                'merchant' => $tx->merchant_name,
+                'amount' => $tx->amount,
+                'date' => $tx->transaction_date->format('Y-m-d'),
+                'description' => $tx->description,
+                'channel' => $tx->payment_channel,
+                'plaid_cat' => $tx->plaid_category,
+                'account_purpose' => $tx->account_purpose,
+                'account_name' => $tx->bankAccount?->nickname ?? $tx->bankAccount?->name,
+            ];
+
+            // Include matched email order details so AI knows exactly what was purchased
+            $order = $matchedOrders->get($tx->id);
+            if ($order) {
+                $data['email_order'] = [
+                    'merchant' => $order->merchant,
+                    'items' => $order->items->map(fn ($i) => [
+                        'name' => $i->product_name,
+                        'category' => $i->ai_category,
+                        'amount' => (float) $i->total_price,
+                        'tax_deductible' => $i->tax_deductible,
+                        'expense_type' => $i->expense_type,
+                    ])->toArray(),
+                ];
+            }
+
+            return $data;
+        })->toArray();
 
         $response = $this->callClaude($systemPrompt, json_encode($txData));
 
@@ -102,6 +130,12 @@ Each transaction includes an "account_purpose" field indicating whether the bank
 
 This is the STRONGEST signal for expense_type. A coffee purchase on a business account is a
 business meal. The same purchase on a personal account is personal unless the user says otherwise.
+
+EMAIL ORDER DATA:
+Some transactions include an "email_order" field with itemized purchase details from parsed email
+receipts. When present, use this data to determine the exact category, expense type, and tax
+deductibility. This eliminates guesswork — you know exactly what was purchased. Set confidence
+to 0.95+ when email order data is available.
 
 For EACH transaction, return:
 {

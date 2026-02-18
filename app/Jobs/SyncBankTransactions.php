@@ -18,36 +18,37 @@ class SyncBankTransactions implements ShouldQueue
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     public int $tries = 3;
+
     public array $backoff = [60, 300, 900];
 
     public function __construct(
-        public BankConnection $connection,
+        public BankConnection $bankConnection,
     ) {}
 
     public function handle(PlaidService $plaidService): void
     {
         try {
-            $result = $plaidService->syncTransactions($this->connection);
+            $result = $plaidService->syncTransactions($this->bankConnection);
 
             Log::info('Bank sync completed', [
-                'connection_id' => $this->connection->id,
-                'added'         => $result['added'],
-                'modified'      => $result['modified'],
-                'removed'       => $result['removed'],
+                'connection_id' => $this->bankConnection->id,
+                'added' => $result['added'],
+                'modified' => $result['modified'],
+                'removed' => $result['removed'],
             ]);
 
             if ($result['added'] > 0) {
-                TransactionsImported::dispatch($this->connection, $result['added']);
+                TransactionsImported::dispatch($this->bankConnection, $result['added']);
             }
         } catch (\Exception $e) {
             Log::error('Bank sync failed', [
-                'connection_id' => $this->connection->id,
-                'error'         => $e->getMessage(),
+                'connection_id' => $this->bankConnection->id,
+                'error' => $e->getMessage(),
             ]);
 
-            $this->connection->update([
-                'status'        => ConnectionStatus::Error,
-                'error_code'    => 'SYNC_FAILED',
+            $this->bankConnection->update([
+                'status' => ConnectionStatus::Error,
+                'error_code' => 'SYNC_FAILED',
                 'error_message' => $e->getMessage(),
             ]);
 

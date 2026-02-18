@@ -140,6 +140,13 @@ class PlaidService
             $params = ['access_token' => $accessToken, 'count' => 100];
             if ($cursor) {
                 $params['cursor'] = $cursor;
+            } else {
+                // Initial sync: request history back to Jan 1 of previous year
+                $startOfPreviousYear = now()->subYear()->startOfYear();
+                $daysBack = (int) now()->diffInDays($startOfPreviousYear);
+                $params['options'] = [
+                    'days_requested' => min(max($daysBack, 365), 730),
+                ];
             }
 
             $response = $this->post('/transactions/sync', $params);
@@ -170,8 +177,8 @@ class PlaidService
                         'user_id' => $connection->user_id,
                         'bank_account_id' => $bankAccount->id,
                         'account_purpose' => $accountPurpose,
-                        'merchant_name' => $tx['merchant_name'] ?? $tx['name'] ?? 'Unknown',
-                        'description' => $tx['name'],
+                        'merchant_name' => mb_substr($tx['merchant_name'] ?? $tx['name'] ?? 'Unknown', 0, 255),
+                        'description' => mb_substr($tx['name'] ?? '', 0, 255),
                         'amount' => $tx['amount'], // Plaid: positive = spend
                         'transaction_date' => $tx['date'],
                         'authorized_date' => $tx['authorized_date'] ?? null,

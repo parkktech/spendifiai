@@ -56,6 +56,8 @@ export interface Subscription {
   next_expected_date: string | null;
   last_used_at: string | null;
   annual_cost: number;
+  months_active: number | null;
+  first_charge_date: string | null;
   charge_history: unknown[] | null;
   response_type: ActionResponseType | null;
   previous_amount: number | null;
@@ -230,6 +232,9 @@ export interface DashboardData {
   total_monthly_bills: number;
   budget_waterfall: BudgetWaterfall;
   home_affordability: HomeAffordability;
+  cost_of_living: CostOfLivingData;
+  income_sources: IncomeBreakdown;
+  primary_vs_extra: PrimaryVsExtra;
   projected_savings: ProjectedSavings;
   savings_history: SavingsHistoryEntry[];
 }
@@ -270,6 +275,7 @@ export interface UserFinancialProfile {
   monthly_income: number | null;
   business_type: string | null;
   has_home_office: boolean | null;
+  housing_status: string | null;
 }
 
 export interface UserFinancialProfileResponse {
@@ -382,6 +388,63 @@ export interface HomeAffordability {
   max_home_price: number;
   estimated_monthly_mortgage: number;
   loan_term_years: number;
+}
+
+// --- Cost of Living Types ---
+
+export interface CostOfLivingMerchant {
+  name: string;
+  monthly_avg: number;
+}
+
+export interface CostOfLivingItem {
+  category: string;
+  monthly_avg: number;
+  total_3mo: number;
+  transaction_count: number;
+  top_merchants: CostOfLivingMerchant[];
+}
+
+export interface CostOfLivingData {
+  items: CostOfLivingItem[];
+  total_essential_monthly: number;
+  discretionary_monthly: number;
+  monthly_income: number;
+  reliable_monthly_income: number;
+  months_analyzed: number;
+}
+
+// --- Income Detection Types ---
+
+export interface IncomeSource {
+  type: 'employment' | 'contractor' | 'interest' | 'transfer' | 'other';
+  label: string;
+  merchant_name: string;
+  avg_amount: number;
+  monthly_equivalent: number;
+  frequency: string | null;
+  is_regular: boolean;
+  occurrences: number;
+  classification: 'primary' | 'extra';
+}
+
+export interface IncomeBreakdown {
+  sources: IncomeSource[];
+  reliable_monthly: number;
+  total_monthly_avg: number;
+  primary_monthly: number;
+  extra_monthly: number;
+  months_analyzed: number;
+}
+
+export interface PrimaryVsExtra {
+  primary_income: number;
+  extra_income: number;
+  primary_expenses: number;
+  extra_expenses: number;
+  primary_surplus: number;
+  can_live_on_primary: boolean;
+  coverage_pct: number;
 }
 
 // --- Savings Action Response Types ---

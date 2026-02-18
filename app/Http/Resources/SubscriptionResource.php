@@ -22,6 +22,10 @@ class SubscriptionResource extends JsonResource
             'next_expected_date' => $this->next_expected_date?->format('Y-m-d'),
             'last_used_at' => $this->last_used_at?->toIso8601String(),
             'annual_cost' => (float) $this->annual_cost,
+            'months_active' => $this->months_active,
+            'first_charge_date' => ! empty($this->charge_history)
+                ? collect($this->charge_history)->pluck('date')->sort()->first()
+                : null,
             'charge_history' => $this->charge_history,
             'response_type' => $this->response_type,
             'previous_amount' => $this->previous_amount ? (float) $this->previous_amount : null,

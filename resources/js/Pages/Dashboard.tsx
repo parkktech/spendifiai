@@ -36,6 +36,8 @@ import Badge from '@/Components/SpendifiAI/Badge';
 import ActionResponsePanel from '@/Components/SpendifiAI/ActionResponsePanel';
 import ProjectedSavingsBanner from '@/Components/SpendifiAI/ProjectedSavingsBanner';
 import SavingsTrackingChart from '@/Components/SpendifiAI/SavingsTrackingChart';
+import CostOfLivingBreakdown from '@/Components/SpendifiAI/CostOfLivingBreakdown';
+import PrimaryVsExtraCard from '@/Components/SpendifiAI/PrimaryVsExtraCard';
 import { useApi, useApiPost } from '@/hooks/useApi';
 import type { DashboardData, RecurringBill, BudgetWaterfall, HomeAffordability } from '@/types/spendifiai';
 
@@ -713,6 +715,7 @@ export default function Dashboard() {
   const { submit: analyzeSpending, loading: analyzing } = useApiPost('/api/v1/savings/analyze');
   const { submit: dismissRec } = useApiPost('', 'POST');
   const { submit: respondToAction } = useApiPost('', 'POST');
+  const { submit: classifyItem, loading: classifyLoading } = useApiPost('/api/v1/dashboard/classify');
   const [activeTab, setActiveTab] = useState<ActionTab>('quick');
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
@@ -833,6 +836,11 @@ export default function Dashboard() {
     if (item.type === 'recommendation' && item.sourceId) {
       await dismissRec(undefined, { url: `/api/v1/savings/${item.sourceId}/dismiss` } as never);
     }
+    refresh();
+  };
+
+  const handleClassify = async (overrideType: string, overrideKey: string, classification: string) => {
+    await classifyItem({ override_type: overrideType, override_key: overrideKey, classification });
     refresh();
   };
 
@@ -959,6 +967,27 @@ export default function Dashboard() {
             <BudgetWaterfallSection waterfall={data.budget_waterfall} />
             <HomeAffordabilitySection affordability={data.home_affordability} />
           </div>
+
+          {/* SECTION B1.5: Primary vs Extra — Can you live on your paycheck? */}
+          {data.primary_vs_extra && (data.primary_vs_extra.primary_income > 0 || data.primary_vs_extra.primary_expenses > 0) && (
+            <PrimaryVsExtraCard
+              data={data.primary_vs_extra}
+              incomeSources={data.income_sources}
+              costOfLiving={data.cost_of_living}
+              onClassify={handleClassify}
+              classifyLoading={classifyLoading}
+            />
+          )}
+
+          {/* SECTION B2: Cost of Living Breakdown */}
+          {data.cost_of_living && data.cost_of_living.items.length > 0 && (
+            <CostOfLivingBreakdown
+              data={data.cost_of_living}
+              incomeSources={data.income_sources}
+              onClassify={handleClassify}
+              classifyLoading={classifyLoading}
+            />
+          )}
 
           {/* SECTION C: Your Monthly Bills */}
           {data.recurring_bills.length > 0 && (

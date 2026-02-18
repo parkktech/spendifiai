@@ -34,9 +34,8 @@ export default function SubscriptionsIndex() {
     refresh();
   };
 
-  const handleCancel = (id: number) => {
-    // Future: POST to cancel endpoint
-    console.log('Cancel subscription:', id);
+  const handleUpdate = () => {
+    refresh();
   };
 
   return (
@@ -159,7 +158,7 @@ export default function SubscriptionsIndex() {
             <SubscriptionCard
               key={sub.id}
               subscription={sub}
-              onCancel={handleCancel}
+              onUpdate={handleUpdate}
             />
           ))}
         </div>

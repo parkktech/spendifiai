@@ -107,6 +107,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
         // Dashboard
         Route::get('/dashboard', [DashboardController::class, 'index']);
+        Route::post('/dashboard/classify', [DashboardController::class, 'classify']);
 
         // Expense Categories (reference data)
         Route::get('/categories', function () {
@@ -154,6 +155,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
             Route::post('/subscriptions/detect', [SubscriptionController::class, 'detect'])
                 ->middleware('throttle:5,1');
             Route::post('/subscriptions/{subscription}/respond', [SubscriptionController::class, 'respond']);
+            Route::delete('/subscriptions/{subscription}', [SubscriptionController::class, 'dismiss']);
             Route::get('/subscriptions/{subscription}/alternatives', [SubscriptionController::class, 'alternatives']);
 
             // Savings

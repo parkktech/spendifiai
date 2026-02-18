@@ -41,6 +41,7 @@ export default function SettingsIndex() {
     monthly_income: '',
     business_type: '',
     has_home_office: false,
+    housing_status: '',
   });
   const [profileSuccess, setProfileSuccess] = useState(false);
 
@@ -52,6 +53,7 @@ export default function SettingsIndex() {
         monthly_income: profile.monthly_income !== null ? String(profile.monthly_income) : '',
         business_type: profile.business_type || '',
         has_home_office: profile.has_home_office ?? false,
+        housing_status: profile.housing_status || '',
       });
     }
   }, [profile]);
@@ -63,6 +65,7 @@ export default function SettingsIndex() {
       monthly_income: profileForm.monthly_income ? Number(profileForm.monthly_income) : null,
       business_type: profileForm.business_type || null,
       has_home_office: profileForm.has_home_office,
+      housing_status: profileForm.housing_status || null,
     });
     setProfileSuccess(true);
     setTimeout(() => setProfileSuccess(false), 3000);
@@ -214,6 +217,20 @@ export default function SettingsIndex() {
                 placeholder="e.g., Software Development"
                 className={inputClasses}
               />
+            </div>
+
+            <div>
+              <label className={labelClasses}>Housing</label>
+              <select
+                value={profileForm.housing_status}
+                onChange={(e) => setProfileForm({ ...profileForm, housing_status: e.target.value })}
+                className={inputClasses}
+              >
+                <option value="">Select...</option>
+                <option value="own">Own</option>
+                <option value="rent">Rent</option>
+                <option value="other">Other</option>
+              </select>
             </div>
 
             <div>

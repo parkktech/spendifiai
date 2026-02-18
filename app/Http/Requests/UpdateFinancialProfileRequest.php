@@ -17,6 +17,7 @@ class UpdateFinancialProfileRequest extends FormRequest
             'employment_type' => 'nullable|in:employed,self_employed,freelancer,business_owner,retired,student,other',
             'business_type' => 'nullable|string|max:200',
             'has_home_office' => 'nullable|boolean',
+            'housing_status' => 'nullable|in:own,rent,other',
             'filing_status' => 'nullable|in:single,married_filing_jointly,married_filing_separately,head_of_household',
             'tax_filing_status' => 'nullable|in:single,married,head_of_household',
             'estimated_tax_bracket' => 'nullable|integer|in:10,12,22,24,32,35,37',

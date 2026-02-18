@@ -121,6 +121,19 @@ class SubscriptionController extends Controller
     }
 
     /**
+     * Dismiss a subscription (mark as "not a subscription").
+     * Removes it from the user's subscription list.
+     */
+    public function dismiss(Subscription $subscription): JsonResponse
+    {
+        $this->authorize('update', $subscription);
+
+        $subscription->delete();
+
+        return response()->json(['message' => 'Subscription dismissed']);
+    }
+
+    /**
      * Get AI-generated alternatives for a subscription.
      */
     public function alternatives(Subscription $subscription): JsonResponse

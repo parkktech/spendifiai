@@ -13,7 +13,7 @@ class Subscription extends Model
 
     protected $fillable = [
         'user_id', 'merchant_name', 'merchant_normalized', 'amount',
-        'frequency', 'category', 'status', 'is_essential',
+        'frequency', 'category', 'status', 'is_essential', 'months_active',
         'last_charge_date', 'next_expected_date', 'last_used_at',
         'annual_cost', 'charge_history',
         'response_type', 'previous_amount', 'response_reason',
