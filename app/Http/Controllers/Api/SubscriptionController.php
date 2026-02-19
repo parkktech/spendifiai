@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\RespondToSubscriptionRequest;
+use App\Http\Requests\UpdateSubscriptionRequest;
 use App\Http\Resources\SubscriptionResource;
 use App\Models\Subscription;
 use App\Services\AI\AlternativeSuggestionService;
@@ -25,7 +26,8 @@ class SubscriptionController extends Controller
      */
     public function index(): JsonResponse
     {
-        $subs = Subscription::where('user_id', auth()->id())
+        $subs = Subscription::with('cancellationProvider')
+            ->where('user_id', auth()->id())
             ->orderByDesc('amount')
             ->get();
 
@@ -117,6 +119,20 @@ class SubscriptionController extends Controller
         return response()->json([
             'subscription' => new SubscriptionResource($subscription->fresh()),
             'projected_savings' => $this->trackingService->getProjectedSavings($userId),
+        ]);
+    }
+
+    /**
+     * Update a subscription's user notes and/or category.
+     */
+    public function update(UpdateSubscriptionRequest $request, Subscription $subscription): JsonResponse
+    {
+        $this->authorize('update', $subscription);
+
+        $subscription->update($request->validated());
+
+        return response()->json([
+            'subscription' => new SubscriptionResource($subscription->fresh()->load('cancellationProvider')),
         ]);
     }
 

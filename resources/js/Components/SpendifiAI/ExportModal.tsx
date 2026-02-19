@@ -11,20 +11,35 @@ interface ExportModalProps {
   onExport?: () => void;
 }
 
+const FORMAT_OPTIONS = [
+  { value: 'xlsx', label: 'Excel Workbook (.xlsx)', group: 'Universal', desc: 'Full workbook with 5 tabs' },
+  { value: 'pdf', label: 'PDF Summary', group: 'Universal', desc: 'Multi-page tax report for accountants' },
+  { value: 'csv', label: 'Detailed CSV', group: 'Universal', desc: 'All transactions with categories' },
+  { value: 'txf', label: 'TurboTax / H&R Block (.txf)', group: 'Tax Software', desc: 'Schedule C lines mapped to TXF format' },
+  { value: 'qbo_csv', label: 'QuickBooks Online (.csv)', group: 'Accounting', desc: '3-column format for QBO import' },
+  { value: 'ofx', label: 'Xero / Wave / General (.ofx)', group: 'Accounting', desc: 'OFX bank transaction format' },
+] as const;
+
+type FormatValue = typeof FORMAT_OPTIONS[number]['value'];
+
 export default function ExportModal({ open, onClose, year, mode, onExport }: ExportModalProps) {
-  const [formats, setFormats] = useState({ excel: true, pdf: true, csv: true });
+  const [selectedFormats, setSelectedFormats] = useState<Set<FormatValue>>(new Set(['xlsx', 'pdf', 'csv']));
   const [email, setEmail] = useState('');
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const selectedFormats = Object.entries(formats)
-    .filter(([, v]) => v)
-    .map(([k]) => k);
-
-  const toggleFormat = (fmt: 'excel' | 'pdf' | 'csv') => {
-    setFormats((prev) => ({ ...prev, [fmt]: !prev[fmt] }));
+  const toggleFormat = (fmt: FormatValue) => {
+    setSelectedFormats((prev) => {
+      const next = new Set(prev);
+      if (next.has(fmt)) {
+        next.delete(fmt);
+      } else {
+        next.add(fmt);
+      }
+      return next;
+    });
   };
 
   const handleClose = () => {
@@ -35,26 +50,25 @@ export default function ExportModal({ open, onClose, year, mode, onExport }: Exp
   };
 
   const handleExport = async () => {
-    if (selectedFormats.length === 0) return;
+    if (selectedFormats.size === 0) return;
     setLoading(true);
     setError(null);
 
     try {
       if (mode === 'download') {
         const response = await axios.post('/api/v1/tax/export', { year });
-        // Download each selected format via axios (includes auth header)
-        const formatMap: Record<string, string> = { excel: 'xlsx', pdf: 'pdf', csv: 'csv' };
+
+        // Download each selected format
         for (const fmt of selectedFormats) {
-          const type = formatMap[fmt] ?? fmt;
-          if (response.data?.downloads?.[type]) {
-            const dlResponse = await axios.get(`/api/v1/tax/download/${year}/${type}`, {
+          if (response.data?.downloads?.[fmt]) {
+            const dlResponse = await axios.get(`/api/v1/tax/download/${year}/${fmt}`, {
               responseType: 'blob',
             });
             const blob = new Blob([dlResponse.data]);
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = response.data.downloads[type].filename || `SpendifiAI_Tax_${year}.${type}`;
+            a.download = response.data.downloads[fmt].filename || `SpendifiAI_Tax_${year}.${fmt}`;
             document.body.appendChild(a);
             a.click();
             a.remove();
@@ -86,6 +100,9 @@ export default function ExportModal({ open, onClose, year, mode, onExport }: Exp
   };
 
   const isDownload = mode === 'download';
+
+  // Group formats
+  const groups = ['Universal', 'Tax Software', 'Accounting'] as const;
 
   return (
     <Dialog open={open} onClose={handleClose} className="relative z-50">
@@ -159,28 +176,47 @@ export default function ExportModal({ open, onClose, year, mode, onExport }: Exp
                 </div>
               )}
 
-              {/* Format selection */}
+              {/* Format selection — grouped */}
               <div className="mb-4">
                 <label className="block text-xs text-sw-muted font-medium mb-2">
                   Export Formats
                 </label>
-                <div className="flex gap-3">
-                  {(['excel', 'pdf', 'csv'] as const).map((fmt) => (
-                    <label
-                      key={fmt}
-                      htmlFor={`export-format-${fmt}`}
-                      className="flex items-center gap-2 cursor-pointer text-sm text-sw-text"
-                    >
-                      <input
-                        id={`export-format-${fmt}`}
-                        type="checkbox"
-                        checked={formats[fmt]}
-                        onChange={() => toggleFormat(fmt)}
-                        className="w-4 h-4 rounded border-sw-border bg-sw-bg text-sw-accent focus:ring-sw-accent focus:ring-offset-0"
-                      />
-                      {fmt.toUpperCase()}
-                    </label>
-                  ))}
+                <div className="space-y-3 max-h-64 overflow-y-auto">
+                  {groups.map((group) => {
+                    const groupFormats = FORMAT_OPTIONS.filter((f) => f.group === group);
+                    return (
+                      <div key={group}>
+                        <div className="text-[10px] font-semibold text-sw-dim uppercase tracking-wider mb-1.5">
+                          {group}
+                        </div>
+                        <div className="space-y-1">
+                          {groupFormats.map((fmt) => (
+                            <label
+                              key={fmt.value}
+                              htmlFor={`export-format-${fmt.value}`}
+                              className={`flex items-start gap-2.5 p-2 rounded-lg cursor-pointer transition border ${
+                                selectedFormats.has(fmt.value)
+                                  ? 'border-sw-accent/40 bg-sw-accent/5'
+                                  : 'border-transparent hover:bg-sw-card-hover'
+                              }`}
+                            >
+                              <input
+                                id={`export-format-${fmt.value}`}
+                                type="checkbox"
+                                checked={selectedFormats.has(fmt.value)}
+                                onChange={() => toggleFormat(fmt.value)}
+                                className="w-3.5 h-3.5 mt-0.5 rounded border-sw-border bg-sw-bg text-sw-accent focus:ring-sw-accent focus:ring-offset-0"
+                              />
+                              <div className="flex-1 min-w-0">
+                                <div className="text-xs font-medium text-sw-text">{fmt.label}</div>
+                                <div className="text-[10px] text-sw-dim">{fmt.desc}</div>
+                              </div>
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
 
@@ -199,7 +235,7 @@ export default function ExportModal({ open, onClose, year, mode, onExport }: Exp
                 </button>
                 <button
                   onClick={handleExport}
-                  disabled={loading || selectedFormats.length === 0}
+                  disabled={loading || selectedFormats.size === 0}
                   className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-sw-accent hover:bg-sw-accent-hover text-white text-sm font-semibold transition disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {loading ? (
@@ -210,7 +246,7 @@ export default function ExportModal({ open, onClose, year, mode, onExport }: Exp
                   ) : isDownload ? (
                     <>
                       <Download size={14} />
-                      Generate Export
+                      Generate {selectedFormats.size} File{selectedFormats.size !== 1 ? 's' : ''}
                     </>
                   ) : (
                     <>

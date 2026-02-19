@@ -61,6 +61,8 @@ export interface Subscription {
   id: number;
   merchant_name: string;
   merchant_normalized: string | null;
+  description: string | null;
+  user_notes: string | null;
   amount: number;
   frequency: string;
   status: string;
@@ -78,6 +80,10 @@ export interface Subscription {
   response_reason: string | null;
   has_alternatives: boolean;
   responded_at: string | null;
+  cancellation_url: string | null;
+  cancellation_phone: string | null;
+  cancellation_instructions: string | null;
+  cancellation_difficulty: 'easy' | 'medium' | 'hard' | null;
 }
 
 export interface SubscriptionsResponse {
@@ -266,6 +272,14 @@ export interface TaxLineItem {
   order_number?: string;
 }
 
+export interface NormalizedTaxLine {
+  line: string;
+  label: string;
+  schedule: 'C' | 'A';
+  total: number;
+  categories: Array<{ name: string; amount: number; items: number }>;
+}
+
 export interface TaxSummary {
   year: number;
   total_deductible: number;
@@ -283,7 +297,10 @@ export interface TaxSummary {
   }>;
   transaction_details: TaxLineItem[];
   order_item_details: TaxLineItem[];
-  schedule_c_map: Record<string, { line: string; label: string }>;
+  schedule_c_map: Record<string, { line: string; label: string; schedule?: string }>;
+  normalized_lines: NormalizedTaxLine[];
+  schedule_c_total: number;
+  schedule_a_total: number;
 }
 
 export interface UserFinancialProfile {
@@ -580,4 +597,41 @@ export interface StoreDetail {
   monthly_trend: StoreMonthlyTrend[];
   transactions: Record<string, StoreTransaction[]>;
   order_items: StoreOrderItem[];
+}
+
+// --- Admin / CancellationProvider Types ---
+
+export interface CancellationProvider {
+  id: number;
+  company_name: string;
+  slug: string;
+  aliases: string[];
+  cancellation_url: string | null;
+  cancellation_phone: string | null;
+  cancellation_instructions: string | null;
+  difficulty: 'easy' | 'medium' | 'hard';
+  category: string | null;
+  is_essential: boolean;
+  is_verified: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AdminStats {
+  total_providers: number;
+  verified_providers: number;
+  unverified_providers: number;
+  with_cancellation_url: number;
+  categories: Array<{ category: string; count: number }>;
+  recently_added: CancellationProvider[];
+}
+
+export interface AdminProvidersResponse {
+  providers: CancellationProvider[];
+  meta: {
+    current_page: number;
+    last_page: number;
+    per_page: number;
+    total: number;
+  };
 }

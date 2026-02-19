@@ -24,6 +24,10 @@ use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 
 class TaxExportService
 {
+    public function __construct(
+        private readonly TaxCategoryNormalizerService $normalizer,
+    ) {}
+
     /**
      * Generate the complete tax package and optionally email it.
      *
@@ -51,10 +55,25 @@ class TaxExportService
         $csvPath = "{$dir}/{$baseName}_Transactions.csv";
         $this->generateCSV($data, Storage::disk('local')->path($csvPath));
 
+        // Generate TXF (TurboTax / H&R Block / Lacerte / ProSeries)
+        $txfPath = "{$dir}/{$baseName}.txf";
+        $this->generateTXF($data, Storage::disk('local')->path($txfPath));
+
+        // Generate QuickBooks Online CSV (3-column format)
+        $qboCsvPath = "{$dir}/{$baseName}_QuickBooks.csv";
+        $this->generateQuickBooksCSV($data, Storage::disk('local')->path($qboCsvPath));
+
+        // Generate OFX (Xero / Wave / accounting software)
+        $ofxPath = "{$dir}/{$baseName}.ofx";
+        $this->generateOFX($data, Storage::disk('local')->path($ofxPath));
+
         $files = [
             'xlsx' => Storage::disk('local')->path($xlsxPath),
             'pdf' => Storage::disk('local')->path($pdfPath),
             'csv' => Storage::disk('local')->path($csvPath),
+            'txf' => Storage::disk('local')->path($txfPath),
+            'qbo_csv' => Storage::disk('local')->path($qboCsvPath),
+            'ofx' => Storage::disk('local')->path($ofxPath),
         ];
 
         // Email to accountant if requested
@@ -172,8 +191,39 @@ class TaxExportService
             ])
             ->toArray();
 
-        // ── Schedule C Line Mapping ──
+        // ── Schedule C/A Line Mapping (via normalizer) ──
         $scheduleCLines = $this->mapToScheduleC($deductionsByCategory);
+
+        // ── Build complete Schedule C form (all lines, even $0) ──
+        $allScheduleC = $this->normalizer->getAllScheduleCLines();
+        $allScheduleA = $this->normalizer->getAllScheduleALines();
+
+        foreach ($scheduleCLines as $mapped) {
+            $key = $mapped['line'];
+            if ($mapped['schedule'] === 'C' && isset($allScheduleC[$key])) {
+                $allScheduleC[$key]['total'] = $mapped['total'];
+                $allScheduleC[$key]['categories'] = $mapped['categories'];
+            } elseif ($mapped['schedule'] === 'A' && isset($allScheduleA[$key])) {
+                $allScheduleA[$key]['total'] = $mapped['total'];
+                $allScheduleA[$key]['categories'] = $mapped['categories'];
+            }
+        }
+
+        $scheduleCTotal = array_sum(array_column($allScheduleC, 'total'));
+        $scheduleATotal = array_sum(array_column($allScheduleA, 'total'));
+
+        // ── Group deductible transactions by normalized IRS line ──
+        $transactionsByLine = [];
+        foreach ($deductibleTransactions as $tx) {
+            $cat = $tx['tax_category'] ?? 'Uncategorized';
+            $normalized = $this->normalizer->normalize($cat);
+            $lineLabel = $normalized['schedule'] === 'C'
+                ? "Line {$normalized['line']} — {$normalized['label']}"
+                : "{$normalized['line']} — {$normalized['label']}";
+
+            $transactionsByLine[$lineLabel][] = $tx;
+        }
+        ksort($transactionsByLine);
 
         // ── Summary Totals ──
         $totalDeductible = array_sum(array_column($deductionsByCategory, 'total'));
@@ -219,6 +269,8 @@ class TaxExportService
                 'effective_rate_used' => $estRate,
                 'total_categories' => count($deductionsByCategory),
                 'total_line_items' => count($deductibleTransactions) + count($deductibleItems),
+                'schedule_c_total' => round($scheduleCTotal, 2),
+                'schedule_a_total' => round($scheduleATotal, 2),
                 'generated_at' => now()->toIso8601String(),
             ],
             'deductions_by_category' => $deductionsByCategory,
@@ -227,63 +279,20 @@ class TaxExportService
             'spending_by_purpose' => $spendingByPurpose,
             'business_subscriptions' => $businessSubs,
             'schedule_c_mapping' => $scheduleCLines,
+            'all_schedule_c_lines' => array_values($allScheduleC),
+            'all_schedule_a_lines' => array_values($allScheduleA),
+            'transactions_by_line' => $transactionsByLine,
             'accounts' => $accounts,
+            'logo_base64' => $this->getLogoBase64(),
         ];
     }
 
     /**
-     * Map deduction categories to IRS Schedule C lines.
+     * Map deduction categories to IRS Schedule C/A lines via the normalizer.
      */
     protected function mapToScheduleC(array $categories): array
     {
-        $lineMap = [
-            'Marketing & Advertising' => ['line' => '8',   'label' => 'Advertising'],
-            'Car Insurance' => ['line' => '9',   'label' => 'Car and truck expenses'],
-            'Auto Maintenance' => ['line' => '9',   'label' => 'Car and truck expenses'],
-            'Gas & Fuel' => ['line' => '9',   'label' => 'Car and truck expenses'],
-            'Transportation' => ['line' => '9',   'label' => 'Car and truck expenses'],
-            'Professional Services' => ['line' => '11',  'label' => 'Contract labor'],
-            'Health Insurance' => ['line' => '15',  'label' => 'Insurance (health)'],
-            'Home Insurance' => ['line' => '15',  'label' => 'Insurance (other)'],
-            'Professional Development' => ['line' => '27a', 'label' => 'Other expenses'],
-            'Office Supplies' => ['line' => '18',  'label' => 'Office expense'],
-            'Software & SaaS' => ['line' => '18',  'label' => 'Office expense'],
-            'Business Meals' => ['line' => '24b', 'label' => 'Meals (50% deductible)'],
-            'Restaurant & Dining' => ['line' => '24b', 'label' => 'Meals (business)'],
-            'Travel & Hotels' => ['line' => '24a', 'label' => 'Travel'],
-            'Flights' => ['line' => '24a', 'label' => 'Travel'],
-            'Phone & Internet' => ['line' => '25',  'label' => 'Utilities'],
-            'Utilities' => ['line' => '25',  'label' => 'Utilities'],
-            'Home Office' => ['line' => '30',  'label' => 'Business use of home'],
-            'Shipping & Postage' => ['line' => '18',  'label' => 'Office expense'],
-            'Charity & Donations' => ['line' => 'Sch A', 'label' => 'Charitable contributions (Schedule A)'],
-            'Medical & Dental' => ['line' => 'Sch A', 'label' => 'Medical expenses (Schedule A)'],
-            'Mortgage' => ['line' => 'Sch A', 'label' => 'Mortgage interest (Schedule A)'],
-        ];
-
-        $lines = [];
-        foreach ($categories as $cat) {
-            $name = $cat['tax_category'];
-            $mapping = $lineMap[$name] ?? ['line' => '27a', 'label' => 'Other expenses'];
-
-            $lineKey = "Line {$mapping['line']}";
-            if (! isset($lines[$lineKey])) {
-                $lines[$lineKey] = [
-                    'line' => $mapping['line'],
-                    'label' => $mapping['label'],
-                    'total' => 0,
-                    'categories' => [],
-                ];
-            }
-            $lines[$lineKey]['total'] += $cat['total'];
-            $lines[$lineKey]['categories'][] = [
-                'name' => $name,
-                'amount' => $cat['total'],
-                'items' => $cat['item_count'],
-            ];
-        }
-
-        return array_values($lines);
+        return $this->normalizer->mapCategoriesToLines($categories);
     }
 
     /**
@@ -742,5 +751,178 @@ class TaxExportService
         }
 
         fclose($fp);
+    }
+
+    /**
+     * Generate TXF (Tax Exchange Format v042) file for TurboTax / H&R Block / Lacerte.
+     */
+    public function generateTXF(array $data, string $path): void
+    {
+        $lines = [];
+
+        // TXF header
+        $lines[] = 'V042';
+        $lines[] = 'ASpendifiAI';
+        $lines[] = 'D'.now()->format('m/d/Y');
+
+        // Aggregate by normalized IRS line
+        $lineAggregates = [];
+        foreach ($data['deductible_transactions'] ?? [] as $tx) {
+            $cat = $tx['tax_category'] ?? 'Uncategorized';
+            $normalized = $this->normalizer->normalize($cat);
+
+            // Only Schedule C lines go into TXF
+            if ($normalized['schedule'] !== 'C') {
+                continue;
+            }
+
+            $key = $normalized['line'];
+            if (! isset($lineAggregates[$key])) {
+                $lineAggregates[$key] = [
+                    'line' => $normalized['line'],
+                    'label' => $normalized['label'],
+                    'total' => 0,
+                    'descriptions' => [],
+                ];
+            }
+
+            $lineAggregates[$key]['total'] += (float) $tx['amount'];
+            $desc = $tx['merchant'].($tx['description'] ? ': '.$tx['description'] : '');
+            $lineAggregates[$key]['descriptions'][] = $desc;
+        }
+
+        // Write each line as a TXF record
+        foreach ($lineAggregates as $agg) {
+            $ref = $this->normalizer->getTxfRefNumber($agg['line']);
+            if (! $ref) {
+                continue;
+            }
+
+            $lines[] = '^';
+            $lines[] = 'TD';
+            $lines[] = $ref;
+            $lines[] = 'C1';
+            $lines[] = 'L1';
+            $lines[] = '$-'.number_format($agg['total'], 2, '.', '');
+
+            // Line 27a and 30 use format 3 (amount + description required by IRS)
+            if (in_array($agg['line'], ['27a', '30'])) {
+                $lines[] = 'P'.$agg['label'];
+                $uniqueDescs = array_unique(array_slice($agg['descriptions'], 0, 5));
+                $lines[] = 'X'.implode('; ', $uniqueDescs);
+            } else {
+                $lines[] = 'P'.$agg['label'];
+            }
+        }
+
+        $lines[] = '^';
+
+        file_put_contents($path, implode("\r\n", $lines));
+    }
+
+    /**
+     * Generate QuickBooks Online CSV (3-column format).
+     */
+    public function generateQuickBooksCSV(array $data, string $path): void
+    {
+        $fp = fopen($path, 'w');
+
+        fputcsv($fp, ['Date', 'Description', 'Amount']);
+
+        foreach ($data['deductible_transactions'] ?? [] as $tx) {
+            $desc = $tx['merchant'];
+            if (! empty($tx['description']) && $tx['description'] !== $tx['merchant']) {
+                $desc .= ' - '.$tx['description'];
+            }
+
+            fputcsv($fp, [
+                date('m/d/Y', strtotime($tx['date'])),
+                $desc,
+                '-'.number_format((float) $tx['amount'], 2, '.', ''),
+            ]);
+        }
+
+        fclose($fp);
+    }
+
+    /**
+     * Generate OFX (Open Financial Exchange v2.2) file for Xero / Wave / accounting software.
+     */
+    public function generateOFX(array $data, string $path): void
+    {
+        $year = $data['year'];
+        $now = now()->format('YmdHis');
+        $startDate = "{$year}0101120000";
+        $endDate = "{$year}1231120000";
+
+        $xml = '<?xml version="1.0" encoding="UTF-8"?>'."\n";
+        $xml .= '<?OFX OFXHEADER="200" VERSION="220" SECURITY="NONE" OLDFILEUID="NONE" NEWFILEUID="NONE"?>'."\n";
+        $xml .= "<OFX>\n";
+        $xml .= "  <SIGNONMSGSRSV1>\n";
+        $xml .= "    <SONRS>\n";
+        $xml .= "      <STATUS><CODE>0</CODE><SEVERITY>INFO</SEVERITY></STATUS>\n";
+        $xml .= "      <DTSERVER>{$now}</DTSERVER>\n";
+        $xml .= "      <LANGUAGE>ENG</LANGUAGE>\n";
+        $xml .= "      <FI><ORG>SpendifiAI</ORG></FI>\n";
+        $xml .= "    </SONRS>\n";
+        $xml .= "  </SIGNONMSGSRSV1>\n";
+        $xml .= "  <BANKMSGSRSV1>\n";
+        $xml .= "    <STMTTRNRS>\n";
+        $xml .= "      <STATUS><CODE>0</CODE><SEVERITY>INFO</SEVERITY></STATUS>\n";
+        $xml .= "      <STMTRS>\n";
+        $xml .= "        <CURDEF>USD</CURDEF>\n";
+        $xml .= "        <BANKACCTFROM>\n";
+        $xml .= "          <BANKID>000000000</BANKID>\n";
+        $xml .= "          <ACCTID>SPENDIFIAI</ACCTID>\n";
+        $xml .= "          <ACCTTYPE>CHECKING</ACCTTYPE>\n";
+        $xml .= "        </BANKACCTFROM>\n";
+        $xml .= "        <BANKTRANLIST>\n";
+        $xml .= "          <DTSTART>{$startDate}</DTSTART>\n";
+        $xml .= "          <DTEND>{$endDate}</DTEND>\n";
+
+        $counter = 1;
+        foreach ($data['deductible_transactions'] ?? [] as $tx) {
+            $date = date('YmdHis', strtotime($tx['date']));
+            $amount = '-'.number_format((float) $tx['amount'], 2, '.', '');
+            $fitid = $year.str_pad((string) $counter, 8, '0', STR_PAD_LEFT);
+            $name = htmlspecialchars(substr($tx['merchant'], 0, 32), ENT_XML1 | ENT_QUOTES, 'UTF-8');
+            $memo = htmlspecialchars(substr($tx['description'] ?? '', 0, 80), ENT_XML1 | ENT_QUOTES, 'UTF-8');
+
+            $xml .= "          <STMTTRN>\n";
+            $xml .= "            <TRNTYPE>DEBIT</TRNTYPE>\n";
+            $xml .= "            <DTPOSTED>{$date}</DTPOSTED>\n";
+            $xml .= "            <TRNAMT>{$amount}</TRNAMT>\n";
+            $xml .= "            <FITID>{$fitid}</FITID>\n";
+            $xml .= "            <NAME>{$name}</NAME>\n";
+            if ($memo) {
+                $xml .= "            <MEMO>{$memo}</MEMO>\n";
+            }
+            $xml .= "          </STMTTRN>\n";
+
+            $counter++;
+        }
+
+        $xml .= "        </BANKTRANLIST>\n";
+        $xml .= "      </STMTRS>\n";
+        $xml .= "    </STMTTRNRS>\n";
+        $xml .= "  </BANKMSGSRSV1>\n";
+        $xml .= "</OFX>\n";
+
+        file_put_contents($path, $xml);
+    }
+
+    /**
+     * Get the SpendifiAI icon as a base64-encoded data URI for PDF embedding.
+     */
+    protected function getLogoBase64(): string
+    {
+        $logoPath = public_path('images/spendifiai-icon.png');
+        if (! file_exists($logoPath)) {
+            return '';
+        }
+
+        $contents = file_get_contents($logoPath);
+
+        return 'data:image/png;base64,'.base64_encode($contents);
     }
 }

@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Admin\CancellationProviderController;
 use App\Http\Controllers\Api\AIQuestionController;
 use App\Http\Controllers\Api\BankAccountController;
 use App\Http\Controllers\Api\DashboardController;
@@ -162,6 +163,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
             Route::get('/subscriptions', [SubscriptionController::class, 'index']);
             Route::post('/subscriptions/detect', [SubscriptionController::class, 'detect'])
                 ->middleware('throttle:5,1');
+            Route::patch('/subscriptions/{subscription}', [SubscriptionController::class, 'update']);
             Route::post('/subscriptions/{subscription}/respond', [SubscriptionController::class, 'respond']);
             Route::delete('/subscriptions/{subscription}', [SubscriptionController::class, 'dismiss']);
             Route::get('/subscriptions/{subscription}/alternatives', [SubscriptionController::class, 'alternatives']);
@@ -219,5 +221,17 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
         // Account Deletion (GDPR/CCPA compliance)
         Route::delete('/account', [UserProfileController::class, 'deleteAccount']);
+    });
+
+    // ─── Admin Routes ───
+    Route::prefix('admin')->middleware('admin')->group(function () {
+        Route::get('/stats', [CancellationProviderController::class, 'stats']);
+        Route::get('/providers', [CancellationProviderController::class, 'index']);
+        Route::post('/providers', [CancellationProviderController::class, 'store']);
+        Route::get('/providers/{provider}', [CancellationProviderController::class, 'show']);
+        Route::patch('/providers/{provider}', [CancellationProviderController::class, 'update']);
+        Route::delete('/providers/{provider}', [CancellationProviderController::class, 'destroy']);
+        Route::post('/providers/bulk-import', [CancellationProviderController::class, 'bulkImport']);
+        Route::post('/providers/{provider}/find-link', [CancellationProviderController::class, 'findCancellationLink']);
     });
 });

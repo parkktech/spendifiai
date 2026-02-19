@@ -13,6 +13,8 @@ class SubscriptionResource extends JsonResource
             'id' => $this->id,
             'merchant_name' => $this->merchant_name,
             'merchant_normalized' => $this->merchant_normalized,
+            'description' => $this->description,
+            'user_notes' => $this->user_notes,
             'amount' => (float) $this->amount,
             'frequency' => $this->frequency,
             'category' => $this->category,
@@ -32,6 +34,10 @@ class SubscriptionResource extends JsonResource
             'response_reason' => $this->response_reason,
             'has_alternatives' => ! empty($this->ai_alternatives),
             'responded_at' => $this->responded_at?->toIso8601String(),
+            'cancellation_url' => $this->cancellationProvider?->cancellation_url,
+            'cancellation_phone' => $this->cancellationProvider?->cancellation_phone,
+            'cancellation_instructions' => $this->cancellationProvider?->cancellation_instructions,
+            'cancellation_difficulty' => $this->cancellationProvider?->difficulty,
         ];
     }
 }

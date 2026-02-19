@@ -45,6 +45,14 @@ Route::middleware(['auth:sanctum', 'verified'])->group(function () {
     Route::get('/connect', fn () => Inertia::render('Connect/Index'))->name('connect');
     Route::get('/settings', fn () => Inertia::render('Settings/Index'))->name('settings');
     Route::get('/questions', fn () => Inertia::render('Questions/Index'))->name('questions');
+
+    // Admin pages
+    Route::middleware('admin')->group(function () {
+        Route::get('/admin', fn () => Inertia::render('Admin/Dashboard'))->name('admin.dashboard');
+        Route::get('/admin/providers', fn () => Inertia::render('Admin/Providers/Index'))->name('admin.providers');
+        Route::get('/admin/providers/create', fn () => Inertia::render('Admin/Providers/Create'))->name('admin.providers.create');
+        Route::get('/admin/providers/{provider}/edit', fn () => Inertia::render('Admin/Providers/Edit'))->name('admin.providers.edit');
+    });
 });
 
 // ── Profile Management (Breeze) ──
@@ -58,17 +66,17 @@ Route::middleware('auth')->group(function () {
 Route::get('/email/verify/{id}/{hash}', function (Request $request, $id, $hash) {
     $user = \App\Models\User::find($id);
 
-    if (!$user) {
+    if (! $user) {
         return redirect('/login')->with('error', 'Invalid verification link');
     }
 
     // Verify the hash signature
-    if (!hash_equals($hash, sha1($user->getEmailForVerification()))) {
+    if (! hash_equals($hash, sha1($user->getEmailForVerification()))) {
         return redirect('/login')->with('error', 'Invalid verification link');
     }
 
     // Mark email as verified
-    if (!$user->hasVerifiedEmail()) {
+    if (! $user->hasVerifiedEmail()) {
         $user->markEmailAsVerified();
     }
 
@@ -76,6 +84,7 @@ Route::get('/email/verify/{id}/{hash}', function (Request $request, $id, $hash) 
     if ($request->user()) {
         // User is already authenticated — refresh their session
         Auth::login($user, true);
+
         return redirect('/dashboard');
     }
 

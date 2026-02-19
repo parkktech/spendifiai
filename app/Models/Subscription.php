@@ -12,9 +12,9 @@ class Subscription extends Model
     use HasFactory;
 
     protected $fillable = [
-        'user_id', 'merchant_name', 'merchant_normalized', 'amount',
-        'frequency', 'category', 'status', 'is_essential', 'months_active',
-        'last_charge_date', 'next_expected_date', 'last_used_at',
+        'user_id', 'merchant_name', 'merchant_normalized', 'description', 'user_notes', 'amount',
+        'frequency', 'category', 'status', 'is_essential', 'cancellation_provider_id',
+        'months_active', 'last_charge_date', 'next_expected_date', 'last_used_at',
         'annual_cost', 'charge_history',
         'response_type', 'previous_amount', 'response_reason',
         'ai_alternatives', 'responded_at', 'alternatives_generated_at',
@@ -41,6 +41,11 @@ class Subscription extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function cancellationProvider(): BelongsTo
+    {
+        return $this->belongsTo(CancellationProvider::class);
     }
 
     public function scopeActive($q)

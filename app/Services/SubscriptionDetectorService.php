@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\CancellationProvider;
 use App\Models\Subscription;
 use App\Models\Transaction;
 use Carbon\Carbon;
@@ -12,57 +13,37 @@ use Illuminate\Support\Facades\Log;
 class SubscriptionDetectorService
 {
     /**
-     * Known subscription merchant patterns.
-     * Maps bank statement names to clean names + categories.
+     * Cached provider alias lookups, loaded from cancellation_providers table.
+     * Each entry: ['pattern' => 'NETFLIX', 'name' => 'Netflix', 'category' => 'Streaming', 'essential' => false, 'provider_id' => 1]
      */
-    protected array $knownSubscriptions = [
-        'NETFLIX' => ['name' => 'Netflix', 'category' => 'Streaming', 'essential' => false],
-        'SPOTIFY' => ['name' => 'Spotify', 'category' => 'Music', 'essential' => false],
-        'HULU' => ['name' => 'Hulu', 'category' => 'Streaming', 'essential' => false],
-        'DISNEY PLUS' => ['name' => 'Disney+', 'category' => 'Streaming', 'essential' => false],
-        'APPLE.COM/BILL' => ['name' => 'Apple Services', 'category' => 'Software', 'essential' => false],
-        'AMAZON PRIME' => ['name' => 'Amazon Prime', 'category' => 'Shopping', 'essential' => false],
-        'YOUTUBE PREMIUM' => ['name' => 'YouTube Premium', 'category' => 'Streaming', 'essential' => false],
-        'ADOBE' => ['name' => 'Adobe Creative Cloud', 'category' => 'Software', 'essential' => false],
-        'OPENAI' => ['name' => 'ChatGPT Plus', 'category' => 'Software', 'essential' => false],
-        'MICROSOFT' => ['name' => 'Microsoft 365', 'category' => 'Software', 'essential' => false],
-        'PARAMOUNT' => ['name' => 'Paramount+', 'category' => 'Streaming', 'essential' => false],
-        'HBO MAX' => ['name' => 'Max', 'category' => 'Streaming', 'essential' => false],
-        'PEACOCK' => ['name' => 'Peacock', 'category' => 'Streaming', 'essential' => false],
-        'CRUNCHYROLL' => ['name' => 'Crunchyroll', 'category' => 'Streaming', 'essential' => false],
-        'HEADSPACE' => ['name' => 'Headspace', 'category' => 'Health', 'essential' => false],
-        'PLANET FITNESS' => ['name' => 'Planet Fitness', 'category' => 'Fitness', 'essential' => false],
-        'DROPBOX' => ['name' => 'Dropbox', 'category' => 'Storage', 'essential' => false],
-        'ICLOUD' => ['name' => 'iCloud+', 'category' => 'Storage', 'essential' => false],
-        'GEICO' => ['name' => 'GEICO', 'category' => 'Insurance', 'essential' => true],
-        'STATE FARM' => ['name' => 'State Farm', 'category' => 'Insurance', 'essential' => true],
-        'PROGRESSIVE' => ['name' => 'Progressive', 'category' => 'Insurance', 'essential' => true],
-        'AT&T' => ['name' => 'AT&T', 'category' => 'Phone', 'essential' => true],
-        'T-MOBILE' => ['name' => 'T-Mobile', 'category' => 'Phone', 'essential' => true],
-        'VERIZON' => ['name' => 'Verizon', 'category' => 'Phone', 'essential' => true],
-        'XFINITY' => ['name' => 'Xfinity/Comcast', 'category' => 'Internet', 'essential' => true],
-        'SPECTRUM' => ['name' => 'Spectrum', 'category' => 'Internet', 'essential' => true],
-        'APS ' => ['name' => 'APS Electric', 'category' => 'Utilities', 'essential' => true],
-        'SRP ' => ['name' => 'SRP Power', 'category' => 'Utilities', 'essential' => true],
-        'REPUBLIC SVCS' => ['name' => 'Republic Services', 'category' => 'Trash', 'essential' => true],
-        'WASTE MGMT' => ['name' => 'Waste Management', 'category' => 'Trash', 'essential' => true],
-    ];
+    protected ?Collection $providerAliasCache = null;
 
     /**
-     * Plaid categories that are never subscriptions.
+     * Plaid categories that are NEVER subscriptions.
+     * Dramatically reduced from the original list — most categories now pass through to AI validation.
      */
     protected array $excludedCategories = [
-        'TRANSFER_IN', 'TRANSFER_OUT', 'BANK_FEES', 'LOAN_PAYMENTS',
+        'TRANSFER_IN', 'BANK_FEES', 'LOAN_PAYMENTS',
         'ATM', 'INCOME', 'RENT', 'MORTGAGE',
-        'FOOD_AND_DRINK', 'GENERAL_MERCHANDISE', 'GENERAL_SERVICES',
-        'TRANSPORTATION', 'MEDICAL', 'PERSONAL_CARE', 'GOVERNMENT_AND_NON_PROFIT',
-        'HOME_IMPROVEMENT', 'TRAVEL',
     ];
 
     /**
-     * Payment channels that indicate in-person purchases (not subscriptions).
+     * Companies known to sell both fixed subscriptions AND usage-based API access.
+     * For these, we check amount consistency before treating as subscription.
      */
-    protected array $excludedChannels = ['in store', 'in_store'];
+    protected array $knownApiCompanies = [
+        'ANTHROPIC', 'OPENAI', 'AWS', 'GOOGLE CLOUD', 'AZURE',
+        'DIGITALOCEAN', 'TWILIO', 'SENDGRID', 'STRIPE',
+    ];
+
+    /**
+     * Payment processor patterns — extract actual merchant from processor descriptions.
+     */
+    protected array $paymentProcessors = [
+        'PAYPAL' => '/PAYPAL\s+(?:INST\s+XFER\s+)?(.+?)(?:\s+WEB\s+ID|\s+\d{10,}|\s*$)/i',
+        'VENMO' => '/VENMO\s+\*?(.+?)(?:\s+\d{4}|\s*$)/i',
+        'CASH APP' => '/CASH\s+APP\s+\*?(.+?)(?:\s+\d{4}|\s*$)/i',
+    ];
 
     /**
      * Scan all transactions and detect recurring subscriptions.
@@ -74,7 +55,7 @@ class SubscriptionDetectorService
         $transactions = Transaction::where('user_id', $userId)
             ->where('transaction_date', '>=', $since)
             ->where('amount', '>', 0)
-            ->select(['id', 'user_id', 'merchant_name', 'merchant_normalized', 'amount', 'transaction_date', 'ai_category', 'plaid_category', 'payment_channel'])
+            ->select(['id', 'user_id', 'merchant_name', 'merchant_normalized', 'description', 'amount', 'transaction_date', 'ai_category', 'plaid_category', 'payment_channel'])
             ->orderBy('transaction_date')
             ->get();
 
@@ -87,26 +68,39 @@ class SubscriptionDetectorService
         $aiCandidates = [];
 
         foreach ($merchantGroups as $merchant => $txGroup) {
-            // Check if this is a known subscription (bypasses category/channel filters)
+            if ($merchant === 'unknown' || $merchant === '') {
+                continue;
+            }
+
+            // Check if this is a known subscription from our provider database
             $known = $this->lookupKnownSubscription($merchant);
 
             if (! $known) {
-                // Skip in-store purchases — subscriptions are billed online
-                $primaryChannel = $txGroup->first()->payment_channel;
-                if ($primaryChannel && in_array(strtolower($primaryChannel), $this->excludedChannels)) {
-                    continue;
-                }
-
-                // Skip excluded transaction categories (food, retail, medical, etc.)
+                // Skip hard-excluded categories (bank fees, transfers, loans, ATM, income, rent)
                 $primaryCategory = $txGroup->first()->plaid_category;
                 if ($primaryCategory && in_array($primaryCategory, $this->excludedCategories)) {
                     continue;
                 }
             }
 
+            // For known API companies, check if the overall merchant has mixed charges.
+            // If so, treat ALL subgroups as unknown (require AI validation) to avoid
+            // false positives like OpenAI API charges at $186 being flagged as subscriptions.
+            $isApiMerchant = $this->isKnownApiCompany($merchant);
+            $merchantHasMixedAmounts = false;
+            if ($isApiMerchant) {
+                $allAmounts = $txGroup->pluck('amount')->map(fn ($a) => (float) $a);
+                if ($allAmounts->count() >= 2) {
+                    $merchantHasMixedAmounts = ($allAmounts->max() - $allAmounts->min()) > 1.00;
+                }
+            }
+
+            // Minimum charge thresholds: 2 for known providers, 3 for unknown
+            $minCharges = $known ? 2 : 3;
+
             // Known essential bills (insurance, utilities, phone) have varying amounts.
             // Analyze them as a whole group with relaxed amount tolerance.
-            if ($known && ($known['essential'] ?? false) && $txGroup->count() >= 3) {
+            if ($known && ($known['essential'] ?? false) && $txGroup->count() >= $minCharges) {
                 $recurring = $this->analyzeRecurrence($txGroup, tolerant: true);
                 if ($recurring) {
                     $detected[] = $this->createOrUpdateSubscription(
@@ -121,8 +115,7 @@ class SubscriptionDetectorService
             $amountGroups = $txGroup->groupBy(fn ($tx) => number_format((float) $tx->amount, 2, '.', ''));
 
             foreach ($amountGroups as $subGroup) {
-                // Require minimum 3 charges at this exact amount
-                if ($subGroup->count() < 3) {
+                if ($subGroup->count() < $minCharges) {
                     continue;
                 }
 
@@ -131,7 +124,9 @@ class SubscriptionDetectorService
                     continue;
                 }
 
-                if ($known) {
+                // For API companies with mixed amounts, always use AI validation
+                // to distinguish ChatGPT Plus ($63.78) from API charges ($186)
+                if ($known && ! $merchantHasMixedAmounts) {
                     $detected[] = $this->createOrUpdateSubscription(
                         $userId, $merchant, $subGroup, $recurring
                     );
@@ -161,6 +156,9 @@ class SubscriptionDetectorService
             }
         }
 
+        // Try to link any unlinked subscriptions to CancellationProviders
+        $this->linkUnlinkedSubscriptions($userId);
+
         // Mark subscriptions as unused if charges have stopped
         $this->detectUnusedSubscriptions($userId);
 
@@ -171,8 +169,20 @@ class SubscriptionDetectorService
     }
 
     /**
+     * Check if a merchant is a known API/cloud company that sells both subscriptions and usage-based access.
+     */
+    protected function isKnownApiCompany(string $merchant): bool
+    {
+        $lower = strtolower($merchant);
+
+        return collect($this->knownApiCompanies)->contains(
+            fn ($c) => str_contains($lower, strtolower($c))
+        );
+    }
+
+    /**
      * Analyze a group of transactions to determine if they're recurring.
-     * Requires: exact amount match + regular intervals.
+     * Requires: amount consistency + regular intervals.
      */
     protected function analyzeRecurrence(Collection $transactions, bool $tolerant = false): ?array
     {
@@ -226,6 +236,11 @@ class SubscriptionDetectorService
             if ($cv > 0.25) {
                 return null;
             }
+        } elseif (count($intervals) === 1) {
+            // Single interval (2 charges): just check it falls in a valid frequency range
+            if ($intervals[0] < 5 || $intervals[0] > 380) {
+                return null;
+            }
         }
 
         // Determine frequency from median interval (more robust than average)
@@ -272,19 +287,23 @@ class SubscriptionDetectorService
     {
         $apiKey = config('services.anthropic.api_key');
         if (! $apiKey) {
-            // No API key — skip AI validation, reject all unknowns
             return array_fill(0, count($candidates), false);
         }
 
-        $prompt = "You are a financial analyst. For each merchant below, determine if the charges represent a TRUE recurring subscription (like a streaming service, software license, gym membership, insurance, etc.) or NOT a subscription (like repeated shopping at the same store, on-demand API usage charges, repeated one-time purchases, etc.).\n\n";
+        $prompt = "You are a financial analyst. For each merchant below, determine if the charges represent a TRUE recurring subscription or NOT a subscription.\n\n";
         $prompt .= "A TRUE subscription means:\n";
         $prompt .= "- The company charges a fixed amount on a regular billing cycle\n";
         $prompt .= "- The user signed up for an ongoing service that bills automatically\n";
-        $prompt .= "- Examples: Netflix, Spotify, gym, insurance, phone bill\n\n";
+        $prompt .= "- Examples: Netflix, Spotify, gym, software licenses, VPN, hosting, credit monitoring\n\n";
         $prompt .= "NOT a subscription:\n";
         $prompt .= "- Variable usage-based charges (API fees, cloud computing, pay-per-use)\n";
         $prompt .= "- Repeated purchases at the same retailer (grocery store, Amazon orders, gas station)\n";
-        $prompt .= "- Multiple one-time purchases that happen to be the same amount\n\n";
+        $prompt .= "- Multiple one-time purchases that happen to be the same amount\n";
+        $prompt .= "- Regular bill payments (credit card autopay, loan payments, rent)\n";
+        $prompt .= "- Transfers between accounts\n\n";
+        $prompt .= 'CRITICAL: Companies like OpenAI, Anthropic, Google Cloud, AWS sell BOTH fixed subscriptions AND usage-based API access. ';
+        $prompt .= 'ChatGPT Plus ($20/mo fixed) = subscription. API charges ($186.10, $186.51 varying) = NOT subscription. ';
+        $prompt .= "If amounts vary by more than $1 for a tech/SaaS company, it is likely API usage.\n\n";
 
         $merchantData = [];
         foreach ($candidates as $idx => $c) {
@@ -292,6 +311,7 @@ class SubscriptionDetectorService
                 'date' => $tx->transaction_date->format('Y-m-d'),
                 'amount' => (float) $tx->amount,
                 'description' => $tx->merchant_name,
+                'channel' => $tx->payment_channel,
             ])->values()->toArray();
 
             $merchantData[] = [
@@ -356,6 +376,7 @@ class SubscriptionDetectorService
 
     /**
      * Create or update a subscription record.
+     * Handles deduplication by checking both normalized name and raw merchant name.
      */
     protected function createOrUpdateSubscription(
         int $userId,
@@ -365,6 +386,9 @@ class SubscriptionDetectorService
     ): Subscription {
         $known = $this->lookupKnownSubscription($merchant);
         $lastTx = $transactions->sortByDesc('transaction_date')->first();
+        // Use provider name if known, otherwise use the original merchant_name from the transaction
+        // (preserves proper casing like "OpenAI" instead of lowercase "openai")
+        $normalizedName = $known['name'] ?? $lastTx->merchant_name;
 
         $annualMultiplier = match ($recurring['frequency']) {
             'weekly' => 52,
@@ -373,31 +397,138 @@ class SubscriptionDetectorService
             'annual' => 1,
         };
 
-        return Subscription::updateOrCreate(
-            ['user_id' => $userId, 'merchant_normalized' => $known['name'] ?? $merchant],
-            [
-                'merchant_name' => $lastTx->merchant_name,
-                'amount' => $recurring['avg_amount'],
-                'frequency' => $recurring['frequency'],
-                'category' => $known['category'] ?? $lastTx->ai_category ?? 'Subscriptions',
-                'last_charge_date' => $lastTx->transaction_date,
-                'next_expected_date' => $recurring['next_expected'],
-                'status' => 'active',
-                'months_active' => $recurring['charge_count'],
-                'is_essential' => $known['essential'] ?? false,
-                'annual_cost' => round($recurring['avg_amount'] * $annualMultiplier, 2),
-                'charge_history' => $transactions->map(fn ($t) => [
-                    'date' => $t->transaction_date->toDateString(),
-                    'amount' => $t->amount,
-                ])->values()->toArray(),
-            ]
-        );
+        // Try to find existing subscription, checking multiple match strategies:
+        // 1. Same normalized name (case-insensitive) + same amount
+        // 2. Same raw merchant_name (case-insensitive) + same amount
+        // 3. Same cancellation_provider_id + same amount (for provider-linked entries)
+        // Amount matching prevents merging different tiers (Tesla $9.99 vs $106.18)
+        $rawMerchant = $lastTx->merchant_name;
+        $existing = Subscription::where('user_id', $userId)
+            ->where('amount', $recurring['avg_amount'])
+            ->where(function ($q) use ($normalizedName, $merchant, $rawMerchant, $known) {
+                $q->where('merchant_normalized', $normalizedName)
+                    ->orWhereRaw('lower(merchant_normalized) = ?', [strtolower($merchant)])
+                    ->orWhereRaw('lower(merchant_normalized) = ?', [strtolower($normalizedName)])
+                    ->orWhereRaw('lower(merchant_name) = ?', [strtolower($rawMerchant)]);
+
+                // Also match by provider_id to catch entries linked via a different name
+                if (! empty($known['provider_id'])) {
+                    $q->orWhere('cancellation_provider_id', $known['provider_id']);
+                }
+            })
+            ->first();
+
+        // Extract a useful description from the bank transaction
+        $description = $lastTx->description ?? $lastTx->merchant_name;
+
+        $data = [
+            'merchant_name' => $lastTx->merchant_name,
+            'merchant_normalized' => $normalizedName,
+            'description' => $description,
+            'amount' => $recurring['avg_amount'],
+            'frequency' => $recurring['frequency'],
+            'category' => $known['category'] ?? $lastTx->ai_category ?? 'Subscriptions',
+            'last_charge_date' => $lastTx->transaction_date,
+            'next_expected_date' => $recurring['next_expected'],
+            'status' => 'active',
+            'months_active' => $recurring['charge_count'],
+            'is_essential' => $known['essential'] ?? false,
+            'annual_cost' => round($recurring['avg_amount'] * $annualMultiplier, 2),
+            'cancellation_provider_id' => $known['provider_id'] ?? null,
+            'charge_history' => $transactions->map(fn ($t) => [
+                'date' => $t->transaction_date->toDateString(),
+                'amount' => $t->amount,
+            ])->values()->toArray(),
+        ];
+
+        if ($existing) {
+            // Don't overwrite provider link or normalized name if already set from a prior link
+            if ($existing->cancellation_provider_id && empty($data['cancellation_provider_id'])) {
+                unset($data['cancellation_provider_id'], $data['merchant_normalized']);
+            }
+            $existing->update($data);
+
+            return $existing;
+        }
+
+        return Subscription::create(array_merge($data, ['user_id' => $userId]));
+    }
+
+    /**
+     * Try to link unlinked subscriptions to CancellationProviders.
+     * Runs after detection to catch AI-validated subscriptions that weren't matched during creation.
+     */
+    protected function linkUnlinkedSubscriptions(int $userId): void
+    {
+        $unlinked = Subscription::where('user_id', $userId)
+            ->whereNull('cancellation_provider_id')
+            ->get();
+
+        $aliases = $this->loadProviderAliases();
+
+        foreach ($unlinked as $sub) {
+            $merchantName = strtolower(trim($sub->merchant_normalized ?? $sub->merchant_name));
+
+            // First try standard lookup (merchant contains alias)
+            $known = $this->lookupKnownSubscription($merchantName);
+
+            // If no match, try reverse: check if any alias contains the merchant name.
+            // This catches cases like "openai" matching "openai chatgpt" alias for ChatGPT Plus.
+            if (! $known && strlen($merchantName) >= 4) {
+                $bestMatch = null;
+                $bestLength = 0;
+                foreach ($aliases as $entry) {
+                    if (str_contains($entry['pattern'], $merchantName)) {
+                        if (strlen($entry['pattern']) > $bestLength) {
+                            $bestMatch = $entry;
+                            $bestLength = strlen($entry['pattern']);
+                        }
+                    }
+                }
+                $known = $bestMatch;
+            }
+
+            if ($known) {
+                // Check if a linked subscription with this provider + amount already exists.
+                // If so, delete this unlinked duplicate instead of creating a second entry.
+                $existingLinked = Subscription::where('user_id', $userId)
+                    ->where('cancellation_provider_id', $known['provider_id'])
+                    ->where('amount', $sub->amount)
+                    ->where('id', '!=', $sub->id)
+                    ->first();
+
+                if ($existingLinked) {
+                    // Copy fresher data from the unlinked duplicate before deleting it
+                    $updates = [];
+                    if (! $existingLinked->description && $sub->description) {
+                        $updates['description'] = $sub->description;
+                    }
+                    if ($sub->last_charge_date && (! $existingLinked->last_charge_date || $sub->last_charge_date > $existingLinked->last_charge_date)) {
+                        $updates['last_charge_date'] = $sub->last_charge_date;
+                        $updates['charge_history'] = $sub->charge_history;
+                    }
+                    if (! empty($updates)) {
+                        $existingLinked->update($updates);
+                    }
+
+                    $sub->delete();
+
+                    continue;
+                }
+
+                $sub->update([
+                    'cancellation_provider_id' => $known['provider_id'],
+                    'merchant_normalized' => $known['name'],
+                    'category' => $known['category'] ?? $sub->category,
+                    'is_essential' => $known['essential'] ?? $sub->is_essential,
+                ]);
+            }
+        }
     }
 
     /**
      * Mark subscriptions as "unused" if they haven't been charged in significantly
-     * longer than their expected billing cycle. We compare the last charge date to
-     * 2x the subscription frequency (e.g., >60 days for monthly, >180 days for quarterly).
+     * longer than their expected billing cycle.
      */
     protected function detectUnusedSubscriptions(int $userId): void
     {
@@ -440,6 +571,7 @@ class SubscriptionDetectorService
 
     /**
      * Normalize a merchant name for grouping.
+     * Handles payment processor extraction (PayPal, Venmo, etc.)
      */
     protected function normalizeMerchant(?string $name): string
     {
@@ -447,26 +579,93 @@ class SubscriptionDetectorService
             return 'unknown';
         }
 
-        $upper = strtoupper(trim($name));
+        // Try to extract actual merchant from payment processors first
+        $extracted = $this->extractMerchantFromProcessor($name);
+        if ($extracted) {
+            $name = $extracted;
+        }
+
+        $lower = strtolower(trim($name));
         // Strip trailing numbers, #, *, locations
-        $clean = preg_replace('/[#*]+\d*\s*$/', '', $upper);
+        $clean = preg_replace('/[#*]+\d*\s*$/', '', $lower);
         $clean = preg_replace('/\s+\d{3,}$/', '', $clean);
 
         return trim($clean);
     }
 
     /**
-     * Look up a merchant in known subscriptions.
+     * Extract actual merchant name from payment processor descriptions.
+     * "PAYPAL INST XFER GOOGLE GOOGLE O" → "GOOGLE GOOGLE O"
+     * "VENMO *JOHN DOE" → "JOHN DOE"
      */
-    protected function lookupKnownSubscription(string $merchant): ?array
+    protected function extractMerchantFromProcessor(string $merchantName): ?string
     {
-        $upper = strtoupper($merchant);
-        foreach ($this->knownSubscriptions as $pattern => $info) {
-            if (str_contains($upper, $pattern)) {
-                return $info;
+        $upper = strtoupper(trim($merchantName));
+        foreach ($this->paymentProcessors as $processor => $pattern) {
+            if (str_contains($upper, $processor)) {
+                if (preg_match($pattern, $merchantName, $matches)) {
+                    $extracted = trim($matches[1]);
+                    // Clean up: remove trailing transaction IDs, asterisks
+                    $extracted = preg_replace('/[\*#]+\d*$/', '', $extracted);
+                    $extracted = trim($extracted);
+
+                    return $extracted ?: null;
+                }
             }
         }
 
         return null;
+    }
+
+    /**
+     * Load provider aliases from the cancellation_providers table.
+     */
+    protected function loadProviderAliases(): Collection
+    {
+        if ($this->providerAliasCache === null) {
+            $this->providerAliasCache = CancellationProvider::all()
+                ->flatMap(function ($provider) {
+                    return collect($provider->aliases)->map(fn ($alias) => [
+                        'pattern' => strtolower($alias),
+                        'name' => $provider->company_name,
+                        'category' => $provider->category,
+                        'essential' => $provider->is_essential,
+                        'provider_id' => $provider->id,
+                    ]);
+                });
+        }
+
+        return $this->providerAliasCache;
+    }
+
+    /**
+     * Look up a merchant in our provider database.
+     * Uses case-insensitive pattern matching against all aliases.
+     * Prefers longer (more specific) alias matches.
+     */
+    protected function lookupKnownSubscription(string $merchant): ?array
+    {
+        $lower = strtolower(trim($merchant));
+        $aliases = $this->loadProviderAliases();
+
+        $bestMatch = null;
+        $bestLength = 0;
+
+        foreach ($aliases as $entry) {
+            $pattern = $entry['pattern']; // already lowercase from loadProviderAliases
+
+            // Check if the normalized merchant name contains this alias pattern
+            if (str_contains($lower, $pattern)) {
+                // Prefer longer alias matches to avoid false positives
+                // e.g., "DISCORD NITRO" should match "discord nitro" over "discord"
+                $matchLen = strlen($pattern);
+                if ($matchLen > $bestLength) {
+                    $bestMatch = $entry;
+                    $bestLength = $matchLen;
+                }
+            }
+        }
+
+        return $bestMatch;
     }
 }

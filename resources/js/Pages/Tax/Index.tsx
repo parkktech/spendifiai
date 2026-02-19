@@ -3,14 +3,14 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, usePage } from '@inertiajs/react';
 import {
   FileText, DollarSign, Briefcase, Download, Send,
-  ChevronDown, ChevronRight, Receipt, Mail, Building2,
+  ChevronDown, ChevronRight, Receipt, Mail, Building2, Landmark, Heart,
 } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { useApi } from '@/hooks/useApi';
 import StatCard from '@/Components/SpendifiAI/StatCard';
 import ConnectBankPrompt from '@/Components/SpendifiAI/ConnectBankPrompt';
 import ExportModal from '@/Components/SpendifiAI/ExportModal';
-import type { TaxSummary, TaxLineItem } from '@/types/spendifiai';
+import type { TaxSummary, TaxLineItem, NormalizedTaxLine } from '@/types/spendifiai';
 
 const fmt = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
 const currentYear = new Date().getFullYear();
@@ -25,8 +25,9 @@ interface MergedCategory {
   total: number;
   item_count: number;
   items: TaxLineItem[];
-  scheduleCLine?: string;
-  scheduleCLabel?: string;
+  scheduleLine?: string;
+  scheduleLabel?: string;
+  schedule?: 'C' | 'A';
 }
 
 export default function TaxIndex() {
@@ -35,6 +36,7 @@ export default function TaxIndex() {
   const [exportOpen, setExportOpen] = useState(false);
   const [exportMode, setExportMode] = useState<'download' | 'email'>('download');
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  const [viewMode, setViewMode] = useState<'category' | 'irs_line'>('category');
 
   const { data: summary, loading, error, refresh } = useApi<TaxSummary>(
     `/api/v1/tax/summary?year=${year}`,
@@ -68,11 +70,15 @@ export default function TaxIndex() {
         existing.item_count += cat.item_count;
       } else {
         const mapping = cMap[cat.category];
+        const lineStr = mapping?.schedule === 'A'
+          ? mapping.line
+          : mapping ? `Line ${mapping.line}` : undefined;
         catMap.set(cat.category, {
           ...cat,
           items: [],
-          scheduleCLine: mapping ? `Line ${mapping.line}` : undefined,
-          scheduleCLabel: mapping?.label,
+          scheduleLine: lineStr,
+          scheduleLabel: mapping?.label,
+          schedule: (mapping?.schedule as 'C' | 'A') ?? undefined,
         });
       }
     }
@@ -91,6 +97,12 @@ export default function TaxIndex() {
     }
 
     return Array.from(catMap.values()).sort((a, b) => b.total - a.total);
+  }, [summary]);
+
+  // Group by IRS line for alternative view
+  const normalizedLines = useMemo(() => {
+    if (!summary?.normalized_lines) return [];
+    return summary.normalized_lines;
   }, [summary]);
 
   const chartData = sortedDeductions.slice(0, 10).map((d) => ({
@@ -161,20 +173,26 @@ export default function TaxIndex() {
         <StatCard
           title="Total Deductible"
           value={summary ? fmt.format(summary.total_deductible) : '$0.00'}
-          subtitle={`${year}`}
+          subtitle={`${year} — ${sortedDeductions.length} categories`}
           icon={<Briefcase size={18} />}
         />
         <StatCard
-          title="Estimated Tax Savings"
+          title="Schedule C (Business)"
+          value={summary ? fmt.format(summary.schedule_c_total ?? 0) : '$0.00'}
+          subtitle="Form 1040"
+          icon={<Landmark size={18} />}
+        />
+        <StatCard
+          title="Schedule A (Personal)"
+          value={summary ? fmt.format(summary.schedule_a_total ?? 0) : '$0.00'}
+          subtitle="Itemized deductions"
+          icon={<Heart size={18} />}
+        />
+        <StatCard
+          title="Est. Tax Savings"
           value={summary ? fmt.format(summary.estimated_tax_savings) : '$0.00'}
           subtitle={`at ${summary ? (summary.effective_rate_used * 100).toFixed(0) : 0}% rate`}
           icon={<DollarSign size={18} />}
-        />
-        <StatCard
-          title="Line Items"
-          value={(summary ? (summary.transaction_details?.length ?? 0) + (summary.order_item_details?.length ?? 0) : 0).toString()}
-          subtitle={`across ${sortedDeductions.length} categories`}
-          icon={<FileText size={18} />}
         />
       </div>
 
@@ -266,64 +284,126 @@ export default function TaxIndex() {
       {!loading && sortedDeductions.length > 0 && (
         <div className="rounded-2xl border border-sw-border bg-sw-card p-6">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-sm font-semibold text-sw-text">Deductions by Category</h2>
+            <div className="flex items-center gap-3">
+              <h2 className="text-sm font-semibold text-sw-text">Deductions</h2>
+              <div className="flex rounded-lg border border-sw-border overflow-hidden">
+                <button
+                  onClick={() => setViewMode('category')}
+                  className={`px-3 py-1 text-[11px] font-medium transition ${viewMode === 'category' ? 'bg-sw-accent text-white' : 'text-sw-muted hover:text-sw-text'}`}
+                >
+                  By Category
+                </button>
+                <button
+                  onClick={() => setViewMode('irs_line')}
+                  className={`px-3 py-1 text-[11px] font-medium transition ${viewMode === 'irs_line' ? 'bg-sw-accent text-white' : 'text-sw-muted hover:text-sw-text'}`}
+                >
+                  By IRS Line
+                </button>
+              </div>
+            </div>
             <button
               onClick={() => {
-                if (expanded.size === sortedDeductions.length) {
+                const items = viewMode === 'category'
+                  ? sortedDeductions.map((d) => d.category)
+                  : normalizedLines.map((l) => l.line);
+                if (expanded.size === items.length) {
                   setExpanded(new Set());
                 } else {
-                  setExpanded(new Set(sortedDeductions.map((d) => d.category)));
+                  setExpanded(new Set(items));
                 }
               }}
               className="text-[11px] text-sw-muted hover:text-sw-accent transition"
             >
-              {expanded.size === sortedDeductions.length ? 'Collapse all' : 'Expand all'}
+              {expanded.size > 0 ? 'Collapse all' : 'Expand all'}
             </button>
           </div>
 
-          <div className="overflow-x-auto">
-            <table aria-label="Tax deductions by category" className="w-full">
-              <thead>
-                <tr className="border-b border-sw-border">
-                  <th scope="col" className="w-6" />
-                  <th scope="col" className="text-left text-xs text-sw-muted font-medium py-2.5 pr-4">Category</th>
-                  <th scope="col" className="text-left text-xs text-sw-muted font-medium py-2.5 pr-4 hidden sm:table-cell">Schedule C</th>
-                  <th scope="col" className="text-right text-xs text-sw-muted font-medium py-2.5 pr-4">Items</th>
-                  <th scope="col" className="text-right text-xs text-sw-muted font-medium py-2.5">Total</th>
-                </tr>
-              </thead>
-              <tbody>
-                {sortedDeductions.map((deduction) => {
-                  const isExpanded = expanded.has(deduction.category);
-                  return (
-                    <CategoryRow
-                      key={deduction.category}
-                      deduction={deduction}
-                      isExpanded={isExpanded}
-                      onToggle={() => toggleCategory(deduction.category)}
+          {viewMode === 'category' ? (
+            <div className="overflow-x-auto">
+              <table aria-label="Tax deductions by category" className="w-full">
+                <thead>
+                  <tr className="border-b border-sw-border">
+                    <th scope="col" className="w-6" />
+                    <th scope="col" className="text-left text-xs text-sw-muted font-medium py-2.5 pr-4">Category</th>
+                    <th scope="col" className="text-left text-xs text-sw-muted font-medium py-2.5 pr-4 hidden sm:table-cell">IRS Line</th>
+                    <th scope="col" className="text-right text-xs text-sw-muted font-medium py-2.5 pr-4">Items</th>
+                    <th scope="col" className="text-right text-xs text-sw-muted font-medium py-2.5">Total</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {sortedDeductions.map((deduction) => {
+                    const isExpanded = expanded.has(deduction.category);
+                    return (
+                      <CategoryRow
+                        key={deduction.category}
+                        deduction={deduction}
+                        isExpanded={isExpanded}
+                        onToggle={() => toggleCategory(deduction.category)}
+                      />
+                    );
+                  })}
+                </tbody>
+                <tfoot>
+                  <tr className="border-t-2 border-sw-border">
+                    <td />
+                    <td colSpan={2} className="py-3 text-sm font-semibold text-sw-text hidden sm:table-cell">
+                      Total Deductible
+                    </td>
+                    <td className="py-3 text-sm font-semibold text-sw-text sm:hidden">
+                      Total Deductible
+                    </td>
+                    <td className="py-3 text-right text-xs text-sw-muted">
+                      {sortedDeductions.reduce((sum, d) => sum + d.item_count, 0)} items
+                    </td>
+                    <td className="py-3 text-right text-sm font-bold text-sw-accent">
+                      {fmt.format(sortedDeductions.reduce((sum, d) => sum + d.total, 0))}
+                    </td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table aria-label="Tax deductions by IRS line" className="w-full">
+                <thead>
+                  <tr className="border-b border-sw-border">
+                    <th scope="col" className="w-6" />
+                    <th scope="col" className="text-left text-xs text-sw-muted font-medium py-2.5 pr-4">IRS Line</th>
+                    <th scope="col" className="text-left text-xs text-sw-muted font-medium py-2.5 pr-4 hidden sm:table-cell">Schedule</th>
+                    <th scope="col" className="text-right text-xs text-sw-muted font-medium py-2.5 pr-4">Categories</th>
+                    <th scope="col" className="text-right text-xs text-sw-muted font-medium py-2.5">Total</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {normalizedLines.map((line) => (
+                    <IrsLineRow
+                      key={line.line}
+                      line={line}
+                      isExpanded={expanded.has(line.line)}
+                      onToggle={() => toggleCategory(line.line)}
                     />
-                  );
-                })}
-              </tbody>
-              <tfoot>
-                <tr className="border-t-2 border-sw-border">
-                  <td />
-                  <td colSpan={2} className="py-3 text-sm font-semibold text-sw-text hidden sm:table-cell">
-                    Total Deductible
-                  </td>
-                  <td className="py-3 text-sm font-semibold text-sw-text sm:hidden">
-                    Total Deductible
-                  </td>
-                  <td className="py-3 text-right text-xs text-sw-muted">
-                    {sortedDeductions.reduce((sum, d) => sum + d.item_count, 0)} items
-                  </td>
-                  <td className="py-3 text-right text-sm font-bold text-sw-accent">
-                    {fmt.format(sortedDeductions.reduce((sum, d) => sum + d.total, 0))}
-                  </td>
-                </tr>
-              </tfoot>
-            </table>
-          </div>
+                  ))}
+                </tbody>
+                <tfoot>
+                  <tr className="border-t-2 border-sw-border">
+                    <td />
+                    <td colSpan={2} className="py-3 text-sm font-semibold text-sw-text hidden sm:table-cell">
+                      Total Deductible
+                    </td>
+                    <td className="py-3 text-sm font-semibold text-sw-text sm:hidden">
+                      Total Deductible
+                    </td>
+                    <td className="py-3 text-right text-xs text-sw-muted">
+                      {normalizedLines.reduce((sum, l) => sum + l.categories.length, 0)} categories
+                    </td>
+                    <td className="py-3 text-right text-sm font-bold text-sw-accent">
+                      {fmt.format(normalizedLines.reduce((sum, l) => sum + l.total, 0))}
+                    </td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          )}
         </div>
       )}
 
@@ -349,6 +429,7 @@ function CategoryRow({
   onToggle: () => void;
 }) {
   const hasItems = deduction.items.length > 0;
+  const isScheduleA = deduction.schedule === 'A';
 
   return (
     <>
@@ -367,14 +448,24 @@ function CategoryRow({
           <span className="text-sm text-sw-text font-medium">{deduction.category}</span>
         </td>
         <td className="py-3 pr-4 hidden sm:table-cell">
-          {deduction.scheduleCLine ? (
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-blue-50 border border-blue-100 text-[10px] font-medium text-blue-700">
-              <Building2 size={10} />
-              {deduction.scheduleCLine}
-              <span className="text-blue-500 font-normal">- {deduction.scheduleCLabel}</span>
+          {deduction.scheduleLine ? (
+            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-medium border ${
+              isScheduleA
+                ? 'bg-emerald-50 border-emerald-100 text-emerald-700'
+                : 'bg-blue-50 border-blue-100 text-blue-700'
+            }`}>
+              {isScheduleA ? <Heart size={10} /> : <Building2 size={10} />}
+              {deduction.scheduleLine}
+              <span className={`font-normal ${isScheduleA ? 'text-emerald-500' : 'text-blue-500'}`}>
+                — {deduction.scheduleLabel}
+              </span>
             </span>
           ) : (
-            <span className="text-[10px] text-sw-dim">Line 27a - Other</span>
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-blue-50 border border-blue-100 text-[10px] font-medium text-blue-700">
+              <Building2 size={10} />
+              Line 27a
+              <span className="text-blue-500 font-normal">— Other expenses</span>
+            </span>
           )}
         </td>
         <td className="py-3 pr-4 text-right">
@@ -405,13 +496,82 @@ function CategoryRow({
               <span className="text-xs text-sw-dim shrink-0">{formatDate(item.date)}</span>
               <span className="text-xs text-sw-text font-medium truncate">{item.merchant}</span>
               {item.description && item.description !== item.merchant && (
-                <span className="text-[11px] text-sw-dim truncate hidden md:inline">- {item.description}</span>
+                <span className="text-[11px] text-sw-dim truncate hidden md:inline">— {item.description}</span>
               )}
             </div>
           </td>
           <td />
           <td className="py-2 text-right">
             <span className="text-xs font-semibold text-sw-text">{fmt.format(item.amount)}</span>
+          </td>
+        </tr>
+      ))}
+    </>
+  );
+}
+
+/* ─── IRS Line Row with expandable sub-categories ─────────────────── */
+
+function IrsLineRow({
+  line,
+  isExpanded,
+  onToggle,
+}: {
+  line: NormalizedTaxLine;
+  isExpanded: boolean;
+  onToggle: () => void;
+}) {
+  const isScheduleA = line.schedule === 'A';
+  const lineDisplay = isScheduleA ? line.label : `Line ${line.line} — ${line.label}`;
+  const hasCategories = line.categories.length > 0;
+
+  return (
+    <>
+      <tr
+        onClick={hasCategories ? onToggle : undefined}
+        className={`border-b border-sw-border transition-colors ${hasCategories ? 'cursor-pointer hover:bg-sw-card-hover' : ''}`}
+      >
+        <td className="py-3 pl-1 w-6">
+          {hasCategories && (
+            isExpanded
+              ? <ChevronDown size={14} className="text-sw-accent" />
+              : <ChevronRight size={14} className="text-sw-dim" />
+          )}
+        </td>
+        <td className="py-3 pr-4">
+          <span className="text-sm text-sw-text font-medium">{lineDisplay}</span>
+          {line.line === '24b' && (
+            <span className="ml-2 text-[10px] text-amber-600 font-medium">(50% limitation)</span>
+          )}
+        </td>
+        <td className="py-3 pr-4 hidden sm:table-cell">
+          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-semibold border ${
+            isScheduleA
+              ? 'bg-emerald-50 border-emerald-100 text-emerald-700'
+              : 'bg-blue-50 border-blue-100 text-blue-700'
+          }`}>
+            {isScheduleA ? 'Schedule A' : 'Schedule C'}
+          </span>
+        </td>
+        <td className="py-3 pr-4 text-right">
+          <span className="text-xs text-sw-muted">{line.categories.length}</span>
+        </td>
+        <td className="py-3 text-right">
+          <span className="text-sm font-bold text-sw-accent">{fmt.format(line.total)}</span>
+        </td>
+      </tr>
+
+      {/* Expanded sub-categories */}
+      {isExpanded && line.categories.map((cat, i) => (
+        <tr key={`${line.line}-${cat.name}-${i}`} className="border-b border-sw-border/50 bg-gray-50/50">
+          <td />
+          <td className="py-2 pr-4 pl-4" colSpan={2}>
+            <span className="text-xs text-sw-text">{cat.name}</span>
+            <span className="text-[11px] text-sw-dim ml-2">({cat.items} item{cat.items !== 1 ? 's' : ''})</span>
+          </td>
+          <td />
+          <td className="py-2 text-right">
+            <span className="text-xs font-semibold text-sw-text">{fmt.format(cat.amount)}</span>
           </td>
         </tr>
       ))}

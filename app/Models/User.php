@@ -18,6 +18,7 @@ class User extends Authenticatable implements MustVerifyEmail
     protected $fillable = [
         'name',
         'email',
+        'is_admin',
         'password',
         'google_id',
         'avatar_url',
@@ -42,6 +43,7 @@ class User extends Authenticatable implements MustVerifyEmail
         return [
             'email_verified_at' => 'datetime',
             'locked_until' => 'datetime',
+            'is_admin' => 'boolean',
             'password' => 'hashed',
             'two_factor_confirmed_at' => 'datetime',
             'two_factor_recovery_codes' => 'encrypted:array',  // Auto encrypt + JSON encode/decode
@@ -144,5 +146,10 @@ class User extends Authenticatable implements MustVerifyEmail
     public function isGoogleUser(): bool
     {
         return ! is_null($this->google_id);
+    }
+
+    public function isAdmin(): bool
+    {
+        return (bool) $this->is_admin;
     }
 }

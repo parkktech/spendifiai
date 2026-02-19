@@ -25,7 +25,7 @@ class ProcessOrderEmails implements ShouldQueue
 
     public int $tries = 3;
 
-    public int $timeout = 300;
+    public int $timeout = 1800; // 30 minutes — large mailboxes can have 200+ emails
 
     public function __construct(
         protected EmailConnection $emailConnection,
@@ -156,11 +156,10 @@ class ProcessOrderEmails implements ShouldQueue
                 }
             }
 
-            // After all emails processed, reconcile orders with bank transactions
+            // After all emails processed, dispatch reconciliation as a separate job
+            // so it runs even if processing was partially completed before a timeout
             if ($orders_created > 0) {
-                $reconciler = app(\App\Services\ReconciliationService::class);
-                $reconcileResult = $reconciler->reconcile($connection->user);
-                Log::info('Reconciliation complete', $reconcileResult);
+                ReconcileOrders::dispatch($connection->user);
             }
 
             $connection->update([

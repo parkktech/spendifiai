@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, usePage } from '@inertiajs/react';
-import { RefreshCw, AlertTriangle, TrendingUp, Loader2 } from 'lucide-react';
+import { RefreshCw, AlertTriangle, TrendingUp, Loader2, Scissors, Shield } from 'lucide-react';
 import { useApi, useApiPost } from '@/hooks/useApi';
 import StatCard from '@/Components/SpendifiAI/StatCard';
 import SubscriptionCard from '@/Components/SpendifiAI/SubscriptionCard';
@@ -11,23 +11,32 @@ import type { SubscriptionsResponse } from '@/types/spendifiai';
 
 const fmt = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
 
+type TabType = 'all' | 'cancellable' | 'essential';
+
 export default function SubscriptionsIndex() {
   const { auth } = usePage().props as unknown as { auth: { hasBankConnected: boolean } };
   const [viewMode, setViewMode] = useState<'all' | 'personal' | 'business'>('all');
+  const [activeTab, setActiveTab] = useState<TabType>('all');
   const { data, loading, error, refresh } = useApi<SubscriptionsResponse>('/api/v1/subscriptions', { enabled: auth.hasBankConnected });
   const detect = useApiPost('/api/v1/subscriptions/detect');
 
   const items = data?.subscriptions ?? [];
 
-  // Filter by view mode if subscriptions have account_purpose-like data
-  const filtered = items;
+  // Filter by tab
+  const filtered = activeTab === 'cancellable'
+    ? items.filter((s) => !s.is_essential)
+    : activeTab === 'essential'
+      ? items.filter((s) => s.is_essential)
+      : items;
 
   // Use pre-computed stats from the API, with local filtering as fallback
   const totalMonthly = data?.total_monthly ?? 0;
   const totalAnnual = data?.total_annual ?? 0;
-  const unused = filtered.filter((s) => s.status === 'inactive' || s.status === 'unused');
+  const unused = items.filter((s) => s.status === 'inactive' || s.status === 'unused');
   const unusedMonthly = data?.unused_monthly ?? unused.reduce((sum, s) => sum + s.amount, 0);
-  const active = filtered.filter((s) => s.status === 'active');
+  const active = items.filter((s) => s.status === 'active');
+  const cancellableCount = items.filter((s) => !s.is_essential).length;
+  const essentialCount = items.filter((s) => s.is_essential).length;
 
   const handleDetect = async () => {
     await detect.submit();
@@ -87,6 +96,35 @@ export default function SubscriptionsIndex() {
           icon={<AlertTriangle size={18} />}
         />
       </div>
+
+      {/* Tabs: All / Cancellable / Essential */}
+      {items.length > 0 && (
+        <div className="flex items-center gap-1 mb-6 p-1 rounded-lg bg-sw-card border border-sw-border w-fit">
+          {([
+            { key: 'all' as TabType, label: 'All', count: items.length },
+            { key: 'cancellable' as TabType, label: 'Cancellable', count: cancellableCount, icon: <Scissors size={13} /> },
+            { key: 'essential' as TabType, label: 'Essential Bills', count: essentialCount, icon: <Shield size={13} /> },
+          ]).map((tab) => (
+            <button
+              key={tab.key}
+              onClick={() => setActiveTab(tab.key)}
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition ${
+                activeTab === tab.key
+                  ? 'bg-sw-accent text-white'
+                  : 'text-sw-muted hover:text-sw-text'
+              }`}
+            >
+              {tab.icon}
+              {tab.label}
+              <span className={`ml-0.5 text-[10px] px-1 py-0.5 rounded ${
+                activeTab === tab.key ? 'bg-white/20' : 'bg-sw-border'
+              }`}>
+                {tab.count}
+              </span>
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* Unused warning banner */}
       {unused.length > 0 && (

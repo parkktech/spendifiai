@@ -28,6 +28,11 @@ return Application::configure(basePath: dirname(__DIR__))
         // and read raw by ExtractTokenFromCookie middleware
         $middleware->encryptCookies(except: ['auth_token']);
 
+        // Named middleware aliases
+        $middleware->alias([
+            'admin' => \App\Http\Middleware\EnsureAdmin::class,
+        ]);
+
         // Sanctum SPA authentication
         $middleware->statefulApi();
 

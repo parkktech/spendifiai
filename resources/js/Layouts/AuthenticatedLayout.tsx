@@ -15,6 +15,7 @@ import {
   ChevronRight,
   Menu,
   X,
+  ShieldCheck,
 } from 'lucide-react';
 
 interface NavItemDef {
@@ -60,6 +61,7 @@ export default function AuthenticatedLayout({
 }: PropsWithChildren<{ header?: ReactNode }>) {
   const page = usePage();
   const user = page.props.auth.user as { name: string; email: string };
+  const isAdmin = (page.props.auth as Record<string, unknown>).isAdmin as boolean;
   const currentRoute = (page.props as Record<string, unknown>).ziggy
     ? route().current()
     : '';
@@ -77,6 +79,7 @@ export default function AuthenticatedLayout({
     { label: 'Connect', href: '/connect', routeName: 'connect', icon: <Link2 size={18} /> },
     { label: 'Settings', href: '/settings', routeName: 'settings', icon: <Settings size={18} /> },
     { label: 'AI Questions', href: '/questions', routeName: 'questions', icon: <HelpCircle size={18} /> },
+    ...(isAdmin ? [{ label: 'Admin', href: '/admin', routeName: 'admin.dashboard', icon: <ShieldCheck size={18} /> }] : []),
   ];
 
   const isActive = (routeName: string) => {

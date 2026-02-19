@@ -6,6 +6,7 @@ use App\Events\BankConnected;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\ExchangeTokenRequest;
 use App\Jobs\CategorizePendingTransactions;
+use App\Jobs\ReconcileOrders;
 use App\Models\BankConnection;
 use App\Services\PlaidService;
 use Illuminate\Http\JsonResponse;
@@ -64,6 +65,9 @@ class PlaidController extends Controller
         // Categorize any new transactions synchronously so user sees results immediately
         if ($result['added'] > 0) {
             CategorizePendingTransactions::dispatchSync(auth()->id());
+
+            // Reconcile new transactions against existing email orders
+            ReconcileOrders::dispatch(auth()->user());
         }
 
         return response()->json([

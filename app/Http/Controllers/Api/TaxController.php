@@ -8,6 +8,7 @@ use App\Http\Requests\SendToAccountantRequest;
 use App\Models\OrderItem;
 use App\Models\Transaction;
 use App\Models\UserFinancialProfile;
+use App\Services\TaxCategoryNormalizerService;
 use App\Services\TaxExportService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -18,6 +19,7 @@ class TaxController extends Controller
 {
     public function __construct(
         private readonly TaxExportService $exporter,
+        private readonly TaxCategoryNormalizerService $normalizer,
     ) {}
 
     /**
@@ -101,6 +103,21 @@ class TaxController extends Controller
         $profile = UserFinancialProfile::where('user_id', $userId)->first();
         $estRate = ($profile?->estimated_tax_bracket ?? 22) / 100;
 
+        // Build dynamic schedule map from actual category data
+        $allCats = $categories->merge($orderItems);
+        $catsForNormalizer = $allCats->map(fn ($c) => [
+            'category' => $c->category,
+            'tax_category' => $c->category,
+            'total' => $c->total,
+            'item_count' => $c->item_count,
+        ])->values()->toArray();
+
+        $scheduleCMap = $this->normalizer->buildScheduleCMap($catsForNormalizer);
+        $normalizedLines = $this->normalizer->mapCategoriesToLines($catsForNormalizer);
+
+        $scheduleCTotal = collect($normalizedLines)->where('schedule', 'C')->sum('total');
+        $scheduleATotal = collect($normalizedLines)->where('schedule', 'A')->sum('total');
+
         return response()->json([
             'year' => $year,
             'total_deductible' => round($totalDeductible, 2),
@@ -110,7 +127,10 @@ class TaxController extends Controller
             'order_item_categories' => $orderItems,
             'transaction_details' => $transactionDetails,
             'order_item_details' => $orderItemDetails,
-            'schedule_c_map' => $this->scheduleCMap(),
+            'schedule_c_map' => $scheduleCMap,
+            'normalized_lines' => $normalizedLines,
+            'schedule_c_total' => round($scheduleCTotal, 2),
+            'schedule_a_total' => round($scheduleATotal, 2),
         ]);
     }
 
@@ -174,68 +194,36 @@ class TaxController extends Controller
      */
     public function download(Request $request, int $year, string $type): BinaryFileResponse
     {
-        $allowedTypes = ['xlsx', 'pdf', 'csv'];
-        if (! in_array($type, $allowedTypes)) {
+        $typeConfig = [
+            'xlsx' => ['ext' => 'xlsx', 'mime' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'suffix' => ''],
+            'pdf' => ['ext' => 'pdf', 'mime' => 'application/pdf', 'suffix' => '_Summary'],
+            'csv' => ['ext' => 'csv', 'mime' => 'text/csv', 'suffix' => '_Transactions'],
+            'txf' => ['ext' => 'txf', 'mime' => 'application/octet-stream', 'suffix' => ''],
+            'qbo_csv' => ['ext' => 'csv', 'mime' => 'text/csv', 'suffix' => '_QuickBooks'],
+            'ofx' => ['ext' => 'ofx', 'mime' => 'application/x-ofx', 'suffix' => ''],
+        ];
+
+        if (! isset($typeConfig[$type])) {
             abort(404, 'Invalid file type');
         }
 
-        // Find the most recent export for this year (local disk root is storage/app/private/)
+        $config = $typeConfig[$type];
         $dir = storage_path('app/private/tax-exports/'.auth()->id());
-        $pattern = "{$dir}/SpendifiAI_Tax_{$year}_*.{$type}";
+        $pattern = "{$dir}/SpendifiAI_Tax_{$year}_*{$config['suffix']}.{$config['ext']}";
         $files = glob($pattern);
 
         if (empty($files)) {
             abort(404, 'Tax export not found. Generate it first.');
         }
 
-        // Get the most recent one
         $latestFile = end($files);
-
-        $mimeTypes = [
-            'xlsx' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-            'pdf' => 'application/pdf',
-            'csv' => 'text/csv',
-        ];
+        $downloadName = "SpendifiAI_Tax_{$year}{$config['suffix']}.{$config['ext']}";
 
         return response()->download(
             $latestFile,
-            "SpendifiAI_Tax_{$year}.{$type}",
-            ['Content-Type' => $mimeTypes[$type]]
+            $downloadName,
+            ['Content-Type' => $config['mime']]
         );
-    }
-
-    /**
-     * Schedule C line mapping for common expense categories.
-     */
-    protected function scheduleCMap(): array
-    {
-        return [
-            'Marketing & Advertising' => ['line' => '8', 'label' => 'Advertising'],
-            'Car Insurance' => ['line' => '9', 'label' => 'Car and truck expenses'],
-            'Auto Maintenance' => ['line' => '9', 'label' => 'Car and truck expenses'],
-            'Gas & Fuel' => ['line' => '9', 'label' => 'Car and truck expenses'],
-            'Transportation' => ['line' => '9', 'label' => 'Car and truck expenses'],
-            'Automotive' => ['line' => '9', 'label' => 'Car and truck expenses'],
-            'Professional Services' => ['line' => '11', 'label' => 'Contract labor'],
-            'Health Insurance' => ['line' => '15', 'label' => 'Insurance (health)'],
-            'Home Insurance' => ['line' => '15', 'label' => 'Insurance (other)'],
-            'Professional Development' => ['line' => '27a', 'label' => 'Other expenses'],
-            'Office Supplies' => ['line' => '18', 'label' => 'Office expense'],
-            'Software & SaaS' => ['line' => '18', 'label' => 'Office expense'],
-            'Software & Digital Services' => ['line' => '18', 'label' => 'Office expense'],
-            'Business Meals' => ['line' => '24b', 'label' => 'Meals (50% deductible)'],
-            'Restaurant & Dining' => ['line' => '24b', 'label' => 'Meals (business)'],
-            'Travel & Hotels' => ['line' => '24a', 'label' => 'Travel'],
-            'Flights' => ['line' => '24a', 'label' => 'Travel'],
-            'Phone & Internet' => ['line' => '25', 'label' => 'Utilities'],
-            'Utilities' => ['line' => '25', 'label' => 'Utilities'],
-            'Home Office' => ['line' => '30', 'label' => 'Business use of home'],
-            'Other' => ['line' => '30', 'label' => 'Business use of home'],
-            'Shipping & Postage' => ['line' => '18', 'label' => 'Office expense'],
-            'Charity & Donations' => ['line' => 'Sch A', 'label' => 'Charitable contributions'],
-            'Medical & Dental' => ['line' => 'Sch A', 'label' => 'Medical expenses'],
-            'Mortgage' => ['line' => 'Sch A', 'label' => 'Mortgage interest'],
-        ];
     }
 
     /**
