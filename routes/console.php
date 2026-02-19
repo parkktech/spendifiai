@@ -2,6 +2,7 @@
 
 use App\Jobs\CategorizePendingTransactions;
 use App\Jobs\ProcessOrderEmails;
+use App\Jobs\RetryFailedEmails;
 use App\Jobs\SyncBankTransactions;
 use App\Models\AIQuestion;
 use App\Models\BankConnection;
@@ -84,3 +85,6 @@ Schedule::call(function () {
         ProcessOrderEmails::dispatch($conn);
     });
 })->everySixHours()->name('sync-email-orders');
+
+// ── Retry failed email parses (daily at 4am) ──
+Schedule::job(new RetryFailedEmails)->dailyAt('04:00')->name('retry-failed-emails');

@@ -31,31 +31,20 @@ class ImapEmailService
     ];
 
     /**
-     * Search queries to find order/receipt emails.
-     * Broad coverage catches niche retailers that use non-standard subjects.
+     * Get subject patterns from shared config.
      */
-    protected array $searchSubjects = [
-        'order confirmation',
-        'order receipt',
-        'your order',
-        'purchase confirmation',
-        'payment receipt',
-        'order shipped',
-        'subscription renewal',
-        'invoice',
-        'your receipt',
-        'thank you for your order',
-        'order has been placed',
-        'order details',
-        'new order',
-        'shipping confirmation',
-        'delivery confirmation',
-        'order has shipped',
-        'payment confirmation',
-        'purchase receipt',
-        'order number',
-        'thank you for your purchase',
-    ];
+    protected function getSubjectPatterns(): array
+    {
+        return config('email-search.subject_patterns');
+    }
+
+    /**
+     * Get sender prefixes from shared config.
+     */
+    protected function getSenderPrefixes(): array
+    {
+        return config('email-search.sender_prefixes');
+    }
 
     /**
      * Detect IMAP settings from an email address.
@@ -269,19 +258,24 @@ class ImapEmailService
 
         $messageIds = [];
 
-        foreach ($this->searchSubjects as $subject) {
+        // Batch-load all previously processed message IDs for O(1) lookups
+        $existingIds = ParsedEmail::where('email_connection_id', $connection->id)
+            ->pluck('email_message_id')
+            ->flip()
+            ->toArray();
+
+        // Subject-based search
+        foreach ($this->getSubjectPatterns() as $subject) {
             try {
                 $messages = $inbox->query()
                     ->subject($subject)
                     ->since($since->toDate())
-                    ->limit(100)
                     ->get();
 
                 foreach ($messages as $message) {
                     $messageId = $message->getMessageId()?->toString() ?? $message->getUid();
 
-                    // Skip already-processed emails
-                    if (ParsedEmail::where('email_message_id', $messageId)->exists()) {
+                    if (isset($existingIds[$messageId])) {
                         continue;
                     }
 
@@ -296,6 +290,38 @@ class ImapEmailService
                 }
             } catch (\Exception $e) {
                 Log::error("IMAP search failed for subject: {$subject}", [
+                    'error' => $e->getMessage(),
+                    'connection_id' => $connection->id,
+                ]);
+            }
+        }
+
+        // Sender-prefix search — catches niche retailers using standard sender addresses
+        foreach ($this->getSenderPrefixes() as $prefix) {
+            try {
+                $messages = $inbox->query()
+                    ->from($prefix)
+                    ->since($since->toDate())
+                    ->get();
+
+                foreach ($messages as $message) {
+                    $messageId = $message->getMessageId()?->toString() ?? $message->getUid();
+
+                    if (isset($existingIds[$messageId])) {
+                        continue;
+                    }
+
+                    $messageIds[] = [
+                        'message_id' => $messageId,
+                        'subject' => $message->getSubject()?->toString() ?? '',
+                        'from' => $message->getFrom()?->toString() ?? '',
+                        'date' => $message->getDate()?->toString() ?? '',
+                        'body' => $this->extractBody($message),
+                        'snippet' => mb_substr(strip_tags($message->getTextBody() ?? ''), 0, 200),
+                    ];
+                }
+            } catch (\Exception $e) {
+                Log::error("IMAP search failed for sender prefix: {$prefix}", [
                     'error' => $e->getMessage(),
                     'connection_id' => $connection->id,
                 ]);
@@ -333,7 +359,7 @@ class ImapEmailService
     /**
      * Clean HTML while preserving structure for Claude parsing.
      */
-    protected function cleanHtml(string $html): string
+    public function cleanHtml(string $html): string
     {
         $html = preg_replace('/<style[^>]*>.*?<\/style>/si', '', $html);
         $html = preg_replace('/<script[^>]*>.*?<\/script>/si', '', $html);

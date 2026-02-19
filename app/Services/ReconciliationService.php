@@ -2,10 +2,13 @@
 
 namespace App\Services;
 
+use App\Models\MerchantAlias;
 use App\Models\Order;
 use App\Models\OrderItem;
+use App\Models\ReconciliationCandidate;
 use App\Models\Transaction;
 use App\Models\User;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 
 class ReconciliationService
@@ -112,13 +115,20 @@ class ReconciliationService
             }
         }
 
-        // Apply confirmed matches
+        // Apply confirmed matches and store medium-confidence candidates for review
         $reconciled = 0;
+        $candidates_stored = 0;
+
         foreach ($matches as $match) {
             if ($match['confidence'] >= 0.8) {
-                // Auto-reconcile high confidence matches
                 $this->applyMatch($match['transaction'], $match['order']);
                 $reconciled++;
+            } elseif ($match['confidence'] >= 0.6) {
+                ReconciliationCandidate::updateOrCreate(
+                    ['transaction_id' => $match['transaction']->id, 'order_id' => $match['order']->id],
+                    ['user_id' => $user->id, 'confidence' => $match['confidence']]
+                );
+                $candidates_stored++;
             }
         }
 
@@ -127,6 +137,7 @@ class ReconciliationService
             'total_unmatched_orders' => $unmatched_orders->count(),
             'matches_found' => count($matches),
             'auto_reconciled' => $reconciled,
+            'candidates_stored' => $candidates_stored,
             'needs_review' => array_filter($matches, fn ($m) => $m['confidence'] < 0.8),
         ];
     }
@@ -185,6 +196,7 @@ class ReconciliationService
 
     /**
      * Normalize cryptic bank merchant names to readable ones.
+     * Uses DB-backed aliases (cached 1 hour) with hardcoded fallback.
      */
     protected function normalizeMerchant(?string $merchantName): string
     {
@@ -194,6 +206,16 @@ class ReconciliationService
 
         $upper = strtoupper(trim($merchantName));
 
+        // Check DB-backed aliases first (cached for performance)
+        $aliases = $this->getCachedAliases();
+
+        foreach ($aliases as $pattern => $normalized) {
+            if (str_starts_with($upper, strtoupper($pattern))) {
+                return strtolower($normalized);
+            }
+        }
+
+        // Fallback to hardcoded aliases
         foreach ($this->merchantAliases as $pattern => $normalized) {
             if (str_starts_with($upper, strtoupper($pattern))) {
                 return strtolower($normalized);
@@ -207,11 +229,23 @@ class ReconciliationService
     }
 
     /**
+     * Get DB-backed merchant aliases, cached for 1 hour.
+     */
+    protected function getCachedAliases(): array
+    {
+        return Cache::remember('merchant_aliases', 3600, function () {
+            return MerchantAlias::pluck('normalized_name', 'bank_name')->toArray();
+        });
+    }
+
+    /**
      * Apply a match — link the bank transaction to the order.
      *
      * Uses Transaction model (not BankTransaction) and correct column names:
      * - Order.matched_transaction_id references Transaction.id
      * - Transaction.matched_order_id references Order.id
+     *
+     * Also learns merchant aliases from successful reconciliations.
      */
     protected function applyMatch(Transaction $transaction, Order $order): void
     {
@@ -225,6 +259,20 @@ class ReconciliationService
                 'matched_transaction_id' => $transaction->id,
                 'is_reconciled' => true,
             ]);
+
+            // Learn merchant alias from this successful reconciliation
+            $bankName = strtoupper(trim($transaction->merchant_name ?? ''));
+            $orderMerchant = $order->merchant_normalized ?? $order->merchant;
+
+            if ($bankName && $orderMerchant && strtoupper($bankName) !== strtoupper($orderMerchant)) {
+                MerchantAlias::updateOrCreate(
+                    ['bank_name' => $bankName, 'normalized_name' => $orderMerchant],
+                    ['source' => 'reconciliation', 'match_count' => DB::raw('match_count + 1')]
+                );
+
+                // Invalidate alias cache so new aliases are used immediately
+                Cache::forget('merchant_aliases');
+            }
         });
     }
 

@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\EmailConnectionController;
 use App\Http\Controllers\Api\OrderItemController;
 use App\Http\Controllers\Api\PlaidController;
+use App\Http\Controllers\Api\ReconciliationController;
 use App\Http\Controllers\Api\SavingsController;
 use App\Http\Controllers\Api\StatementUploadController;
 use App\Http\Controllers\Api\SubscriptionController;
@@ -201,6 +202,13 @@ Route::middleware(['auth:sanctum'])->group(function () {
                 Route::get('/download/{year}/{type}', [TaxController::class, 'download'])
                     ->name('tax.download');
             });
+        });
+
+        // Reconciliation Candidates
+        Route::prefix('reconciliation')->group(function () {
+            Route::get('/candidates', [ReconciliationController::class, 'candidates']);
+            Route::post('/candidates/{candidate}/confirm', [ReconciliationController::class, 'confirm']);
+            Route::post('/candidates/{candidate}/reject', [ReconciliationController::class, 'reject']);
         });
 
         // Email Connections

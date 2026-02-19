@@ -20,25 +20,24 @@ class MicrosoftOutlookService
     protected string $graphUrl = 'https://graph.microsoft.com/v1.0';
 
     /**
-     * Search queries to find order/receipt emails via Microsoft Graph.
+     * Build search queries from shared config.
      */
-    protected array $searchQueries = [
-        'subject:order confirmation',
-        'subject:order receipt',
-        'subject:your order',
-        'subject:purchase confirmation',
-        'subject:payment receipt',
-        'subject:order shipped',
-        'subject:subscription renewal',
-        'subject:invoice',
-        'subject:your receipt',
-        'subject:thank you for your order',
-        'subject:shipping confirmation',
-        'subject:delivery confirmation',
-        'subject:payment confirmation',
-        'subject:purchase receipt',
-        'subject:thank you for your purchase',
-    ];
+    protected function getSearchQueries(): array
+    {
+        $queries = [];
+
+        // Subject-based queries
+        foreach (config('email-search.subject_patterns') as $pattern) {
+            $queries[] = 'subject:'.$pattern;
+        }
+
+        // Sender-prefix queries
+        foreach (config('email-search.sender_prefixes') as $prefix) {
+            $queries[] = 'from:'.$prefix;
+        }
+
+        return $queries;
+    }
 
     /**
      * Generate the OAuth2 authorization URL.
@@ -180,7 +179,13 @@ class MicrosoftOutlookService
         $sinceStr = $since->toIso8601String();
         $messageIds = [];
 
-        foreach ($this->searchQueries as $query) {
+        // Batch-load all previously processed message IDs for O(1) lookups
+        $existingIds = ParsedEmail::where('email_connection_id', $connection->id)
+            ->pluck('email_message_id')
+            ->flip()
+            ->toArray();
+
+        foreach ($this->getSearchQueries() as $query) {
             try {
                 $response = Http::withToken($accessToken)
                     ->get($this->graphUrl.'/me/messages', [
@@ -192,7 +197,8 @@ class MicrosoftOutlookService
                     ]);
 
                 // If $filter + $search combined fails, retry with $search only
-                if (! $response->successful()) {
+                $usedFilter = $response->successful();
+                if (! $usedFilter) {
                     $response = Http::withToken($accessToken)
                         ->get($this->graphUrl.'/me/messages', [
                             '$search' => '"'.$query.'"',
@@ -201,28 +207,39 @@ class MicrosoftOutlookService
                         ]);
                 }
 
-                if ($response->successful()) {
-                    $messages = $response->json()['value'] ?? [];
+                // Paginate through all results via @odata.nextLink
+                do {
+                    if ($response->successful()) {
+                        $data = $response->json();
+                        $messages = $data['value'] ?? [];
 
-                    foreach ($messages as $message) {
-                        $msgId = $message['id'];
+                        foreach ($messages as $message) {
+                            $msgId = $message['id'];
 
-                        // Filter by date if $filter wasn't applied
-                        if (isset($message['receivedDateTime'])) {
-                            $msgDate = Carbon::parse($message['receivedDateTime']);
-                            if ($msgDate->lt($since)) {
+                            // Filter by date if $filter wasn't applied
+                            if (! $usedFilter && isset($message['receivedDateTime'])) {
+                                $msgDate = Carbon::parse($message['receivedDateTime']);
+                                if ($msgDate->lt($since)) {
+                                    continue;
+                                }
+                            }
+
+                            if (isset($existingIds[$msgId])) {
                                 continue;
                             }
+
+                            $messageIds[] = $msgId;
                         }
 
-                        // Skip already-processed emails
-                        if (ParsedEmail::where('email_message_id', $msgId)->exists()) {
-                            continue;
+                        // Follow pagination link if more results exist
+                        $nextLink = $data['@odata.nextLink'] ?? null;
+                        if ($nextLink) {
+                            $response = Http::withToken($accessToken)->get($nextLink);
                         }
-
-                        $messageIds[] = $msgId;
+                    } else {
+                        $nextLink = null;
                     }
-                }
+                } while ($nextLink);
             } catch (\Exception $e) {
                 Log::error("Microsoft Graph search failed for query: {$query}", [
                     'error' => $e->getMessage(),

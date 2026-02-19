@@ -17,33 +17,24 @@ class GmailService
     protected Gmail $gmail;
 
     /**
-     * Search queries that catch order confirmation emails from virtually any retailer.
-     * These cast a wide net — Claude handles filtering out false positives.
-     * Broad coverage is critical: niche retailers (PCI Race Radios, Kartek, etc.)
-     * use non-standard subject lines that narrow queries miss.
+     * Build search queries from shared config.
      */
-    protected array $searchQueries = [
-        'subject:(order confirmation) -label:trash',
-        'subject:(order receipt) -label:trash',
-        'subject:(your order) -label:trash',
-        'subject:(purchase confirmation) -label:trash',
-        'subject:(payment receipt) -label:trash',
-        'subject:(order shipped) -label:trash',
-        'subject:(subscription renewal) -label:trash',
-        'subject:(invoice) -label:trash',
-        'subject:(your receipt) -label:trash',
-        'subject:(thank you for your order) -label:trash',
-        'subject:(order has been placed) -label:trash',
-        'subject:(order details) -label:trash',
-        'subject:(new order) -label:trash',
-        'subject:(shipping confirmation) -label:trash',
-        'subject:(delivery confirmation) -label:trash',
-        'subject:(order has shipped) -label:trash',
-        'subject:(payment confirmation) -label:trash',
-        'subject:(purchase receipt) -label:trash',
-        'subject:(order number) -label:trash',
-        'subject:(thank you for your purchase) -label:trash',
-    ];
+    protected function getSearchQueries(): array
+    {
+        $queries = [];
+
+        // Subject-based queries
+        foreach (config('email-search.subject_patterns') as $pattern) {
+            $queries[] = 'subject:('.$pattern.') -label:trash';
+        }
+
+        // Sender-prefix queries — catches niche retailers using standard sender addresses
+        foreach (config('email-search.sender_prefixes') as $prefix) {
+            $queries[] = 'from:'.$prefix.' (order OR receipt OR purchase OR invoice) -label:trash';
+        }
+
+        return $queries;
+    }
 
     public function __construct()
     {
@@ -115,6 +106,14 @@ class GmailService
     }
 
     /**
+     * Get the authenticated Gmail instance for direct API calls.
+     */
+    public function getGmailInstance(): Gmail
+    {
+        return $this->gmail;
+    }
+
+    /**
      * Fetch all order-related emails since the last sync (or a given date).
      * Returns array of Gmail message IDs that haven't been processed yet.
      */
@@ -129,7 +128,13 @@ class GmailService
         $since = $since ?? $connection->last_synced_at ?? Carbon::now()->subYear()->startOfYear();
         $messageIds = [];
 
-        foreach ($this->searchQueries as $query) {
+        // Batch-load all previously processed message IDs for O(1) lookups
+        $existingIds = ParsedEmail::where('email_connection_id', $connection->id)
+            ->pluck('email_message_id')
+            ->flip()
+            ->toArray();
+
+        foreach ($this->getSearchQueries() as $query) {
             $fullQuery = $query.' after:'.$since->format('Y/m/d');
 
             try {
@@ -151,9 +156,7 @@ class GmailService
                     foreach ($results->getMessages() ?? [] as $message) {
                         $gmailId = $message->getId();
 
-                        // Skip already-processed emails (uses correct column name)
-                        $exists = ParsedEmail::where('email_message_id', $gmailId)->exists();
-                        if (! $exists) {
+                        if (! isset($existingIds[$gmailId])) {
                             $messageIds[] = $gmailId;
                         }
                     }

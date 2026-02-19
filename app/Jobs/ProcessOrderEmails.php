@@ -10,6 +10,7 @@ use App\Services\AI\EmailParserService;
 use App\Services\Email\GmailService;
 use App\Services\Email\ImapEmailService;
 use App\Services\Email\MicrosoftOutlookService;
+use App\Services\Email\TransactionGuidedSearchService;
 use Carbon\Carbon;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -32,7 +33,7 @@ class ProcessOrderEmails implements ShouldQueue
         protected ?string $sinceDate = null
     ) {}
 
-    public function handle(GmailService $gmailService, ImapEmailService $imapService, MicrosoftOutlookService $microsoftService, EmailParserService $parser): void
+    public function handle(GmailService $gmailService, ImapEmailService $imapService, MicrosoftOutlookService $microsoftService, EmailParserService $parser, TransactionGuidedSearchService $guidedSearch): void
     {
         $connection = $this->emailConnection;
         $connection->update(['sync_status' => 'syncing']);
@@ -50,6 +51,25 @@ class ProcessOrderEmails implements ShouldQueue
                     : $this->fetchViaGmail($gmailService, $connection, $since),
                 default => $this->fetchViaGmail($gmailService, $connection, $since),
             };
+
+            // Step 1b: Transaction-guided discovery — search for emails matching unreconciled bank transactions
+            try {
+                $guidedEmails = $guidedSearch->search($connection, $since);
+
+                if (! empty($guidedEmails)) {
+                    Log::info('Transaction-guided search found additional emails', [
+                        'count' => count($guidedEmails),
+                        'connection_id' => $connection->id,
+                    ]);
+
+                    $emails = $this->mergeAndDedup($emails, $guidedEmails);
+                }
+            } catch (\Exception $e) {
+                Log::warning('Transaction-guided search failed, continuing with keyword results', [
+                    'error' => $e->getMessage(),
+                    'connection_id' => $connection->id,
+                ]);
+            }
 
             $count = count($emails);
             Log::info("Found {$count} new potential order emails", [
@@ -70,6 +90,7 @@ class ProcessOrderEmails implements ShouldQueue
                         'email_thread_id' => $emailData['thread_id'] ?? null,
                         'email_date' => Carbon::parse($emailData['date']),
                         'parse_status' => 'pending',
+                        'search_source' => $emailData['search_source'] ?? 'keyword',
                     ]);
 
                     // Step 3: Send to Claude for parsing
@@ -251,6 +272,33 @@ class ProcessOrderEmails implements ShouldQueue
         }
 
         return $emails;
+    }
+
+    /**
+     * Merge keyword-based and transaction-guided email results, deduplicating by message_id.
+     */
+    protected function mergeAndDedup(array $keywordEmails, array $guidedEmails): array
+    {
+        $seen = [];
+        $merged = [];
+
+        foreach ($keywordEmails as $email) {
+            $id = $email['message_id'];
+            if (! isset($seen[$id])) {
+                $seen[$id] = true;
+                $merged[] = $email;
+            }
+        }
+
+        foreach ($guidedEmails as $email) {
+            $id = $email['message_id'];
+            if (! isset($seen[$id])) {
+                $seen[$id] = true;
+                $merged[] = $email;
+            }
+        }
+
+        return $merged;
     }
 
     /**
