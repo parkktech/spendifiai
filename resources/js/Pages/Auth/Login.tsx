@@ -45,6 +45,12 @@ export default function Login({
                 window.axios.defaults.headers.common['Authorization'] = `Bearer ${response.data.token}`;
             }
 
+            // Redirect unverified users to verification page instead of dashboard
+            if (response.data.user && !response.data.user.email_verified) {
+                router.visit('/verify-email');
+                return;
+            }
+
             router.visit('/dashboard');
         } catch (error: any) {
             setErrors(error.response?.data?.errors || { email: 'Invalid credentials' });
