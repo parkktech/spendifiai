@@ -926,90 +926,292 @@ class DemoAccountSeeder extends Seeder
             'last_synced_at' => now()->subHours(6),
         ]);
 
-        // Create orders matched to Amazon/shopping transactions
+        $emailIdx = 1;
+        $txnCollection = collect($transactions);
+        $reconciledTxnIds = [];
+
+        // ── Purchase orders matched to transactions ──
         $orderData = [
             [
-                'merchant' => 'Amazon',
+                'merchant' => 'Amazon', 'match_merchant' => 'amazon', 'months_ago' => 0,
                 'items' => [
-                    ['USB-C Hub Adapter', 'Electronics accessory for home office', 34.99, true, 'Office Equipment'],
-                    ['Wireless Mouse', 'Ergonomic mouse for daily use', 29.99, true, 'Office Equipment'],
-                    ['Phone Case', 'Protective case for iPhone', 15.99, false, 'Shopping & Retail'],
+                    ['USB-C Hub Adapter', 'Anker 7-in-1 hub for home office', 34.99, true, 'Office Equipment'],
+                    ['Wireless Mouse', 'Logitech MX Master 3S', 29.99, true, 'Office Equipment'],
+                    ['Phone Case', 'Spigen Ultra Hybrid for iPhone 15', 15.99, false, 'Shopping & Retail'],
                 ],
             ],
             [
-                'merchant' => 'Home Depot',
+                'merchant' => 'Amazon', 'match_merchant' => 'amazon', 'months_ago' => 1,
                 'items' => [
-                    ['Desk Lamp', 'LED desk lamp for home office', 45.99, true, 'Office Equipment'],
-                    ['Surge Protector', '6-outlet power strip', 19.99, true, 'Office Supplies'],
+                    ['Mechanical Keyboard', 'Keychron K2 wireless 75%', 89.99, true, 'Office Equipment'],
+                    ['Desk Mat', 'Leather desk pad 36x17', 24.99, true, 'Office Supplies'],
+                    ['Webcam', 'Logitech C920 HD Pro', 69.99, true, 'Office Equipment'],
                 ],
             ],
             [
-                'merchant' => 'Best Buy',
+                'merchant' => 'Amazon', 'match_merchant' => 'amazon', 'months_ago' => 2,
+                'items' => [
+                    ['Ring Light', '10" LED ring light with tripod', 29.99, true, 'Office Equipment'],
+                    ['Blue Light Glasses', 'Computer glasses 2-pack', 18.99, false, 'Shopping & Retail'],
+                ],
+            ],
+            [
+                'merchant' => 'Amazon', 'match_merchant' => 'amazon', 'months_ago' => 3,
+                'items' => [
+                    ['Standing Desk Converter', 'FlexiSpot 35" desktop riser', 199.99, true, 'Office Equipment'],
+                    ['Cable Management Kit', 'Under desk cable tray + clips', 22.99, true, 'Office Supplies'],
+                ],
+            ],
+            [
+                'merchant' => 'Target', 'match_merchant' => 'target', 'months_ago' => 0,
+                'items' => [
+                    ['Household Cleaning Bundle', 'All-purpose cleaner, sponges, paper towels', 32.47, false, 'Household'],
+                    ['Throw Blanket', 'Casaluna weighted knit throw', 45.00, false, 'Shopping & Retail'],
+                ],
+            ],
+            [
+                'merchant' => 'Target', 'match_merchant' => 'target', 'months_ago' => 2,
+                'items' => [
+                    ['Laundry Detergent', 'Tide Pods 42ct', 13.99, false, 'Household'],
+                    ['Bath Towel Set', '6-piece towel set gray', 29.99, false, 'Shopping & Retail'],
+                    ['Air Freshener', 'Febreze plug-in starter kit', 8.49, false, 'Household'],
+                ],
+            ],
+            [
+                'merchant' => 'Home Depot', 'match_merchant' => 'home depot', 'months_ago' => 1,
+                'items' => [
+                    ['Desk Lamp', 'LED architect desk lamp', 45.99, true, 'Office Equipment'],
+                    ['Surge Protector', 'Belkin 12-outlet power strip', 19.99, true, 'Office Supplies'],
+                    ['Extension Cord', '25ft indoor/outdoor', 14.99, false, 'Household'],
+                ],
+            ],
+            [
+                'merchant' => 'Best Buy', 'match_merchant' => 'best buy', 'months_ago' => 1,
                 'items' => [
                     ['External SSD 1TB', 'Samsung T7 portable drive', 89.99, true, 'Office Equipment'],
-                    ['HDMI Cable 6ft', 'High speed 4K cable', 12.99, true, 'Office Supplies'],
+                    ['HDMI Cable 6ft', 'Insignia high speed 4K cable', 12.99, true, 'Office Supplies'],
                 ],
             ],
             [
-                'merchant' => 'Costco',
+                'merchant' => 'Best Buy', 'match_merchant' => 'best buy', 'months_ago' => 3,
                 'items' => [
-                    ['Printer Paper (5 reams)', 'Office paper bulk pack', 32.99, true, 'Office Supplies'],
-                    ['K-Cup Variety Pack', 'Coffee pods 80-count', 38.99, false, 'Food & Groceries'],
+                    ['Webcam Cover', 'Privacy slide cover 3-pack', 7.99, true, 'Office Supplies'],
+                    ['USB Flash Drive 128GB', 'SanDisk Ultra Flair', 14.99, true, 'Office Supplies'],
+                    ['Laptop Stand', 'Rain Design mStand', 49.99, true, 'Office Equipment'],
+                ],
+            ],
+            [
+                'merchant' => 'Costco', 'match_merchant' => 'costco', 'months_ago' => 0,
+                'items' => [
+                    ['Printer Paper (5 reams)', 'HP Premium 8.5x11 2500 sheets', 32.99, true, 'Office Supplies'],
+                    ['K-Cup Variety Pack', 'Kirkland Signature 80-count', 38.99, false, 'Food & Groceries'],
+                    ['Batteries', 'Kirkland AA 48-pack', 15.99, false, 'Household'],
+                ],
+            ],
+            [
+                'merchant' => 'Costco', 'match_merchant' => 'costco', 'months_ago' => 2,
+                'items' => [
+                    ['Bottled Water', 'Kirkland Spring 40-pack', 4.49, false, 'Food & Groceries'],
+                    ['Paper Towels', 'Kirkland Signature 12-roll', 19.99, false, 'Household'],
+                    ['Trash Bags', 'Kirkland 50-gallon 50ct', 14.99, false, 'Household'],
+                    ['Snack Bars', 'KIND variety 40-count', 22.99, false, 'Food & Groceries'],
+                ],
+            ],
+            [
+                'merchant' => 'Staples', 'match_merchant' => 'staples', 'months_ago' => 0,
+                'items' => [
+                    ['Ink Cartridges', 'HP 63XL Black + Color combo', 54.99, true, 'Office Supplies'],
+                    ['Sticky Notes', 'Post-it 12-pack assorted', 12.49, true, 'Office Supplies'],
+                    ['File Folders', 'Pendaflex letter 100-count', 18.99, true, 'Office Supplies'],
+                ],
+            ],
+            [
+                'merchant' => 'Staples', 'match_merchant' => 'staples', 'months_ago' => 4,
+                'items' => [
+                    ['Toner Cartridge', 'HP LaserJet 58A Black', 79.99, true, 'Office Supplies'],
+                    ['Shipping Labels', 'Avery 2x4 white 250ct', 12.99, true, 'Office Supplies'],
+                ],
+            ],
+            [
+                'merchant' => 'Walmart', 'match_merchant' => 'walmart', 'months_ago' => 1,
+                'items' => [
+                    ['Desk Organizer', 'Madesmart 6-compartment', 14.97, true, 'Office Supplies'],
+                    ['Whiteboard', 'Quartet 36x24 magnetic', 34.97, true, 'Office Equipment'],
+                ],
+            ],
+            [
+                'merchant' => 'Apple', 'match_merchant' => 'apple', 'months_ago' => 3,
+                'items' => [
+                    ['AirPods Pro 2', 'With MagSafe charging case', 249.00, false, 'Electronics'],
                 ],
             ],
         ];
 
-        foreach ($orderData as $idx => $data) {
-            $orderDate = now()->subMonths($idx + 1)->day(rand(5, 20));
-            $total = collect($data['items'])->sum(fn ($i) => $i[2]);
+        foreach ($orderData as $data) {
+            $orderDate = now()->subMonths($data['months_ago'])->day(rand(5, 22));
+            $total = collect($data['items'])->sum(fn ($i) => $i[2] * ($i[5] ?? 1));
             $tax = round($total * 0.0825, 2);
+            $shipping = $total > 35 ? 0 : 5.99;
 
             $parsedEmail = ParsedEmail::create([
                 'user_id' => $user->id,
                 'email_connection_id' => $emailConn->id,
-                'email_message_id' => 'demo-email-'.($idx + 1),
+                'email_message_id' => 'demo-email-'.($emailIdx++),
                 'is_purchase' => true,
                 'parse_status' => 'parsed',
                 'email_date' => $orderDate,
-                'search_source' => 'keyword',
+                'search_source' => $emailIdx <= 10 ? 'keyword' : 'transaction_guided',
             ]);
 
-            // Find a matching Amazon/shopping transaction to reconcile
-            $matchTxn = collect($transactions)->first(fn ($t) => str_contains(strtolower($t->merchant_normalized), strtolower($data['merchant']))
-                && $t->is_reconciled
-            );
+            // Match to a transaction by merchant and ensure we don't double-match
+            $matchTxn = $txnCollection->first(function ($t) use ($data, $reconciledTxnIds) {
+                return str_contains(strtolower($t->merchant_normalized ?? ''), $data['match_merchant'])
+                    && ! in_array($t->id, $reconciledTxnIds)
+                    && (float) $t->amount > 0;
+            });
+
+            if ($matchTxn) {
+                $reconciledTxnIds[] = $matchTxn->id;
+                $matchTxn->update(['is_reconciled' => true, 'matched_order_id' => null]); // will set order id below
+            }
 
             $order = Order::create([
                 'user_id' => $user->id,
                 'parsed_email_id' => $parsedEmail->id,
                 'merchant' => $data['merchant'],
                 'merchant_normalized' => strtolower($data['merchant']),
-                'order_number' => strtoupper(substr(md5('demo-'.$idx), 0, 10)),
+                'order_number' => strtoupper(substr(md5('demo-order-'.$emailIdx), 0, 12)),
                 'order_date' => $orderDate,
                 'subtotal' => $total,
                 'tax' => $tax,
-                'shipping' => 0,
-                'total' => $total + $tax,
+                'shipping' => $shipping,
+                'total' => $total + $tax + $shipping,
                 'currency' => 'USD',
                 'matched_transaction_id' => $matchTxn?->id,
                 'is_reconciled' => (bool) $matchTxn,
             ]);
 
+            // Link the transaction back to the order
+            if ($matchTxn) {
+                $matchTxn->update(['matched_order_id' => $order->id]);
+            }
+
             foreach ($data['items'] as $item) {
+                $qty = $item[5] ?? 1;
                 OrderItem::create([
                     'user_id' => $user->id,
                     'order_id' => $order->id,
                     'product_name' => $item[0],
                     'product_description' => $item[1],
-                    'quantity' => 1,
+                    'quantity' => $qty,
                     'unit_price' => $item[2],
-                    'total_price' => $item[2],
+                    'total_price' => $item[2] * $qty,
                     'ai_category' => $item[4],
                     'tax_deductible' => $item[3],
-                    'tax_deductible_confidence' => $item[3] ? 0.85 : 0.15,
+                    'tax_deductible_confidence' => $item[3] ? round($this->rand(80, 95) / 100, 2) : round($this->rand(5, 20) / 100, 2),
                     'expense_type' => $item[3] ? 'business' : 'personal',
                 ]);
             }
+        }
+
+        // ── Non-purchase parsed emails (skipped by AI — makes sync look realistic) ──
+        $skippedSubjects = [
+            'Your Amazon.com order has shipped',
+            'Delivery notification: Your package is out for delivery',
+            'Your Netflix payment was successful',
+            'Spotify: Your monthly receipt',
+            'Your Xfinity bill is ready',
+            'T-Mobile: Your bill is ready to view',
+            'GEICO: Auto ID card enclosed',
+            'Adobe: Your Creative Cloud subscription renewed',
+            'Costco: Your membership renewal reminder',
+            'Thank you for contacting Target Support',
+            'Your Hulu subscription was renewed',
+            'Planet Fitness: Gym visit confirmation',
+            'Uber Eats: Your order is confirmed',
+            'DoorDash: Your delivery receipt',
+            'Your Chipotle Rewards update',
+            'Starbucks: Stars earned on your last visit',
+        ];
+
+        foreach ($skippedSubjects as $idx => $subject) {
+            ParsedEmail::create([
+                'user_id' => $user->id,
+                'email_connection_id' => $emailConn->id,
+                'email_message_id' => 'demo-email-skip-'.($idx + 1),
+                'is_purchase' => false,
+                'parse_status' => 'skipped',
+                'email_date' => now()->subDays(rand(1, 120)),
+                'search_source' => 'keyword',
+            ]);
+        }
+
+        // ── A couple of subscription renewal emails parsed as purchases ──
+        $subEmails = [
+            ['Netflix', 'netflix', 15.99, 'Entertainment & Streaming'],
+            ['Spotify', 'spotify', 10.99, 'Entertainment & Streaming'],
+            ['Adobe Creative Cloud', 'adobe', 54.99, 'Software & SaaS'],
+            ['Zoom', 'zoom', 13.33, 'Software & SaaS'],
+        ];
+
+        foreach ($subEmails as $idx => [$merchant, $norm, $amount, $category]) {
+            $emailDate = now()->subDays(rand(3, 30));
+
+            $parsedEmail = ParsedEmail::create([
+                'user_id' => $user->id,
+                'email_connection_id' => $emailConn->id,
+                'email_message_id' => 'demo-email-sub-'.($idx + 1),
+                'is_purchase' => true,
+                'is_subscription' => true,
+                'parse_status' => 'parsed',
+                'email_date' => $emailDate,
+                'search_source' => 'keyword',
+            ]);
+
+            $matchTxn = $txnCollection->first(function ($t) use ($norm, $reconciledTxnIds) {
+                return str_contains(strtolower($t->merchant_normalized ?? ''), $norm)
+                    && ! in_array($t->id, $reconciledTxnIds)
+                    && $t->is_subscription;
+            });
+
+            if ($matchTxn) {
+                $reconciledTxnIds[] = $matchTxn->id;
+                $matchTxn->update(['is_reconciled' => true]);
+            }
+
+            $order = Order::create([
+                'user_id' => $user->id,
+                'parsed_email_id' => $parsedEmail->id,
+                'merchant' => $merchant,
+                'merchant_normalized' => $norm,
+                'order_number' => null,
+                'order_date' => $emailDate,
+                'subtotal' => $amount,
+                'tax' => 0,
+                'shipping' => 0,
+                'total' => $amount,
+                'currency' => 'USD',
+                'matched_transaction_id' => $matchTxn?->id,
+                'is_reconciled' => (bool) $matchTxn,
+            ]);
+
+            if ($matchTxn) {
+                $matchTxn->update(['matched_order_id' => $order->id]);
+            }
+
+            OrderItem::create([
+                'user_id' => $user->id,
+                'order_id' => $order->id,
+                'product_name' => $merchant.' Monthly Subscription',
+                'product_description' => 'Monthly subscription renewal',
+                'quantity' => 1,
+                'unit_price' => $amount,
+                'total_price' => $amount,
+                'ai_category' => $category,
+                'tax_deductible' => str_contains($category, 'SaaS'),
+                'tax_deductible_confidence' => str_contains($category, 'SaaS') ? 0.88 : 0.10,
+                'expense_type' => str_contains($category, 'SaaS') ? 'business' : 'personal',
+            ]);
         }
     }
 
