@@ -131,6 +131,11 @@ class User extends Authenticatable implements MustVerifyEmail
             || $this->statementUploads()->where('status', 'complete')->exists();
     }
 
+    public function hasEmailConnected(): bool
+    {
+        return $this->emailConnections()->where('status', 'active')->exists();
+    }
+
     public function hasProfileComplete(): bool
     {
         return $this->financialProfile()

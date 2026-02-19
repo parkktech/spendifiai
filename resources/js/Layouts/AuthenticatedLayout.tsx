@@ -1,5 +1,5 @@
 import { Link, usePage, router } from '@inertiajs/react';
-import { PropsWithChildren, ReactNode, useState } from 'react';
+import { PropsWithChildren, ReactNode, useState, useEffect } from 'react';
 import {
   LayoutDashboard,
   Receipt,
@@ -16,6 +16,9 @@ import {
   Menu,
   X,
   ShieldCheck,
+  Mail,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react';
 
 interface NavItemDef {
@@ -61,7 +64,10 @@ export default function AuthenticatedLayout({
 }: PropsWithChildren<{ header?: ReactNode }>) {
   const page = usePage();
   const user = page.props.auth.user as { name: string; email: string };
-  const isAdmin = (page.props.auth as Record<string, unknown>).isAdmin as boolean;
+  const auth = page.props.auth as Record<string, unknown>;
+  const isAdmin = auth.isAdmin as boolean;
+  const hasBankConnected = auth.hasBankConnected as boolean;
+  const hasEmailConnected = auth.hasEmailConnected as boolean;
   const currentRoute = (page.props as Record<string, unknown>).ziggy
     ? route().current()
     : '';
@@ -69,6 +75,19 @@ export default function AuthenticatedLayout({
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [emailBannerDismissed, setEmailBannerDismissed] = useState(true);
+  const [emailBannerExpanded, setEmailBannerExpanded] = useState(false);
+
+  useEffect(() => {
+    setEmailBannerDismissed(localStorage.getItem('emailBannerDismissed') === '1');
+  }, []);
+
+  const showEmailBanner = hasBankConnected && !hasEmailConnected && !emailBannerDismissed;
+
+  const dismissEmailBanner = () => {
+    localStorage.setItem('emailBannerDismissed', '1');
+    setEmailBannerDismissed(true);
+  };
 
   const navItems: NavItemDef[] = [
     { label: 'Dashboard', href: '/dashboard', routeName: 'dashboard', icon: <LayoutDashboard size={18} /> },
@@ -243,6 +262,48 @@ export default function AuthenticatedLayout({
             </div>
           </div>
         </header>
+
+        {/* Email connection banner */}
+        {showEmailBanner && (
+          <div className="shrink-0 border-b border-blue-200 bg-gradient-to-r from-blue-50 to-indigo-50">
+            <div className="flex items-center gap-3 px-6 py-3">
+              <Mail size={18} className="shrink-0 text-blue-600" />
+              <p className="flex-1 text-sm text-blue-900">
+                <span className="font-semibold">Get more from SpendifiAI</span> — link your email to automatically match online receipts with your transactions.
+                <button
+                  onClick={() => setEmailBannerExpanded(!emailBannerExpanded)}
+                  className="ml-1.5 inline-flex items-center gap-0.5 text-blue-600 font-medium hover:text-blue-800 transition-colors"
+                >
+                  {emailBannerExpanded ? 'Show less' : 'Learn more'}
+                  {emailBannerExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                </button>
+              </p>
+              <Link
+                href="/connect"
+                className="shrink-0 rounded-lg bg-blue-600 px-3.5 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-blue-700 transition-colors"
+              >
+                Link Email
+              </Link>
+              <button
+                onClick={dismissEmailBanner}
+                aria-label="Dismiss banner"
+                className="shrink-0 text-blue-400 hover:text-blue-600 transition-colors"
+              >
+                <X size={16} />
+              </button>
+            </div>
+            {emailBannerExpanded && (
+              <div className="px-6 pb-3 pt-0 text-sm text-blue-800 leading-relaxed">
+                <ul className="ml-6 list-disc space-y-1">
+                  <li>Automatically parse order receipts from Amazon, Walmart, Target, and more</li>
+                  <li>Match email receipts to bank transactions for accurate expense tracking</li>
+                  <li>Identify tax-deductible purchases with line-item detail</li>
+                  <li>Keep your transaction categories organized without manual work</li>
+                </ul>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Page content */}
         <main id="main-content" role="main" className="flex-1 overflow-y-auto p-6">

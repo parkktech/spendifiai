@@ -35,6 +35,7 @@ class HandleInertiaRequests extends Middleware
             'auth' => [
                 'user' => $request->user(),
                 'hasBankConnected' => $request->user()?->hasBankConnected() ?? false,
+                'hasEmailConnected' => $request->user()?->hasEmailConnected() ?? false,
                 'isAdmin' => $request->user()?->isAdmin() ?? false,
             ],
             'canLogin' => Route::has('login'),
