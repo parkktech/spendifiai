@@ -22,22 +22,22 @@
         .masthead {
             background-color: #0c1b33;
             color: #ffffff;
-            padding: 32px 48px 28px;
+            padding: 28px 48px 24px;
             position: relative;
         }
 
         .masthead-rule {
-            height: 3px;
-            background-color: #0d7a3f;
+            height: 4px;
+            background: linear-gradient(90deg, #0d7a3f 0%, #10b981 50%, #0d7a3f 100%);
         }
 
         .masthead .brand {
-            font-size: 10px;
+            font-size: 14px;
             font-weight: bold;
-            letter-spacing: 4px;
+            letter-spacing: 3px;
             text-transform: uppercase;
-            color: #94a3b8;
-            margin-bottom: 6px;
+            color: #10b981;
+            margin-bottom: 2px;
         }
 
         .masthead .doc-title {
@@ -79,16 +79,16 @@
         .page-header {
             background-color: #0c1b33;
             color: #ffffff;
-            padding: 16px 48px;
+            padding: 14px 48px;
             position: relative;
         }
 
         .page-header .brand {
-            font-size: 8px;
+            font-size: 11px;
             font-weight: bold;
             letter-spacing: 3px;
             text-transform: uppercase;
-            color: #64748b;
+            color: #10b981;
             float: left;
         }
 
@@ -107,7 +107,7 @@
 
         .page-header .year-tag {
             position: absolute;
-            top: 16px;
+            top: 14px;
             right: 48px;
             font-size: 16px;
             font-weight: bold;
@@ -115,8 +115,8 @@
         }
 
         .page-header-rule {
-            height: 2px;
-            background-color: #0d7a3f;
+            height: 3px;
+            background: linear-gradient(90deg, #0d7a3f 0%, #10b981 50%, #0d7a3f 100%);
         }
 
         /* ─── Content area ─── */
@@ -354,9 +354,10 @@
         .footer-brand {
             margin-top: 8px;
             font-size: 7.5px;
-            color: #cbd5e1;
+            color: #10b981;
             letter-spacing: 2px;
             text-transform: uppercase;
+            font-weight: bold;
         }
 
         /* ─── Utility ─── */
@@ -387,6 +388,97 @@
             margin-top: 6px;
             line-height: 1.5;
         }
+
+        /* ─── IRS Quick Reference ─── */
+        .qr-box {
+            border: 2px solid #0c1b33;
+            border-radius: 4px;
+            margin-bottom: 8px;
+            page-break-inside: avoid;
+        }
+
+        .qr-header {
+            background-color: #0c1b33;
+            color: #ffffff;
+            padding: 8px 14px;
+            font-size: 10px;
+            font-weight: bold;
+            letter-spacing: 0.5px;
+        }
+
+        .qr-header .qr-form {
+            font-size: 8px;
+            font-weight: normal;
+            color: #10b981;
+            margin-left: 6px;
+        }
+
+        .qr-body {
+            padding: 0;
+        }
+
+        table.qr-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        table.qr-table td {
+            padding: 5px 14px;
+            font-size: 9px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        table.qr-table td.qr-line {
+            width: 70px;
+            font-weight: bold;
+            color: #0c1b33;
+            font-family: 'Courier', monospace;
+            font-size: 9px;
+        }
+
+        table.qr-table td.qr-desc {
+            color: #334155;
+        }
+
+        table.qr-table td.qr-arrow {
+            width: 30px;
+            text-align: center;
+            color: #0d7a3f;
+            font-weight: bold;
+            font-size: 10px;
+        }
+
+        table.qr-table td.qr-amount {
+            width: 110px;
+            text-align: right;
+            font-weight: bold;
+            font-family: 'Courier', monospace;
+            font-size: 10px;
+            color: #0d7a3f;
+        }
+
+        table.qr-table tr.qr-zero td {
+            color: #cbd5e1;
+        }
+
+        table.qr-table tr.qr-zero td.qr-amount {
+            color: #cbd5e1;
+            font-size: 9px;
+        }
+
+        table.qr-table tr.qr-total td {
+            background-color: #f0f7f1;
+            font-weight: bold;
+            color: #0c1b33;
+            border-top: 2px solid #0c1b33;
+            border-bottom: none;
+            padding: 7px 14px;
+        }
+
+        table.qr-table tr.qr-total td.qr-amount {
+            color: #0d7a3f;
+            font-size: 11px;
+        }
     </style>
 </head>
 <body>
@@ -398,18 +490,20 @@
     <div class="masthead">
         <table style="width: 100%; border-collapse: collapse;">
             <tr>
-                <td style="vertical-align: top; width: 65%;">
+                <td style="vertical-align: middle; width: 52px; padding-right: 14px;">
                     @if(!empty($logo_base64))
-                        <img src="{{ $logo_base64 }}" alt="SpendifiAI" style="height: 28px; width: 28px; vertical-align: middle; margin-right: 8px; margin-bottom: 4px;">
+                        <img src="{{ $logo_base64 }}" alt="SpendifiAI" style="height: 48px; width: 48px; display: block;">
                     @endif
-                    <span class="brand" style="vertical-align: middle;">SpendifiAI</span>
-                    <div class="doc-title" style="margin-top: 6px;">Tax Deduction Report</div>
+                </td>
+                <td style="vertical-align: middle;">
+                    <div class="brand">SpendifiAI</div>
+                    <div class="doc-title">Tax Deduction Report</div>
                     <div class="doc-subtitle">
                         Prepared for {{ $user['name'] }} &middot; {{ $user['email'] }}
                     </div>
                 </td>
-                <td style="vertical-align: top; text-align: right;">
-                    <div class="year-badge" style="font-size: 36px; font-weight: bold; color: #ffffff; letter-spacing: -1px; line-height: 1;">{{ $year }}</div>
+                <td style="vertical-align: top; text-align: right; width: 100px;">
+                    <div style="font-size: 36px; font-weight: bold; color: #ffffff; letter-spacing: -1px; line-height: 1;">{{ $year }}</div>
                     <div style="font-size: 8.5px; color: #64748b; margin-top: 4px;">{{ substr($summary['generated_at'], 0, 10) }}</div>
                 </td>
             </tr>
@@ -440,6 +534,80 @@
                 </td>
             </tr>
         </table>
+
+        {{-- ── IRS Form Quick Reference ── --}}
+        <div class="section-label">IRS Form Quick Reference &mdash; What to Enter</div>
+        <div class="section-desc" style="margin-bottom: 8px;">
+            Enter these exact amounts on the corresponding IRS form lines. Lines showing $0.00 mean enter zero for that field.
+        </div>
+
+        {{-- Schedule C box — all lines shown --}}
+        @php $qrCTotal = collect($all_schedule_c_lines)->sum('total'); @endphp
+        <div class="qr-box">
+            <div class="qr-header">
+                Schedule C &mdash; Profit or Loss From Business
+                <span class="qr-form">Form 1040</span>
+            </div>
+            <div class="qr-body">
+                <table class="qr-table">
+                    @foreach($all_schedule_c_lines as $line)
+                        @php $hasAmount = $line['total'] > 0; @endphp
+                        <tr @class(['qr-zero' => !$hasAmount])>
+                            <td class="qr-line">Line {{ $line['line'] }}</td>
+                            <td class="qr-desc">
+                                {{ $line['label'] }}
+                                @if($line['line'] === '24b')
+                                    <span style="color: #b45309; font-size: 8px;">(50% limitation)</span>
+                                @endif
+                            </td>
+                            <td class="qr-arrow">&rarr;</td>
+                            <td class="qr-amount">${{ number_format($line['total'], 2) }}</td>
+                        </tr>
+                    @endforeach
+                    <tr class="qr-total">
+                        <td class="qr-line"></td>
+                        <td class="qr-desc">Total Schedule C Expenses (Lines 8 through 27a)</td>
+                        <td class="qr-arrow"></td>
+                        <td class="qr-amount">${{ number_format($qrCTotal, 2) }}</td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+
+        {{-- Schedule A box — all lines shown --}}
+        @php $qrATotal = collect($all_schedule_a_lines)->sum('total'); @endphp
+        <div class="qr-box" style="margin-top: 6px;">
+            <div class="qr-header">
+                Schedule A &mdash; Itemized Deductions
+                <span class="qr-form">Form 1040</span>
+            </div>
+            <div class="qr-body">
+                <table class="qr-table">
+                    @foreach($all_schedule_a_lines as $line)
+                        @php $hasAmount = $line['total'] > 0; @endphp
+                        <tr @class(['qr-zero' => !$hasAmount])>
+                            <td class="qr-line" style="width: 90px;">Sch A</td>
+                            <td class="qr-desc">
+                                {{ $line['label'] }}
+                                @if(!empty($line['note']))
+                                    <span style="color: #b45309; font-size: 8px;">({{ $line['note'] }})</span>
+                                @endif
+                            </td>
+                            <td class="qr-arrow">&rarr;</td>
+                            <td class="qr-amount">${{ number_format($line['total'], 2) }}</td>
+                        </tr>
+                    @endforeach
+                    <tr class="qr-total">
+                        <td class="qr-line"></td>
+                        <td class="qr-desc">Total Schedule A Deductions</td>
+                        <td class="qr-arrow"></td>
+                        <td class="qr-amount">${{ number_format($qrATotal, 2) }}</td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+
+        <div class="section-spacer"></div>
 
         {{-- ── Taxpayer Profile ── --}}
         <div class="section-label">Taxpayer Profile</div>
@@ -531,14 +699,23 @@
 
     <div class="page-break"></div>
     <div class="page-header">
-        @if(!empty($logo_base64))
-            <img src="{{ $logo_base64 }}" alt="" style="height: 20px; width: 20px; vertical-align: middle; margin-right: 6px; float: left; margin-top: 2px;">
-        @endif
-        <div class="brand" style="float: left; line-height: 24px;">SpendifiAI</div>
-        <div class="year-tag">{{ $year }}</div>
-        <div style="clear: both;"></div>
-        <div class="page-title">Schedule C &mdash; Profit or Loss From Business</div>
-        <div class="page-subtitle">Form 1040, Lines 8&ndash;30 &middot; {{ $user['name'] }}</div>
+        <table style="width: 100%; border-collapse: collapse;">
+            <tr>
+                <td style="vertical-align: middle; width: 42px; padding-right: 10px;">
+                    @if(!empty($logo_base64))
+                        <img src="{{ $logo_base64 }}" alt="" style="height: 36px; width: 36px; display: block;">
+                    @endif
+                </td>
+                <td style="vertical-align: middle;">
+                    <div class="brand">SpendifiAI</div>
+                    <div class="page-title">Schedule C &mdash; Profit or Loss From Business</div>
+                    <div class="page-subtitle">Form 1040, Lines 8&ndash;30 &middot; {{ $user['name'] }}</div>
+                </td>
+                <td style="vertical-align: middle; text-align: right; width: 60px;">
+                    <div class="year-tag" style="position: static;">{{ $year }}</div>
+                </td>
+            </tr>
+        </table>
     </div>
     <div class="page-header-rule"></div>
 
@@ -619,14 +796,23 @@
     @if($scheduleATotal > 0)
         <div class="page-break"></div>
         <div class="page-header">
-            @if(!empty($logo_base64))
-                <img src="{{ $logo_base64 }}" alt="" style="height: 20px; width: 20px; vertical-align: middle; margin-right: 6px; float: left; margin-top: 2px;">
-            @endif
-            <div class="brand" style="float: left; line-height: 24px;">SpendifiAI</div>
-            <div class="year-tag">{{ $year }}</div>
-            <div style="clear: both;"></div>
-            <div class="page-title">Schedule A &mdash; Itemized Deductions</div>
-            <div class="page-subtitle">Personal deductions &middot; {{ $user['name'] }}</div>
+            <table style="width: 100%; border-collapse: collapse;">
+                <tr>
+                    <td style="vertical-align: middle; width: 42px; padding-right: 10px;">
+                        @if(!empty($logo_base64))
+                            <img src="{{ $logo_base64 }}" alt="" style="height: 36px; width: 36px; display: block;">
+                        @endif
+                    </td>
+                    <td style="vertical-align: middle;">
+                        <div class="brand">SpendifiAI</div>
+                        <div class="page-title">Schedule A &mdash; Itemized Deductions</div>
+                        <div class="page-subtitle">Personal deductions &middot; {{ $user['name'] }}</div>
+                    </td>
+                    <td style="vertical-align: middle; text-align: right; width: 60px;">
+                        <div class="year-tag" style="position: static;">{{ $year }}</div>
+                    </td>
+                </tr>
+            </table>
         </div>
         <div class="page-header-rule"></div>
 
@@ -687,14 +873,23 @@
     @if(!empty($transactions_by_line))
         <div class="page-break"></div>
         <div class="page-header">
-            @if(!empty($logo_base64))
-                <img src="{{ $logo_base64 }}" alt="" style="height: 20px; width: 20px; vertical-align: middle; margin-right: 6px; float: left; margin-top: 2px;">
-            @endif
-            <div class="brand" style="float: left; line-height: 24px;">SpendifiAI</div>
-            <div class="year-tag">{{ $year }}</div>
-            <div style="clear: both;"></div>
-            <div class="page-title">Supporting Detail by IRS Line</div>
-            <div class="page-subtitle">Complete transaction detail for each deduction line &middot; {{ $user['name'] }}</div>
+            <table style="width: 100%; border-collapse: collapse;">
+                <tr>
+                    <td style="vertical-align: middle; width: 42px; padding-right: 10px;">
+                        @if(!empty($logo_base64))
+                            <img src="{{ $logo_base64 }}" alt="" style="height: 36px; width: 36px; display: block;">
+                        @endif
+                    </td>
+                    <td style="vertical-align: middle;">
+                        <div class="brand">SpendifiAI</div>
+                        <div class="page-title">Supporting Detail by IRS Line</div>
+                        <div class="page-subtitle">Complete transaction detail for each deduction line &middot; {{ $user['name'] }}</div>
+                    </td>
+                    <td style="vertical-align: middle; text-align: right; width: 60px;">
+                        <div class="year-tag" style="position: static;">{{ $year }}</div>
+                    </td>
+                </tr>
+            </table>
         </div>
         <div class="page-header-rule"></div>
 
@@ -747,14 +942,23 @@
     @if(!empty($business_subscriptions))
         <div class="page-break"></div>
         <div class="page-header">
-            @if(!empty($logo_base64))
-                <img src="{{ $logo_base64 }}" alt="" style="height: 20px; width: 20px; vertical-align: middle; margin-right: 6px; float: left; margin-top: 2px;">
-            @endif
-            <div class="brand" style="float: left; line-height: 24px;">SpendifiAI</div>
-            <div class="year-tag">{{ $year }}</div>
-            <div style="clear: both;"></div>
-            <div class="page-title">Recurring Business Subscriptions &amp; Services</div>
-            <div class="page-subtitle">Active recurring expenses detected &middot; {{ $user['name'] }}</div>
+            <table style="width: 100%; border-collapse: collapse;">
+                <tr>
+                    <td style="vertical-align: middle; width: 42px; padding-right: 10px;">
+                        @if(!empty($logo_base64))
+                            <img src="{{ $logo_base64 }}" alt="" style="height: 36px; width: 36px; display: block;">
+                        @endif
+                    </td>
+                    <td style="vertical-align: middle;">
+                        <div class="brand">SpendifiAI</div>
+                        <div class="page-title">Recurring Business Subscriptions &amp; Services</div>
+                        <div class="page-subtitle">Active recurring expenses detected &middot; {{ $user['name'] }}</div>
+                    </td>
+                    <td style="vertical-align: middle; text-align: right; width: 60px;">
+                        <div class="year-tag" style="position: static;">{{ $year }}</div>
+                    </td>
+                </tr>
+            </table>
         </div>
         <div class="page-header-rule"></div>
 
