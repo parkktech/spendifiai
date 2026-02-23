@@ -77,15 +77,23 @@ class TransactionController extends Controller
         $category = $request->validated('category');
         $expenseType = $request->validated('expense_type') ?? $transaction->expense_type;
         $taxDeductible = $request->validated('tax_deductible') ?? $transaction->tax_deductible;
+        $isDonation = $category === 'Charity & Donations';
+
+        // Charitable donations are always tax-deductible (Schedule A)
+        if ($isDonation) {
+            $taxDeductible = true;
+        }
 
         $transaction->update([
             'user_category' => $category,
             'expense_type' => $expenseType,
             'tax_deductible' => $taxDeductible,
+            'donation_note' => $isDonation ? $request->validated('donation_note') : null,
             'review_status' => 'user_confirmed',
         ]);
 
         // Apply to all other transactions from the same merchant that are not yet user-confirmed
+        // Note: donation_note is NOT cascaded — each donation may have unique context
         $merchantName = $transaction->merchant_normalized ?? $transaction->merchant_name;
         $matchCount = 0;
 

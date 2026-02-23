@@ -26,6 +26,7 @@ export interface Transaction {
   expense_type: string;
   account_purpose: string;
   tax_deductible: boolean;
+  donation_note: string | null;
   is_subscription: boolean;
   is_reconciled: boolean;
   matched_order_id: number | null;
@@ -259,7 +260,18 @@ export interface DashboardData {
   savings_history: SavingsHistoryEntry[];
   top_stores: TopStore[];
   top_stores_total: number;
+  charitable_giving: CharitableGiving;
   period: PeriodMeta;
+}
+
+export interface CharitableGiving {
+  period_total: number;
+  ytd_total: number;
+  transaction_count: number;
+  estimated_tax_savings: number;
+  tax_rate_used: number;
+  top_recipients: Array<{ recipient: string; total: number; count: number; note: string | null }>;
+  recent_donations: Array<{ id: number; merchant: string; amount: number; date: string; note: string | null; tax_deductible: boolean }>;
 }
 
 export interface TaxLineItem {
@@ -270,6 +282,7 @@ export interface TaxLineItem {
   category: string;
   source: 'bank' | 'email';
   order_number?: string;
+  donation_note?: string | null;
 }
 
 export interface NormalizedTaxLine {

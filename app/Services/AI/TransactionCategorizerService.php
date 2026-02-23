@@ -202,7 +202,7 @@ CATEGORIES (use exactly one):
 - Transfer
 - ATM Withdrawal
 - Fees & Charges
-- Charity & Donations
+- Charity & Donations (churches, synagogues, mosques, 501(c)(3) nonprofits, religious tithing, GoFundMe, United Way, Red Cross, Salvation Army, Goodwill, food banks, disaster relief, TITHE, OFFERING, DONATION, CONTRIB patterns)
 - Gifts
 - Taxes
 - Savings & Investment
@@ -212,7 +212,8 @@ CATEGORIES (use exactly one):
 TAX DEDUCTION RULES:
 - Self-employed/freelancer: Office supplies, software, business meals (50%), home office, professional development, business travel, marketing → likely deductible
 - Employee with home office: More limited deductions
-- Universal: Charitable donations, medical expenses (above threshold), mortgage interest, state/local taxes
+- Universal: Charitable donations (always tax_deductible, Schedule A), medical expenses (above threshold), mortgage interest, state/local taxes
+- Charity & Donations: Always set tax_deductible=true and tax_category="Charity & Donations" for any donation to a religious organization, nonprofit, or 501(c)(3)
 - NOT deductible: Personal meals, entertainment, clothing (unless uniforms), commuting
 
 CONFIDENCE SCORING:

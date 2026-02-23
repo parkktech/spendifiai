@@ -316,6 +316,96 @@ class PlaidService
     }
 
     /**
+     * Fetch transactions by explicit date range using /transactions/get.
+     * More reliable than /transactions/sync for backfilling historical data,
+     * since institutions often ignore the days_requested hint on sync.
+     */
+    public function getTransactionsByDateRange(BankConnection $connection, string $startDate, string $endDate): array
+    {
+        $accessToken = $connection->plaid_access_token;
+        $offset = 0;
+        $totalFetched = 0;
+        $added = 0;
+        $skipped = 0;
+
+        do {
+            $response = $this->post('/transactions/get', [
+                'access_token' => $accessToken,
+                'start_date' => $startDate,
+                'end_date' => $endDate,
+                'options' => [
+                    'count' => 500,
+                    'offset' => $offset,
+                ],
+            ]);
+
+            $transactions = $response['transactions'] ?? [];
+            $totalAvailable = $response['total_transactions'] ?? 0;
+
+            foreach ($transactions as $tx) {
+                $bankAccount = BankAccount::where('plaid_account_id', $tx['account_id'])->first();
+                if (! $bankAccount) {
+                    $skipped++;
+
+                    continue;
+                }
+
+                $accountPurpose = $bankAccount->purpose ?? 'personal';
+                $defaultExpenseType = match ($accountPurpose) {
+                    'business' => 'business',
+                    'mixed' => 'mixed',
+                    default => 'personal',
+                };
+                $defaultDeductible = in_array($accountPurpose, ['business']);
+
+                // Only insert new transactions — never overwrite existing records
+                // that may already have AI categorization or user edits
+                $exists = Transaction::where('plaid_transaction_id', $tx['transaction_id'])->exists();
+                if ($exists) {
+                    $skipped++;
+
+                    continue;
+                }
+
+                Transaction::create([
+                    'plaid_transaction_id' => $tx['transaction_id'],
+                    'user_id' => $connection->user_id,
+                    'bank_account_id' => $bankAccount->id,
+                    'account_purpose' => $accountPurpose,
+                    'merchant_name' => mb_substr($tx['merchant_name'] ?? $tx['name'] ?? 'Unknown', 0, 255),
+                    'description' => mb_substr($tx['name'] ?? '', 0, 255),
+                    'amount' => $tx['amount'],
+                    'transaction_date' => $tx['date'],
+                    'authorized_date' => $tx['authorized_date'] ?? null,
+                    'payment_channel' => $tx['payment_channel'] ?? null,
+                    'plaid_category' => $tx['personal_finance_category']['primary'] ?? null,
+                    'plaid_detailed_category' => $tx['personal_finance_category']['detailed'] ?? null,
+                    'expense_type' => $defaultExpenseType,
+                    'tax_deductible' => $defaultDeductible,
+                    'plaid_metadata' => [
+                        'logo_url' => $tx['logo_url'] ?? null,
+                        'website' => $tx['website'] ?? null,
+                        'location' => $tx['location'] ?? null,
+                        'iso_currency' => $tx['iso_currency_code'] ?? 'USD',
+                    ],
+                    'review_status' => 'pending_ai',
+                ]);
+                $added++;
+            }
+
+            $totalFetched += count($transactions);
+            $offset += count($transactions);
+        } while ($totalFetched < $totalAvailable && count($transactions) > 0);
+
+        return [
+            'added' => $added,
+            'total_fetched' => $totalFetched,
+            'total_available' => $totalAvailable,
+            'skipped' => $skipped,
+        ];
+    }
+
+    /**
      * Make a POST request to the Plaid API.
      */
     protected function post(string $endpoint, array $data): array

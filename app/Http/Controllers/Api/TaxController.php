@@ -80,6 +80,7 @@ class TaxController extends Controller
                 'amount' => (float) $tx->amount,
                 'category' => $tx->tax_category ?? $tx->user_category ?? $tx->ai_category ?? 'Uncategorized',
                 'source' => 'bank',
+                'donation_note' => $tx->donation_note,
             ]);
 
         // Individual deductible order items for drill-down

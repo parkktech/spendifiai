@@ -11,6 +11,8 @@ import {
   Tag,
   CreditCard,
   MapPin,
+  Heart,
+  FileText,
 } from 'lucide-react';
 import Badge from './Badge';
 import type { Transaction, TransactionOrderItem } from '@/types/spendifiai';
@@ -20,6 +22,7 @@ interface TransactionRowProps {
   categories?: string[];
   onCategoryChange?: (id: number, category: string) => void;
   onConfirm?: (id: number) => void;
+  onDonationNoteChange?: (id: number, note: string) => void;
 }
 
 const fmt = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
@@ -46,14 +49,18 @@ export default function TransactionRow({
   categories = [],
   onCategoryChange,
   onConfirm,
+  onDonationNoteChange,
 }: TransactionRowProps) {
   const [editingCategory, setEditingCategory] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [expanded, setExpanded] = useState(false);
+  const [editingNote, setEditingNote] = useState(false);
+  const [noteValue, setNoteValue] = useState(transaction.donation_note || '');
   const isNegative = transaction.amount < 0;
+  const isDonation = transaction.category === 'Charity & Donations';
   const needsReview = transaction.review_status === 'needs_review';
   const hasOrderItems = (transaction.order_items?.length ?? 0) > 0;
-  const hasDetails = hasOrderItems || transaction.description || transaction.account;
+  const hasDetails = hasOrderItems || transaction.description || transaction.account || isDonation;
 
   const handleCategorySelect = (cat: string) => {
     onCategoryChange?.(transaction.id, cat);
@@ -158,6 +165,11 @@ export default function TransactionRow({
               </Badge>
             )}
             {transaction.tax_deductible && <Badge variant="success">Tax</Badge>}
+            {isDonation && (
+              <Badge variant="success">
+                <Heart size={9} className="inline -mt-px mr-0.5" />Donation
+              </Badge>
+            )}
             {transaction.account_purpose === 'business' && <Badge variant="info">Business</Badge>}
           </div>
         </div>
@@ -214,6 +226,67 @@ export default function TransactionRow({
               </div>
             )}
           </div>
+
+          {/* Donation note */}
+          {isDonation && (
+            <div className="flex items-start gap-1.5">
+              <Heart size={10} className="text-emerald-500 mt-0.5 shrink-0" />
+              {editingNote ? (
+                <div className="flex items-center gap-2 flex-1">
+                  <input
+                    type="text"
+                    value={noteValue}
+                    onChange={(e) => setNoteValue(e.target.value)}
+                    placeholder="e.g., First Baptist Church - 501(c)(3) #12-3456789"
+                    className="flex-1 text-[11px] px-2 py-1 rounded-md bg-white border border-sw-border text-sw-text placeholder:text-sw-dim outline-none focus:border-sw-accent"
+                    autoFocus
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        onDonationNoteChange?.(transaction.id, noteValue);
+                        setEditingNote(false);
+                      } else if (e.key === 'Escape') {
+                        setNoteValue(transaction.donation_note || '');
+                        setEditingNote(false);
+                      }
+                    }}
+                  />
+                  <button
+                    onClick={() => {
+                      onDonationNoteChange?.(transaction.id, noteValue);
+                      setEditingNote(false);
+                    }}
+                    className="text-[10px] px-2 py-1 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 transition font-medium"
+                  >
+                    Save
+                  </button>
+                  <button
+                    onClick={() => {
+                      setNoteValue(transaction.donation_note || '');
+                      setEditingNote(false);
+                    }}
+                    className="text-[10px] text-sw-dim hover:text-sw-text transition"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => setEditingNote(true)}
+                  className="text-[11px] text-sw-muted hover:text-sw-text transition text-left"
+                >
+                  {transaction.donation_note ? (
+                    <span className="flex items-center gap-1">
+                      <FileText size={9} className="shrink-0" />
+                      {transaction.donation_note}
+                      <span className="text-[9px] text-sw-dim ml-1">(click to edit)</span>
+                    </span>
+                  ) : (
+                    <span className="text-sw-dim italic">+ Add donation note (recipient, EIN, etc.)</span>
+                  )}
+                </button>
+              )}
+            </div>
+          )}
 
           {/* Order items */}
           {hasOrderItems && (

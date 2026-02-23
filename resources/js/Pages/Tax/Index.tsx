@@ -499,6 +499,12 @@ function CategoryRow({
                 <span className="text-[11px] text-sw-dim truncate hidden md:inline">— {item.description}</span>
               )}
             </div>
+            {item.donation_note && (
+              <div className="flex items-center gap-1 mt-0.5 ml-[52px]">
+                <Heart size={8} className="text-emerald-500 shrink-0" />
+                <span className="text-[10px] text-emerald-700 italic truncate">{item.donation_note}</span>
+              </div>
+            )}
           </td>
           <td />
           <td className="py-2 text-right">

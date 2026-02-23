@@ -138,6 +138,7 @@ class TaxExportService
                 'business_name' => $tx->bankAccount?->business_name,
                 'confidence' => $tx->ai_confidence,
                 'user_confirmed' => $tx->review_status === 'user_confirmed',
+                'donation_note' => $tx->donation_note,
             ])
             ->toArray();
 
@@ -539,7 +540,7 @@ class TaxExportService
         $ws->setTitle('All Deductible Transactions');
         $ws->getTabColor()->setRGB('e65100');
 
-        $ws->mergeCells('A1:L1');
+        $ws->mergeCells('A1:M1');
         $ws->setCellValue('A1', "Complete Deductible Transaction Detail — {$data['year']}");
         $ws->getStyle('A1')->getFont()->setBold(true)->setSize(14)->setColor(new Color('e65100'));
 
@@ -549,7 +550,7 @@ class TaxExportService
         $ws->getStyle('A2')->getFont()->setSize(10)->setItalic(true)->setColor(new Color('666666'));
 
         $headers = ['Date', 'Merchant', 'Description', 'Amount', 'Category', 'Tax Category',
-            'Type', 'Account', 'Account Purpose', 'Business Entity', 'Confidence', 'Verified'];
+            'Type', 'Account', 'Account Purpose', 'Business Entity', 'Confidence', 'Verified', 'Donation Note'];
         $row = 4;
         foreach ($headers as $col => $h) {
             $ws->setCellValue(Coordinate::stringFromColumnIndex($col + 1).$row, $h);
@@ -580,6 +581,9 @@ class TaxExportService
             $ws->setCellValue("L{$row}", $verified);
             if ($tx['user_confirmed'] ?? false) {
                 $ws->getStyle("L{$row}")->getFont()->setBold(true)->setColor(new Color('2e7d32'));
+            }
+            if (! empty($tx['donation_note'])) {
+                $ws->setCellValue("M{$row}", $tx['donation_note']);
             }
             $row++;
         }
@@ -711,7 +715,7 @@ class TaxExportService
         fputcsv($fp, [
             'Date', 'Merchant', 'Description', 'Amount', 'Category',
             'Tax Category', 'Expense Type', 'Account', 'Account Type',
-            'Business Name', 'AI Confidence', 'User Confirmed',
+            'Business Name', 'AI Confidence', 'User Confirmed', 'Donation Note',
         ]);
 
         // Transaction rows
@@ -729,6 +733,7 @@ class TaxExportService
                 $tx['business_name'] ?? '',
                 $tx['confidence'] ? round($tx['confidence'] * 100).'%' : '',
                 $tx['user_confirmed'] ? 'Yes' : 'AI',
+                $tx['donation_note'] ?? '',
             ]);
         }
 
@@ -747,6 +752,7 @@ class TaxExportService
                 '',
                 '',
                 'AI',
+                '',
             ]);
         }
 

@@ -40,6 +40,7 @@ import CostOfLivingBreakdown from '@/Components/SpendifiAI/CostOfLivingBreakdown
 import PrimaryVsExtraCard from '@/Components/SpendifiAI/PrimaryVsExtraCard';
 import TimelineFilter from '@/Components/SpendifiAI/TimelineFilter';
 import TopStoresSection from '@/Components/SpendifiAI/TopStoresSection';
+import CharitableGivingSection from '@/Components/SpendifiAI/CharitableGivingSection';
 import { useApi, useApiPost } from '@/hooks/useApi';
 import type { DashboardData, RecurringBill, BudgetWaterfall, HomeAffordability } from '@/types/spendifiai';
 
@@ -1043,6 +1044,11 @@ export default function Dashboard() {
               period={data.period}
               avgMode={avgMode}
             />
+          )}
+
+          {/* SECTION B4: Charitable Giving */}
+          {data.charitable_giving && data.charitable_giving.transaction_count > 0 && (
+            <CharitableGivingSection data={data.charitable_giving} />
           )}
 
           {/* SECTION C: Your Monthly Bills */}

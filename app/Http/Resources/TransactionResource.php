@@ -25,6 +25,7 @@ class TransactionResource extends JsonResource
             'account_purpose' => $this->account_purpose,
             'tax_deductible' => $this->tax_deductible,
             'tax_category' => $this->tax_category,
+            'donation_note' => $this->donation_note,
             'is_subscription' => $this->is_subscription,
             'is_reconciled' => $this->is_reconciled,
             'matched_order_id' => $this->matched_order_id,

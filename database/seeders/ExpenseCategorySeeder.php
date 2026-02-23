@@ -77,7 +77,7 @@ class ExpenseCategorySeeder extends Seeder
             ['name' => 'Gifts', 'slug' => 'gifts', 'icon' => 'gift', 'color' => '#f472b6'],
 
             // ── Financial ──
-            ['name' => 'Charity & Donations', 'slug' => 'charity', 'icon' => 'heart', 'color' => '#10b981', 'is_typically_deductible' => true, 'tax_schedule_line' => 'Schedule A - Charitable Contributions'],
+            ['name' => 'Charity & Donations', 'slug' => 'charity', 'icon' => 'heart', 'color' => '#10b981', 'is_typically_deductible' => true, 'tax_schedule_line' => 'Schedule A - Charitable Contributions', 'keywords' => '["charity","donation","donate","tithe","tithing","offering","church","temple","synagogue","mosque","ministry","foundation","501c3","nonprofit","non-profit","red cross","salvation army","goodwill","united way","habitat","food bank","gofundme","pledge","contribution"]'],
             ['name' => 'Taxes', 'slug' => 'taxes', 'icon' => 'receipt', 'color' => '#ef4444', 'is_essential' => true],
             ['name' => 'Savings & Investment', 'slug' => 'savings-investment', 'icon' => 'piggy-bank', 'color' => '#10b981'],
             ['name' => 'Debt Payment', 'slug' => 'debt-payment', 'icon' => 'credit-card', 'color' => '#ef4444', 'is_essential' => true],
@@ -94,15 +94,15 @@ class ExpenseCategorySeeder extends Seeder
 
         foreach ($categories as $i => $cat) {
             DB::table('expense_categories')->insert(array_merge([
-                'user_id'                => null, // System default
-                'parent_slug'            => null,
-                'tax_schedule_line'      => null,
-                'is_essential'           => false,
+                'user_id' => null, // System default
+                'parent_slug' => null,
+                'tax_schedule_line' => null,
+                'is_essential' => false,
                 'is_typically_deductible' => false,
-                'keywords'               => null,
-                'sort_order'             => $i,
-                'created_at'             => now(),
-                'updated_at'             => now(),
+                'keywords' => null,
+                'sort_order' => $i,
+                'created_at' => now(),
+                'updated_at' => now(),
             ], $cat));
         }
     }

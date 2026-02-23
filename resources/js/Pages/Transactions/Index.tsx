@@ -37,7 +37,7 @@ export default function TransactionsIndex() {
   const url = buildUrl(filters, page);
   const { data, loading, error, refresh, mutate } = useApi<PaginatedResponse<Transaction>>(url, { enabled: auth.hasBankConnected });
   const { data: categoriesData } = useApi<ExpenseCategory[]>('/api/v1/categories', { enabled: auth.hasBankConnected });
-  const { submit: updateCategory } = useApiPost<unknown, { category: string }>('', 'PATCH');
+  const { submit: updateCategory } = useApiPost<unknown, { category: string; donation_note?: string }>('', 'PATCH');
   const { submit: categorizeNow, loading: categorizing } = useApiPost<{
     message: string;
     auto_categorized?: number;
@@ -101,6 +101,19 @@ export default function TransactionsIndex() {
       refresh();
     },
     [updateCategory, refresh]
+  );
+
+  const handleDonationNoteChange = useCallback(
+    async (id: number, note: string) => {
+      const tx = transactions.find((t) => t.id === id);
+      if (!tx) return;
+      await updateCategory(
+        { category: tx.category || 'Charity & Donations', donation_note: note },
+        { url: `/api/v1/transactions/${id}/category`, method: 'PATCH' } as never
+      );
+      refresh();
+    },
+    [updateCategory, refresh, transactions]
   );
 
   const handleConfirm = useCallback(
@@ -247,6 +260,7 @@ export default function TransactionsIndex() {
               categories={categoryNames}
               onCategoryChange={handleCategoryChange}
               onConfirm={handleConfirm}
+              onDonationNoteChange={handleDonationNoteChange}
             />
           ))}
         </div>

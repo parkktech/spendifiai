@@ -15,6 +15,7 @@ use App\Models\SavingsTarget;
 use App\Models\Subscription;
 use App\Models\Transaction;
 use App\Models\UserFinancialOverride;
+use App\Models\UserFinancialProfile;
 use App\Services\AI\SavingsTargetPlannerService;
 use App\Services\IncomeDetectorService;
 use App\Services\SavingsTrackingService;
@@ -633,6 +634,65 @@ class DashboardController extends Controller
                 'tax_deductible_count' => (int) $store->tax_deductible_count,
             ])->values();
 
+            // --- Charitable Giving ---
+            $donationFilter = fn ($q) => $q->where(fn ($q) => $q->where('user_category', 'Charity & Donations')
+                ->orWhere(fn ($q2) => $q2->whereNull('user_category')->where('ai_category', 'Charity & Donations')));
+
+            $periodDonations = $txQuery()
+                ->where('amount', '>', 0)
+                ->where($donationFilter)
+                ->whereBetween('transaction_date', [$monthStart, $monthEnd])
+                ->get(['id', 'merchant_name', 'merchant_normalized', 'amount', 'transaction_date', 'donation_note', 'tax_deductible']);
+
+            $periodDonationsTotal = $periodDonations->sum('amount');
+
+            $ytdDonationsTotal = $txQuery()
+                ->where('amount', '>', 0)
+                ->where($donationFilter)
+                ->whereBetween('transaction_date', [$now->copy()->startOfYear(), $monthEnd])
+                ->sum('amount');
+
+            $topRecipients = $txQuery()
+                ->where('amount', '>', 0)
+                ->where($donationFilter)
+                ->whereBetween('transaction_date', [$monthStart, $monthEnd])
+                ->toBase()
+                ->select(
+                    DB::raw("COALESCE(NULLIF(merchant_normalized, ''), merchant_name, 'Unknown') as recipient"),
+                    DB::raw('SUM(amount) as total'),
+                    DB::raw('COUNT(*) as count'),
+                    DB::raw('MAX(donation_note) as note')
+                )
+                ->groupBy('recipient')
+                ->orderByDesc('total')
+                ->limit(10)
+                ->get();
+
+            $donationProfile = UserFinancialProfile::where('user_id', $user->id)->first();
+            $donationTaxRate = ($donationProfile?->estimated_tax_bracket ?? 22) / 100;
+
+            $charitableGiving = [
+                'period_total' => round((float) $periodDonationsTotal, 2),
+                'ytd_total' => round((float) $ytdDonationsTotal, 2),
+                'transaction_count' => $periodDonations->count(),
+                'estimated_tax_savings' => round((float) $ytdDonationsTotal * $donationTaxRate, 2),
+                'tax_rate_used' => $donationTaxRate,
+                'top_recipients' => $topRecipients->map(fn ($r) => [
+                    'recipient' => $r->recipient,
+                    'total' => round((float) $r->total, 2),
+                    'count' => (int) $r->count,
+                    'note' => $r->note,
+                ])->values(),
+                'recent_donations' => $periodDonations->sortByDesc('transaction_date')->take(10)->map(fn ($d) => [
+                    'id' => $d->id,
+                    'merchant' => $d->merchant_normalized ?? $d->merchant_name,
+                    'amount' => round((float) $d->amount, 2),
+                    'date' => $d->transaction_date->format('Y-m-d'),
+                    'note' => $d->donation_note,
+                    'tax_deductible' => (bool) $d->tax_deductible,
+                ])->values(),
+            ];
+
             // --- Period Metadata ---
             $periodMeta = [
                 'start' => $monthStart->format('Y-m-d'),
@@ -690,6 +750,7 @@ class DashboardController extends Controller
                 'savings_history' => app(SavingsTrackingService::class)->getSavingsHistory($user->id, 6),
                 'top_stores' => $topStoresFormatted,
                 'top_stores_total' => round($topStoresTotal, 2),
+                'charitable_giving' => $charitableGiving,
                 'period' => $periodMeta,
             ];
         }));

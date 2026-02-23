@@ -22,7 +22,7 @@ class TransactionFactory extends Factory
         return [
             'user_id' => User::factory(),
             'bank_account_id' => BankAccount::factory(),
-            'plaid_transaction_id' => 'txn_' . fake()->uuid(),
+            'plaid_transaction_id' => 'txn_'.fake()->uuid(),
             'merchant_name' => fake()->company(),
             'amount' => fake()->randomFloat(2, 1, 500),
             'transaction_date' => fake()->dateTimeBetween('-6 months'),
@@ -76,6 +76,23 @@ class TransactionFactory extends Factory
         return $this->state(fn (array $attributes) => [
             'is_subscription' => true,
             'merchant_name' => fake()->randomElement(['NETFLIX', 'SPOTIFY', 'ADOBE']),
+        ]);
+    }
+
+    public function donation(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'ai_category' => 'Charity & Donations',
+            'ai_confidence' => 0.92,
+            'review_status' => ReviewStatus::AutoCategorized,
+            'tax_deductible' => true,
+            'tax_category' => 'Charity & Donations',
+            'donation_note' => fake()->randomElement([
+                'First Baptist Church - 501(c)(3)',
+                'Salvation Army',
+                'Red Cross disaster relief',
+                'Local food bank',
+            ]),
         ]);
     }
 }

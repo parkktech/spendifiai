@@ -305,6 +305,60 @@ class DemoAccountSeeder extends Seeder
                 'is_reconciled' => false,
             ]);
 
+            // Charitable Donations — monthly tithe
+            $txns[] = Transaction::create([
+                'user_id' => $user->id,
+                'bank_account_id' => $checking->id,
+                'plaid_transaction_id' => 'demo-txn-'.($txnId++),
+                'account_purpose' => 'personal',
+                'merchant_name' => 'FIRST BAPTIST CHURCH',
+                'merchant_normalized' => 'first baptist church',
+                'description' => 'Online Tithe',
+                'amount' => 520.00,
+                'transaction_date' => $month->copy()->day(7),
+                'authorized_date' => $month->copy()->day(7),
+                'payment_channel' => 'online',
+                'plaid_category' => 'GOVERNMENT_AND_NON_PROFIT',
+                'plaid_detailed_category' => 'GOVERNMENT_AND_NON_PROFIT_DONATIONS',
+                'plaid_metadata' => [],
+                'ai_category' => 'Charity & Donations',
+                'ai_confidence' => 0.95,
+                'expense_type' => 'personal',
+                'tax_deductible' => true,
+                'tax_category' => 'Charity & Donations',
+                'review_status' => 'auto_categorized',
+                'is_reconciled' => false,
+                'donation_note' => 'First Baptist Church - 501(c)(3) #58-1234567 - Monthly tithe',
+            ]);
+
+            // Quarterly donation to Red Cross (every 3rd month)
+            if ($m % 3 === 0) {
+                $txns[] = Transaction::create([
+                    'user_id' => $user->id,
+                    'bank_account_id' => $checking->id,
+                    'plaid_transaction_id' => 'demo-txn-'.($txnId++),
+                    'account_purpose' => 'personal',
+                    'merchant_name' => 'AMERICAN RED CROSS',
+                    'merchant_normalized' => 'american red cross',
+                    'description' => 'Donation',
+                    'amount' => 100.00,
+                    'transaction_date' => $month->copy()->day(15),
+                    'authorized_date' => $month->copy()->day(15),
+                    'payment_channel' => 'online',
+                    'plaid_category' => 'GOVERNMENT_AND_NON_PROFIT',
+                    'plaid_detailed_category' => 'GOVERNMENT_AND_NON_PROFIT_DONATIONS',
+                    'plaid_metadata' => [],
+                    'ai_category' => 'Charity & Donations',
+                    'ai_confidence' => 0.97,
+                    'expense_type' => 'personal',
+                    'tax_deductible' => true,
+                    'tax_category' => 'Charity & Donations',
+                    'review_status' => 'auto_categorized',
+                    'is_reconciled' => false,
+                    'donation_note' => 'American Red Cross - Disaster Relief Fund',
+                ]);
+            }
+
             // Groceries (3-4 trips per month)
             $groceryStores = [
                 ['WHOLE FOODS MARKET', 'whole foods', 80, 130],

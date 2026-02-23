@@ -14,9 +14,10 @@ class UpdateTransactionCategoryRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'category'       => 'required|string|max:100',
-            'expense_type'   => 'nullable|in:personal,business,mixed',
+            'category' => 'required|string|max:100',
+            'expense_type' => 'nullable|in:personal,business,mixed',
             'tax_deductible' => 'nullable|boolean',
+            'donation_note' => 'nullable|string|max:500',
         ];
     }
 }
