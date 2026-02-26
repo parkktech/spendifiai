@@ -367,7 +367,7 @@ class DashboardController extends Controller
             $monthlyNonHousingDebt = round($totalNonHousingDebt / $debtMonths, 2);
 
             $downPayment = 100000; // Default $100k, could be configurable
-            $interestRate = 0.0685; // ~6.85% current avg 30yr fixed
+            $interestRate = 0.05875; // 5.875% — best 30yr fixed for 720+ credit (Feb 2026)
             $loanTermYears = 30;
 
             $monthlyRate = $interestRate / 12;

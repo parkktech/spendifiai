@@ -333,6 +333,7 @@ function HomeAffordabilitySection({ affordability }: { affordability: HomeAfford
             <div className="rounded-lg bg-sw-surface p-3">
               <div className="text-[11px] text-sw-muted font-medium uppercase tracking-wider">Interest Rate</div>
               <div className="text-base font-bold text-sw-text mt-1">{affordability.interest_rate}%</div>
+              <div className="text-[10px] text-sw-dim mt-0.5">30yr fixed, 720+ credit</div>
             </div>
             <div className="rounded-lg bg-sw-surface p-3">
               <div className="text-[11px] text-sw-muted font-medium uppercase tracking-wider">Current DTI</div>
