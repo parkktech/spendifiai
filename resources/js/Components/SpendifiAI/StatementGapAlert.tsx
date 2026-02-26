@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import {
   AlertTriangle,
   X,
@@ -6,12 +6,13 @@ import {
   Upload,
   ChevronDown,
   ChevronUp,
+  Info,
 } from 'lucide-react';
 import { useApi, useApiPost } from '@/hooks/useApi';
-import type { StatementGapResponse, StatementGap } from '@/types/spendifiai';
+import type { StatementGapResponse, StatementGap, StatementOverlap } from '@/types/spendifiai';
 
 interface StatementGapAlertProps {
-  onUploadStatement: () => void;
+  onUploadStatement: (accountId?: number) => void;
 }
 
 export default function StatementGapAlert({ onUploadStatement }: StatementGapAlertProps) {
@@ -21,21 +22,45 @@ export default function StatementGapAlert({ onUploadStatement }: StatementGapAle
   const [expanded, setExpanded] = useState(false);
 
   const gaps = data?.gaps || [];
+  const overlaps = data?.overlaps || [];
 
-  if (loading || gaps.length === 0) {
+  // Group gaps by account
+  const gapsByAccount = useMemo(() => {
+    const grouped = new Map<number, { name: string; gaps: StatementGap[] }>();
+    for (const gap of gaps) {
+      const existing = grouped.get(gap.account_id);
+      if (existing) {
+        existing.gaps.push(gap);
+      } else {
+        grouped.set(gap.account_id, { name: gap.account_name, gaps: [gap] });
+      }
+    }
+    return grouped;
+  }, [gaps]);
+
+  if (loading || (gaps.length === 0 && overlaps.length === 0)) {
     return null;
   }
 
   const criticalGaps = gaps.filter(g => g.severity === 'critical');
   const warningGaps = gaps.filter(g => g.severity === 'warning');
-  const visibleGaps = expanded ? gaps : gaps.slice(0, 3);
-  const hasMore = gaps.length > 3;
+
+  // Flatten all gaps for expand/collapse (show first 3 total)
+  const allGapEntries = gaps;
+  const visibleGaps = expanded ? allGapEntries : allGapEntries.slice(0, 3);
+  const visibleGapKeys = new Set(visibleGaps.map(g => g.gap_key));
+  const hasMore = allGapEntries.length > 3;
 
   const handleDismiss = async (gap: StatementGap) => {
     setDismissing(gap.gap_key);
     await dismissGap({ gap_key: gap.gap_key });
     setDismissing(null);
     refresh();
+  };
+
+  const formatOverlapDate = (dateStr: string) => {
+    const d = new Date(dateStr + 'T00:00:00');
+    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   };
 
   return (
@@ -60,59 +85,119 @@ export default function StatementGapAlert({ onUploadStatement }: StatementGapAle
             )}
             {warningGaps.length > 0 && (
               <span>
-                {warningGaps.length} month{warningGaps.length !== 1 ? 's' : ''} with unusually low activity.{' '}
+                {warningGaps.length} month{warningGaps.length !== 1 ? 's' : ''} with incomplete or low activity.{' '}
               </span>
             )}
-            Upload the missing statements to get complete financial analysis.
+            {gaps.length > 0 && <>Upload the missing statements to get complete financial analysis.</>}
+            {gaps.length === 0 && overlaps.length > 0 && <>Some uploaded statements have overlapping date ranges.</>}
           </p>
         </div>
       </div>
 
-      {/* Gap cards */}
-      <div className="space-y-2 ml-12">
-        {visibleGaps.map((gap) => (
-          <div
-            key={gap.gap_key}
-            className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl border transition ${
-              gap.severity === 'critical'
-                ? 'bg-white/80 border-amber-200/80'
-                : 'bg-white/60 border-amber-100/80'
-            }`}
-          >
-            <AlertTriangle
-              size={14}
-              className={gap.severity === 'critical' ? 'text-amber-500 shrink-0' : 'text-amber-400 shrink-0'}
-            />
-
-            <div className="flex-1 min-w-0">
-              <span className="text-[13px] font-semibold text-sw-text">
-                {gap.month_label}
-              </span>
-              <span className="text-[11px] text-sw-muted ml-2">
-                {gap.reason}
-              </span>
-            </div>
-
-            <button
-              onClick={onUploadStatement}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-100 text-amber-700 text-[11px] font-semibold hover:bg-amber-200 transition shrink-0"
-            >
-              <Upload size={11} />
-              Upload
-            </button>
-
-            <button
-              onClick={() => handleDismiss(gap)}
-              disabled={dismissing === gap.gap_key}
-              className="p-1.5 rounded-lg text-sw-dim hover:text-sw-text hover:bg-amber-100/60 transition shrink-0 disabled:opacity-50"
-              title="Dismiss — this month is correct"
-              aria-label={`Dismiss gap for ${gap.month_label}`}
-            >
-              <X size={13} />
-            </button>
+      {/* Overlap warnings */}
+      {overlaps.length > 0 && (
+        <div className="mb-3 ml-12">
+          <p className="text-[11px] font-semibold text-purple-600 mb-1.5 uppercase tracking-wide">
+            Statement Overlaps
+          </p>
+          <div className="space-y-2">
+            {overlaps.map((overlap: StatementOverlap, i: number) => (
+              <div
+                key={i}
+                className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl border bg-white/60 border-purple-100/80"
+              >
+                <Info size={14} className="text-purple-500 shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <span className="text-[13px] font-semibold text-sw-text">
+                    {overlap.account_name}
+                  </span>
+                  <span className="text-[11px] text-sw-muted ml-2">
+                    {overlap.statements[0].file_name} and {overlap.statements[1].file_name} overlap{' '}
+                    {formatOverlapDate(overlap.overlap_range.from)} – {formatOverlapDate(overlap.overlap_range.to)}
+                  </span>
+                </div>
+              </div>
+            ))}
           </div>
-        ))}
-      </div>
+        </div>
+      )}
+
+      {/* Gaps grouped by account */}
+      {gaps.length > 0 && (
+        <div className="space-y-3 ml-12">
+          {Array.from(gapsByAccount.entries()).map(([accountId, { name, gaps: accountGaps }]) => {
+            // Filter to only visible gaps for this account
+            const visibleAccountGaps = accountGaps.filter(g => visibleGapKeys.has(g.gap_key));
+            if (visibleAccountGaps.length === 0) return null;
+
+            return (
+              <div key={accountId}>
+                {/* Account header (only show when multiple accounts) */}
+                {gapsByAccount.size > 1 && (
+                  <p className="text-[11px] font-semibold text-sw-text-secondary mb-1.5">
+                    {name}
+                    <span className="text-sw-dim font-normal ml-1.5">
+                      {accountGaps.length} gap{accountGaps.length !== 1 ? 's' : ''}
+                    </span>
+                  </p>
+                )}
+
+                <div className="space-y-2">
+                  {visibleAccountGaps.map((gap) => (
+                    <div
+                      key={gap.gap_key}
+                      className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl border transition ${
+                        gap.severity === 'critical'
+                          ? 'bg-white/80 border-amber-200/80'
+                          : 'bg-white/60 border-amber-100/80'
+                      }`}
+                    >
+                      <AlertTriangle
+                        size={14}
+                        className={gap.severity === 'critical' ? 'text-amber-500 shrink-0' : 'text-amber-400 shrink-0'}
+                      />
+
+                      <div className="flex-1 min-w-0">
+                        {gapsByAccount.size <= 1 && (
+                          <span className="text-[13px] font-semibold text-sw-text">
+                            {gap.month_label}
+                          </span>
+                        )}
+                        {gapsByAccount.size > 1 && (
+                          <span className="text-[13px] font-semibold text-sw-text">
+                            {gap.month_label}
+                          </span>
+                        )}
+                        <span className="text-[11px] text-sw-muted ml-2">
+                          {gap.reason}
+                        </span>
+                      </div>
+
+                      <button
+                        onClick={() => onUploadStatement(gap.account_id)}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-100 text-amber-700 text-[11px] font-semibold hover:bg-amber-200 transition shrink-0"
+                      >
+                        <Upload size={11} />
+                        Upload
+                      </button>
+
+                      <button
+                        onClick={() => handleDismiss(gap)}
+                        disabled={dismissing === gap.gap_key}
+                        className="p-1.5 rounded-lg text-sw-dim hover:text-sw-text hover:bg-amber-100/60 transition shrink-0 disabled:opacity-50"
+                        title="Dismiss — this data is correct"
+                        aria-label={`Dismiss gap for ${gap.month_label}`}
+                      >
+                        <X size={13} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
 
       {/* Show more / less toggle */}
       {hasMore && (
@@ -128,7 +213,7 @@ export default function StatementGapAlert({ onUploadStatement }: StatementGapAle
           ) : (
             <>
               <ChevronDown size={12} />
-              Show {gaps.length - 3} more
+              Show {allGapEntries.length - 3} more
             </>
           )}
         </button>

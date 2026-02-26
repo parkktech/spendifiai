@@ -398,147 +398,269 @@ class StatementUploadController extends Controller
     {
         $user = $request->user();
 
-        // Get the overall transaction date span
-        $dateSpan = Transaction::where('user_id', $user->id)
-            ->select(
-                DB::raw('MIN(transaction_date) as earliest'),
-                DB::raw('MAX(transaction_date) as latest')
-            )
-            ->first();
+        // Step 1: Identify eligible accounts (non-Plaid, active only)
+        $accounts = BankAccount::where('user_id', $user->id)
+            ->where('is_active', true)
+            ->whereHas('bankConnection', fn ($q) => $q->whereNull('plaid_item_id'))
+            ->with('bankConnection:id,institution_name')
+            ->get();
 
-        if (! $dateSpan->earliest || ! $dateSpan->latest) {
-            return response()->json(['gaps' => [], 'coverage' => []]);
+        $emptyResponse = ['gaps' => [], 'overlaps' => [], 'coverage' => ['accounts' => []]];
+
+        if ($accounts->isEmpty()) {
+            return response()->json($emptyResponse);
         }
 
-        $earliest = Carbon::parse($dateSpan->earliest);
-        $latest = Carbon::parse($dateSpan->latest);
-        $startMonth = $earliest->copy()->startOfMonth();
-        $endMonth = $latest->copy()->startOfMonth();
+        $accountIds = $accounts->pluck('id')->toArray();
 
-        // Need at least 2 months of data to detect gaps
-        if ($startMonth->equalTo($endMonth)) {
-            return response()->json(['gaps' => [], 'coverage' => []]);
-        }
-
-        // Get transaction counts per month (across all accounts)
-        $monthlyCounts = Transaction::where('user_id', $user->id)
+        // Step 2: Bulk-fetch data (2 queries — no N+1)
+        $txCounts = Transaction::where('user_id', $user->id)
+            ->whereIn('bank_account_id', $accountIds)
             ->select(
+                'bank_account_id',
                 DB::raw("to_char(transaction_date, 'YYYY-MM') as month"),
                 DB::raw('COUNT(*) as count'),
                 DB::raw('MIN(transaction_date) as first_date'),
                 DB::raw('MAX(transaction_date) as last_date')
             )
-            ->groupBy(DB::raw("to_char(transaction_date, 'YYYY-MM')"))
-            ->get()
-            ->keyBy('month');
+            ->groupBy('bank_account_id', DB::raw("to_char(transaction_date, 'YYYY-MM')"))
+            ->get();
 
-        // Get dismissed gaps
+        $txByAccount = [];
+        foreach ($txCounts as $row) {
+            $txByAccount[$row->bank_account_id][$row->month] = $row;
+        }
+
+        $uploadsByAccount = StatementUpload::where('user_id', $user->id)
+            ->whereIn('bank_account_id', $accountIds)
+            ->where('status', 'complete')
+            ->whereNotNull('date_range_from')
+            ->whereNotNull('date_range_to')
+            ->orderBy('date_range_from')
+            ->get()
+            ->groupBy('bank_account_id');
+
         $dismissed = DB::table('dismissed_statement_gaps')
             ->where('user_id', $user->id)
             ->pluck('gap_key')
             ->flip();
 
-        // Get statement upload coverage for context
-        $uploads = StatementUpload::where('user_id', $user->id)
-            ->where('status', 'complete')
-            ->whereNotNull('date_range_from')
-            ->whereNotNull('date_range_to')
-            ->orderBy('date_range_from')
-            ->get();
+        $allGaps = [];
+        $allOverlaps = [];
+        $coverageAccounts = [];
 
-        $statementMonths = [];
-        foreach ($uploads as $upload) {
-            $from = Carbon::parse($upload->date_range_from)->startOfMonth();
-            $to = Carbon::parse($upload->date_range_to)->startOfMonth();
-            $period = CarbonPeriod::create($from, '1 month', $to);
-            foreach ($period as $m) {
-                $statementMonths[$m->format('Y-m')] = true;
+        // Step 3: Per-account processing (all in-memory)
+        foreach ($accounts as $account) {
+            $accountId = $account->id;
+            $accountTx = $txByAccount[$accountId] ?? [];
+            $accountUploads = $uploadsByAccount->get($accountId, collect());
+            $accountName = ($account->nickname ?? $account->name).($account->mask ? " ****{$account->mask}" : '');
+            $institutionName = $account->bankConnection?->institution_name;
+
+            // Determine date span from both transactions and uploads
+            $dates = collect();
+            foreach ($accountTx as $m) {
+                $dates->push(Carbon::parse($m->first_date));
+                $dates->push(Carbon::parse($m->last_date));
             }
-        }
-
-        // Calculate average transaction count for months that have data
-        $period = CarbonPeriod::create($startMonth, '1 month', $endMonth);
-        $totalWithData = 0;
-        $monthsWithData = 0;
-
-        foreach ($period as $m) {
-            $key = $m->format('Y-m');
-            $count = (int) ($monthlyCounts[$key]->count ?? 0);
-            if ($count > 0) {
-                $totalWithData += $count;
-                $monthsWithData++;
-            }
-        }
-
-        $avgCount = $monthsWithData > 0 ? $totalWithData / $monthsWithData : 0;
-
-        // Threshold: flag months with less than 25% of average (min 5)
-        $lowThreshold = max(5, (int) ($avgCount * 0.25));
-
-        $gaps = [];
-        $coverageMonths = [];
-
-        foreach ($period as $m) {
-            $key = $m->format('Y-m');
-            $count = (int) ($monthlyCounts[$key]->count ?? 0);
-            $hasStatement = isset($statementMonths[$key]);
-            $gapKey = "all:{$key}";
-            $isDismissed = isset($dismissed[$gapKey]);
-
-            $firstDate = $monthlyCounts[$key]->first_date ?? null;
-            $lastDate = $monthlyCounts[$key]->last_date ?? null;
-
-            $coverageMonths[] = [
-                'month' => $key,
-                'transaction_count' => $count,
-                'has_statement' => $hasStatement,
-                'first_date' => $firstDate,
-                'last_date' => $lastDate,
-            ];
-
-            // Detect gaps
-            $isGap = false;
-            $reason = '';
-            $severity = 'warning'; // warning or critical
-
-            if ($count === 0) {
-                $isGap = true;
-                $severity = 'critical';
-                $reason = 'No transactions found for this month';
-            } elseif ($count < $lowThreshold && $avgCount > 15) {
-                // Partial month: check if transactions only cover part of the month
-                $isGap = true;
-                $severity = 'warning';
-                $reason = "Only {$count} transactions found (your monthly average is ".round($avgCount).')';
+            foreach ($accountUploads as $u) {
+                $dates->push(Carbon::parse($u->date_range_from));
+                $dates->push(Carbon::parse($u->date_range_to));
             }
 
-            if ($isGap && ! $isDismissed) {
-                $gaps[] = [
-                    'gap_key' => $gapKey,
-                    'month' => $key,
-                    'month_label' => Carbon::parse($key.'-01')->format('F Y'),
-                    'transaction_count' => $count,
-                    'average_count' => round($avgCount),
-                    'severity' => $severity,
-                    'reason' => $reason,
-                    'has_statement' => $hasStatement,
+            if ($dates->isEmpty()) {
+                continue;
+            }
+
+            $earliest = $dates->min();
+            $latest = $dates->max();
+            $startMonth = $earliest->copy()->startOfMonth();
+            $endMonth = $latest->copy()->startOfMonth();
+
+            // Need at least 2 months per account
+            if ($startMonth->equalTo($endMonth)) {
+                continue;
+            }
+
+            // Build raw statement intervals for this account
+            $rawIntervals = [];
+            foreach ($accountUploads as $u) {
+                $rawIntervals[] = [
+                    'from' => Carbon::parse($u->date_range_from),
+                    'to' => Carbon::parse($u->date_range_to),
+                    'upload_id' => $u->id,
+                    'file_name' => $u->original_file_name,
                 ];
             }
-        }
 
-        // Sort gaps by month descending (most recent first)
-        usort($gaps, fn ($a, $b) => strcmp($b['month'], $a['month']));
+            // Detect overlaps between raw intervals (before merging)
+            for ($i = 0; $i < count($rawIntervals); $i++) {
+                for ($j = $i + 1; $j < count($rawIntervals); $j++) {
+                    $a = $rawIntervals[$i];
+                    $b = $rawIntervals[$j];
+                    if ($a['from']->lt($b['to']) && $b['from']->lt($a['to'])) {
+                        $overlapFrom = $a['from']->max($b['from']);
+                        $overlapTo = $a['to']->min($b['to']);
+                        $allOverlaps[] = [
+                            'account_id' => $accountId,
+                            'account_name' => $accountName,
+                            'overlap_range' => [
+                                'from' => $overlapFrom->format('Y-m-d'),
+                                'to' => $overlapTo->format('Y-m-d'),
+                            ],
+                            'statements' => [
+                                ['id' => $a['upload_id'], 'file_name' => $a['file_name']],
+                                ['id' => $b['upload_id'], 'file_name' => $b['file_name']],
+                            ],
+                            'severity' => 'info',
+                        ];
+                    }
+                }
+            }
 
-        return response()->json([
-            'gaps' => $gaps,
-            'coverage' => [
+            // Merge intervals for coverage calculation
+            $mergedIntervals = $this->mergeIntervals($rawIntervals);
+
+            // Per-account average transaction count
+            $totalTx = array_sum(array_map(fn ($m) => (int) $m->count, $accountTx));
+            $monthsWithData = count(array_filter($accountTx, fn ($m) => (int) $m->count > 0));
+            $avgCount = $monthsWithData > 0 ? $totalTx / $monthsWithData : 0;
+            $lowThreshold = max(5, (int) ($avgCount * 0.25));
+
+            // Iterate each month in the account's span
+            $period = CarbonPeriod::create($startMonth, '1 month', $endMonth);
+            $coverageMonths = [];
+            $accountGapCount = 0;
+
+            foreach ($period as $m) {
+                $monthKey = $m->format('Y-m');
+                $monthStart = $m->copy()->startOfMonth();
+                $monthEnd = $m->copy()->endOfMonth();
+                $count = (int) ($accountTx[$monthKey]->count ?? 0);
+                $firstDate = $accountTx[$monthKey]->first_date ?? null;
+                $lastDate = $accountTx[$monthKey]->last_date ?? null;
+
+                // Compute coverage ranges within this month
+                $monthCoverage = $this->getMonthCoverage($monthStart, $monthEnd, $mergedIntervals);
+                $uncovered = $this->findUncoveredRanges($monthStart, $monthEnd, $monthCoverage);
+                $hasStatement = ! empty($monthCoverage);
+
+                $coverageMonths[] = [
+                    'month' => $monthKey,
+                    'transaction_count' => $count,
+                    'has_statement' => $hasStatement,
+                    'coverage_ranges' => array_map(fn ($r) => [
+                        'from' => $r['from']->format('Y-m-d'),
+                        'to' => $r['to']->format('Y-m-d'),
+                    ], $monthCoverage),
+                    'first_date' => $firstDate,
+                    'last_date' => $lastDate,
+                ];
+
+                // Check dismissed status (new key + legacy "all:" key)
+                $gapKey = "{$accountId}:{$monthKey}";
+                $legacyKey = "all:{$monthKey}";
+                $isDismissed = isset($dismissed[$gapKey]) || isset($dismissed[$legacyKey]);
+
+                if ($isDismissed) {
+                    continue;
+                }
+
+                // Gap detection logic
+                if ($count === 0 && ! $hasStatement) {
+                    // Critical: no data at all for this month
+                    $allGaps[] = [
+                        'gap_key' => $gapKey,
+                        'account_id' => $accountId,
+                        'account_name' => $accountName,
+                        'month' => $monthKey,
+                        'month_label' => Carbon::parse("{$monthKey}-01")->format('F Y'),
+                        'date_range' => null,
+                        'transaction_count' => 0,
+                        'average_count' => round($avgCount),
+                        'severity' => 'critical',
+                        'reason' => 'No transactions found for this month',
+                        'has_statement' => false,
+                        'gap_type' => 'full_month',
+                    ];
+                    $accountGapCount++;
+                } elseif (! empty($uncovered)) {
+                    // Partial month: check each uncovered range (>7 days to be worth alerting)
+                    foreach ($uncovered as $gap) {
+                        $gapDays = $gap['from']->diffInDays($gap['to']) + 1;
+                        if ($gapDays > 7) {
+                            $rangeKey = "{$accountId}:{$gap['from']->format('Y-m-d')}:{$gap['to']->format('Y-m-d')}";
+                            if (! isset($dismissed[$rangeKey])) {
+                                $allGaps[] = [
+                                    'gap_key' => $rangeKey,
+                                    'account_id' => $accountId,
+                                    'account_name' => $accountName,
+                                    'month' => $monthKey,
+                                    'month_label' => Carbon::parse("{$monthKey}-01")->format('F Y'),
+                                    'date_range' => [
+                                        'from' => $gap['from']->format('Y-m-d'),
+                                        'to' => $gap['to']->format('Y-m-d'),
+                                    ],
+                                    'transaction_count' => $count,
+                                    'average_count' => round($avgCount),
+                                    'severity' => 'warning',
+                                    'reason' => 'Missing coverage for '.$gap['from']->format('M j').' – '.$gap['to']->format('M j'),
+                                    'has_statement' => $hasStatement,
+                                    'gap_type' => 'partial_month',
+                                ];
+                                $accountGapCount++;
+                            }
+                        }
+                    }
+                } elseif ($count < $lowThreshold && $avgCount > 15) {
+                    // Low activity warning
+                    $allGaps[] = [
+                        'gap_key' => $gapKey,
+                        'account_id' => $accountId,
+                        'account_name' => $accountName,
+                        'month' => $monthKey,
+                        'month_label' => Carbon::parse("{$monthKey}-01")->format('F Y'),
+                        'date_range' => null,
+                        'transaction_count' => $count,
+                        'average_count' => round($avgCount),
+                        'severity' => 'warning',
+                        'reason' => "Only {$count} transactions found (account average is ".round($avgCount).')',
+                        'has_statement' => $hasStatement,
+                        'gap_type' => 'low_activity',
+                    ];
+                    $accountGapCount++;
+                }
+            }
+
+            $coverageAccounts[] = [
+                'account_id' => $accountId,
+                'account_name' => $accountName,
+                'institution_name' => $institutionName,
                 'date_range' => [
                     'from' => $earliest->format('Y-m-d'),
                     'to' => $latest->format('Y-m-d'),
                 ],
                 'total_months' => iterator_count(CarbonPeriod::create($startMonth, '1 month', $endMonth)),
                 'average_monthly_transactions' => round($avgCount),
+                'gap_count' => $accountGapCount,
                 'months' => $coverageMonths,
+            ];
+        }
+
+        // Sort gaps: critical first, then by most recent month
+        usort($allGaps, function ($a, $b) {
+            if ($a['severity'] !== $b['severity']) {
+                return $a['severity'] === 'critical' ? -1 : 1;
+            }
+
+            return strcmp($b['month'], $a['month']);
+        });
+
+        return response()->json([
+            'gaps' => $allGaps,
+            'overlaps' => $allOverlaps,
+            'coverage' => [
+                'accounts' => $coverageAccounts,
             ],
         ]);
     }
@@ -564,6 +686,88 @@ class StatementUploadController extends Controller
         );
 
         return response()->json(['message' => 'Gap dismissed']);
+    }
+
+    /**
+     * Merge overlapping/adjacent date intervals into non-overlapping ranges.
+     */
+    private function mergeIntervals(array $intervals): array
+    {
+        if (empty($intervals)) {
+            return [];
+        }
+
+        usort($intervals, fn ($a, $b) => $a['from']->lt($b['from']) ? -1 : ($a['from']->gt($b['from']) ? 1 : 0));
+
+        $merged = [['from' => $intervals[0]['from']->copy(), 'to' => $intervals[0]['to']->copy()]];
+
+        for ($i = 1; $i < count($intervals); $i++) {
+            $last = &$merged[count($merged) - 1];
+            if ($intervals[$i]['from']->lte($last['to']->copy()->addDay())) {
+                if ($intervals[$i]['to']->gt($last['to'])) {
+                    $last['to'] = $intervals[$i]['to']->copy();
+                }
+            } else {
+                $merged[] = ['from' => $intervals[$i]['from']->copy(), 'to' => $intervals[$i]['to']->copy()];
+            }
+        }
+
+        return $merged;
+    }
+
+    /**
+     * Get the parts of a month that are covered by the given merged intervals.
+     */
+    private function getMonthCoverage(Carbon $monthStart, Carbon $monthEnd, array $mergedIntervals): array
+    {
+        $coverage = [];
+        foreach ($mergedIntervals as $interval) {
+            if ($interval['from']->gt($monthEnd) || $interval['to']->lt($monthStart)) {
+                continue;
+            }
+            $coverage[] = [
+                'from' => $interval['from']->max($monthStart)->copy(),
+                'to' => $interval['to']->min($monthEnd)->copy(),
+            ];
+        }
+
+        return $coverage;
+    }
+
+    /**
+     * Find date ranges within a month NOT covered by any interval.
+     */
+    private function findUncoveredRanges(Carbon $monthStart, Carbon $monthEnd, array $coverageRanges): array
+    {
+        if (empty($coverageRanges)) {
+            return [['from' => $monthStart->copy(), 'to' => $monthEnd->copy()]];
+        }
+
+        usort($coverageRanges, fn ($a, $b) => $a['from']->lt($b['from']) ? -1 : ($a['from']->gt($b['from']) ? 1 : 0));
+
+        $uncovered = [];
+        $cursor = $monthStart->copy();
+
+        foreach ($coverageRanges as $range) {
+            if ($range['from']->gt($cursor)) {
+                $uncovered[] = [
+                    'from' => $cursor->copy(),
+                    'to' => $range['from']->copy()->subDay(),
+                ];
+            }
+            if ($range['to']->gte($cursor)) {
+                $cursor = $range['to']->copy()->addDay();
+            }
+        }
+
+        if ($cursor->lte($monthEnd)) {
+            $uncovered[] = [
+                'from' => $cursor->copy(),
+                'to' => $monthEnd->copy(),
+            ];
+        }
+
+        return $uncovered;
     }
 
     private function findOrCreateManualAccount(mixed $user, string $bankName, string $accountType, ?string $nickname): BankAccount

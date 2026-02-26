@@ -394,28 +394,50 @@ export interface StatementUploadHistory {
 
 export interface StatementGap {
   gap_key: string;
+  account_id: number;
+  account_name: string;
   month: string;
   month_label: string;
+  date_range: { from: string; to: string } | null;
   transaction_count: number;
   average_count: number;
   severity: 'critical' | 'warning';
   reason: string;
   has_statement: boolean;
+  gap_type: 'full_month' | 'partial_month' | 'low_activity';
+}
+
+export interface StatementOverlap {
+  account_id: number;
+  account_name: string;
+  overlap_range: { from: string; to: string };
+  statements: Array<{ id: number; file_name: string }>;
+  severity: 'info';
+}
+
+export interface AccountCoverage {
+  account_id: number;
+  account_name: string;
+  institution_name: string | null;
+  date_range: { from: string; to: string };
+  total_months: number;
+  average_monthly_transactions: number;
+  gap_count: number;
+  months: Array<{
+    month: string;
+    transaction_count: number;
+    has_statement: boolean;
+    coverage_ranges: Array<{ from: string; to: string }>;
+    first_date: string | null;
+    last_date: string | null;
+  }>;
 }
 
 export interface StatementGapResponse {
   gaps: StatementGap[];
+  overlaps: StatementOverlap[];
   coverage: {
-    date_range: { from: string; to: string };
-    total_months: number;
-    average_monthly_transactions: number;
-    months: Array<{
-      month: string;
-      transaction_count: number;
-      has_statement: boolean;
-      first_date: string | null;
-      last_date: string | null;
-    }>;
+    accounts: AccountCoverage[];
   };
 }
 
