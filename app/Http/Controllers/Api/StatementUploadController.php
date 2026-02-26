@@ -352,7 +352,7 @@ class StatementUploadController extends Controller
                 ],
             ]);
 
-        return response()->json($uploads);
+        return response()->json(['uploads' => $uploads]);
     }
 
     private function detectCrossFileDuplicates(array $transactions): array
