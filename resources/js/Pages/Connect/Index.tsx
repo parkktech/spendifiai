@@ -332,6 +332,11 @@ export default function ConnectIndex() {
     >
       <Head title="Connect" />
 
+      {/* Statement Gap Detection */}
+      {!showUploadWizard && uploadedCount > 0 && (
+        <StatementGapAlert onUploadStatement={() => setShowUploadWizard(true)} />
+      )}
+
       {/* Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-6">
         <StatCard
@@ -558,12 +563,7 @@ export default function ConnectIndex() {
         </div>
       )}
 
-      {/* Section 3: Statement Gap Detection */}
-      {!showUploadWizard && uploadedCount > 0 && (
-        <StatementGapAlert onUploadStatement={() => setShowUploadWizard(true)} />
-      )}
-
-      {/* Section 4: Upload History */}
+      {/* Upload History */}
       {!showUploadWizard && (
         <div className="mb-6">
           <UploadHistory

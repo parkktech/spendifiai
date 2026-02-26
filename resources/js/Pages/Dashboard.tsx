@@ -1047,7 +1047,7 @@ export default function Dashboard() {
           )}
 
           {/* SECTION B4: Charitable Giving */}
-          {data.charitable_giving && data.charitable_giving.transaction_count > 0 && (
+          {data.charitable_giving && (data.charitable_giving.transaction_count > 0 || Number(data.charitable_giving.ytd_total) > 0) && (
             <CharitableGivingSection data={data.charitable_giving} />
           )}
 
