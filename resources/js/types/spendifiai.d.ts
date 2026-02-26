@@ -499,6 +499,7 @@ export interface BudgetWaterfall {
 export interface HomeAffordability {
   monthly_income: number;
   monthly_debt: number;
+  non_housing_debt: number;
   current_dti: number;
   down_payment: number;
   interest_rate: number;
@@ -507,6 +508,7 @@ export interface HomeAffordability {
   max_home_price: number;
   estimated_monthly_mortgage: number;
   loan_term_years: number;
+  income_source: 'profile' | 'estimated';
 }
 
 // --- Cost of Living Types ---

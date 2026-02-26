@@ -290,11 +290,43 @@ class DashboardController extends Controller
             $incomeSources = $incomeDetector->analyze($user->id, $viewMode, $incomeMonths, $userOverrides);
 
             // --- Home Affordability Calculator ---
-            $reliableIncome = $incomeSources['reliable_monthly'];
-            $monthlyIncome = $reliableIncome > 0
-                ? $reliableIncome
-                : ($thisMonthIncome > 0 ? $thisMonthIncome : ($lastMonthIncome > 0 ? $lastMonthIncome : 0));
-            $monthlyDebt = $totalMonthlyBills; // All recurring obligations
+            // Use gross monthly income from financial profile (what lenders use),
+            // fall back to estimated gross from detected net income + tax bracket
+            $financialProfile = UserFinancialProfile::where('user_id', $user->id)->first();
+            $grossMonthlyIncome = 0;
+
+            if ($financialProfile && (float) $financialProfile->monthly_income > 0) {
+                $grossMonthlyIncome = (float) $financialProfile->monthly_income;
+            } else {
+                // Estimate gross from net using tax bracket (default 22%)
+                $reliableIncome = $incomeSources['reliable_monthly'];
+                $netIncome = $reliableIncome > 0
+                    ? $reliableIncome
+                    : ($thisMonthIncome > 0 ? $thisMonthIncome : ($lastMonthIncome > 0 ? $lastMonthIncome : 0));
+                $taxRate = ($financialProfile?->estimated_tax_bracket ?? 22) / 100;
+                $grossMonthlyIncome = $taxRate < 1 ? round($netIncome / (1 - $taxRate), 2) : $netIncome;
+            }
+
+            // Monthly debt obligations: only actual debt that lenders count
+            // (car payments, loan payments, credit card minimums, mortgage/rent)
+            // NOT utilities, streaming, software subscriptions
+            $debtCategories = ['Car Payment', 'Debt Payment', 'Mortgage', 'Housing & Rent'];
+            $lookbackStart = $now->copy()->subMonths(3)->startOfMonth();
+
+            $monthlyDebtObligations = $txQuery()
+                ->where('amount', '>', 0)
+                ->whereBetween('transaction_date', [$lookbackStart, $monthEnd])
+                ->where(function ($q) use ($debtCategories) {
+                    $q->whereIn('ai_category', $debtCategories)
+                        ->orWhereIn('user_category', $debtCategories);
+                })
+                ->toBase()
+                ->select(DB::raw('SUM(amount) as total'))
+                ->value('total');
+
+            $debtMonths = max((int) $lookbackStart->diffInMonths($monthEnd), 1);
+            $monthlyDebt = round((float) $monthlyDebtObligations / $debtMonths, 2);
+
             $downPayment = 100000; // Default $100k, could be configurable
             $interestRate = 0.0685; // ~6.85% current avg 30yr fixed
             $loanTermYears = 30;
@@ -302,12 +334,24 @@ class DashboardController extends Controller
             $monthlyRate = $interestRate / 12;
             $numPayments = $loanTermYears * 12;
 
-            // Max housing payment: 28% of gross income (front-end DTI)
-            $maxHousingFrontEnd = $monthlyIncome * 0.28;
+            // Front-end DTI: max 28% of gross income for housing payment
+            $maxHousingFrontEnd = $grossMonthlyIncome * 0.28;
 
-            // Max total debt payments: 43% of gross income (back-end DTI)
-            $maxTotalDebtPayment = $monthlyIncome * 0.43;
-            $maxHousingBackEnd = $maxTotalDebtPayment - $monthlyDebt;
+            // Back-end DTI: max 36% of gross income for all debt combined (conventional)
+            // Housing payment = back-end capacity minus existing non-housing debt
+            $nonHousingDebtCategories = ['Car Payment', 'Debt Payment'];
+            $nonHousingDebtTotal = $txQuery()
+                ->where('amount', '>', 0)
+                ->whereBetween('transaction_date', [$lookbackStart, $monthEnd])
+                ->where(function ($q) use ($nonHousingDebtCategories) {
+                    $q->whereIn('ai_category', $nonHousingDebtCategories)
+                        ->orWhereIn('user_category', $nonHousingDebtCategories);
+                })
+                ->toBase()
+                ->select(DB::raw('SUM(amount) as total'))
+                ->value('total');
+            $monthlyNonHousingDebt = round((float) $nonHousingDebtTotal / $debtMonths, 2);
+            $maxHousingBackEnd = ($grossMonthlyIncome * 0.36) - $monthlyNonHousingDebt;
 
             // Use the more conservative (lower) of the two
             $maxMonthlyPayment = max(min($maxHousingFrontEnd, $maxHousingBackEnd), 0);
@@ -321,12 +365,13 @@ class DashboardController extends Controller
 
             $maxHomePrice = $maxLoanAmount + $downPayment;
 
-            // Current DTI
-            $currentDti = $monthlyIncome > 0 ? round(($monthlyDebt / $monthlyIncome) * 100, 1) : 0;
+            // Current DTI: existing debt / gross income
+            $currentDti = $grossMonthlyIncome > 0 ? round(($monthlyDebt / $grossMonthlyIncome) * 100, 1) : 0;
 
             $homeAffordability = [
-                'monthly_income' => round($monthlyIncome, 2),
+                'monthly_income' => round($grossMonthlyIncome, 2),
                 'monthly_debt' => round($monthlyDebt, 2),
+                'non_housing_debt' => round($monthlyNonHousingDebt, 2),
                 'current_dti' => $currentDti,
                 'down_payment' => $downPayment,
                 'interest_rate' => round($interestRate * 100, 2),
@@ -335,6 +380,7 @@ class DashboardController extends Controller
                 'max_home_price' => $maxHomePrice,
                 'estimated_monthly_mortgage' => round($maxMonthlyPayment, 2),
                 'loan_term_years' => $loanTermYears,
+                'income_source' => $financialProfile && (float) $financialProfile->monthly_income > 0 ? 'profile' : 'estimated',
             ];
 
             // --- Cost of Living Breakdown ---

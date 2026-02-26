@@ -309,7 +309,7 @@ function HomeAffordabilitySection({ affordability }: { affordability: HomeAfford
         </div>
         <div>
           <h2 className="text-[15px] font-semibold text-sw-text">Home Affordability</h2>
-          <p className="text-xs text-sw-muted mt-0.5">Based on your income, debt, and ${formatCompact(affordability.down_payment)} down payment</p>
+          <p className="text-xs text-sw-muted mt-0.5">Based on {fmt.format(affordability.monthly_income)}/mo gross income, 28/36 DTI rule, {formatCompact(affordability.down_payment)} down</p>
         </div>
       </div>
 
@@ -361,16 +361,17 @@ function HomeAffordabilitySection({ affordability }: { affordability: HomeAfford
               <div className="text-xs leading-relaxed">
                 {affordability.current_dti > 36 ? (
                   <span className="text-red-800">
-                    Your debt-to-income ratio is {affordability.current_dti}%, which exceeds the 43% max for most lenders.
-                    You need to reduce monthly debt by {fmt.format(affordability.monthly_debt - (affordability.monthly_income * 0.43))} to qualify.
+                    Your DTI is {affordability.current_dti}%, which exceeds the 36% conventional lending limit.
+                    You'd need to reduce monthly debt by {fmt.format(affordability.monthly_debt - (affordability.monthly_income * 0.36))} to qualify.
                   </span>
                 ) : affordability.current_dti > 28 ? (
                   <span className="text-amber-800">
-                    Your DTI of {affordability.current_dti}% is moderate. Reducing monthly bills by {fmt.format(affordability.monthly_debt - (affordability.monthly_income * 0.28))} would improve your max home price.
+                    Your DTI of {affordability.current_dti}% is within the 36% limit but above the 28% front-end ratio.
+                    Reducing debt by {fmt.format(affordability.monthly_debt - (affordability.monthly_income * 0.28))} would maximize your buying power.
                   </span>
                 ) : (
                   <span className="text-emerald-800">
-                    Your DTI of {affordability.current_dti}% is excellent. You're in a strong position to qualify for a mortgage.
+                    Your DTI of {affordability.current_dti}% is well within the 28/36 lending guidelines. You're in a strong position to qualify.
                   </span>
                 )}
               </div>
@@ -380,7 +381,7 @@ function HomeAffordabilitySection({ affordability }: { affordability: HomeAfford
           {/* Income / Debt breakdown */}
           <div className="flex items-center justify-between mt-4 pt-3 border-t border-sw-border">
             <div className="text-xs text-sw-dim">
-              Income: {fmt.format(affordability.monthly_income)}/mo | Debt: {fmt.format(affordability.monthly_debt)}/mo
+              Gross income: {fmt.format(affordability.monthly_income)}/mo | Debt obligations: {fmt.format(affordability.monthly_debt)}/mo
             </div>
           </div>
         </>
