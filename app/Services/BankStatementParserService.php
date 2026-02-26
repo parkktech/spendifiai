@@ -5,13 +5,20 @@ namespace App\Services;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
-use Spatie\PdfToText\Pdf;
 
 class BankStatementParserService
 {
     public function parseFile(UploadedFile $file, string $bankName, string $accountType): array
     {
         $extension = strtolower($file->getClientOriginalExtension());
+
+        Log::info('Statement parse started', [
+            'bank' => $bankName,
+            'type' => $accountType,
+            'format' => $extension,
+            'size_kb' => round($file->getSize() / 1024, 1),
+            'filename' => $file->getClientOriginalName(),
+        ]);
 
         return match ($extension) {
             'pdf' => $this->parsePdf($file->getRealPath(), $bankName),
@@ -22,16 +29,7 @@ class BankStatementParserService
 
     public function parsePdf(string $filePath, string $bankName): array
     {
-        $text = Pdf::getText($filePath);
-
-        if (empty(trim($text))) {
-            return [
-                'transactions' => [],
-                'processing_notes' => ['PDF appears to be image-based or empty. Could not extract text.'],
-            ];
-        }
-
-        return $this->extractTransactionsWithAI($text, $bankName, 'pdf');
+        return $this->extractTransactionsFromPdfWithAI($filePath, $bankName);
     }
 
     public function parseCsv(string $filePath, string $bankName): array
@@ -69,6 +67,12 @@ class BankStatementParserService
             ->select('amount', 'transaction_date', 'merchant_normalized', 'merchant_name')
             ->get();
 
+        Log::info('Duplicate detection', [
+            'incoming' => count($transactions),
+            'existing_in_account' => $existingTransactions->count(),
+            'bank_account_id' => $bankAccountId,
+        ]);
+
         $notes = [];
         $duplicateCount = 0;
 
@@ -95,10 +99,124 @@ class BankStatementParserService
             $notes[] = "Found {$duplicateCount} potential duplicate(s) already in your account.";
         }
 
+        Log::info('Duplicate detection complete', [
+            'duplicates_found' => $duplicateCount,
+            'unique_transactions' => count($transactions) - $duplicateCount,
+        ]);
+
         return [
             'transactions' => $transactions,
             'duplicates_found' => $duplicateCount,
             'notes' => $notes,
+        ];
+    }
+
+    private function extractTransactionsFromPdfWithAI(string $filePath, string $bankName): array
+    {
+        $fileSize = filesize($filePath);
+        if ($fileSize > 30 * 1024 * 1024) {
+            throw new \RuntimeException('PDF file is too large (max 30MB for AI processing).');
+        }
+
+        Log::info('PDF AI extraction starting', [
+            'bank' => $bankName,
+            'file_size_kb' => round($fileSize / 1024, 1),
+        ]);
+
+        $pdfBase64 = base64_encode(file_get_contents($filePath));
+
+        $prompt = <<<'PROMPT'
+Extract every transaction from the attached bank statement PDF. Return ONLY a JSON array.
+
+STRICT RULES — DO NOT VIOLATE:
+1. Extract ONLY transactions that are explicitly printed on the statement. Do NOT invent, estimate, or infer any transaction.
+2. Every date, amount, and description must come directly from the document text. If you cannot read a value clearly, skip that transaction entirely.
+3. Do NOT include summary lines, totals, balance lines, fee disclosures, interest rate notices, or any non-transaction content.
+4. Do NOT duplicate transactions. Each transaction appears once in the statement — extract it once.
+
+For EACH transaction return exactly these fields:
+- "date": YYYY-MM-DD format (use the transaction/posting date shown)
+- "description": the full original text from the statement for this transaction
+- "amount": positive number only, no $ sign, no commas (e.g. 42.99 not "$42.99")
+- "merchant_name": cleaned merchant name — remove card numbers, reference IDs, city/state codes, "Card XXXX" suffixes, POS/ACH prefixes
+- "is_income": true ONLY for deposits, credits, refunds, payments received. false for purchases, debits, withdrawals, payments made.
+
+Return ONLY a valid JSON array. No markdown fences. No explanation. No text before or after the JSON.
+PROMPT;
+
+        $startTime = microtime(true);
+        $result = $this->callClaudeWithPdf($pdfBase64, $prompt);
+        $elapsed = round(microtime(true) - $startTime, 1);
+
+        Log::info('PDF AI extraction response received', [
+            'response_length' => strlen($result),
+            'elapsed_seconds' => $elapsed,
+        ]);
+
+        $transactions = $this->parseJsonResponse($result);
+        $notes = [];
+
+        if (empty($transactions)) {
+            Log::warning('PDF AI extraction returned no transactions', [
+                'bank' => $bankName,
+                'response_preview' => substr($result, 0, 1000),
+            ]);
+
+            return [
+                'transactions' => [],
+                'processing_notes' => ['Could not extract transactions from this PDF. The file may be image-based, encrypted, or in an unsupported format.'],
+            ];
+        }
+
+        // Build parsed array with validation
+        $parsed = [];
+        $skipped = 0;
+        foreach ($transactions as $i => $tx) {
+            $date = $tx['date'] ?? '';
+            $amount = (float) ($tx['amount'] ?? 0);
+            $description = $tx['description'] ?? '';
+
+            // Skip entries with missing critical fields
+            if (empty($date) || $amount <= 0 || empty($description)) {
+                $skipped++;
+
+                continue;
+            }
+
+            // Validate date format
+            if (! preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)) {
+                $skipped++;
+
+                continue;
+            }
+
+            $parsed[] = [
+                'row_index' => count($parsed),
+                'date' => $date,
+                'description' => $description,
+                'amount' => $amount,
+                'merchant_name' => $tx['merchant_name'] ?? $description,
+                'is_income' => (bool) ($tx['is_income'] ?? false),
+                'is_duplicate' => false,
+                'confidence' => 0.90,
+                'original_text' => $description,
+            ];
+        }
+
+        if ($skipped > 0) {
+            $notes[] = "Skipped {$skipped} entries with missing or invalid data.";
+        }
+
+        Log::info('PDF AI extraction complete', [
+            'bank' => $bankName,
+            'raw_count' => count($transactions),
+            'valid_count' => count($parsed),
+            'skipped' => $skipped,
+        ]);
+
+        return [
+            'transactions' => $parsed,
+            'processing_notes' => $notes,
         ];
     }
 
@@ -118,7 +236,7 @@ class BankStatementParserService
         For each transaction, return a JSON object with:
         - "date": the transaction date in YYYY-MM-DD format
         - "description": the original description text from the statement
-        - "amount": the absolute dollar amount as a number (no $ sign, no commas)
+        - "amount": the absolute dollar amount as a number (no \$ sign, no commas)
         - "merchant_name": a cleaned-up merchant name (remove card numbers, reference IDs, city/state suffixes, transaction codes)
         - "is_income": true if this is a deposit/credit/income, false if a purchase/debit/withdrawal
 
@@ -289,6 +407,62 @@ class BankStatementParserService
         ];
     }
 
+    private function callClaudeWithPdf(string $pdfBase64, string $prompt): string
+    {
+        $response = Http::withHeaders([
+            'x-api-key' => config('spendifiai.ai.api_key'),
+            'anthropic-version' => '2023-06-01',
+        ])->timeout(180)->post('https://api.anthropic.com/v1/messages', [
+            'model' => config('spendifiai.ai.model'),
+            'max_tokens' => 16384,
+            'messages' => [
+                [
+                    'role' => 'user',
+                    'content' => [
+                        [
+                            'type' => 'document',
+                            'source' => [
+                                'type' => 'base64',
+                                'media_type' => 'application/pdf',
+                                'data' => $pdfBase64,
+                            ],
+                        ],
+                        [
+                            'type' => 'text',
+                            'text' => $prompt,
+                        ],
+                    ],
+                ],
+            ],
+        ]);
+
+        if (! $response->successful()) {
+            Log::error('Claude API error during PDF parsing', [
+                'status' => $response->status(),
+                'body' => substr($response->body(), 0, 2000),
+            ]);
+            throw new \RuntimeException('AI processing failed (HTTP '.$response->status().'). Please try again.');
+        }
+
+        $data = $response->json();
+
+        if (empty($data['content'][0]['text'])) {
+            Log::error('Claude API returned empty content for PDF', [
+                'response_keys' => array_keys($data),
+                'stop_reason' => $data['stop_reason'] ?? 'unknown',
+            ]);
+            throw new \RuntimeException('AI returned an empty response. The PDF may be unreadable.');
+        }
+
+        Log::info('Claude PDF API response metadata', [
+            'stop_reason' => $data['stop_reason'] ?? 'unknown',
+            'input_tokens' => $data['usage']['input_tokens'] ?? 0,
+            'output_tokens' => $data['usage']['output_tokens'] ?? 0,
+        ]);
+
+        return $data['content'][0]['text'];
+    }
+
     private function callClaude(string $prompt): string
     {
         $response = Http::withHeaders([
@@ -319,15 +493,41 @@ class BankStatementParserService
     {
         // Strip markdown fences if present
         $text = preg_replace('/^```(?:json)?\s*/m', '', $text);
-        $text = preg_replace('/\s*```$/m', '', $text);
+        $text = preg_replace('/\s*```\s*$/m', '', $text);
         $text = trim($text);
+
+        // Remove control characters that break json_decode (tabs, etc.)
+        // Keep only printable ASCII + standard whitespace (space, newline, carriage return)
+        $text = preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/', '', $text);
 
         $decoded = json_decode($text, true);
 
         if (json_last_error() !== JSON_ERROR_NONE) {
-            Log::warning('Failed to parse Claude JSON response', [
+            Log::warning('JSON parse failed, attempting repair', [
                 'error' => json_last_error_msg(),
-                'text' => substr($text, 0, 500),
+                'text_length' => strlen($text),
+                'first_100' => substr($text, 0, 100),
+                'last_100' => substr($text, -100),
+            ]);
+
+            // Try to extract JSON array from response if there's extra text
+            if (preg_match('/\[[\s\S]*\]/', $text, $matches)) {
+                $extracted = $matches[0];
+                $extracted = preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/', '', $extracted);
+                $decoded = json_decode($extracted, true);
+
+                if (json_last_error() === JSON_ERROR_NONE) {
+                    Log::info('JSON repair succeeded via array extraction', [
+                        'count' => count($decoded),
+                    ]);
+
+                    return $decoded;
+                }
+            }
+
+            Log::error('JSON parse failed completely', [
+                'error' => json_last_error_msg(),
+                'text_preview' => substr($text, 0, 500),
             ]);
 
             return [];

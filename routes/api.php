@@ -141,8 +141,13 @@ Route::middleware(['auth:sanctum'])->group(function () {
         // Statement Uploads (no bank.connected requirement)
         Route::prefix('statements')->group(function () {
             Route::post('/upload', [StatementUploadController::class, 'upload']);
+            Route::get('/{upload}/status', [StatementUploadController::class, 'status']);
+            Route::post('/batch-status', [StatementUploadController::class, 'batchStatus']);
+            Route::post('/batch-transactions', [StatementUploadController::class, 'batchTransactions']);
             Route::post('/import', [StatementUploadController::class, 'import']);
             Route::get('/history', [StatementUploadController::class, 'history']);
+            Route::get('/gaps', [StatementUploadController::class, 'gaps']);
+            Route::post('/gaps/dismiss', [StatementUploadController::class, 'dismissGap']);
         });
 
         // ── Routes requiring a linked bank account ──

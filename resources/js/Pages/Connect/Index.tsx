@@ -27,6 +27,7 @@ import StatCard from '@/Components/SpendifiAI/StatCard';
 import ConnectionMethodChooser from '@/Components/SpendifiAI/ConnectionMethodChooser';
 import StatementUploadWizard from '@/Components/SpendifiAI/StatementUploadWizard';
 import UploadHistory from '@/Components/SpendifiAI/UploadHistory';
+import StatementGapAlert from '@/Components/SpendifiAI/StatementGapAlert';
 import { useApi, useApiPost } from '@/hooks/useApi';
 import type { BankAccount, StatementUploadHistory } from '@/types/spendifiai';
 import { usePage } from '@inertiajs/react';
@@ -363,6 +364,7 @@ export default function ConnectIndex() {
       {showUploadWizard ? (
         <div className="rounded-2xl border border-sw-border bg-sw-card p-6 mb-6">
           <StatementUploadWizard
+            existingAccounts={accountsList}
             onComplete={() => {
               setShowUploadWizard(false);
               setConnectionMode(null);
@@ -556,7 +558,12 @@ export default function ConnectIndex() {
         </div>
       )}
 
-      {/* Section 3: Upload History */}
+      {/* Section 3: Statement Gap Detection */}
+      {!showUploadWizard && uploadedCount > 0 && (
+        <StatementGapAlert onUploadStatement={() => setShowUploadWizard(true)} />
+      )}
+
+      {/* Section 4: Upload History */}
       {!showUploadWizard && (
         <div className="mb-6">
           <UploadHistory

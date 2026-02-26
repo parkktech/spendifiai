@@ -14,7 +14,9 @@ class StatementImportRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'upload_id' => 'required|integer|exists:statement_uploads,id',
+            'upload_id' => 'required_without:upload_ids|integer|exists:statement_uploads,id',
+            'upload_ids' => 'required_without:upload_id|array|min:1|max:24',
+            'upload_ids.*' => 'integer|exists:statement_uploads,id',
             'transactions' => 'required|array|min:1',
             'transactions.*.date' => 'required|date',
             'transactions.*.description' => 'required|string',

@@ -21,7 +21,7 @@ fi
 cd /home/spendifi/public_html
 nohup /usr/bin/php artisan queue:work redis \
     --tries=3 \
-    --timeout=300 \
+    --timeout=600 \
     --sleep=3 \
     --max-jobs=100 \
     --max-time=3600 \

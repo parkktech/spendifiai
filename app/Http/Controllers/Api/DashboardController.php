@@ -646,10 +646,12 @@ class DashboardController extends Controller
 
             $periodDonationsTotal = $periodDonations->sum('amount');
 
+            // YTD uses the year of the selected period, not always the current year
+            $ytdStart = $monthEnd->copy()->startOfYear();
             $ytdDonationsTotal = $txQuery()
                 ->where('amount', '>', 0)
                 ->where($donationFilter)
-                ->whereBetween('transaction_date', [$now->copy()->startOfYear(), $monthEnd])
+                ->whereBetween('transaction_date', [$ytdStart, $monthEnd])
                 ->sum('amount');
 
             $topRecipients = $txQuery()

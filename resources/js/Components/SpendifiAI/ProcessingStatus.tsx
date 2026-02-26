@@ -14,6 +14,11 @@ const STATUS_CONFIG: Record<
     label: 'Uploading file',
     color: 'text-sw-accent',
   },
+  queued: {
+    icon: Loader2,
+    label: 'Queued for processing',
+    color: 'text-sw-accent',
+  },
   parsing: {
     icon: FileSearch,
     label: 'Reading document',
@@ -127,7 +132,7 @@ export default function ProcessingStatus({ status }: ProcessingStatusProps) {
             { key: 'extracting', label: 'Extract transaction rows' },
             { key: 'analyzing', label: 'AI categorization and duplicate detection' },
           ].map((step) => {
-            const stepOrder = ['uploading', 'parsing', 'extracting', 'analyzing'];
+            const stepOrder = ['uploading', 'queued', 'parsing', 'extracting', 'analyzing'];
             const currentIndex = stepOrder.indexOf(status.status);
             const stepIndex = stepOrder.indexOf(step.key);
             const isDone = stepIndex < currentIndex;

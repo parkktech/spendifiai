@@ -19,7 +19,8 @@ class CategorizePendingTransactions implements ShouldQueue
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     public int $tries = 3;
-    public int $timeout = 120;
+
+    public int $timeout = 600;
 
     public function __construct(
         protected int $userId,
@@ -42,7 +43,9 @@ class CategorizePendingTransactions implements ShouldQueue
 
         $pending = $query->orderByDesc('transaction_date')->get();
 
-        if ($pending->isEmpty()) return;
+        if ($pending->isEmpty()) {
+            return;
+        }
 
         Log::info("Categorizing {$pending->count()} transactions for user {$this->userId}");
 

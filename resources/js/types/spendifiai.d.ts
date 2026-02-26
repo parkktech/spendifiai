@@ -46,12 +46,20 @@ export interface BankAccount {
   available_balance: number | null;
   purpose: string;
   institution_name: string | null;
+  connection?: {
+    id: number;
+    institution_name: string;
+    status: string;
+    is_plaid: boolean;
+    last_synced_at: string | null;
+  };
 }
 
 export interface BankConnection {
   id: number;
   institution_name: string;
   status: string;
+  is_plaid?: boolean;
   last_synced_at: string | null;
   error_code: string | null;
   error_message: string | null;
@@ -358,6 +366,9 @@ export interface ParsedTransaction {
   is_duplicate: boolean;
   confidence: number;
   original_text?: string;
+  source_upload_id?: number;
+  source_file_name?: string;
+  duplicate_reason?: 'db' | 'cross_file';
 }
 
 export interface StatementUploadResult {
@@ -381,9 +392,36 @@ export interface StatementUploadHistory {
   date_range: { from: string; to: string };
 }
 
+export interface StatementGap {
+  gap_key: string;
+  month: string;
+  month_label: string;
+  transaction_count: number;
+  average_count: number;
+  severity: 'critical' | 'warning';
+  reason: string;
+  has_statement: boolean;
+}
+
+export interface StatementGapResponse {
+  gaps: StatementGap[];
+  coverage: {
+    date_range: { from: string; to: string };
+    total_months: number;
+    average_monthly_transactions: number;
+    months: Array<{
+      month: string;
+      transaction_count: number;
+      has_statement: boolean;
+      first_date: string | null;
+      last_date: string | null;
+    }>;
+  };
+}
+
 export interface StatementProcessingStatus {
   upload_id: number;
-  status: 'uploading' | 'parsing' | 'extracting' | 'analyzing' | 'complete' | 'error';
+  status: 'uploading' | 'queued' | 'parsing' | 'extracting' | 'analyzing' | 'complete' | 'error';
   progress: number;
   current_page?: number;
   total_pages?: number;
@@ -396,6 +434,40 @@ export interface StatementImportResult {
   skipped: number;
   errors: number;
   message: string;
+}
+
+export interface BatchStatusUpload {
+  upload_id: number;
+  status: string;
+  file_name: string | null;
+  error_message?: string | null;
+  total_extracted?: number;
+  duplicates_found?: number;
+  date_range?: { from: string; to: string };
+}
+
+export interface BatchStatusResponse {
+  uploads: BatchStatusUpload[];
+  summary: {
+    total: number;
+    completed: number;
+    failed: number;
+    processing: number;
+    all_done: boolean;
+    total_extracted: number;
+    total_duplicates: number;
+  };
+}
+
+export interface BatchTransactionsResponse {
+  transactions: ParsedTransaction[];
+  total_extracted: number;
+  duplicates_found: number;
+  db_duplicates: number;
+  cross_file_duplicates: number;
+  date_range: { from: string; to: string };
+  processing_notes: string[];
+  files_included: number;
 }
 
 // --- Recurring Bills & Budget Analysis ---
