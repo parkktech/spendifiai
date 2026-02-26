@@ -313,19 +313,58 @@ class DashboardController extends Controller
             $debtCategories = ['Car Payment', 'Debt Payment', 'Mortgage', 'Housing & Rent'];
             $lookbackStart = $now->copy()->subMonths(3)->startOfMonth();
 
-            $monthlyDebtObligations = $txQuery()
+            $debtTransactions = $txQuery()
                 ->where('amount', '>', 0)
                 ->whereBetween('transaction_date', [$lookbackStart, $monthEnd])
                 ->where(function ($q) use ($debtCategories) {
                     $q->whereIn('ai_category', $debtCategories)
                         ->orWhereIn('user_category', $debtCategories);
                 })
-                ->toBase()
-                ->select(DB::raw('SUM(amount) as total'))
-                ->value('total');
+                ->get(['id', 'merchant_name', 'merchant_normalized', 'amount', 'ai_category', 'user_category', 'transaction_date']);
 
             $debtMonths = max((int) $lookbackStart->diffInMonths($monthEnd), 1);
-            $monthlyDebt = round((float) $monthlyDebtObligations / $debtMonths, 2);
+
+            // Identify housing payments: group by similar amount (within 5%)
+            // and if ANY transaction in the group is categorized as Mortgage/Housing,
+            // treat the whole group as housing (fixes inconsistent AI categorization)
+            $housingCategories = ['Mortgage', 'Housing & Rent'];
+            $housingAmounts = [];
+
+            // First pass: find amounts that appear as Mortgage/Housing at least once
+            foreach ($debtTransactions as $tx) {
+                $cat = $tx->user_category ?? $tx->ai_category;
+                if (in_array($cat, $housingCategories)) {
+                    $housingAmounts[] = (float) $tx->amount;
+                }
+            }
+
+            // Second pass: classify each transaction as housing or non-housing
+            $totalDebt = 0;
+            $totalNonHousingDebt = 0;
+
+            foreach ($debtTransactions as $tx) {
+                $amount = (float) $tx->amount;
+                $cat = $tx->user_category ?? $tx->ai_category;
+                $totalDebt += $amount;
+
+                // Check if this transaction matches a known housing amount (within 5%)
+                $isHousing = in_array($cat, $housingCategories);
+                if (! $isHousing) {
+                    foreach ($housingAmounts as $housingAmt) {
+                        if ($housingAmt > 0 && abs($amount - $housingAmt) / $housingAmt < 0.05) {
+                            $isHousing = true;
+                            break;
+                        }
+                    }
+                }
+
+                if (! $isHousing) {
+                    $totalNonHousingDebt += $amount;
+                }
+            }
+
+            $monthlyDebt = round($totalDebt / $debtMonths, 2);
+            $monthlyNonHousingDebt = round($totalNonHousingDebt / $debtMonths, 2);
 
             $downPayment = 100000; // Default $100k, could be configurable
             $interestRate = 0.0685; // ~6.85% current avg 30yr fixed
@@ -339,18 +378,6 @@ class DashboardController extends Controller
 
             // Back-end DTI: max 36% of gross income for all debt combined (conventional)
             // Housing payment = back-end capacity minus existing non-housing debt
-            $nonHousingDebtCategories = ['Car Payment', 'Debt Payment'];
-            $nonHousingDebtTotal = $txQuery()
-                ->where('amount', '>', 0)
-                ->whereBetween('transaction_date', [$lookbackStart, $monthEnd])
-                ->where(function ($q) use ($nonHousingDebtCategories) {
-                    $q->whereIn('ai_category', $nonHousingDebtCategories)
-                        ->orWhereIn('user_category', $nonHousingDebtCategories);
-                })
-                ->toBase()
-                ->select(DB::raw('SUM(amount) as total'))
-                ->value('total');
-            $monthlyNonHousingDebt = round((float) $nonHousingDebtTotal / $debtMonths, 2);
             $maxHousingBackEnd = ($grossMonthlyIncome * 0.36) - $monthlyNonHousingDebt;
 
             // Use the more conservative (lower) of the two
