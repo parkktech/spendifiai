@@ -528,10 +528,16 @@ class StatementUploadController extends Controller
                 continue;
             }
 
-            // Build raw statement intervals for this account
+            // Build raw statement intervals for this account (deduplicate by date range)
             $hasUploads = $accountUploads->isNotEmpty();
             $rawIntervals = [];
+            $seenRanges = [];
             foreach ($accountUploads as $u) {
+                $rangeKey = $u->date_range_from->format('Y-m-d').'|'.$u->date_range_to->format('Y-m-d');
+                if (isset($seenRanges[$rangeKey])) {
+                    continue; // Skip duplicate uploads with identical date ranges
+                }
+                $seenRanges[$rangeKey] = true;
                 $rawIntervals[] = [
                     'from' => Carbon::parse($u->date_range_from),
                     'to' => Carbon::parse($u->date_range_to),
