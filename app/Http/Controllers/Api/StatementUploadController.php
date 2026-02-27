@@ -380,6 +380,50 @@ class StatementUploadController extends Controller
         return response()->json(['uploads' => $uploads]);
     }
 
+    public function pending(Request $request): JsonResponse
+    {
+        $user = $request->user();
+
+        $uploads = StatementUpload::where('user_id', $user->id)
+            ->where(function ($q) {
+                $q->whereIn('status', ['queued', 'parsing', 'extracting', 'analyzing'])
+                    ->orWhere(function ($q2) {
+                        $q2->where('status', 'complete')
+                            ->where(function ($q3) {
+                                $q3->whereNull('transactions_imported')
+                                    ->orWhere('transactions_imported', 0);
+                            });
+                    });
+            })
+            ->orderByDesc('created_at')
+            ->get()
+            ->map(function (StatementUpload $upload) {
+                $item = [
+                    'id' => $upload->id,
+                    'file_name' => $upload->original_file_name,
+                    'status' => $upload->status,
+                    'bank_name' => $upload->bank_name,
+                    'account_type' => $upload->account_type,
+                    'bank_account_id' => $upload->bank_account_id,
+                    'created_at' => $upload->created_at->toISOString(),
+                ];
+
+                if ($upload->status === 'complete') {
+                    $item['total_extracted'] = $upload->total_extracted;
+                    $item['duplicates_found'] = $upload->duplicates_found;
+                    $item['date_range'] = [
+                        'from' => $upload->date_range_from?->format('Y-m-d'),
+                        'to' => $upload->date_range_to?->format('Y-m-d'),
+                    ];
+                    $item['cache_available'] = Cache::has("statement_transactions:{$upload->id}");
+                }
+
+                return $item;
+            });
+
+        return response()->json(['uploads' => $uploads]);
+    }
+
     private function detectCrossFileDuplicates(array $transactions): array
     {
         $crossFileDupes = 0;

@@ -29,7 +29,7 @@ import StatementUploadWizard from '@/Components/SpendifiAI/StatementUploadWizard
 import UploadHistory from '@/Components/SpendifiAI/UploadHistory';
 import StatementGapAlert from '@/Components/SpendifiAI/StatementGapAlert';
 import { useApi, useApiPost } from '@/hooks/useApi';
-import type { BankAccount, StatementUploadHistory } from '@/types/spendifiai';
+import type { BankAccount, StatementUploadHistory, PendingUpload } from '@/types/spendifiai';
 import { usePage } from '@inertiajs/react';
 
 interface EmailConnection {
@@ -174,16 +174,36 @@ export default function ConnectIndex() {
 
   // Statement uploads
   const { data: uploadHistoryData, refresh: refreshUploads } = useApi<{ uploads: StatementUploadHistory[] }>('/api/v1/statements/history');
+  const { data: pendingData, refresh: refreshPending } = useApi<{ uploads: PendingUpload[] }>('/api/v1/statements/pending');
   const [showUploadWizard, setShowUploadWizard] = useState(false);
   const [connectionMode, setConnectionMode] = useState<'choose' | 'plaid' | 'upload' | null>(null);
+  const [resumeUploadIds, setResumeUploadIds] = useState<number[] | null>(null);
 
   const accountsList = accounts?.accounts || [];
   const emailConnections = emailData?.connections || [];
   const uploadHistory = uploadHistoryData?.uploads || [];
+  const pendingUploads = pendingData?.uploads || [];
+  const processingUploads = pendingUploads.filter(u => ['queued', 'parsing', 'extracting', 'analyzing'].includes(u.status));
+  const reviewableUploads = pendingUploads.filter(u => u.status === 'complete' && u.cache_available);
+  const expiredUploads = pendingUploads.filter(u => u.status === 'complete' && !u.cache_available);
   const connectedCount = accountsList.length;
   const uploadedCount = uploadHistory.length;
   const providerInfo = PROVIDER_INSTRUCTIONS[selectedProvider];
   const isOAuthProvider = selectedProvider === 'outlook';
+
+  const UPLOAD_STATUS_LABELS: Record<string, string> = {
+    queued: 'Queued for processing...',
+    parsing: 'Reading document...',
+    extracting: 'Extracting transactions...',
+    analyzing: 'Detecting duplicates...',
+  };
+
+  // Auto-poll pending uploads while processing
+  useEffect(() => {
+    if (processingUploads.length === 0) return;
+    const interval = setInterval(refreshPending, 5000);
+    return () => clearInterval(interval);
+  }, [processingUploads.length, refreshPending]);
 
   // Check URL params on mount for OAuth callback results
   useEffect(() => {
@@ -337,6 +357,81 @@ export default function ConnectIndex() {
         <StatementGapAlert onUploadStatement={() => setShowUploadWizard(true)} />
       )}
 
+      {/* Pending Uploads Banner */}
+      {!showUploadWizard && pendingUploads.length > 0 && (
+        <div className="rounded-2xl border border-blue-200 bg-blue-50/50 p-5 mb-6">
+          <h3 className="text-[15px] font-semibold text-sw-text mb-3">
+            Pending Statement Uploads
+          </h3>
+
+          {/* Processing uploads */}
+          {processingUploads.length > 0 && (
+            <div className="space-y-2 mb-3">
+              {processingUploads.map(upload => (
+                <div key={upload.id} className="flex items-center gap-3 p-3 rounded-xl border border-sw-border bg-sw-card">
+                  <Loader2 size={16} className="text-sw-accent animate-spin shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <span className="text-sm font-medium text-sw-text truncate block">{upload.file_name}</span>
+                    <span className="text-[11px] text-sw-muted">
+                      {UPLOAD_STATUS_LABELS[upload.status] || 'Processing...'}
+                    </span>
+                  </div>
+                  <Badge variant="info">{upload.status}</Badge>
+                </div>
+              ))}
+              <p className="text-[11px] text-sw-dim">
+                Still processing. This page will update automatically.
+              </p>
+            </div>
+          )}
+
+          {/* Reviewable uploads */}
+          {reviewableUploads.length > 0 && (
+            <div className="space-y-2 mb-3">
+              {reviewableUploads.map(upload => (
+                <div key={upload.id} className="flex items-center gap-3 p-3 rounded-xl border border-emerald-200 bg-emerald-50/50">
+                  <CheckCircle2 size={16} className="text-sw-success shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <span className="text-sm font-medium text-sw-text truncate block">{upload.file_name}</span>
+                    <span className="text-[11px] text-sw-muted">
+                      {upload.total_extracted} transactions ready for review
+                    </span>
+                  </div>
+                </div>
+              ))}
+              <button
+                onClick={() => {
+                  const ids = reviewableUploads.map(u => u.id);
+                  setResumeUploadIds(ids);
+                  setShowUploadWizard(true);
+                }}
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-sw-accent text-white text-sm font-semibold hover:bg-sw-accent-hover transition mt-2"
+              >
+                <CheckCircle2 size={14} />
+                Review & Import {reviewableUploads.reduce((s, u) => s + (u.total_extracted ?? 0), 0)} Transactions
+              </button>
+            </div>
+          )}
+
+          {/* Expired uploads */}
+          {expiredUploads.length > 0 && (
+            <div className="space-y-2">
+              {expiredUploads.map(upload => (
+                <div key={upload.id} className="flex items-center gap-3 p-3 rounded-xl border border-amber-200 bg-amber-50/30">
+                  <AlertTriangle size={16} className="text-sw-warning shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <span className="text-sm font-medium text-sw-text truncate block">{upload.file_name}</span>
+                    <span className="text-[11px] text-sw-muted">
+                      Processing data expired. Please re-upload this statement.
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-6">
         <StatCard
@@ -370,15 +465,19 @@ export default function ConnectIndex() {
         <div className="rounded-2xl border border-sw-border bg-sw-card p-6 mb-6">
           <StatementUploadWizard
             existingAccounts={accountsList}
+            resumeUploadIds={resumeUploadIds ?? undefined}
             onComplete={() => {
               setShowUploadWizard(false);
               setConnectionMode(null);
+              setResumeUploadIds(null);
               refresh();
               refreshUploads();
+              refreshPending();
             }}
             onCancel={() => {
               setShowUploadWizard(false);
               setConnectionMode(null);
+              setResumeUploadIds(null);
             }}
           />
         </div>
