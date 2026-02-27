@@ -34,7 +34,6 @@ interface StatementUploadWizardProps {
   onComplete: () => void;
   onCancel: () => void;
   existingAccounts?: BankAccount[];
-  resumeUploadIds?: number[];
 }
 
 const STEPS = [
@@ -89,7 +88,6 @@ export default function StatementUploadWizard({
   onComplete,
   onCancel,
   existingAccounts,
-  resumeUploadIds,
 }: StatementUploadWizardProps) {
   const hasExistingAccounts = existingAccounts && existingAccounts.length > 0;
 
@@ -151,8 +149,7 @@ export default function StatementUploadWizard({
   // Track how many files are currently being uploaded (not yet queued)
   const [uploadingCount, setUploadingCount] = useState(0);
 
-  const isResumeMode = Boolean(resumeUploadIds && resumeUploadIds.length > 0);
-  const isBatch = selectedFiles.length > 1 || (isResumeMode && (resumeUploadIds?.length ?? 0) > 1);
+  const isBatch = selectedFiles.length > 1;
   const effectiveBankName = bankName === 'Other' ? customBankName : bankName;
 
   // Validate step 1
@@ -353,22 +350,6 @@ export default function StatementUploadWizard({
       stopPolling();
     };
   }, [stopPolling]);
-
-  // Resume flow: start at processing step with existing upload IDs
-  const resumeInitiatedRef = useRef(false);
-  useEffect(() => {
-    if (!resumeUploadIds || resumeUploadIds.length === 0 || resumeInitiatedRef.current) return;
-    resumeInitiatedRef.current = true;
-
-    setUploadIds(resumeUploadIds);
-    setCurrentStep(2);
-
-    if (resumeUploadIds.length === 1) {
-      startPolling(resumeUploadIds[0]);
-    } else {
-      startBatchPolling(resumeUploadIds);
-    }
-  }, [resumeUploadIds, startPolling, startBatchPolling]);
 
   // --- Step 2 -> Step 3: Upload and process ---
 
@@ -918,12 +899,12 @@ export default function StatementUploadWizard({
                 <button
                   onClick={() => {
                     stopPolling();
-                    isResumeMode ? onCancel() : goToStep(1);
+                    goToStep(1);
                   }}
                   className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg border border-sw-border text-sw-muted text-sm font-medium hover:text-sw-text hover:bg-sw-card-hover transition"
                 >
                   <ArrowLeft size={14} />
-                  {isResumeMode ? 'Close' : 'Try Again'}
+                  Try Again
                 </button>
               </div>
             )}
@@ -939,12 +920,12 @@ export default function StatementUploadWizard({
                   <button
                     onClick={() => {
                       stopPolling();
-                      isResumeMode ? onCancel() : goToStep(1);
+                      goToStep(1);
                     }}
                     className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg border border-sw-border text-sw-muted text-sm font-medium hover:text-sw-text hover:bg-sw-card-hover transition"
                   >
                     <ArrowLeft size={14} />
-                    {isResumeMode ? 'Close' : 'Try Again'}
+                    Try Again
                   </button>
                 </div>
               </div>
@@ -1050,11 +1031,11 @@ export default function StatementUploadWizard({
             {/* Navigation */}
             <div className="flex justify-between pt-2">
               <button
-                onClick={() => isResumeMode ? onCancel() : goToStep(1)}
+                onClick={() => goToStep(1)}
                 className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg border border-sw-border text-sw-muted text-sm font-medium hover:text-sw-text hover:bg-sw-card-hover transition"
               >
                 <ArrowLeft size={14} />
-                {isResumeMode ? 'Close' : 'Upload Different Files'}
+                Upload Different Files
               </button>
               <button
                 onClick={handleImport}

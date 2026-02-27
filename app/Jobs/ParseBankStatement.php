@@ -2,7 +2,9 @@
 
 namespace App\Jobs;
 
+use App\Models\EmailConnection;
 use App\Models\StatementUpload;
+use App\Models\Transaction;
 use App\Services\BankStatementParserService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -10,6 +12,7 @@ use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 
@@ -72,18 +75,58 @@ class ParseBankStatement implements ShouldQueue
             $dateFrom = ! empty($dates) ? min($dates) : null;
             $dateTo = ! empty($dates) ? max($dates) : null;
 
-            // Store parsed transactions in cache (2-hour TTL for review)
+            // Store parsed transactions in cache (for status endpoint)
             Cache::put(
                 "statement_transactions:{$upload->id}",
                 $transactions,
                 now()->addHours(2)
             );
 
+            // Step 3: Auto-import non-duplicate transactions
+            $nonDuplicates = array_filter($transactions, fn ($tx) => empty($tx['is_duplicate']));
+            $imported = 0;
+            $errors = 0;
+            $accountPurpose = $upload->bankAccount?->purpose?->value ?? 'personal';
+
+            if (! empty($nonDuplicates)) {
+                DB::transaction(function () use ($nonDuplicates, $upload, $accountPurpose, &$imported, &$errors) {
+                    foreach ($nonDuplicates as $tx) {
+                        try {
+                            $isIncome = (bool) ($tx['is_income'] ?? false);
+                            $amount = abs((float) $tx['amount']);
+                            $storedAmount = $isIncome ? -$amount : $amount;
+
+                            Transaction::create([
+                                'user_id' => $upload->user_id,
+                                'bank_account_id' => $upload->bank_account_id,
+                                'merchant_name' => $tx['merchant_name'] ?? $tx['description'] ?? 'Unknown',
+                                'merchant_normalized' => $tx['merchant_name'] ?? $tx['description'] ?? 'Unknown',
+                                'description' => $tx['description'] ?? '',
+                                'amount' => $storedAmount,
+                                'transaction_date' => $tx['date'],
+                                'account_purpose' => $accountPurpose,
+                                'review_status' => 'pending_ai',
+                                'expense_type' => 'personal',
+                            ]);
+
+                            $imported++;
+                        } catch (\Throwable $e) {
+                            $errors++;
+                            Log::warning('Failed to import transaction during auto-import', [
+                                'upload_id' => $upload->id,
+                                'error' => $e->getMessage(),
+                            ]);
+                        }
+                    }
+                });
+            }
+
             // Update upload record
             $upload->update([
                 'status' => 'complete',
                 'total_extracted' => count($transactions),
                 'duplicates_found' => $duplicatesFound,
+                'transactions_imported' => $imported,
                 'date_range_from' => $dateFrom,
                 'date_range_to' => $dateTo,
                 'processing_notes' => $notes,
@@ -93,7 +136,27 @@ class ParseBankStatement implements ShouldQueue
                 'upload_id' => $upload->id,
                 'total_extracted' => count($transactions),
                 'duplicates_found' => $duplicatesFound,
+                'imported' => $imported,
+                'errors' => $errors,
             ]);
+
+            // Dispatch follow-up jobs
+            if ($imported > 0) {
+                CategorizePendingTransactions::dispatch($upload->user_id);
+
+                // Auto-query emails for receipt matching
+                if ($dateFrom) {
+                    $emailConnections = EmailConnection::where('user_id', $upload->user_id)
+                        ->where('status', 'active')
+                        ->where('sync_status', '!=', 'syncing')
+                        ->get();
+
+                    foreach ($emailConnections as $emailConn) {
+                        ProcessOrderEmails::dispatch($emailConn, $dateFrom)
+                            ->delay(now()->addSeconds(10));
+                    }
+                }
+            }
         } catch (\Throwable $e) {
             Log::error('ParseBankStatement job failed', [
                 'upload_id' => $upload->id,

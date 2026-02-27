@@ -395,15 +395,11 @@ export interface StatementUploadHistory {
 export interface PendingUpload {
   id: number;
   file_name: string;
-  status: 'queued' | 'parsing' | 'extracting' | 'analyzing' | 'complete';
+  status: 'queued' | 'parsing' | 'extracting' | 'analyzing';
   bank_name: string;
   account_type: string;
   bank_account_id: number;
   created_at: string;
-  total_extracted?: number;
-  duplicates_found?: number;
-  date_range?: { from: string; to: string };
-  cache_available?: boolean;
 }
 
 export interface StatementGap {
