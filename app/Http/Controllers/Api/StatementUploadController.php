@@ -7,8 +7,10 @@ use App\Http\Requests\StatementImportRequest;
 use App\Http\Requests\StatementUploadRequest;
 use App\Jobs\CategorizePendingTransactions;
 use App\Jobs\ParseBankStatement;
+use App\Jobs\ProcessOrderEmails;
 use App\Models\BankAccount;
 use App\Models\BankConnection;
+use App\Models\EmailConnection;
 use App\Models\StatementUpload;
 use App\Models\Transaction;
 use Carbon\Carbon;
@@ -315,8 +317,25 @@ class StatementUploadController extends Controller
             }
         });
 
+        $emailSyncsStarted = 0;
+
         if ($imported > 0) {
             CategorizePendingTransactions::dispatch($user->id);
+
+            // Auto-query emails for receipt matching within the statement date range
+            $earliestDate = $uploads->min('date_range_from');
+            if ($earliestDate) {
+                $emailConnections = EmailConnection::where('user_id', $user->id)
+                    ->where('status', 'active')
+                    ->where('sync_status', '!=', 'syncing')
+                    ->get();
+
+                foreach ($emailConnections as $emailConn) {
+                    ProcessOrderEmails::dispatch($emailConn, $earliestDate)
+                        ->delay(now()->addSeconds(10));
+                    $emailSyncsStarted++;
+                }
+            }
         }
 
         // Clean up all cached transactions
@@ -324,11 +343,17 @@ class StatementUploadController extends Controller
             Cache::forget("statement_transactions:{$id}");
         }
 
+        $message = "{$imported} transactions imported successfully.";
+        if ($emailSyncsStarted > 0) {
+            $message .= ' Email receipt search started.';
+        }
+
         return response()->json([
             'imported' => $imported,
             'skipped' => $skipped,
             'errors' => $errors,
-            'message' => "{$imported} transactions imported successfully.",
+            'email_syncs_started' => $emailSyncsStarted,
+            'message' => $message,
         ]);
     }
 
