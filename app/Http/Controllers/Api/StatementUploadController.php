@@ -463,23 +463,19 @@ class StatementUploadController extends Controller
             $accountName = ($account->nickname ?? $account->name).($account->mask ? " ****{$account->mask}" : '');
             $institutionName = $account->bankConnection?->institution_name;
 
-            // Determine date span from both transactions and uploads
-            $dates = collect();
-            foreach ($accountTx as $m) {
-                $dates->push(Carbon::parse($m->first_date));
-                $dates->push(Carbon::parse($m->last_date));
-            }
+            // Date span bounded by statement uploads — only detect gaps within uploaded range
+            $uploadDates = collect();
             foreach ($accountUploads as $u) {
-                $dates->push(Carbon::parse($u->date_range_from));
-                $dates->push(Carbon::parse($u->date_range_to));
+                $uploadDates->push(Carbon::parse($u->date_range_from));
+                $uploadDates->push(Carbon::parse($u->date_range_to));
             }
 
-            if ($dates->isEmpty()) {
+            if ($uploadDates->isEmpty()) {
                 continue;
             }
 
-            $earliest = $dates->min();
-            $latest = $dates->max();
+            $earliest = $uploadDates->min();
+            $latest = $uploadDates->max();
             $startMonth = $earliest->copy()->startOfMonth();
             $endMonth = $latest->copy()->startOfMonth();
 
@@ -573,9 +569,13 @@ class StatementUploadController extends Controller
                     continue;
                 }
 
+                // Is this month inside the upload coverage window (not an edge)?
+                $isInsideCoverage = $monthStart->gte($earliest->copy()->startOfMonth())
+                    && $monthEnd->lte($latest->copy()->endOfMonth());
+
                 // Gap detection logic
-                if ($count === 0) {
-                    // Critical: no transactions for this month
+                if ($count === 0 && $isInsideCoverage) {
+                    // Critical: no transactions for a month within upload range
                     $allGaps[] = [
                         'gap_key' => $gapKey,
                         'account_id' => $accountId,
@@ -592,8 +592,12 @@ class StatementUploadController extends Controller
                     ];
                     $accountGapCount++;
                 } elseif ($hasUploads && ! empty($uncovered)) {
-                    // Partial month: only check date-range gaps when statement uploads exist
+                    // Partial month: interior gaps between uploaded statements
                     foreach ($uncovered as $gap) {
+                        // Only flag gaps that fall within the upload range (not edges)
+                        if ($gap['from']->lt($earliest) || $gap['to']->gt($latest)) {
+                            continue;
+                        }
                         $gapDays = $gap['from']->diffInDays($gap['to']) + 1;
                         if ($gapDays > 7) {
                             $rangeKey = "{$accountId}:{$gap['from']->format('Y-m-d')}:{$gap['to']->format('Y-m-d')}";
