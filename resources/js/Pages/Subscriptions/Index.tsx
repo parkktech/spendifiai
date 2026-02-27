@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, usePage } from '@inertiajs/react';
-import { RefreshCw, AlertTriangle, TrendingUp, Loader2, Scissors, Shield } from 'lucide-react';
+import { RefreshCw, AlertTriangle, TrendingUp, Loader2, Scissors, Shield, XCircle } from 'lucide-react';
 import { useApi, useApiPost } from '@/hooks/useApi';
 import StatCard from '@/Components/SpendifiAI/StatCard';
 import SubscriptionCard from '@/Components/SpendifiAI/SubscriptionCard';
@@ -11,7 +11,7 @@ import type { SubscriptionsResponse } from '@/types/spendifiai';
 
 const fmt = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
 
-type TabType = 'all' | 'cancellable' | 'essential';
+type TabType = 'all' | 'cancellable' | 'essential' | 'cancelled';
 
 export default function SubscriptionsIndex() {
   const { auth } = usePage().props as unknown as { auth: { hasBankConnected: boolean } };
@@ -21,22 +21,26 @@ export default function SubscriptionsIndex() {
   const detect = useApiPost('/api/v1/subscriptions/detect');
 
   const items = data?.subscriptions ?? [];
+  const nonCancelled = items.filter((s) => s.status !== 'cancelled');
+  const cancelledItems = items.filter((s) => s.status === 'cancelled');
 
   // Filter by tab
-  const filtered = activeTab === 'cancellable'
-    ? items.filter((s) => !s.is_essential)
-    : activeTab === 'essential'
-      ? items.filter((s) => s.is_essential)
-      : items;
+  const filtered = activeTab === 'cancelled'
+    ? cancelledItems
+    : activeTab === 'cancellable'
+      ? nonCancelled.filter((s) => !s.is_essential)
+      : activeTab === 'essential'
+        ? nonCancelled.filter((s) => s.is_essential)
+        : nonCancelled;
 
   // Use pre-computed stats from the API, with local filtering as fallback
   const totalMonthly = data?.total_monthly ?? 0;
   const totalAnnual = data?.total_annual ?? 0;
-  const unused = items.filter((s) => s.status === 'inactive' || s.status === 'unused');
+  const unused = nonCancelled.filter((s) => s.status === 'inactive' || s.status === 'unused');
   const unusedMonthly = data?.unused_monthly ?? unused.reduce((sum, s) => sum + s.amount, 0);
-  const active = items.filter((s) => s.status === 'active');
-  const cancellableCount = items.filter((s) => !s.is_essential).length;
-  const essentialCount = items.filter((s) => s.is_essential).length;
+  const active = nonCancelled.filter((s) => s.status === 'active');
+  const cancellableCount = nonCancelled.filter((s) => !s.is_essential).length;
+  const essentialCount = nonCancelled.filter((s) => s.is_essential).length;
 
   const handleDetect = async () => {
     await detect.submit();
@@ -101,9 +105,10 @@ export default function SubscriptionsIndex() {
       {items.length > 0 && (
         <div className="flex items-center gap-1 mb-6 p-1 rounded-lg bg-sw-card border border-sw-border w-fit">
           {([
-            { key: 'all' as TabType, label: 'All', count: items.length },
+            { key: 'all' as TabType, label: 'All', count: nonCancelled.length },
             { key: 'cancellable' as TabType, label: 'Cancellable', count: cancellableCount, icon: <Scissors size={13} /> },
             { key: 'essential' as TabType, label: 'Essential Bills', count: essentialCount, icon: <Shield size={13} /> },
+            ...(cancelledItems.length > 0 ? [{ key: 'cancelled' as TabType, label: 'Cancelled', count: cancelledItems.length, icon: <XCircle size={13} /> }] : []),
           ]).map((tab) => (
             <button
               key={tab.key}
@@ -191,14 +196,23 @@ export default function SubscriptionsIndex() {
       {/* Subscription grid */}
       {!loading && filtered.length > 0 && (
         <div aria-live="polite" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {/* Show unused first */}
-          {[...unused, ...filtered.filter((s) => s.status !== 'inactive' && s.status !== 'unused')].map((sub) => (
-            <SubscriptionCard
-              key={sub.id}
-              subscription={sub}
-              onUpdate={handleUpdate}
-            />
-          ))}
+          {activeTab === 'cancelled'
+            ? filtered.map((sub) => (
+                <SubscriptionCard
+                  key={sub.id}
+                  subscription={sub}
+                  onUpdate={handleUpdate}
+                />
+              ))
+            : /* Show unused first */
+              [...unused.filter((s) => filtered.some((f) => f.id === s.id)), ...filtered.filter((s) => s.status !== 'inactive' && s.status !== 'unused')].map((sub) => (
+                <SubscriptionCard
+                  key={sub.id}
+                  subscription={sub}
+                  onUpdate={handleUpdate}
+                />
+              ))
+          }
         </div>
       )}
     </AuthenticatedLayout>
