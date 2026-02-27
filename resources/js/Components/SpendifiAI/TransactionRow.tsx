@@ -33,8 +33,11 @@ function formatDate(dateStr: string): string {
 }
 
 function formatAmount(amount: number): string {
-  const abs = Math.abs(amount);
-  return `${amount < 0 ? '-' : '+'}$${abs.toFixed(2)}`;
+  // Plaid convention: positive = debit (spent), negative = credit (received)
+  // Invert for display so deposits show as + and spending shows as -
+  const display = -amount;
+  const abs = Math.abs(display);
+  return `${display < 0 ? '-' : '+'}$${abs.toFixed(2)}`;
 }
 
 function confidenceLabel(confidence: number | null): string {
@@ -56,7 +59,7 @@ export default function TransactionRow({
   const [expanded, setExpanded] = useState(false);
   const [editingNote, setEditingNote] = useState(false);
   const [noteValue, setNoteValue] = useState(transaction.donation_note || '');
-  const isNegative = transaction.amount < 0;
+  const isDeposit = transaction.amount < 0; // Plaid: negative = money received
   const isDonation = transaction.category === 'Charity & Donations';
   const needsReview = transaction.review_status === 'needs_review';
   const hasOrderItems = (transaction.order_items?.length ?? 0) > 0;
@@ -187,7 +190,7 @@ export default function TransactionRow({
         )}
 
         {/* Amount */}
-        <span className={`text-sm font-semibold ${isNegative ? 'text-sw-text' : 'text-sw-accent'}`}>
+        <span className={`text-sm font-semibold ${isDeposit ? 'text-emerald-600' : 'text-sw-text'}`}>
           {formatAmount(transaction.amount)}
         </span>
 
