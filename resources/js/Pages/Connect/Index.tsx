@@ -472,6 +472,18 @@ export default function ConnectIndex() {
         </div>
       )}
 
+      {/* Plaid data coverage note */}
+      {connectedCount > 0 && (
+        <div className="flex items-start gap-3 rounded-xl border border-blue-200/60 bg-blue-50/50 px-4 py-3 mb-6">
+          <Info size={15} className="text-sw-accent shrink-0 mt-0.5" />
+          <div className="text-xs text-sw-text-secondary leading-relaxed">
+            <strong className="text-sw-text">Plaid provides up to 90 days of transaction history.</strong>{' '}
+            New transactions sync automatically every few hours. To get a more complete picture,
+            upload your bank statements for months beyond the 90-day window.
+          </div>
+        </div>
+      )}
+
       {/* Section 2: Connected Bank Accounts */}
       {loading && (
         <div className="flex items-center justify-center py-12">
