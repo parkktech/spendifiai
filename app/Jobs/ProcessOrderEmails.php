@@ -33,6 +33,18 @@ class ProcessOrderEmails implements ShouldQueue
         protected ?string $sinceDate = null
     ) {}
 
+    /**
+     * Handle job failure after all retries exhausted or timeout.
+     */
+    public function failed(?\Throwable $exception): void
+    {
+        $this->emailConnection->update(['sync_status' => 'failed']);
+        Log::error('Email sync job permanently failed', [
+            'connection_id' => $this->emailConnection->id,
+            'error' => $exception?->getMessage(),
+        ]);
+    }
+
     public function handle(GmailService $gmailService, ImapEmailService $imapService, MicrosoftOutlookService $microsoftService, EmailParserService $parser, TransactionGuidedSearchService $guidedSearch): void
     {
         $connection = $this->emailConnection;

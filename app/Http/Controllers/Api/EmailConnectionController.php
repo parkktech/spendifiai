@@ -203,6 +203,12 @@ class EmailConnectionController extends Controller
     {
         $connectionId = $request->input('connection_id');
 
+        // Reset stale syncs — if stuck syncing for over 30 minutes, it timed out
+        EmailConnection::where('user_id', auth()->id())
+            ->where('sync_status', 'syncing')
+            ->where('updated_at', '<', now()->subMinutes(30))
+            ->update(['sync_status' => 'failed']);
+
         $query = EmailConnection::where('user_id', auth()->id())
             ->where('sync_status', '!=', 'syncing');
 

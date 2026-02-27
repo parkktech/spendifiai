@@ -81,6 +81,11 @@ Schedule::call(function () {
 
 // ── Sync email accounts for order confirmations (every 6 hours) ──
 Schedule::call(function () {
+    // Reset stale syncs stuck for over 30 minutes (job timeout or crash)
+    EmailConnection::where('sync_status', 'syncing')
+        ->where('updated_at', '<', now()->subMinutes(30))
+        ->update(['sync_status' => 'failed']);
+
     EmailConnection::where('sync_status', '!=', 'syncing')->each(function ($conn) {
         ProcessOrderEmails::dispatch($conn);
     });
