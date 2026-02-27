@@ -398,10 +398,16 @@ class StatementUploadController extends Controller
     {
         $user = $request->user();
 
-        // Step 1: Identify eligible accounts (non-Plaid, active only)
+        // Step 1: Identify accounts with statement uploads (gap detection applies to uploaded data)
+        $accountIdsWithUploads = StatementUpload::where('user_id', $user->id)
+            ->where('status', 'complete')
+            ->whereNotNull('bank_account_id')
+            ->distinct()
+            ->pluck('bank_account_id');
+
         $accounts = BankAccount::where('user_id', $user->id)
             ->where('is_active', true)
-            ->whereHas('bankConnection', fn ($q) => $q->whereNull('plaid_item_id'))
+            ->whereIn('id', $accountIdsWithUploads)
             ->with('bankConnection:id,institution_name')
             ->get();
 
@@ -483,6 +489,7 @@ class StatementUploadController extends Controller
             }
 
             // Build raw statement intervals for this account
+            $hasUploads = $accountUploads->isNotEmpty();
             $rawIntervals = [];
             foreach ($accountUploads as $u) {
                 $rawIntervals[] = [
@@ -567,8 +574,8 @@ class StatementUploadController extends Controller
                 }
 
                 // Gap detection logic
-                if ($count === 0 && ! $hasStatement) {
-                    // Critical: no data at all for this month
+                if ($count === 0) {
+                    // Critical: no transactions for this month
                     $allGaps[] = [
                         'gap_key' => $gapKey,
                         'account_id' => $accountId,
@@ -580,12 +587,12 @@ class StatementUploadController extends Controller
                         'average_count' => round($avgCount),
                         'severity' => 'critical',
                         'reason' => 'No transactions found for this month',
-                        'has_statement' => false,
+                        'has_statement' => $hasStatement,
                         'gap_type' => 'full_month',
                     ];
                     $accountGapCount++;
-                } elseif (! empty($uncovered)) {
-                    // Partial month: check each uncovered range (>7 days to be worth alerting)
+                } elseif ($hasUploads && ! empty($uncovered)) {
+                    // Partial month: only check date-range gaps when statement uploads exist
                     foreach ($uncovered as $gap) {
                         $gapDays = $gap['from']->diffInDays($gap['to']) + 1;
                         if ($gapDays > 7) {
