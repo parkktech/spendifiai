@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef, useCallback } from 'react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, Link } from '@inertiajs/react';
 import {
@@ -29,6 +29,10 @@ import {
   ArrowRight,
   TrendingDown,
   Shield,
+  CalendarDays,
+  Clock,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 import SpendingChart from '@/Components/SpendifiAI/SpendingChart';
 import TransactionRow from '@/Components/SpendifiAI/TransactionRow';
@@ -53,6 +57,141 @@ function formatCurrency(amount: number): string {
 function formatCompact(amount: number): string {
   if (amount >= 1000) return `$${(amount / 1000).toFixed(0)}k`;
   return `$${amount.toFixed(0)}`;
+}
+
+// --- Upcoming Payments Carousel ---
+
+function UpcomingPaymentsCarousel({ bills }: { bills: RecurringBill[] }) {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(false);
+
+  const upcoming = useMemo(() => {
+    return bills
+      .filter(b => b.status === 'active' && b.next_expected_date)
+      .map(b => {
+        const dueDate = new Date(b.next_expected_date!);
+        dueDate.setHours(0, 0, 0, 0);
+        const diffMs = dueDate.getTime() - today.getTime();
+        const daysUntil = Math.round(diffMs / (1000 * 60 * 60 * 24));
+        return { ...b, dueDate, daysUntil };
+      })
+      .sort((a, b) => a.daysUntil - b.daysUntil);
+  }, [bills]);
+
+  const updateScrollState = useCallback(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    setCanScrollLeft(el.scrollLeft > 0);
+    setCanScrollRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 1);
+  }, []);
+
+  const scroll = useCallback((direction: 'left' | 'right') => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const cardWidth = 204; // w-48 (192px) + gap-3 (12px)
+    const amount = cardWidth * 2;
+    el.scrollBy({ left: direction === 'left' ? -amount : amount, behavior: 'smooth' });
+  }, []);
+
+  if (upcoming.length === 0) return null;
+
+  const next7Days = upcoming.filter(b => b.daysUntil >= 0 && b.daysUntil <= 7);
+  const next7Total = next7Days.reduce((s, b) => s + Number(b.amount), 0);
+
+  function getDueBadge(daysUntil: number) {
+    if (daysUntil < 0) return { label: 'Overdue', cls: 'bg-red-100 text-red-700 border-red-200' };
+    if (daysUntil === 0) return { label: 'Due today', cls: 'bg-red-100 text-red-700 border-red-200' };
+    if (daysUntil <= 3) return { label: `In ${daysUntil}d`, cls: 'bg-amber-100 text-amber-700 border-amber-200' };
+    if (daysUntil <= 7) return { label: `In ${daysUntil}d`, cls: 'bg-blue-100 text-blue-700 border-blue-200' };
+    return null;
+  }
+
+  return (
+    <div className="rounded-2xl border border-sw-border bg-sw-card p-6">
+      <div className="flex items-start justify-between mb-4">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-violet-50 border border-violet-200 flex items-center justify-center">
+            <CalendarDays size={20} className="text-violet-600" />
+          </div>
+          <div>
+            <h2 className="text-[15px] font-semibold text-sw-text">Upcoming Payments</h2>
+            <p className="text-xs text-sw-muted mt-0.5">{upcoming.length} scheduled charges</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-3">
+          {next7Total > 0 && (
+            <div className="text-right">
+              <div className="text-lg font-bold text-sw-text">{fmt.format(next7Total)}</div>
+              <div className="text-[11px] text-sw-dim">next 7 days</div>
+            </div>
+          )}
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => scroll('left')}
+              disabled={!canScrollLeft}
+              className="w-8 h-8 rounded-lg border border-sw-border flex items-center justify-center text-sw-muted hover:text-sw-text hover:bg-sw-surface transition disabled:opacity-30 disabled:cursor-default disabled:hover:bg-transparent disabled:hover:text-sw-muted"
+              aria-label="Scroll left"
+            >
+              <ChevronLeft size={16} />
+            </button>
+            <button
+              onClick={() => scroll('right')}
+              disabled={!canScrollRight}
+              className="w-8 h-8 rounded-lg border border-sw-border flex items-center justify-center text-sw-muted hover:text-sw-text hover:bg-sw-surface transition disabled:opacity-30 disabled:cursor-default disabled:hover:bg-transparent disabled:hover:text-sw-muted"
+              aria-label="Scroll right"
+            >
+              <ChevronRight size={16} />
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div className="relative">
+        <div
+          ref={scrollRef}
+          onScroll={updateScrollState}
+          onLoad={updateScrollState}
+          className="flex overflow-x-auto gap-3 pb-2 snap-x snap-mandatory scrollbar-hide"
+        >
+          {upcoming.map((bill, i) => {
+            const badge = getDueBadge(bill.daysUntil);
+            const dateStr = bill.dueDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+
+            return (
+              <div
+                key={bill.id}
+                ref={i === 0 ? () => { setTimeout(updateScrollState, 0); } : undefined}
+                className={`shrink-0 w-48 rounded-xl border border-sw-border bg-sw-card p-4 snap-start border-l-[3px] ${
+                  bill.is_essential ? 'border-l-emerald-400' : 'border-l-amber-400'
+                }`}
+              >
+                <div className="text-[13px] font-semibold text-sw-text truncate">
+                  {bill.merchant_normalized || bill.merchant_name}
+                </div>
+                <div className="text-lg font-bold text-sw-text mt-1">
+                  {fmt.format(bill.amount)}
+                </div>
+                <div className="flex items-center gap-1.5 mt-2">
+                  {badge ? (
+                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold border ${badge.cls}`}>
+                      <Clock size={10} />
+                      {badge.label}
+                    </span>
+                  ) : (
+                    <span className="text-[11px] text-sw-muted">{dateStr}</span>
+                  )}
+                </div>
+                <div className="text-[10px] text-sw-dim mt-1.5">{bill.frequency}</div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
 }
 
 // --- Budget Waterfall Section ---
@@ -1009,6 +1148,11 @@ export default function Dashboard() {
                   : 'Never'}
               </span>
             </div>
+          )}
+
+          {/* SECTION A2: Upcoming Payments Carousel */}
+          {data.recurring_bills.length > 0 && (
+            <UpcomingPaymentsCarousel bills={data.recurring_bills} />
           )}
 
           {/* SECTION B: Budget Reality Check + Home Affordability (side by side) */}
