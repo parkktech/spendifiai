@@ -3,7 +3,7 @@ import { Calendar, BarChart3, TrendingUp } from 'lucide-react';
 import type { TimelinePeriod, PeriodMeta } from '@/types/spendifiai';
 
 interface TimelineFilterProps {
-  onPeriodChange: (start: string | null, end: string | null, avgMode: 'total' | 'monthly_avg') => void;
+  onPeriodChange: (start: string | null, end: string | null, avgMode: 'total' | 'monthly_avg', isCustom?: boolean) => void;
   onDisplayModeChange?: (mode: 'dollars' | 'percent') => void;
   currentPeriod?: PeriodMeta;
 }
@@ -92,7 +92,7 @@ export default function TimelineFilter({ onPeriodChange, onDisplayModeChange, cu
 
   const handleCustomApply = () => {
     if (customStart && customEnd) {
-      onPeriodChange(customStart, customEnd, avgMode);
+      onPeriodChange(customStart, customEnd, avgMode, true);
     }
   };
 

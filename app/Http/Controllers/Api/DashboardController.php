@@ -62,8 +62,8 @@ class DashboardController extends Controller
             $lastMonthEnd = $monthStart->copy()->subDay()->endOfDay();
             $lastMonthStart = $lastMonthEnd->copy()->subDays($periodDays)->startOfDay();
 
-            // Period months for the selected date range
-            $periodMonths = max((int) $monthStart->diffInMonths($monthEnd), 1);
+            // Period months for the selected date range (round so presets stay accurate)
+            $periodMonths = max((int) round($monthStart->floatDiffInMonths($monthEnd)), 1);
 
             // Base query builder that respects the view filter
             $txQuery = fn () => Transaction::where('user_id', $user->id)

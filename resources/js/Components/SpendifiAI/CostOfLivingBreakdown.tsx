@@ -280,7 +280,7 @@ export default function CostOfLivingBreakdown({ data, incomeSources, onClassify,
             <div>
               <h2 className="text-[16px] font-bold text-sw-text tracking-tight">Cost of Living</h2>
               <p className="text-xs text-sw-muted mt-0.5">
-                Your must-pay monthly bills ({data.months_analyzed}-month average)
+                Your must-pay bills ({data.months_analyzed}-month average)
               </p>
             </div>
           </div>

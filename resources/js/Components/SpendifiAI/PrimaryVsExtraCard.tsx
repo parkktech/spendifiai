@@ -21,11 +21,13 @@ import {
   ArrowRight,
   Loader2,
 } from 'lucide-react';
+import { getPeriodLabels, DEFAULT_PERIOD_LABELS } from '@/utils/periodLabels';
 import type {
   PrimaryVsExtra,
   IncomeBreakdown,
   IncomeSource,
   CostOfLivingData,
+  PeriodMeta,
 } from '@/types/spendifiai';
 
 const fmt = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
@@ -89,6 +91,7 @@ interface Props {
   costOfLiving: CostOfLivingData;
   onClassify: (overrideType: string, overrideKey: string, classification: string) => Promise<void>;
   classifyLoading: boolean;
+  period?: PeriodMeta;
 }
 
 export default function PrimaryVsExtraCard({
@@ -97,9 +100,11 @@ export default function PrimaryVsExtraCard({
   costOfLiving,
   onClassify,
   classifyLoading,
+  period,
 }: Props) {
   const [showExtra, setShowExtra] = useState(false);
   const [loadingKey, setLoadingKey] = useState<string | null>(null);
+  const pl = period ? getPeriodLabels(period) : DEFAULT_PERIOD_LABELS;
 
   const coveragePct = data.coverage_pct;
   const canLive = data.can_live_on_primary;
@@ -152,7 +157,7 @@ export default function PrimaryVsExtraCard({
           <div>
             <h2 className="text-[16px] font-bold text-sw-text tracking-tight">Can You Live on Your Paycheck?</h2>
             <p className="text-xs text-sw-muted mt-0.5">
-              Regular income vs regular monthly expenses
+              Regular income vs regular expenses
             </p>
           </div>
           <div className={`px-3 py-1.5 rounded-lg text-xs font-bold border ${statusColor.bg} ${statusColor.border} ${statusColor.accent}`}>
@@ -204,7 +209,7 @@ export default function PrimaryVsExtraCard({
                 }
               </span>
               <span className={`font-bold ${canLive ? 'text-emerald-600' : 'text-red-600'}`}>
-                {canLive ? '+' : ''}{fmt.format(data.primary_surplus)}/mo
+                {canLive ? '+' : ''}{fmt.format(data.primary_surplus)}{pl.amountSuffix}
               </span>
             </div>
           )}
@@ -283,21 +288,21 @@ export default function PrimaryVsExtraCard({
             {canLive ? (
               coveragePct <= 85 ? (
                 <>
-                  Your regular paycheck ({fmt.format(data.primary_income)}) comfortably covers your monthly bills
-                  ({fmt.format(data.primary_expenses)}), leaving <span className="font-bold">{fmt.format(data.primary_surplus)}/mo</span> for
+                  Your regular paycheck ({fmt.format(data.primary_income)}) comfortably covers your bills
+                  ({fmt.format(data.primary_expenses)}), leaving <span className="font-bold">{fmt.format(data.primary_surplus)}{pl.amountSuffix}</span> for
                   savings and discretionary spending.
                 </>
               ) : (
                 <>
-                  Your paycheck just barely covers your bills. Only <span className="font-bold">{fmt.format(data.primary_surplus)}/mo</span> left
+                  Your paycheck just barely covers your bills. Only <span className="font-bold">{fmt.format(data.primary_surplus)}{pl.amountSuffix}</span> left
                   over. Consider moving some expenses to reduce your baseline.
                 </>
               )
             ) : (
               <>
-                Your regular income ({fmt.format(data.primary_income)}) doesn't cover your monthly bills
+                Your regular income ({fmt.format(data.primary_income)}) doesn't cover your bills
                 ({fmt.format(data.primary_expenses)}). You're relying on extra income of{' '}
-                <span className="font-bold">{fmt.format(data.extra_income)}/mo</span> to make up the difference.
+                <span className="font-bold">{fmt.format(data.extra_income)}{pl.amountSuffix}</span> to make up the difference.
               </>
             )}
           </p>
@@ -320,7 +325,7 @@ export default function PrimaryVsExtraCard({
               {/* Extra Income */}
               <div>
                 <div className="text-[11px] font-semibold text-amber-600 uppercase tracking-wider mb-2">
-                  Extra Income — {fmt.format(data.extra_income)}/mo
+                  Extra Income — {fmt.format(data.extra_income)}{pl.amountSuffix}
                 </div>
                 <div className="space-y-1">
                   {extraIncomeSources.map((source) => {
@@ -356,7 +361,7 @@ export default function PrimaryVsExtraCard({
               {/* Extra Expenses */}
               <div>
                 <div className="text-[11px] font-semibold text-amber-600 uppercase tracking-wider mb-2">
-                  Extra Expenses — {fmt.format(data.extra_expenses)}/mo
+                  Extra Expenses — {fmt.format(data.extra_expenses)}{pl.amountSuffix}
                 </div>
                 <div className="space-y-1">
                   {data.extra_expenses > 0 && (

@@ -25,6 +25,7 @@ import {
 } from 'lucide-react';
 import axios from 'axios';
 import StoreOrderItemsList from './StoreOrderItemsList';
+import { getPeriodLabels, DEFAULT_PERIOD_LABELS } from '@/utils/periodLabels';
 import type { TopStore, StoreDetail, StoreTransaction, PeriodMeta } from '@/types/spendifiai';
 
 const fmt = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
@@ -122,6 +123,7 @@ export default function TopStoresSection({ stores, total, period, avgMode }: Top
 
   const months = period?.months ?? 1;
   const showAvg = avgMode === 'monthly_avg' && months > 1;
+  const pl = period ? getPeriodLabels(period) : DEFAULT_PERIOD_LABELS;
 
   return (
     <div className="rounded-2xl border border-sw-border bg-sw-card p-6">
@@ -134,7 +136,7 @@ export default function TopStoresSection({ stores, total, period, avgMode }: Top
           <div>
             <h2 className="text-[15px] font-semibold text-sw-text">Where You Shop Most</h2>
             <p className="text-xs text-sw-muted mt-0.5">
-              {stores.length} stores · {showAvg ? 'monthly avg' : 'total'} {fmt.format(showAvg ? total / months : total)}
+              {stores.length} stores · {pl.periodAdjective} {fmt.format(showAvg ? total / months : total)}
             </p>
           </div>
         </div>
@@ -163,7 +165,7 @@ export default function TopStoresSection({ stores, total, period, avgMode }: Top
               <Tooltip
                 formatter={(value: number | undefined) => [
                   `$${(value ?? 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
-                  showAvg ? 'Monthly Avg' : 'Total',
+                  pl.periodAdjective,
                 ]}
                 contentStyle={{
                   background: '#fff',
@@ -281,7 +283,7 @@ export default function TopStoresSection({ stores, total, period, avgMode }: Top
                           <div>
                             <div className="flex items-center gap-2 mb-2">
                               <Store size={12} className="text-sw-muted" />
-                              <span className="text-xs font-medium text-sw-text">Monthly Spending</span>
+                              <span className="text-xs font-medium text-sw-text">{pl.periodAdjective} Spending</span>
                               <span className="text-[10px] text-sw-dim ml-1">Click a month to see transactions</span>
                             </div>
                             <ResponsiveContainer width="100%" height={120}>

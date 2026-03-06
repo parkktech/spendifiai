@@ -46,6 +46,8 @@ import TimelineFilter from '@/Components/SpendifiAI/TimelineFilter';
 import TopStoresSection from '@/Components/SpendifiAI/TopStoresSection';
 import CharitableGivingSection from '@/Components/SpendifiAI/CharitableGivingSection';
 import { useApi, useApiPost } from '@/hooks/useApi';
+import { getPeriodLabels, DEFAULT_PERIOD_LABELS } from '@/utils/periodLabels';
+import type { PeriodLabels } from '@/utils/periodLabels';
 import type { DashboardData, RecurringBill, BudgetWaterfall, HomeAffordability } from '@/types/spendifiai';
 
 const fmt = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
@@ -196,7 +198,7 @@ function UpcomingPaymentsCarousel({ bills }: { bills: RecurringBill[] }) {
 
 // --- Budget Waterfall Section ---
 
-function BudgetWaterfallSection({ waterfall, displayMode = 'dollars' }: { waterfall: BudgetWaterfall; displayMode?: 'dollars' | 'percent' }) {
+function BudgetWaterfallSection({ waterfall, displayMode = 'dollars', pl = DEFAULT_PERIOD_LABELS }: { waterfall: BudgetWaterfall; displayMode?: 'dollars' | 'percent'; pl?: PeriodLabels }) {
   const surplus = waterfall.monthly_surplus;
   const canSave = waterfall.can_save;
   const rate = waterfall.savings_rate;
@@ -212,7 +214,7 @@ function BudgetWaterfallSection({ waterfall, displayMode = 'dollars' }: { waterf
           </div>
           <div>
             <h2 className="text-[15px] font-semibold text-sw-text">Budget Reality Check</h2>
-            <p className="text-xs text-sw-muted mt-0.5">Where every dollar goes this month</p>
+            <p className="text-xs text-sw-muted mt-0.5">{pl.waterfallSubtitle}</p>
           </div>
         </div>
         <div className={`px-3 py-1.5 rounded-lg text-xs font-bold ${canSave ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-red-50 text-red-700 border border-red-200'}`}>
@@ -271,7 +273,7 @@ function BudgetWaterfallSection({ waterfall, displayMode = 'dollars' }: { waterf
         <div className="flex items-center justify-between py-1.5">
           <div className="flex items-center gap-2.5">
             <div className="w-3 h-3 rounded-sm bg-emerald-500" />
-            <span className="text-sm text-sw-text">Monthly Income</span>
+            <span className="text-sm text-sw-text">{pl.incomeLabel}</span>
           </div>
           <span className="text-sm font-bold text-emerald-700">{showPct ? '100%' : fmt.format(waterfall.monthly_income)}</span>
         </div>
@@ -297,7 +299,7 @@ function BudgetWaterfallSection({ waterfall, displayMode = 'dollars' }: { waterf
           <span className="text-sm font-semibold text-orange-600">-{showPct ? pctOf(waterfall.discretionary_spending) : fmt.format(waterfall.discretionary_spending)}</span>
         </div>
         <div className="border-t border-sw-border pt-2.5 flex items-center justify-between">
-          <span className="text-sm font-bold text-sw-text">{canSave ? 'Monthly Surplus' : 'Monthly Deficit'}</span>
+          <span className="text-sm font-bold text-sw-text">{canSave ? pl.surplusLabel : pl.deficitLabel}</span>
           <span className={`text-lg font-bold ${canSave ? 'text-emerald-700' : 'text-red-600'}`}>
             {canSave ? '+' : ''}{showPct ? `${Math.abs(rate)}%` : fmt.format(surplus)}
           </span>
@@ -308,8 +310,8 @@ function BudgetWaterfallSection({ waterfall, displayMode = 'dollars' }: { waterf
       <div className={`mt-4 rounded-xl p-4 ${canSave ? 'bg-emerald-50 border border-emerald-200' : 'bg-red-50 border border-red-200'}`}>
         <p className={`text-sm font-medium ${canSave ? 'text-emerald-800' : 'text-red-800'}`}>
           {canSave
-            ? `Yes, you can save! You have ${fmt.format(surplus)}/mo left after all expenses. That's a ${rate}% savings rate.`
-            : `You're spending ${fmt.format(Math.abs(surplus))}/mo more than you earn. You need to cut expenses to start saving.`
+            ? `Yes, you can save! You have ${fmt.format(surplus)}${pl.amountSuffix} left after all expenses. That's a ${rate}% savings rate.`
+            : `You're spending ${fmt.format(Math.abs(surplus))}${pl.amountSuffix} more than you earn. You need to cut expenses to start saving.`
           }
         </p>
       </div>
@@ -876,6 +878,7 @@ export default function Dashboard() {
   const [periodEnd, setPeriodEnd] = useState<string | null>(null);
   const [avgMode, setAvgMode] = useState<'total' | 'monthly_avg'>('total');
   const [displayMode, setDisplayMode] = useState<'dollars' | 'percent'>('dollars');
+  const [isCustomRange, setIsCustomRange] = useState(false);
 
   const dashboardUrl = useMemo(() => {
     const params = new URLSearchParams();
@@ -915,6 +918,8 @@ export default function Dashboard() {
     () => actionItems.reduce((s, i) => s + i.monthlySavings, 0),
     [actionItems]
   );
+
+  const pl = useMemo(() => data ? getPeriodLabels(data.period, isCustomRange) : DEFAULT_PERIOD_LABELS, [data, isCustomRange]);
 
   const showToast = (msg: string) => {
     setToast(msg);
@@ -1025,7 +1030,7 @@ export default function Dashboard() {
 
     if (canSave && surplus > 500) {
       return {
-        headline: `You can save ${formatCurrency(surplus)}/mo`,
+        headline: `You can save ${formatCurrency(surplus)}${pl.amountSuffix}`,
         sub: totalPotentialSavings > 0
           ? `Plus AI found ${fmt.format(totalPotentialSavings)}/mo more you could save by cutting expenses.`
           : 'Your spending is under control. Keep it up.',
@@ -1033,7 +1038,7 @@ export default function Dashboard() {
     }
     if (canSave) {
       return {
-        headline: `${formatCurrency(surplus)}/mo left after bills`,
+        headline: `${formatCurrency(surplus)}${pl.amountSuffix} left after bills`,
         sub: 'Tight but possible. See the action items below to free up more cash.',
       };
     }
@@ -1092,10 +1097,11 @@ export default function Dashboard() {
       {/* Timeline Filter — always visible, persists during loading */}
       {!error && (
         <TimelineFilter
-          onPeriodChange={(start, end, mode) => {
+          onPeriodChange={(start, end, mode, isCustom) => {
             setPeriodStart(start);
             setPeriodEnd(end);
             setAvgMode(mode);
+            setIsCustomRange(!!isCustom);
           }}
           onDisplayModeChange={(mode) => setDisplayMode(mode)}
           currentPeriod={data?.period}
@@ -1157,7 +1163,7 @@ export default function Dashboard() {
 
           {/* SECTION B: Budget Reality Check + Home Affordability (side by side) */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-            <BudgetWaterfallSection waterfall={data.budget_waterfall} displayMode={displayMode} />
+            <BudgetWaterfallSection waterfall={data.budget_waterfall} displayMode={displayMode} pl={pl} />
             <HomeAffordabilitySection affordability={data.home_affordability} />
           </div>
 
@@ -1169,6 +1175,7 @@ export default function Dashboard() {
               costOfLiving={data.cost_of_living}
               onClassify={handleClassify}
               classifyLoading={classifyLoading}
+              period={data.period}
             />
           )}
 
