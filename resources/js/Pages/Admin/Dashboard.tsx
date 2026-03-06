@@ -1,17 +1,22 @@
 import { useEffect, useState } from 'react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, Link } from '@inertiajs/react';
-import { Database, CheckCircle, XCircle, Link2, ChevronRight } from 'lucide-react';
-import type { AdminStats } from '@/types/spendifiai';
+import { Database, CheckCircle, XCircle, Link2, ChevronRight, Heart, Star } from 'lucide-react';
+import type { AdminStats, AdminCharityStats } from '@/types/spendifiai';
 import axios from 'axios';
 
 export default function AdminDashboard() {
   const [stats, setStats] = useState<AdminStats | null>(null);
+  const [charityStats, setCharityStats] = useState<AdminCharityStats | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    axios.get('/api/admin/stats').then((res) => {
-      setStats(res.data);
+    Promise.all([
+      axios.get('/api/admin/stats'),
+      axios.get('/api/admin/charities/stats'),
+    ]).then(([statsRes, charityRes]) => {
+      setStats(statsRes.data);
+      setCharityStats(charityRes.data);
       setLoading(false);
     }).catch(() => setLoading(false));
   }, []);
@@ -37,14 +42,22 @@ export default function AdminDashboard() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-xl font-bold text-sw-text">Admin Dashboard</h1>
-            <p className="text-xs text-sw-dim mt-0.5">Manage cancellation providers</p>
+            <p className="text-xs text-sw-dim mt-0.5">Manage providers and charitable organizations</p>
           </div>
-          <Link
-            href="/admin/providers"
-            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-sw-accent hover:bg-sw-accent-hover text-white text-xs font-semibold transition"
-          >
-            Manage Providers <ChevronRight size={14} />
-          </Link>
+          <div className="flex items-center gap-2">
+            <Link
+              href="/admin/charities"
+              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border border-sw-accent text-sw-accent hover:bg-sw-accent/5 text-xs font-semibold transition"
+            >
+              Manage Charities <Heart size={14} />
+            </Link>
+            <Link
+              href="/admin/providers"
+              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-sw-accent hover:bg-sw-accent-hover text-white text-xs font-semibold transition"
+            >
+              Manage Providers <ChevronRight size={14} />
+            </Link>
+          </div>
         </div>
       }
     >
@@ -69,6 +82,31 @@ export default function AdminDashboard() {
           </div>
         ))}
       </div>
+
+      {/* Charity Stats */}
+      {charityStats && (
+        <div className="mb-8">
+          <h2 className="text-sm font-semibold text-sw-text mb-3">Charitable Organizations</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {[
+              { label: 'Total Charities', value: charityStats.total_charities, icon: <Heart size={18} />, color: 'text-emerald-600' },
+              { label: 'Active', value: charityStats.active_charities, icon: <CheckCircle size={18} />, color: 'text-sw-success' },
+              { label: 'Featured', value: charityStats.featured_charities, icon: <Star size={18} />, color: 'text-amber-500' },
+              { label: 'With Donate URL', value: charityStats.with_donate_url, icon: <Link2 size={18} />, color: 'text-sw-info' },
+            ].map((stat) => (
+              <div key={stat.label} className="rounded-lg border border-sw-border bg-sw-card p-4">
+                <div className="flex items-center gap-3">
+                  <div className={`${stat.color}`}>{stat.icon}</div>
+                  <div>
+                    <div className="text-2xl font-bold text-sw-text">{stat.value}</div>
+                    <div className="text-xs text-sw-dim">{stat.label}</div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Categories */}
       {stats?.categories && stats.categories.length > 0 && (

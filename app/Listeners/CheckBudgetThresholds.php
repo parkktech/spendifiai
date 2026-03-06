@@ -24,14 +24,20 @@ class CheckBudgetThresholds implements ShouldQueue
         $endOfMonth = now()->endOfMonth();
 
         foreach ($budgetGoals as $goal) {
+            $categorySlug = $goal->category_slug;
+
+            if (! $categorySlug) {
+                continue;
+            }
+
             // Sum spending for current month in this category
             $spent = (float) Transaction::where('user_id', $user->id)
                 ->where('transaction_date', '>=', $startOfMonth)
                 ->where('transaction_date', '<=', $endOfMonth)
                 ->where('amount', '>', 0) // only spending
-                ->where(function ($q) use ($goal) {
-                    $q->where('user_category', $goal->category)
-                      ->orWhere('ai_category', $goal->category);
+                ->where(function ($q) use ($categorySlug) {
+                    $q->where('user_category', $categorySlug)
+                        ->orWhere('ai_category', $categorySlug);
                 })
                 ->sum('amount');
 
@@ -42,35 +48,34 @@ class CheckBudgetThresholds implements ShouldQueue
             }
 
             $percentage = ($spent / $budget) * 100;
-            $threshold = (float) ($goal->alert_threshold ?? 80);
 
-            if ($percentage >= 100) {
+            if ($percentage >= 100 && $goal->notify_at_100_pct) {
                 $user->notify(new BudgetThresholdReached(
-                    category: $goal->category,
+                    category: $categorySlug,
                     spent: $spent,
                     budget: $budget,
                     exceeded: true,
                 ));
 
                 Log::info('Budget exceeded', [
-                    'user_id'  => $user->id,
-                    'category' => $goal->category,
-                    'spent'    => $spent,
-                    'budget'   => $budget,
+                    'user_id' => $user->id,
+                    'category' => $categorySlug,
+                    'spent' => $spent,
+                    'budget' => $budget,
                 ]);
-            } elseif ($percentage >= $threshold) {
+            } elseif ($percentage >= 80 && $goal->notify_at_80_pct) {
                 $user->notify(new BudgetThresholdReached(
-                    category: $goal->category,
+                    category: $categorySlug,
                     spent: $spent,
                     budget: $budget,
                     exceeded: false,
                 ));
 
                 Log::info('Budget threshold reached', [
-                    'user_id'    => $user->id,
-                    'category'   => $goal->category,
-                    'spent'      => $spent,
-                    'budget'     => $budget,
+                    'user_id' => $user->id,
+                    'category' => $categorySlug,
+                    'spent' => $spent,
+                    'budget' => $budget,
                     'percentage' => round($percentage),
                 ]);
             }

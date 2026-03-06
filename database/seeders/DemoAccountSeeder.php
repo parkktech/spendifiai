@@ -57,7 +57,7 @@ class DemoAccountSeeder extends Seeder
             'institution_name' => 'Chase',
             'institution_id' => 'ins_3',
             'status' => 'active',
-            'last_synced_at' => now()->subHours(6),
+            'last_synced_at' => now()->subMinutes(rand(10, 45)),
         ]);
 
         $businessConn = BankConnection::create([
@@ -67,7 +67,7 @@ class DemoAccountSeeder extends Seeder
             'institution_name' => 'American Express',
             'institution_id' => 'ins_10',
             'status' => 'active',
-            'last_synced_at' => now()->subHours(6),
+            'last_synced_at' => now()->subMinutes(rand(10, 45)),
         ]);
 
         // ── Bank Accounts ──
@@ -514,24 +514,46 @@ class DemoAccountSeeder extends Seeder
                 ]);
             }
 
-            // Shopping (1-2 per month)
-            $shops = [
-                ['AMAZON.COM', 'amazon', 25, 120],
-                ['TARGET', 'target', 30, 90],
-            ];
-
-            foreach ($shops as $idx => [$name, $norm, $min, $max]) {
+            // Amazon (1 per month for months 0-3, matched to email receipts with mixed biz/personal items)
+            $amazonAmounts = [0 => 546.60, 1 => 443.76, 2 => 172.07, 3 => 352.84];
+            if (isset($amazonAmounts[$m])) {
                 $txns[] = Transaction::create([
                     'user_id' => $user->id,
                     'bank_account_id' => $checking->id,
                     'plaid_transaction_id' => 'demo-txn-'.($txnId++),
                     'account_purpose' => 'personal',
-                    'merchant_name' => $name,
-                    'merchant_normalized' => $norm,
-                    'description' => 'Online Purchase',
-                    'amount' => $this->rand($min, $max),
-                    'transaction_date' => $month->copy()->day(rand(10 + ($idx * 10), 20 + ($idx * 5))),
-                    'authorized_date' => $month->copy()->day(rand(10 + ($idx * 10), 20 + ($idx * 5))),
+                    'merchant_name' => 'AMAZON.COM',
+                    'merchant_normalized' => 'amazon',
+                    'description' => 'AMZN Mktp US',
+                    'amount' => $amazonAmounts[$m],
+                    'transaction_date' => $month->copy()->day(rand(10, 20)),
+                    'authorized_date' => $month->copy()->day(rand(10, 20)),
+                    'payment_channel' => 'online',
+                    'plaid_category' => 'GENERAL_MERCHANDISE',
+                    'plaid_detailed_category' => 'GENERAL_MERCHANDISE_ONLINE_MARKETPLACES',
+                    'plaid_metadata' => [],
+                    'ai_category' => 'Shopping & Retail',
+                    'ai_confidence' => 0.82,
+                    'expense_type' => 'mixed',
+                    'tax_deductible' => false,
+                    'review_status' => 'auto_categorized',
+                    'is_reconciled' => true,
+                ]);
+            }
+
+            // Amazon — smaller additional purchases (months 4-5, no email receipt)
+            if ($m >= 4) {
+                $txns[] = Transaction::create([
+                    'user_id' => $user->id,
+                    'bank_account_id' => $checking->id,
+                    'plaid_transaction_id' => 'demo-txn-'.($txnId++),
+                    'account_purpose' => 'personal',
+                    'merchant_name' => 'AMAZON.COM',
+                    'merchant_normalized' => 'amazon',
+                    'description' => 'AMZN Mktp US',
+                    'amount' => $this->rand(25, 85),
+                    'transaction_date' => $month->copy()->day(rand(10, 20)),
+                    'authorized_date' => $month->copy()->day(rand(10, 20)),
                     'payment_channel' => 'online',
                     'plaid_category' => 'GENERAL_MERCHANDISE',
                     'plaid_detailed_category' => 'GENERAL_MERCHANDISE_ONLINE_MARKETPLACES',
@@ -541,9 +563,33 @@ class DemoAccountSeeder extends Seeder
                     'expense_type' => 'personal',
                     'tax_deductible' => false,
                     'review_status' => 'auto_categorized',
-                    'is_reconciled' => $name === 'AMAZON.COM' && $m <= 1,
+                    'is_reconciled' => false,
                 ]);
             }
+
+            // Target shopping (1 per month)
+            $txns[] = Transaction::create([
+                'user_id' => $user->id,
+                'bank_account_id' => $checking->id,
+                'plaid_transaction_id' => 'demo-txn-'.($txnId++),
+                'account_purpose' => 'personal',
+                'merchant_name' => 'TARGET',
+                'merchant_normalized' => 'target',
+                'description' => 'Online Purchase',
+                'amount' => $this->rand(30, 90),
+                'transaction_date' => $month->copy()->day(rand(20, 25)),
+                'authorized_date' => $month->copy()->day(rand(20, 25)),
+                'payment_channel' => 'online',
+                'plaid_category' => 'GENERAL_MERCHANDISE',
+                'plaid_detailed_category' => 'GENERAL_MERCHANDISE_ONLINE_MARKETPLACES',
+                'plaid_metadata' => [],
+                'ai_category' => 'Shopping & Retail',
+                'ai_confidence' => 0.88,
+                'expense_type' => 'personal',
+                'tax_deductible' => false,
+                'review_status' => 'auto_categorized',
+                'is_reconciled' => false,
+            ]);
 
             // ── BUSINESS EXPENSES (on business card) ──
 
@@ -977,7 +1023,7 @@ class DemoAccountSeeder extends Seeder
             'refresh_token' => 'demo-gmail-refresh-token',
             'token_expires_at' => now()->addHours(1),
             'status' => 'active',
-            'last_synced_at' => now()->subHours(6),
+            'last_synced_at' => now()->subMinutes(rand(10, 45)),
         ]);
 
         $emailIdx = 1;
@@ -989,31 +1035,43 @@ class DemoAccountSeeder extends Seeder
             [
                 'merchant' => 'Amazon', 'match_merchant' => 'amazon', 'months_ago' => 0,
                 'items' => [
-                    ['USB-C Hub Adapter', 'Anker 7-in-1 hub for home office', 34.99, true, 'Office Equipment'],
-                    ['Wireless Mouse', 'Logitech MX Master 3S', 29.99, true, 'Office Equipment'],
-                    ['Phone Case', 'Spigen Ultra Hybrid for iPhone 15', 15.99, false, 'Shopping & Retail'],
+                    ['LG 27" 4K Monitor', 'LG 27UN850-W UHD IPS monitor for home office', 299.99, true, 'Office Equipment'],
+                    ['USB-C Docking Station', 'Anker 13-in-1 Thunderbolt dock', 64.99, true, 'Office Equipment'],
+                    ['HP 63XL Ink Cartridges', 'Black + tri-color combo pack', 42.99, true, 'Office Supplies'],
+                    ['Dog Food — Purina Pro Plan 35lb', 'Chicken & rice formula adult dog', 52.99, false, 'Pet Care'],
+                    ['Birthday Party Supplies Kit', 'Plates, napkins, balloons, banner — 24 guests', 24.99, false, 'Shopping & Retail'],
+                    ['Kitchen Towels 8-Pack', 'Cotton dish towels assorted colors', 18.99, false, 'Household'],
                 ],
             ],
             [
                 'merchant' => 'Amazon', 'match_merchant' => 'amazon', 'months_ago' => 1,
                 'items' => [
-                    ['Mechanical Keyboard', 'Keychron K2 wireless 75%', 89.99, true, 'Office Equipment'],
-                    ['Desk Mat', 'Leather desk pad 36x17', 24.99, true, 'Office Supplies'],
-                    ['Webcam', 'Logitech C920 HD Pro', 69.99, true, 'Office Equipment'],
+                    ['Ergonomic Office Chair', 'HON Ignition 2.0 mesh back adjustable', 249.99, true, 'Office Equipment'],
+                    ['TurboTax Self-Employed 2025', 'Federal + state e-file, Schedule C', 89.99, true, 'Professional Services'],
+                    ['Company of One by Paul Jarvis', 'Paperback — why staying small is the next big thing', 14.99, true, 'Education & Books'],
+                    ['Yoga Mat', 'Gaiam essentials thick fitness mat 72x24', 29.99, false, 'Health & Fitness'],
+                    ['Vitamin D3 Supplements', 'NatureWise 5000 IU 360 softgels', 14.99, false, 'Health & Fitness'],
+                    ['HDMI Cable 10ft', 'Highwings braided 4K@60Hz cable', 9.99, true, 'Office Supplies'],
                 ],
             ],
             [
                 'merchant' => 'Amazon', 'match_merchant' => 'amazon', 'months_ago' => 2,
                 'items' => [
-                    ['Ring Light', '10" LED ring light with tripod', 29.99, true, 'Office Equipment'],
-                    ['Blue Light Glasses', 'Computer glasses 2-pack', 18.99, false, 'Shopping & Retail'],
+                    ['Ring Light with Tripod Stand', 'Neewer 18" LED bi-color dimmable', 34.99, true, 'Office Equipment'],
+                    ['Noise-Cancelling Headphones', 'Sony WH-1000XM5 wireless over-ear', 79.99, true, 'Office Equipment'],
+                    ['Cat Litter 40lb Box', 'Arm & Hammer Clump & Seal multi-cat', 21.99, false, 'Pet Care'],
+                    ['Laundry Detergent Pods 42ct', 'Tide PODS Free & Gentle', 13.99, false, 'Household'],
+                    ['Webcam Privacy Cover 3-Pack', 'Slide cover for laptop camera', 7.99, true, 'Office Supplies'],
                 ],
             ],
             [
                 'merchant' => 'Amazon', 'match_merchant' => 'amazon', 'months_ago' => 3,
                 'items' => [
-                    ['Standing Desk Converter', 'FlexiSpot 35" desktop riser', 199.99, true, 'Office Equipment'],
-                    ['Cable Management Kit', 'Under desk cable tray + clips', 22.99, true, 'Office Supplies'],
+                    ['Client Gift Basket — Gourmet Snacks', 'Broadway Basketeers assorted treats box', 45.99, true, 'Business Gifts'],
+                    ['Professional Business Cards 500ct', 'Premium matte finish custom design', 29.99, true, 'Marketing & Advertising'],
+                    ['Portable SSD 1TB', 'Samsung T7 Shield USB 3.2 drive', 89.99, true, 'Office Equipment'],
+                    ['Bluetooth Speaker', 'JBL Flip 6 waterproof portable', 39.99, false, 'Electronics'],
+                    ['Running Shoes — Nike Pegasus', 'Nike Air Zoom Pegasus 41 men\'s', 119.99, false, 'Shopping & Retail'],
                 ],
             ],
             [
@@ -1060,6 +1118,7 @@ class DemoAccountSeeder extends Seeder
                     ['Printer Paper (5 reams)', 'HP Premium 8.5x11 2500 sheets', 32.99, true, 'Office Supplies'],
                     ['K-Cup Variety Pack', 'Kirkland Signature 80-count', 38.99, false, 'Food & Groceries'],
                     ['Batteries', 'Kirkland AA 48-pack', 15.99, false, 'Household'],
+                    ['Desk Chair Mat', 'Deflecto 46x60 clear polycarbonate for carpet', 39.99, true, 'Office Equipment'],
                 ],
             ],
             [
@@ -1099,6 +1158,12 @@ class DemoAccountSeeder extends Seeder
                     ['AirPods Pro 2', 'With MagSafe charging case', 249.00, false, 'Electronics'],
                 ],
             ],
+            [
+                'merchant' => 'Uber', 'match_merchant' => 'uber', 'months_ago' => 1,
+                'items' => [
+                    ['Client Meeting — Downtown Trip', 'UberX from home office to 200 Main St, 8.3 mi', 28.50, true, 'Travel & Transportation'],
+                ],
+            ],
         ];
 
         foreach ($orderData as $data) {
@@ -1117,12 +1182,16 @@ class DemoAccountSeeder extends Seeder
                 'search_source' => $emailIdx <= 10 ? 'keyword' : 'transaction_guided',
             ]);
 
-            // Match to a transaction by merchant and ensure we don't double-match
-            $matchTxn = $txnCollection->first(function ($t) use ($data, $reconciledTxnIds) {
-                return str_contains(strtolower($t->merchant_normalized ?? ''), $data['match_merchant'])
-                    && ! in_array($t->id, $reconciledTxnIds)
-                    && (float) $t->amount > 0;
-            });
+            // Match to a transaction by merchant + closest date, ensuring no double-match
+            $targetDate = now()->subMonths($data['months_ago']);
+            $matchTxn = $txnCollection
+                ->filter(function ($t) use ($data, $reconciledTxnIds) {
+                    return str_contains(strtolower($t->merchant_normalized ?? ''), $data['match_merchant'])
+                        && ! in_array($t->id, $reconciledTxnIds)
+                        && (float) $t->amount > 0;
+                })
+                ->sortBy(fn ($t) => abs($t->transaction_date->diffInDays($targetDate)))
+                ->first();
 
             if ($matchTxn) {
                 $reconciledTxnIds[] = $matchTxn->id;
@@ -1145,9 +1214,16 @@ class DemoAccountSeeder extends Seeder
                 'is_reconciled' => (bool) $matchTxn,
             ]);
 
-            // Link the transaction back to the order
+            // Link the transaction back to the order and update classification from items
             if ($matchTxn) {
-                $matchTxn->update(['matched_order_id' => $order->id]);
+                $hasBusiness = collect($data['items'])->contains(fn ($i) => $i[3] === true);
+                $hasPersonal = collect($data['items'])->contains(fn ($i) => $i[3] === false);
+                $expenseType = ($hasBusiness && $hasPersonal) ? 'mixed' : ($hasBusiness ? 'business' : 'personal');
+
+                $matchTxn->update([
+                    'matched_order_id' => $order->id,
+                    'expense_type' => $expenseType,
+                ]);
             }
 
             foreach ($data['items'] as $item) {

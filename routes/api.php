@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\CancellationProviderController;
+use App\Http\Controllers\Admin\CharitableOrganizationController;
 use App\Http\Controllers\Api\AIQuestionController;
 use App\Http\Controllers\Api\BankAccountController;
 use App\Http\Controllers\Api\DashboardController;
@@ -247,5 +248,13 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::delete('/providers/{provider}', [CancellationProviderController::class, 'destroy']);
         Route::post('/providers/bulk-import', [CancellationProviderController::class, 'bulkImport']);
         Route::post('/providers/{provider}/find-link', [CancellationProviderController::class, 'findCancellationLink']);
+
+        // Charitable Organizations
+        Route::get('/charities/stats', [CharitableOrganizationController::class, 'stats']);
+        Route::get('/charities', [CharitableOrganizationController::class, 'index']);
+        Route::post('/charities', [CharitableOrganizationController::class, 'store']);
+        Route::get('/charities/{charity}', [CharitableOrganizationController::class, 'show']);
+        Route::patch('/charities/{charity}', [CharitableOrganizationController::class, 'update']);
+        Route::delete('/charities/{charity}', [CharitableOrganizationController::class, 'destroy']);
     });
 });

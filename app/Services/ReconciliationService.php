@@ -265,10 +265,14 @@ class ReconciliationService
             $orderMerchant = $order->merchant_normalized ?? $order->merchant;
 
             if ($bankName && $orderMerchant && strtoupper($bankName) !== strtoupper($orderMerchant)) {
-                MerchantAlias::updateOrCreate(
+                $alias = MerchantAlias::firstOrCreate(
                     ['bank_name' => $bankName, 'normalized_name' => $orderMerchant],
-                    ['source' => 'reconciliation', 'match_count' => DB::raw('match_count + 1')]
+                    ['source' => 'reconciliation', 'match_count' => 1]
                 );
+
+                if (! $alias->wasRecentlyCreated) {
+                    $alias->increment('match_count');
+                }
 
                 // Invalidate alias cache so new aliases are used immediately
                 Cache::forget('merchant_aliases');

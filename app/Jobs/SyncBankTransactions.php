@@ -27,6 +27,12 @@ class SyncBankTransactions implements ShouldQueue
 
     public function handle(PlaidService $plaidService): void
     {
+        // Skip connections without valid Plaid tokens (e.g. demo/seeded data)
+        $token = $this->bankConnection->plaid_access_token;
+        if (! $token || ! str_starts_with($token, 'access-')) {
+            return;
+        }
+
         try {
             $result = $plaidService->syncTransactions($this->bankConnection);
 

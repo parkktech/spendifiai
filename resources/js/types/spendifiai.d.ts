@@ -276,10 +276,19 @@ export interface CharitableGiving {
   period_total: number;
   ytd_total: number;
   transaction_count: number;
+  ytd_count: number;
   estimated_tax_savings: number;
   tax_rate_used: number;
   top_recipients: Array<{ recipient: string; total: number; count: number; note: string | null }>;
   recent_donations: Array<{ id: number; merchant: string; amount: number; date: string; note: string | null; tax_deductible: boolean }>;
+  recommended_charities: Array<{
+    name: string;
+    description: string | null;
+    donate_url: string | null;
+    website_url: string | null;
+    category: string;
+    ein: string | null;
+  }>;
 }
 
 export interface TaxLineItem {
@@ -753,4 +762,39 @@ export interface AdminProvidersResponse {
     per_page: number;
     total: number;
   };
+}
+
+export interface CharitableOrganization {
+  id: number;
+  name: string;
+  slug: string;
+  description: string | null;
+  website_url: string | null;
+  donate_url: string | null;
+  category: string | null;
+  ein: string | null;
+  is_featured: boolean;
+  is_active: boolean;
+  sort_order: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AdminCharitiesResponse {
+  charities: CharitableOrganization[];
+  meta: {
+    current_page: number;
+    last_page: number;
+    per_page: number;
+    total: number;
+  };
+}
+
+export interface AdminCharityStats {
+  total_charities: number;
+  active_charities: number;
+  featured_charities: number;
+  with_donate_url: number;
+  categories: Array<{ category: string; count: number }>;
+  recently_added: CharitableOrganization[];
 }

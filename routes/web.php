@@ -52,6 +52,9 @@ Route::middleware(['auth:sanctum', 'verified'])->group(function () {
         Route::get('/admin/providers', fn () => Inertia::render('Admin/Providers/Index'))->name('admin.providers');
         Route::get('/admin/providers/create', fn () => Inertia::render('Admin/Providers/Create'))->name('admin.providers.create');
         Route::get('/admin/providers/{provider}/edit', fn () => Inertia::render('Admin/Providers/Edit'))->name('admin.providers.edit');
+        Route::get('/admin/charities', fn () => Inertia::render('Admin/Charities/Index'))->name('admin.charities');
+        Route::get('/admin/charities/create', fn () => Inertia::render('Admin/Charities/Create'))->name('admin.charities.create');
+        Route::get('/admin/charities/{charity}/edit', fn () => Inertia::render('Admin/Charities/Edit'))->name('admin.charities.edit');
     });
 });
 

@@ -9,6 +9,7 @@ use App\Http\Resources\TransactionResource;
 use App\Models\AIQuestion;
 use App\Models\BankAccount;
 use App\Models\BankConnection;
+use App\Models\CharitableOrganization;
 use App\Models\OrderItem;
 use App\Models\SavingsRecommendation;
 use App\Models\SavingsTarget;
@@ -721,11 +722,12 @@ class DashboardController extends Controller
 
             // YTD uses the year of the selected period, not always the current year
             $ytdStart = $monthEnd->copy()->startOfYear();
-            $ytdDonationsTotal = $txQuery()
+            $ytdDonationsQuery = $txQuery()
                 ->where('amount', '>', 0)
                 ->where($donationFilter)
-                ->whereBetween('transaction_date', [$ytdStart, $monthEnd])
-                ->sum('amount');
+                ->whereBetween('transaction_date', [$ytdStart, $monthEnd]);
+            $ytdDonationsTotal = (clone $ytdDonationsQuery)->sum('amount');
+            $ytdDonationsCount = (clone $ytdDonationsQuery)->count();
 
             $topRecipients = $txQuery()
                 ->where('amount', '>', 0)
@@ -750,6 +752,7 @@ class DashboardController extends Controller
                 'period_total' => round((float) $periodDonationsTotal, 2),
                 'ytd_total' => round((float) $ytdDonationsTotal, 2),
                 'transaction_count' => $periodDonations->count(),
+                'ytd_count' => $ytdDonationsCount,
                 'estimated_tax_savings' => round((float) $ytdDonationsTotal * $donationTaxRate, 2),
                 'tax_rate_used' => $donationTaxRate,
                 'top_recipients' => $topRecipients->map(fn ($r) => [
@@ -766,6 +769,12 @@ class DashboardController extends Controller
                     'note' => $d->donation_note,
                     'tax_deductible' => (bool) $d->tax_deductible,
                 ])->values(),
+                'recommended_charities' => CharitableOrganization::where('is_active', true)
+                    ->where('is_featured', true)
+                    ->orderBy('sort_order')
+                    ->orderBy('name')
+                    ->get(['name', 'description', 'donate_url', 'website_url', 'category', 'ein'])
+                    ->toArray(),
             ];
 
             // --- Period Metadata ---
