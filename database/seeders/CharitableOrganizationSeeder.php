@@ -9,8 +9,10 @@ class CharitableOrganizationSeeder extends Seeder
 {
     public function run(): void
     {
+        // Sort order is interleaved across categories so the preview (first 4)
+        // shows a diverse mix rather than all one category.
         $orgs = [
-            // Religious / Jewish
+            // ── Preview row: 1 per category ──
             [
                 'name' => 'Chabad.org',
                 'description' => 'Jewish education, outreach, and social services worldwide',
@@ -22,37 +24,15 @@ class CharitableOrganizationSeeder extends Seeder
                 'sort_order' => 1,
             ],
             [
-                'name' => 'Jewish Federation of North America',
-                'description' => 'Supports Jewish communities and social welfare across North America and globally',
-                'website_url' => 'https://www.jewishfederations.org',
-                'donate_url' => 'https://www.jewishfederations.org/donate',
-                'category' => 'Religious',
-                'ein' => '13-1624241',
+                'name' => 'St. Jude Children\'s Research Hospital',
+                'description' => 'Leading children\'s hospital pioneering research and treatment for pediatric diseases',
+                'website_url' => 'https://www.stjude.org',
+                'donate_url' => 'https://www.stjude.org/donate/donate-to-st-jude.html',
+                'category' => 'Health',
+                'ein' => '62-0646012',
                 'is_featured' => true,
                 'sort_order' => 2,
             ],
-            [
-                'name' => 'Hadassah',
-                'description' => 'Women\'s organization supporting medical care and research in Israel',
-                'website_url' => 'https://www.hadassah.org',
-                'donate_url' => 'https://www.hadassah.org/donate/',
-                'category' => 'Religious',
-                'ein' => '13-1656671',
-                'is_featured' => true,
-                'sort_order' => 3,
-            ],
-            [
-                'name' => 'American Friends of Magen David Adom',
-                'description' => 'Israel\'s national emergency medical, disaster, ambulance, and blood bank service',
-                'website_url' => 'https://www.afmda.org',
-                'donate_url' => 'https://www.afmda.org/donate/',
-                'category' => 'Religious',
-                'ein' => '13-2648484',
-                'is_featured' => true,
-                'sort_order' => 4,
-            ],
-
-            // Humanitarian
             [
                 'name' => 'American Red Cross',
                 'description' => 'Disaster relief, blood donations, health and safety training, and military family support',
@@ -61,27 +41,7 @@ class CharitableOrganizationSeeder extends Seeder
                 'category' => 'Humanitarian',
                 'ein' => '53-0196605',
                 'is_featured' => true,
-                'sort_order' => 5,
-            ],
-            [
-                'name' => 'The Salvation Army',
-                'description' => 'Poverty relief, disaster assistance, and community programs nationwide',
-                'website_url' => 'https://www.salvationarmyusa.org',
-                'donate_url' => 'https://www.salvationarmyusa.org/usn/ways-to-give/',
-                'category' => 'Humanitarian',
-                'ein' => '13-5562351',
-                'is_featured' => true,
-                'sort_order' => 6,
-            ],
-            [
-                'name' => 'United Way',
-                'description' => 'Community-based solutions for education, financial stability, and health',
-                'website_url' => 'https://www.unitedway.org',
-                'donate_url' => 'https://www.unitedway.org/get-involved/ways-to-give',
-                'category' => 'Humanitarian',
-                'ein' => '13-1635294',
-                'is_featured' => true,
-                'sort_order' => 7,
+                'sort_order' => 3,
             ],
             [
                 'name' => 'Feeding America',
@@ -91,7 +51,61 @@ class CharitableOrganizationSeeder extends Seeder
                 'category' => 'Humanitarian',
                 'ein' => '36-3673599',
                 'is_featured' => true,
+                'sort_order' => 4,
+            ],
+
+            // ── Remaining Religious ──
+            [
+                'name' => 'Jewish Federation of North America',
+                'description' => 'Supports Jewish communities and social welfare across North America and globally',
+                'website_url' => 'https://www.jewishfederations.org',
+                'donate_url' => 'https://www.jewishfederations.org/donate',
+                'category' => 'Religious',
+                'ein' => '13-1624241',
+                'is_featured' => true,
+                'sort_order' => 5,
+            ],
+            [
+                'name' => 'Hadassah',
+                'description' => 'Women\'s organization supporting medical care and research in Israel',
+                'website_url' => 'https://www.hadassah.org',
+                'donate_url' => 'https://www.hadassah.org/donate/',
+                'category' => 'Religious',
+                'ein' => '13-1656671',
+                'is_featured' => true,
+                'sort_order' => 6,
+            ],
+            [
+                'name' => 'American Friends of Magen David Adom',
+                'description' => 'Israel\'s national emergency medical, disaster, ambulance, and blood bank service',
+                'website_url' => 'https://www.afmda.org',
+                'donate_url' => 'https://www.afmda.org/donate/',
+                'category' => 'Religious',
+                'ein' => '13-2648484',
+                'is_featured' => true,
+                'sort_order' => 7,
+            ],
+
+            // ── Remaining Humanitarian ──
+            [
+                'name' => 'The Salvation Army',
+                'description' => 'Poverty relief, disaster assistance, and community programs nationwide',
+                'website_url' => 'https://www.salvationarmyusa.org',
+                'donate_url' => 'https://www.salvationarmyusa.org/usn/ways-to-give/',
+                'category' => 'Humanitarian',
+                'ein' => '13-5562351',
+                'is_featured' => true,
                 'sort_order' => 8,
+            ],
+            [
+                'name' => 'United Way',
+                'description' => 'Community-based solutions for education, financial stability, and health',
+                'website_url' => 'https://www.unitedway.org',
+                'donate_url' => 'https://www.unitedway.org/get-involved/ways-to-give',
+                'category' => 'Humanitarian',
+                'ein' => '13-1635294',
+                'is_featured' => true,
+                'sort_order' => 9,
             ],
             [
                 'name' => 'Habitat for Humanity',
@@ -101,20 +115,10 @@ class CharitableOrganizationSeeder extends Seeder
                 'category' => 'Humanitarian',
                 'ein' => '91-1914868',
                 'is_featured' => true,
-                'sort_order' => 9,
-            ],
-
-            // Health
-            [
-                'name' => 'St. Jude Children\'s Research Hospital',
-                'description' => 'Leading children\'s hospital pioneering research and treatment for pediatric diseases',
-                'website_url' => 'https://www.stjude.org',
-                'donate_url' => 'https://www.stjude.org/donate/donate-to-st-jude.html',
-                'category' => 'Health',
-                'ein' => '62-0646012',
-                'is_featured' => true,
                 'sort_order' => 10,
             ],
+
+            // ── Remaining Health ──
             [
                 'name' => 'American Cancer Society',
                 'description' => 'Cancer research, patient support, early detection, and treatment access',
@@ -126,7 +130,7 @@ class CharitableOrganizationSeeder extends Seeder
                 'sort_order' => 11,
             ],
 
-            // Education
+            // ── Education ──
             [
                 'name' => 'UNCF (United Negro College Fund)',
                 'description' => 'Scholarships and support for students at historically Black colleges and universities',
@@ -148,7 +152,7 @@ class CharitableOrganizationSeeder extends Seeder
                 'sort_order' => 13,
             ],
 
-            // Environment
+            // ── Environment ──
             [
                 'name' => 'The Nature Conservancy',
                 'description' => 'Protects lands and waters across the globe for nature and people',
@@ -170,7 +174,7 @@ class CharitableOrganizationSeeder extends Seeder
                 'sort_order' => 15,
             ],
 
-            // Community
+            // ── Community ──
             [
                 'name' => 'Goodwill Industries',
                 'description' => 'Job training, employment placement, and community programs for people with barriers',
@@ -202,7 +206,7 @@ class CharitableOrganizationSeeder extends Seeder
                 'sort_order' => 18,
             ],
 
-            // Animal Welfare
+            // ── Animal Welfare ──
             [
                 'name' => 'ASPCA',
                 'description' => 'Prevention of cruelty to animals through rescue, adoption, and advocacy',

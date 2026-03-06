@@ -28,47 +28,64 @@ interface CharitableGivingSectionProps {
 export default function CharitableGivingSection({ data }: CharitableGivingSectionProps) {
   const [showAll, setShowAll] = useState(false);
   const [showRecent, setShowRecent] = useState(false);
-  const [showCharities, setShowCharities] = useState(false);
+  const [showAllCharities, setShowAllCharities] = useState(false);
 
   const displayRecipients = showAll ? data.top_recipients : data.top_recipients.slice(0, 5);
 
   const hasNoDonations = data.transaction_count === 0 && Number(data.ytd_total) === 0;
 
-  const charityGrid = data.recommended_charities && data.recommended_charities.length > 0 && (
-    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-      {data.recommended_charities.map((org) => (
-        <div
-          key={org.name}
-          className="rounded-xl border border-sw-border bg-sw-surface/50 p-3.5 flex flex-col gap-2"
-        >
-          <div className="flex items-start justify-between gap-2">
-            <div className="min-w-0 flex-1">
-              <div className="text-[13px] font-semibold text-sw-text truncate">{org.name}</div>
-              <span className={`inline-flex text-[9px] font-semibold px-1.5 py-0.5 rounded mt-1 ${categoryColors[org.category] ?? 'bg-gray-100 text-gray-600'}`}>
-                {org.category}
-              </span>
+  const CHARITY_PREVIEW_COUNT = 4;
+  const allCharities = data.recommended_charities ?? [];
+  const hasCharities = allCharities.length > 0;
+  const displayedCharities = showAllCharities ? allCharities : allCharities.slice(0, CHARITY_PREVIEW_COUNT);
+  const hasMoreCharities = allCharities.length > CHARITY_PREVIEW_COUNT;
+
+  const charityGrid = hasCharities && (
+    <div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+        {displayedCharities.map((org) => (
+          <div
+            key={org.name}
+            className="rounded-xl border border-sw-border bg-sw-surface/50 p-3.5 flex flex-col gap-2"
+          >
+            <div className="flex items-start justify-between gap-2">
+              <div className="min-w-0 flex-1">
+                <div className="text-[13px] font-semibold text-sw-text truncate">{org.name}</div>
+                <span className={`inline-flex text-[9px] font-semibold px-1.5 py-0.5 rounded mt-1 ${categoryColors[org.category] ?? 'bg-gray-100 text-gray-600'}`}>
+                  {org.category}
+                </span>
+              </div>
+            </div>
+            {org.description && (
+              <p className="text-[11px] text-sw-muted leading-relaxed line-clamp-2">{org.description}</p>
+            )}
+            <div className="flex items-center justify-between mt-auto pt-1">
+              {org.ein ? (
+                <span className="text-[9px] text-sw-dim">EIN: {org.ein}</span>
+              ) : <span />}
+              {org.donate_url && (
+                <a
+                  href={org.donate_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-semibold transition"
+                >
+                  Donate <ExternalLink size={10} />
+                </a>
+              )}
             </div>
           </div>
-          {org.description && (
-            <p className="text-[11px] text-sw-muted leading-relaxed line-clamp-2">{org.description}</p>
-          )}
-          <div className="flex items-center justify-between mt-auto pt-1">
-            {org.ein ? (
-              <span className="text-[9px] text-sw-dim">EIN: {org.ein}</span>
-            ) : <span />}
-            {org.donate_url && (
-              <a
-                href={org.donate_url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-semibold transition"
-              >
-                Donate <ExternalLink size={10} />
-              </a>
-            )}
-          </div>
-        </div>
-      ))}
+        ))}
+      </div>
+      {hasMoreCharities && (
+        <button
+          onClick={() => setShowAllCharities(!showAllCharities)}
+          className="flex items-center gap-1 mt-3 text-xs text-sw-accent hover:text-sw-accent-hover font-medium transition"
+        >
+          {showAllCharities ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+          {showAllCharities ? 'Show less' : `Show all ${allCharities.length} organizations`}
+        </button>
+      )}
     </div>
   );
 
@@ -242,26 +259,15 @@ export default function CharitableGivingSection({ data }: CharitableGivingSectio
             </div>
           )}
 
-          {/* Recommended places to donate (collapsible) */}
+          {/* Recommended places to donate */}
           {charityGrid && (
             <div className="border-t border-sw-border pt-4 mt-4">
-              <button
-                onClick={() => setShowCharities(!showCharities)}
-                className="flex items-center gap-2 text-xs font-semibold text-sw-text hover:text-sw-accent transition w-full text-left"
-              >
+              <div className="flex items-center gap-2 mb-3">
                 <Heart size={12} className="text-emerald-600" />
-                Places to Donate
-                <span className="text-[10px] text-sw-dim font-normal ml-1">({data.recommended_charities.length} organizations)</span>
-                <div className="ml-auto text-sw-dim">
-                  {showCharities ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
-                </div>
-              </button>
-
-              {showCharities && (
-                <div className="mt-3">
-                  {charityGrid}
-                </div>
-              )}
+                <span className="text-xs font-semibold text-sw-text">Places to Donate</span>
+                <span className="text-[10px] text-sw-dim font-normal">501(c)(3) verified</span>
+              </div>
+              {charityGrid}
             </div>
           )}
         </>
