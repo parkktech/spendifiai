@@ -525,6 +525,8 @@ export interface RecurringBill {
   last_charge_date: string | null;
   next_expected_date: string | null;
   annual_cost: number;
+  response_type?: string | null;
+  responded_at?: string | null;
 }
 
 export interface BudgetWaterfall {

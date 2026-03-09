@@ -255,14 +255,14 @@ class DashboardController extends Controller
                 ->limit(10)
                 ->get();
 
-            // --- All Recurring Bills (active + unused) ---
+            // --- All Recurring Bills (active + unused + cancelled) ---
             $allRecurringBills = Subscription::where('user_id', $user->id)
-                ->whereIn('status', ['active', 'unused'])
+                ->whereIn('status', ['active', 'unused', 'cancelled'])
                 ->orderByDesc('amount')
-                ->select('id', 'merchant_name', 'merchant_normalized', 'amount', 'frequency', 'status', 'is_essential', 'last_charge_date', 'next_expected_date', 'annual_cost')
+                ->select('id', 'merchant_name', 'merchant_normalized', 'amount', 'frequency', 'status', 'is_essential', 'last_charge_date', 'next_expected_date', 'annual_cost', 'response_type', 'responded_at')
                 ->get();
 
-            $totalMonthlyBills = $allRecurringBills->sum('amount');
+            $totalMonthlyBills = $allRecurringBills->whereIn('status', ['active', 'unused'])->sum('amount');
 
             // --- Monthly Budget Waterfall ---
             $essentialBills = $allRecurringBills->where('is_essential', true)->sum('amount');

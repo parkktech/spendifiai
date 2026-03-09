@@ -74,7 +74,27 @@ function UpcomingPaymentsCarousel({ bills }: { bills: RecurringBill[] }) {
 
   const upcoming = useMemo(() => {
     return bills
-      .filter(b => b.status === 'active' && b.next_expected_date)
+      .filter(b => {
+        if (!b.next_expected_date) return false;
+
+        // Cancelled subscriptions: show until grace period confirms no recharge
+        if (b.status === 'cancelled') {
+          const nextExpected = new Date(b.next_expected_date + 'T00:00:00');
+          const daysPast = Math.round((today.getTime() - nextExpected.getTime()) / (1000 * 60 * 60 * 24));
+          // Keep showing for 14 days past expected date, then drop (confirmed cancelled)
+          return daysPast <= 14;
+        }
+
+        if (b.status !== 'active') return false;
+
+        // If last_charge_date is on or after next_expected_date, payment cleared — drop it
+        if (b.last_charge_date) {
+          const lastCharge = new Date(b.last_charge_date + 'T00:00:00');
+          const nextExpected = new Date(b.next_expected_date + 'T00:00:00');
+          if (lastCharge >= nextExpected) return false;
+        }
+        return true;
+      })
       .map(b => {
         const raw = b.next_expected_date!;
         const dueDate = new Date(/^\d{4}-\d{2}-\d{2}$/.test(raw) ? raw + 'T00:00:00' : raw);
@@ -103,15 +123,19 @@ function UpcomingPaymentsCarousel({ bills }: { bills: RecurringBill[] }) {
 
   if (upcoming.length === 0) return null;
 
-  const next7Days = upcoming.filter(b => b.daysUntil >= 0 && b.daysUntil <= 7);
+  const activeUpcoming = upcoming.filter(b => b.status !== 'cancelled');
+  const next7Days = activeUpcoming.filter(b => b.daysUntil >= 0 && b.daysUntil <= 7);
   const next7Total = next7Days.reduce((s, b) => s + Number(b.amount), 0);
 
-  function getDueBadge(daysUntil: number) {
-    if (daysUntil < -3) return { label: 'Overdue', cls: 'bg-red-100 text-red-700 border-red-200' };
-    if (daysUntil < 0) return { label: 'Processing', cls: 'bg-amber-100 text-amber-700 border-amber-200' };
-    if (daysUntil === 0) return { label: 'Due today', cls: 'bg-red-100 text-red-700 border-red-200' };
-    if (daysUntil <= 3) return { label: `In ${daysUntil}d`, cls: 'bg-amber-100 text-amber-700 border-amber-200' };
-    if (daysUntil <= 7) return { label: `In ${daysUntil}d`, cls: 'bg-blue-100 text-blue-700 border-blue-200' };
+  function getDueBadge(bill: typeof upcoming[0]) {
+    if (bill.status === 'cancelled') {
+      if (bill.daysUntil < 0) return { label: 'No charge — cancelled', cls: 'bg-emerald-100 text-emerald-700 border-emerald-200' };
+      return { label: 'Cancelled', cls: 'bg-slate-100 text-slate-600 border-slate-200' };
+    }
+    if (bill.daysUntil < 0) return { label: 'Expected any day', cls: 'bg-violet-100 text-violet-700 border-violet-200' };
+    if (bill.daysUntil === 0) return { label: 'Due today', cls: 'bg-amber-100 text-amber-700 border-amber-200' };
+    if (bill.daysUntil <= 3) return { label: `In ${bill.daysUntil}d`, cls: 'bg-amber-100 text-amber-700 border-amber-200' };
+    if (bill.daysUntil <= 7) return { label: `In ${bill.daysUntil}d`, cls: 'bg-blue-100 text-blue-700 border-blue-200' };
     return null;
   }
 
@@ -124,7 +148,7 @@ function UpcomingPaymentsCarousel({ bills }: { bills: RecurringBill[] }) {
           </div>
           <div>
             <h2 className="text-[15px] font-semibold text-sw-text">Upcoming Payments</h2>
-            <p className="text-xs text-sw-muted mt-0.5">{upcoming.length} scheduled charges</p>
+            <p className="text-xs text-sw-muted mt-0.5">{activeUpcoming.length} scheduled charges</p>
           </div>
         </div>
         <div className="flex items-center gap-3">
@@ -163,21 +187,22 @@ function UpcomingPaymentsCarousel({ bills }: { bills: RecurringBill[] }) {
           className="flex overflow-x-auto gap-3 pb-2 snap-x snap-mandatory scrollbar-hide"
         >
           {upcoming.map((bill, i) => {
-            const badge = getDueBadge(bill.daysUntil);
+            const badge = getDueBadge(bill);
             const dateStr = formatDateShort(bill.dueDate.toISOString(), tz);
+            const isCancelled = bill.status === 'cancelled';
 
             return (
               <div
                 key={bill.id}
                 ref={i === 0 ? () => { setTimeout(updateScrollState, 0); } : undefined}
                 className={`shrink-0 w-48 rounded-xl border border-sw-border bg-sw-card p-4 snap-start border-l-[3px] ${
-                  bill.is_essential ? 'border-l-emerald-400' : 'border-l-amber-400'
+                  isCancelled ? 'border-l-slate-300 opacity-70' : bill.is_essential ? 'border-l-emerald-400' : 'border-l-amber-400'
                 }`}
               >
-                <div className="text-[13px] font-semibold text-sw-text truncate">
+                <div className={`text-[13px] font-semibold truncate ${isCancelled ? 'text-sw-muted line-through' : 'text-sw-text'}`}>
                   {bill.merchant_normalized || bill.merchant_name}
                 </div>
-                <div className="text-lg font-bold text-sw-text mt-1">
+                <div className={`text-lg font-bold mt-1 ${isCancelled ? 'text-sw-muted line-through' : 'text-sw-text'}`}>
                   {fmt.format(bill.amount)}
                 </div>
                 <div className="flex items-center gap-1.5 mt-2">
@@ -325,9 +350,10 @@ function BudgetWaterfallSection({ waterfall, displayMode = 'dollars', pl = DEFAU
 
 // --- Monthly Bills Section ---
 
-function MonthlyBillsSection({ bills, totalMonthly, monthlyIncome, displayMode = 'dollars' }: { bills: RecurringBill[]; totalMonthly: number; monthlyIncome?: number; displayMode?: 'dollars' | 'percent' }) {
+function MonthlyBillsSection({ bills: allBills, totalMonthly, monthlyIncome, displayMode = 'dollars' }: { bills: RecurringBill[]; totalMonthly: number; monthlyIncome?: number; displayMode?: 'dollars' | 'percent' }) {
   const tz = (usePage().props.auth as { timezone?: string }).timezone;
   const [showAll, setShowAll] = useState(false);
+  const bills = allBills.filter(b => b.status !== 'cancelled');
   const essentialBills = bills.filter(b => b.is_essential);
   const nonEssentialBills = bills.filter(b => !b.is_essential);
   const showPct = displayMode === 'percent' && monthlyIncome && monthlyIncome > 0;
