@@ -1,12 +1,15 @@
 import { useState } from 'react';
-import { Sparkles, Check, Loader2, Send, MessageCircle, ArrowRight } from 'lucide-react';
+import { Sparkles, Check, Loader2, Send, MessageCircle, ArrowRight, Mail } from 'lucide-react';
+import { usePage } from '@inertiajs/react';
 import Badge from './Badge';
+import { formatDateShort } from '@/utils/formatDate';
 import type { AIQuestion } from '@/types/spendifiai';
 import axios from 'axios';
 
 interface QuestionCardProps {
   question: AIQuestion;
   onAnswer: (id: number, answer: string) => void;
+  hasEmailConnected?: boolean;
 }
 
 interface AISuggestion {
@@ -16,12 +19,8 @@ interface AISuggestion {
   explanation: string;
 }
 
-function formatDate(dateStr: string): string {
-  const date = new Date(dateStr);
-  return new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' }).format(date);
-}
-
-export default function QuestionCard({ question, onAnswer }: QuestionCardProps) {
+export default function QuestionCard({ question, onAnswer, hasEmailConnected }: QuestionCardProps) {
+  const tz = (usePage().props.auth as { timezone?: string }).timezone;
   const [selected, setSelected] = useState<string | null>(null);
   const [freeText, setFreeText] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -33,6 +32,11 @@ export default function QuestionCard({ question, onAnswer }: QuestionCardProps) 
   const [chatLoading, setChatLoading] = useState(false);
   const [aiSuggestion, setAiSuggestion] = useState<AISuggestion | null>(null);
   const [chatError, setChatError] = useState<string | null>(null);
+
+  // Email search state — use server status, with local override for immediate feedback
+  const [emailSearching, setEmailSearching] = useState(false);
+  const [justTriggered, setJustTriggered] = useState(false);
+  const emailStatus = justTriggered ? 'searching' : question.email_search_status;
 
   const hasOptions = question.options && question.options.length > 0;
   const tx = question.transaction;
@@ -80,6 +84,18 @@ export default function QuestionCard({ question, onAnswer }: QuestionCardProps) 
     }
   };
 
+  const handleEmailSearch = async () => {
+    setEmailSearching(true);
+    try {
+      await axios.post(`/api/v1/questions/${question.id}/search-emails`);
+      setJustTriggered(true);
+    } catch {
+      // silently fail — user can retry
+    } finally {
+      setEmailSearching(false);
+    }
+  };
+
   return (
     <div
       className={`rounded-xl border border-sw-border bg-sw-card p-5 transition-opacity ${
@@ -96,7 +112,7 @@ export default function QuestionCard({ question, onAnswer }: QuestionCardProps) 
             <div className="flex items-center gap-2 mb-1 flex-wrap">
               <span className="text-[11px] text-sw-dim truncate">{tx.merchant_name}</span>
               <span className="text-sw-dim text-[11px]">-</span>
-              <span className="text-[11px] text-sw-dim">{formatDate(tx.date)}</span>
+              <span className="text-[11px] text-sw-dim">{formatDateShort(tx.date, tz)}</span>
               <span className="text-[11px] font-semibold text-sw-text">
                 ${Math.abs(tx.amount).toFixed(2)}
               </span>
@@ -155,9 +171,9 @@ export default function QuestionCard({ question, onAnswer }: QuestionCardProps) 
           {!showChat ? (
             <button
               onClick={() => setShowChat(true)}
-              className="flex items-center gap-1.5 text-[11px] text-sw-muted hover:text-sw-accent transition"
+              className="w-full flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-lg border border-sw-border text-xs font-medium text-sw-muted hover:text-sw-accent hover:border-sw-accent transition"
             >
-              <MessageCircle size={12} />
+              <MessageCircle size={13} />
               None of these? Tell AI more
             </button>
           ) : (
@@ -193,6 +209,35 @@ export default function QuestionCard({ question, onAnswer }: QuestionCardProps) 
             </div>
           )}
         </div>
+      )}
+
+      {/* Search My Emails */}
+      {hasEmailConnected && !answered && !emailStatus && (
+        <div className="mt-2">
+          <button
+            onClick={handleEmailSearch}
+            disabled={emailSearching}
+            className="w-full flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-lg border border-sw-border text-xs font-medium text-sw-muted hover:text-sw-accent hover:border-sw-accent transition disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {emailSearching ? (
+              <Loader2 size={13} className="animate-spin" />
+            ) : (
+              <Mail size={13} />
+            )}
+            {emailSearching ? 'Searching...' : 'Search my emails'}
+          </button>
+        </div>
+      )}
+      {emailStatus === 'searching' && !answered && (
+        <div className="mt-2 flex items-center justify-center gap-1.5 text-[11px] text-sw-muted">
+          <Loader2 size={11} className="animate-spin" />
+          Searching your emails — refresh in a moment
+        </div>
+      )}
+      {emailStatus === 'no_results' && !answered && (
+        <p className="mt-2 text-[11px] text-sw-dim text-center">
+          No matching email receipts found
+        </p>
       )}
 
       {/* AI Suggestion */}

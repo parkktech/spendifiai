@@ -1,15 +1,11 @@
 import { useState } from 'react';
 import { Heart, ChevronDown, ChevronUp, Calendar, FileText, ExternalLink, Info } from 'lucide-react';
+import { usePage } from '@inertiajs/react';
 import Badge from './Badge';
+import { formatDate } from '@/utils/formatDate';
 import type { CharitableGiving } from '@/types/spendifiai';
 
 const fmt = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
-
-function formatDate(dateStr: string): string {
-  return new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).format(
-    new Date(dateStr + 'T00:00:00')
-  );
-}
 
 const categoryColors: Record<string, string> = {
   Religious: 'bg-purple-100 text-purple-700',
@@ -26,6 +22,7 @@ interface CharitableGivingSectionProps {
 }
 
 export default function CharitableGivingSection({ data }: CharitableGivingSectionProps) {
+  const tz = (usePage().props.auth as { timezone?: string }).timezone;
   const [showAll, setShowAll] = useState(false);
   const [showRecent, setShowRecent] = useState(false);
   const [showAllCharities, setShowAllCharities] = useState(false);
@@ -236,7 +233,7 @@ export default function CharitableGivingSection({ data }: CharitableGivingSectio
                       <div className="flex-1 min-w-0">
                         <div className="text-[12px] font-medium text-sw-text truncate">{d.merchant}</div>
                         <div className="flex items-center gap-2 mt-0.5">
-                          <span className="text-[10px] text-sw-dim">{formatDate(d.date)}</span>
+                          <span className="text-[10px] text-sw-dim">{formatDate(d.date, tz)}</span>
                           {d.note && (
                             <>
                               <span className="text-sw-dim text-[10px]">·</span>

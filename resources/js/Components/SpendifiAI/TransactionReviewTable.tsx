@@ -10,7 +10,9 @@ import {
   ArrowDownLeft,
   ArrowUpRight,
 } from 'lucide-react';
+import { usePage } from '@inertiajs/react';
 import Badge from './Badge';
+import { formatDate } from '@/utils/formatDate';
 import type { ParsedTransaction } from '@/types/spendifiai';
 
 interface TransactionReviewTableProps {
@@ -18,15 +20,6 @@ interface TransactionReviewTableProps {
   onUpdate: (rowIndex: number, updates: Partial<ParsedTransaction>) => void;
   onRemove: (rowIndex: number) => void;
   duplicatesCount: number;
-}
-
-function formatDate(dateStr: string): string {
-  const date = new Date(dateStr);
-  return new Intl.DateTimeFormat('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-  }).format(date);
 }
 
 function formatAmount(amount: number): string {
@@ -42,6 +35,7 @@ export default function TransactionReviewTable({
   onRemove,
   duplicatesCount,
 }: TransactionReviewTableProps) {
+  const tz = (usePage().props.auth as { timezone?: string }).timezone;
   const [editingRow, setEditingRow] = useState<number | null>(null);
   const [editValues, setEditValues] = useState<Partial<ParsedTransaction>>({});
   const [showDuplicates, setShowDuplicates] = useState(false);
@@ -236,7 +230,7 @@ export default function TransactionReviewTable({
                         className="px-2 py-1 rounded-md border border-sw-border bg-sw-card text-sw-text text-xs focus:outline-none focus:border-sw-accent w-32"
                       />
                     ) : (
-                      formatDate(tx.date)
+                      formatDate(tx.date, tz)
                     )}
                   </td>
 

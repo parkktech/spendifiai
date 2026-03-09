@@ -23,8 +23,10 @@ import {
   Tag,
   Calendar,
 } from 'lucide-react';
+import { usePage } from '@inertiajs/react';
 import axios from 'axios';
 import StoreOrderItemsList from './StoreOrderItemsList';
+import { formatDate } from '@/utils/formatDate';
 import { getPeriodLabels, DEFAULT_PERIOD_LABELS } from '@/utils/periodLabels';
 import type { TopStore, StoreDetail, StoreTransaction, PeriodMeta } from '@/types/spendifiai';
 
@@ -42,13 +44,8 @@ interface TopStoresSectionProps {
   avgMode: 'total' | 'monthly_avg';
 }
 
-function formatDate(dateStr: string): string {
-  return new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).format(
-    new Date(dateStr + 'T00:00:00')
-  );
-}
-
 export default function TopStoresSection({ stores, total, period, avgMode }: TopStoresSectionProps) {
+  const tz = (usePage().props.auth as { timezone?: string }).timezone;
   const [expandedStore, setExpandedStore] = useState<string | null>(null);
   const [expandedMonth, setExpandedMonth] = useState<string | null>(null);
   const [storeDetails, setStoreDetails] = useState<Record<string, StoreDetail>>({});
@@ -123,7 +120,7 @@ export default function TopStoresSection({ stores, total, period, avgMode }: Top
 
   const months = period?.months ?? 1;
   const showAvg = avgMode === 'monthly_avg' && months > 1;
-  const pl = period ? getPeriodLabels(period) : DEFAULT_PERIOD_LABELS;
+  const pl = period ? getPeriodLabels(period, false, tz) : DEFAULT_PERIOD_LABELS;
 
   return (
     <div className="rounded-2xl border border-sw-border bg-sw-card p-6">
@@ -421,6 +418,7 @@ export default function TopStoresSection({ stores, total, period, avgMode }: Top
 
 /** Inline sub-component — every transaction row is clickable and shows details */
 function TransactionWithItems({ tx }: { tx: StoreTransaction }) {
+  const tz = (usePage().props.auth as { timezone?: string }).timezone;
   const [expanded, setExpanded] = useState(false);
   const hasItems = tx.order_items.length > 0;
 
@@ -432,7 +430,7 @@ function TransactionWithItems({ tx }: { tx: StoreTransaction }) {
           tx.tax_deductible ? 'bg-emerald-50/30' : ''
         }`}
       >
-        <td className="py-2 px-3 text-sw-muted whitespace-nowrap">{formatDate(tx.date)}</td>
+        <td className="py-2 px-3 text-sw-muted whitespace-nowrap">{formatDate(tx.date, tz)}</td>
         <td className="py-2 px-3 text-sw-text">
           <div className="flex items-center gap-1.5">
             <span className="truncate max-w-[140px]">{tx.description || tx.merchant_name}</span>

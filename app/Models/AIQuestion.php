@@ -17,22 +17,37 @@ class AIQuestion extends Model
     protected $fillable = [
         'user_id', 'transaction_id', 'question', 'options', 'question_type',
         'ai_confidence', 'ai_best_guess', 'user_answer', 'status', 'answered_at',
+        'email_search_status',
     ];
 
     protected function casts(): array
     {
         return [
-            'options'       => 'array',
+            'options' => 'array',
             'ai_confidence' => 'decimal:2',
             'question_type' => QuestionType::class,
-            'status'        => QuestionStatus::class,
-            'answered_at'   => 'datetime',
+            'status' => QuestionStatus::class,
+            'answered_at' => 'datetime',
         ];
     }
 
-    public function user(): BelongsTo { return $this->belongsTo(User::class); }
-    public function transaction(): BelongsTo { return $this->belongsTo(Transaction::class); }
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
+    }
 
-    public function scopePending($q) { return $q->where('status', QuestionStatus::Pending); }
-    public function scopeAnswered($q) { return $q->where('status', QuestionStatus::Answered); }
+    public function transaction(): BelongsTo
+    {
+        return $this->belongsTo(Transaction::class);
+    }
+
+    public function scopePending($q)
+    {
+        return $q->where('status', QuestionStatus::Pending);
+    }
+
+    public function scopeAnswered($q)
+    {
+        return $q->where('status', QuestionStatus::Answered);
+    }
 }

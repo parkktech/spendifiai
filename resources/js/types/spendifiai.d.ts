@@ -108,6 +108,7 @@ export interface AIQuestion {
   question: string;
   question_type: string;
   status: string;
+  email_search_status: 'searching' | 'found' | 'no_results' | null;
   options: string[] | null;
   ai_confidence: number | null;
   user_answer: string | null;

@@ -9,9 +9,12 @@ use App\Http\Requests\BulkAnswerRequest;
 use App\Http\Requests\ChatQuestionRequest;
 use App\Http\Resources\AIQuestionResource;
 use App\Http\Resources\TransactionResource;
+use App\Jobs\SearchTransactionEmails;
 use App\Models\AIQuestion;
+use App\Models\EmailConnection;
 use App\Services\AI\TransactionCategorizerService;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 
 class AIQuestionController extends Controller
 {
@@ -24,6 +27,18 @@ class AIQuestionController extends Controller
      */
     public function index(): JsonResponse
     {
+        // Clean up stale questions whose transactions were already resolved
+        AIQuestion::where('user_id', auth()->id())
+            ->where('status', 'pending')
+            ->whereHas('transaction', function ($q) {
+                $q->whereIn('review_status', ['user_confirmed', 'auto_categorized']);
+            })
+            ->update([
+                'status' => 'answered',
+                'user_answer' => 'Auto-resolved',
+                'answered_at' => now(),
+            ]);
+
         $questions = AIQuestion::where('user_id', auth()->id())
             ->where('status', 'pending')
             ->with('transaction:id,merchant_name,merchant_normalized,amount,transaction_date,description,ai_category,user_category,ai_confidence,review_status,expense_type,account_purpose,tax_deductible,is_subscription')
@@ -61,6 +76,32 @@ class AIQuestionController extends Controller
         );
 
         return response()->json($suggestion);
+    }
+
+    /**
+     * Search connected email accounts for receipts matching this question's transaction.
+     */
+    public function searchEmails(Request $request, AIQuestion $question): JsonResponse
+    {
+        $this->authorize('update', $question);
+
+        $connections = EmailConnection::where('user_id', $request->user()->id)
+            ->where('status', 'active')
+            ->count();
+
+        if ($connections === 0) {
+            return response()->json([
+                'message' => 'No email accounts connected. Connect one on the Connect page first.',
+            ], 422);
+        }
+
+        $question->update(['email_search_status' => 'searching']);
+
+        SearchTransactionEmails::dispatch($question->transaction);
+
+        return response()->json([
+            'message' => 'Email search started. We\'ll check your connected accounts for matching receipts.',
+        ], 202);
     }
 
     /**

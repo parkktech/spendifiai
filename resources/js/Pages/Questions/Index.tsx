@@ -19,7 +19,7 @@ import type { AIQuestion } from '@/types/spendifiai';
 import axios from 'axios';
 
 export default function QuestionsIndex() {
-  const { auth } = usePage().props as unknown as { auth: { hasBankConnected: boolean } };
+  const { auth } = usePage().props as unknown as { auth: { hasBankConnected: boolean; hasEmailConnected: boolean } };
   const { data, loading, error, refresh } = useApi<AIQuestion[]>('/api/v1/questions?status=pending', { enabled: auth.hasBankConnected });
   const [bulkMode, setBulkMode] = useState(false);
   const [bulkAnswers, setBulkAnswers] = useState<Record<number, string>>({});
@@ -135,7 +135,7 @@ export default function QuestionsIndex() {
       {!loading && !bulkMode && questions.length > 0 && (
         <div aria-live="polite" className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           {questions.map((q) => (
-            <QuestionCard key={q.id} question={q} onAnswer={handleAnswer} />
+            <QuestionCard key={q.id} question={q} onAnswer={handleAnswer} hasEmailConnected={auth.hasEmailConnected} />
           ))}
         </div>
       )}

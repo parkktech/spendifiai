@@ -1,6 +1,6 @@
 import { useState, useMemo, useRef, useCallback } from 'react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { Head, Link } from '@inertiajs/react';
+import { Head, Link, usePage } from '@inertiajs/react';
 import {
   AlertTriangle,
   Sparkles,
@@ -46,6 +46,7 @@ import TimelineFilter from '@/Components/SpendifiAI/TimelineFilter';
 import TopStoresSection from '@/Components/SpendifiAI/TopStoresSection';
 import CharitableGivingSection from '@/Components/SpendifiAI/CharitableGivingSection';
 import { useApi, useApiPost } from '@/hooks/useApi';
+import { formatDateShort, formatDateTime } from '@/utils/formatDate';
 import { getPeriodLabels, DEFAULT_PERIOD_LABELS } from '@/utils/periodLabels';
 import type { PeriodLabels } from '@/utils/periodLabels';
 import type { DashboardData, RecurringBill, BudgetWaterfall, HomeAffordability } from '@/types/spendifiai';
@@ -64,6 +65,7 @@ function formatCompact(amount: number): string {
 // --- Upcoming Payments Carousel ---
 
 function UpcomingPaymentsCarousel({ bills }: { bills: RecurringBill[] }) {
+  const tz = (usePage().props.auth as { timezone?: string }).timezone;
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -74,7 +76,8 @@ function UpcomingPaymentsCarousel({ bills }: { bills: RecurringBill[] }) {
     return bills
       .filter(b => b.status === 'active' && b.next_expected_date)
       .map(b => {
-        const dueDate = new Date(b.next_expected_date!);
+        const raw = b.next_expected_date!;
+        const dueDate = new Date(/^\d{4}-\d{2}-\d{2}$/.test(raw) ? raw + 'T00:00:00' : raw);
         dueDate.setHours(0, 0, 0, 0);
         const diffMs = dueDate.getTime() - today.getTime();
         const daysUntil = Math.round(diffMs / (1000 * 60 * 60 * 24));
@@ -104,7 +107,8 @@ function UpcomingPaymentsCarousel({ bills }: { bills: RecurringBill[] }) {
   const next7Total = next7Days.reduce((s, b) => s + Number(b.amount), 0);
 
   function getDueBadge(daysUntil: number) {
-    if (daysUntil < 0) return { label: 'Overdue', cls: 'bg-red-100 text-red-700 border-red-200' };
+    if (daysUntil < -3) return { label: 'Overdue', cls: 'bg-red-100 text-red-700 border-red-200' };
+    if (daysUntil < 0) return { label: 'Processing', cls: 'bg-amber-100 text-amber-700 border-amber-200' };
     if (daysUntil === 0) return { label: 'Due today', cls: 'bg-red-100 text-red-700 border-red-200' };
     if (daysUntil <= 3) return { label: `In ${daysUntil}d`, cls: 'bg-amber-100 text-amber-700 border-amber-200' };
     if (daysUntil <= 7) return { label: `In ${daysUntil}d`, cls: 'bg-blue-100 text-blue-700 border-blue-200' };
@@ -160,7 +164,7 @@ function UpcomingPaymentsCarousel({ bills }: { bills: RecurringBill[] }) {
         >
           {upcoming.map((bill, i) => {
             const badge = getDueBadge(bill.daysUntil);
-            const dateStr = bill.dueDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+            const dateStr = formatDateShort(bill.dueDate.toISOString(), tz);
 
             return (
               <div
@@ -322,6 +326,7 @@ function BudgetWaterfallSection({ waterfall, displayMode = 'dollars', pl = DEFAU
 // --- Monthly Bills Section ---
 
 function MonthlyBillsSection({ bills, totalMonthly, monthlyIncome, displayMode = 'dollars' }: { bills: RecurringBill[]; totalMonthly: number; monthlyIncome?: number; displayMode?: 'dollars' | 'percent' }) {
+  const tz = (usePage().props.auth as { timezone?: string }).timezone;
   const [showAll, setShowAll] = useState(false);
   const essentialBills = bills.filter(b => b.is_essential);
   const nonEssentialBills = bills.filter(b => !b.is_essential);
@@ -402,7 +407,7 @@ function MonthlyBillsSection({ bills, totalMonthly, monthlyIncome, displayMode =
               </div>
               <div className="text-[11px] text-sw-dim mt-0.5">
                 {bill.frequency}
-                {bill.next_expected_date && ` \u00B7 Next: ${new Date(bill.next_expected_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`}
+                {bill.next_expected_date && ` \u00B7 Next: ${formatDateShort(bill.next_expected_date, tz)}`}
               </div>
             </div>
             <div className="text-right shrink-0">
@@ -874,6 +879,7 @@ function LoadingSkeleton() {
 // --- Main Dashboard ---
 
 export default function Dashboard() {
+  const tz = (usePage().props.auth as { timezone?: string }).timezone;
   const [periodStart, setPeriodStart] = useState<string | null>(null);
   const [periodEnd, setPeriodEnd] = useState<string | null>(null);
   const [avgMode, setAvgMode] = useState<'total' | 'monthly_avg'>('total');
@@ -919,7 +925,7 @@ export default function Dashboard() {
     [actionItems]
   );
 
-  const pl = useMemo(() => data ? getPeriodLabels(data.period, isCustomRange) : DEFAULT_PERIOD_LABELS, [data, isCustomRange]);
+  const pl = useMemo(() => data ? getPeriodLabels(data.period, isCustomRange, tz) : DEFAULT_PERIOD_LABELS, [data, isCustomRange, tz]);
 
   const showToast = (msg: string) => {
     setToast(msg);
@@ -1145,12 +1151,7 @@ export default function Dashboard() {
               <span>
                 {data.sync_status.institution_name} — last synced:{' '}
                 {data.sync_status.last_synced_at
-                  ? new Intl.DateTimeFormat('en-US', {
-                      month: 'short',
-                      day: 'numeric',
-                      hour: 'numeric',
-                      minute: '2-digit',
-                    }).format(new Date(data.sync_status.last_synced_at))
+                  ? formatDateTime(data.sync_status.last_synced_at, tz)
                   : 'Never'}
               </span>
             </div>

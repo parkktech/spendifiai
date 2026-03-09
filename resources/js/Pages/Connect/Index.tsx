@@ -31,6 +31,7 @@ import StatementGapAlert from '@/Components/SpendifiAI/StatementGapAlert';
 import { useApi, useApiPost } from '@/hooks/useApi';
 import type { BankAccount, StatementUploadHistory, PendingUpload } from '@/types/spendifiai';
 import { usePage } from '@inertiajs/react';
+import { formatDate } from '@/utils/formatDate';
 
 interface EmailConnection {
   id: number;
@@ -140,7 +141,9 @@ const PROVIDER_INSTRUCTIONS: Record<string, { title: string; passwordLabel: stri
 };
 
 export default function ConnectIndex() {
-  const { plaid_env } = usePage().props as Record<string, unknown>;
+  const pageProps = usePage().props as Record<string, unknown>;
+  const { plaid_env } = pageProps;
+  const tz = (pageProps.auth as { timezone?: string })?.timezone;
   const { data: accounts, loading, error, refresh } = useApi<{ accounts: BankAccount[] }>('/api/v1/accounts');
   const { submit: syncPlaid, loading: syncing } = useApiPost('/api/v1/plaid/sync');
   const { submit: disconnectPlaid } = useApiPost<unknown, unknown>('', 'DELETE');
@@ -691,7 +694,7 @@ export default function ConnectIndex() {
                     {conn.last_synced_at && (
                       <>
                         <span>&middot;</span>
-                        <span>Last synced: {new Date(conn.last_synced_at).toLocaleDateString()}</span>
+                        <span>Last synced: {formatDate(conn.last_synced_at, tz)}</span>
                       </>
                     )}
                     {conn.sync_status === 'syncing' && (

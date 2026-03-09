@@ -14,10 +14,13 @@ export interface PeriodLabels {
 }
 
 /** Format a date string (YYYY-MM-DD) as "Jan 1" or "Jan 1, 2025" if year differs from reference */
-function fmtDate(dateStr: string, refYear?: number): string {
+function fmtDate(dateStr: string, refYear?: number, tz?: string): string {
   const d = new Date(dateStr + 'T00:00:00');
-  const month = d.toLocaleString('en-US', { month: 'short' });
-  const day = d.getDate();
+  const opts: Intl.DateTimeFormatOptions = { month: 'short', ...(tz ? { timeZone: tz } : {}) };
+  const month = d.toLocaleString('en-US', opts);
+  const day = tz
+    ? new Intl.DateTimeFormat('en-US', { day: 'numeric', timeZone: tz }).format(d)
+    : String(d.getDate());
   if (refYear !== undefined && d.getFullYear() !== refYear) {
     return `${month} ${day}, ${d.getFullYear()}`;
   }
@@ -25,14 +28,14 @@ function fmtDate(dateStr: string, refYear?: number): string {
 }
 
 /** Build a readable date range like "Jan 1 – Feb 15" or "Mar 1, 2025 – Mar 6, 2026" */
-function buildDateRange(start: string, end: string): string {
+function buildDateRange(start: string, end: string, tz?: string): string {
   const startDate = new Date(start + 'T00:00:00');
   const endDate = new Date(end + 'T00:00:00');
   const sameYear = startDate.getFullYear() === endDate.getFullYear();
   if (sameYear) {
-    return `${fmtDate(start)} – ${fmtDate(end)}`;
+    return `${fmtDate(start, undefined, tz)} – ${fmtDate(end, undefined, tz)}`;
   }
-  return `${fmtDate(start, -1)} – ${fmtDate(end, -1)}`;
+  return `${fmtDate(start, -1, tz)} – ${fmtDate(end, -1, tz)}`;
 }
 
 export const DEFAULT_PERIOD_LABELS: PeriodLabels = {
@@ -52,9 +55,9 @@ export const DEFAULT_PERIOD_LABELS: PeriodLabels = {
  * Generate period-aware labels for dashboard sections.
  * @param isCustomRange – true only when user manually picks a custom date range
  */
-export function getPeriodLabels(period: PeriodMeta, isCustomRange = false): PeriodLabels {
+export function getPeriodLabels(period: PeriodMeta, isCustomRange = false, timezone?: string): PeriodLabels {
   const { months, avg_mode } = period;
-  const range = buildDateRange(period.start, period.end);
+  const range = buildDateRange(period.start, period.end, timezone);
   // Only append date range for custom ranges
   const rangeTag = isCustomRange ? ` (${range})` : '';
 

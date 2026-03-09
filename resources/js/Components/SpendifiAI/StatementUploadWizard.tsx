@@ -28,6 +28,8 @@ import type {
   BatchStatusResponse,
   BatchTransactionsResponse,
 } from '@/types/spendifiai';
+import { usePage } from '@inertiajs/react';
+import { formatDateShort, formatDate } from '@/utils/formatDate';
 import { useApiPost } from '@/hooks/useApi';
 
 interface StatementUploadWizardProps {
@@ -89,6 +91,7 @@ export default function StatementUploadWizard({
   onCancel,
   existingAccounts,
 }: StatementUploadWizardProps) {
+  const tz = (usePage().props.auth as { timezone?: string }).timezone;
   const hasExistingAccounts = existingAccounts && existingAccounts.length > 0;
 
   // Step tracking
@@ -960,16 +963,9 @@ export default function StatementUploadWizard({
                     <span className="text-sw-text font-medium">
                       {' '}
                       Covering{' '}
-                      {new Intl.DateTimeFormat('en-US', {
-                        month: 'short',
-                        day: 'numeric',
-                      }).format(new Date(dateRange.from))}{' '}
+                      {formatDateShort(dateRange.from, tz)}{' '}
                       &mdash;{' '}
-                      {new Intl.DateTimeFormat('en-US', {
-                        month: 'short',
-                        day: 'numeric',
-                        year: 'numeric',
-                      }).format(new Date(dateRange.to))}
+                      {formatDate(dateRange.to, tz)}
                       .
                     </span>
                   )}

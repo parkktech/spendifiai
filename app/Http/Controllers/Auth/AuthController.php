@@ -26,6 +26,7 @@ class AuthController extends Controller
             'name' => $request->name,
             'email' => $request->email,
             'password' => Hash::make($request->password),
+            'timezone' => $request->timezone ?? 'America/New_York',
         ]);
 
         event(new Registered($user));
@@ -169,6 +170,7 @@ class AuthController extends Controller
             'is_google_user' => $user->isGoogleUser(),
             'has_bank_connected' => $user->hasBankConnected(),
             'has_profile_complete' => $user->hasProfileComplete(),
+            'timezone' => $user->timezone,
             'created_at' => $user->created_at->toIso8601String(),
         ];
     }

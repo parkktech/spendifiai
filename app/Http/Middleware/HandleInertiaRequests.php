@@ -37,6 +37,7 @@ class HandleInertiaRequests extends Middleware
                 'hasBankConnected' => $request->user()?->hasBankConnected() ?? false,
                 'hasEmailConnected' => $request->user()?->hasEmailConnected() ?? false,
                 'isAdmin' => $request->user()?->isAdmin() ?? false,
+                'timezone' => $request->user()?->timezone ?? 'America/New_York',
             ],
             'canLogin' => Route::has('login'),
             'canRegister' => Route::has('register'),

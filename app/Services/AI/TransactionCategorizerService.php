@@ -453,7 +453,7 @@ Transaction:
 - Amount: \${$transaction->amount}
 - Date: {$transaction->transaction_date->format('M j, Y')}
 - Description: {$transaction->description}
-- Account type: {$transaction->account_purpose}
+- Account type: {$transaction->account_purpose?->value}
 
 Original question: {$question->question}
 Predefined options: {$this->formatOptions($question->options)}

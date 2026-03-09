@@ -11,11 +11,13 @@ import {
   CheckCircle,
   Lock,
   Smartphone,
+  Globe,
 } from 'lucide-react';
 import ConfirmDialog from '@/Components/SpendifiAI/ConfirmDialog';
 import Badge from '@/Components/SpendifiAI/Badge';
 import { useApi, useApiPost } from '@/hooks/useApi';
 import type { UserFinancialProfile, UserFinancialProfileResponse } from '@/types/spendifiai';
+import { US_TIMEZONES, getAllTimezones } from '@/utils/timezones';
 import axios from 'axios';
 
 function SuccessToast({ message }: { message: string }) {
@@ -44,6 +46,26 @@ export default function SettingsIndex() {
     housing_status: '',
   });
   const [profileSuccess, setProfileSuccess] = useState(false);
+
+  // Timezone
+  const authTimezone = (pageProps.auth as { timezone?: string }).timezone ?? 'America/New_York';
+  const [timezone, setTimezone] = useState(authTimezone);
+  const [timezoneLoading, setTimezoneLoading] = useState(false);
+  const [timezoneSuccess, setTimezoneSuccess] = useState(false);
+  const allTimezones = getAllTimezones();
+
+  const handleTimezoneSave = async () => {
+    setTimezoneLoading(true);
+    try {
+      await axios.patch('/api/v1/profile/timezone', { timezone });
+      setTimezoneSuccess(true);
+      setTimeout(() => setTimezoneSuccess(false), 3000);
+    } catch {
+      // ignore
+    } finally {
+      setTimezoneLoading(false);
+    }
+  };
 
   useEffect(() => {
     if (profile) {
@@ -261,7 +283,53 @@ export default function SettingsIndex() {
           </div>
         </div>
 
-        {/* Section 2: Security */}
+        {/* Section 2: Preferences */}
+        <div className="rounded-2xl border border-sw-border bg-sw-card p-6">
+          <div className="flex items-center gap-3 mb-5">
+            <div className="w-9 h-9 rounded-lg bg-sw-accent/10 border border-sw-accent/20 flex items-center justify-center">
+              <Globe size={18} className="text-sw-accent" />
+            </div>
+            <div>
+              <h3 className="text-[15px] font-semibold text-sw-text">Preferences</h3>
+              <p className="text-xs text-sw-dim">Display settings for your account</p>
+            </div>
+          </div>
+
+          {timezoneSuccess && <div aria-live="polite" className="mb-4"><SuccessToast message="Timezone updated" /></div>}
+
+          <div className="max-w-sm">
+            <label className={labelClasses}>Timezone</label>
+            <select
+              value={timezone}
+              onChange={(e) => setTimezone(e.target.value)}
+              className={inputClasses}
+            >
+              <optgroup label="United States">
+                {US_TIMEZONES.map((tz) => (
+                  <option key={tz.value} value={tz.value}>{tz.label}</option>
+                ))}
+              </optgroup>
+              <optgroup label="All Timezones">
+                {allTimezones.filter((tz) => !US_TIMEZONES.some((us) => us.value === tz.value)).map((tz) => (
+                  <option key={tz.value} value={tz.value}>{tz.label}</option>
+                ))}
+              </optgroup>
+            </select>
+          </div>
+
+          <div className="mt-5 flex justify-end">
+            <button
+              onClick={handleTimezoneSave}
+              disabled={timezoneLoading || timezone === authTimezone}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-sw-accent text-white text-sm font-semibold hover:bg-sw-accent-hover transition disabled:opacity-50"
+            >
+              {timezoneLoading ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
+              Save Timezone
+            </button>
+          </div>
+        </div>
+
+        {/* Section 3: Security */}
         <div className="rounded-2xl border border-sw-border bg-sw-card p-6">
           <div className="flex items-center gap-3 mb-5">
             <div className="w-9 h-9 rounded-lg bg-sw-accent-light border border-blue-200 flex items-center justify-center">
@@ -374,7 +442,7 @@ export default function SettingsIndex() {
           )}
         </div>
 
-        {/* Section 3: Delete Account */}
+        {/* Section 4: Delete Account */}
         <div className="rounded-2xl border border-sw-danger/30 bg-sw-card p-6">
           <div className="flex items-center gap-3 mb-3">
             <div className="w-9 h-9 rounded-lg bg-sw-danger/10 border border-sw-danger/20 flex items-center justify-center">

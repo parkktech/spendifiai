@@ -9,6 +9,8 @@ import {
   Info,
 } from 'lucide-react';
 import { useApi, useApiPost } from '@/hooks/useApi';
+import { usePage } from '@inertiajs/react';
+import { formatDateShort } from '@/utils/formatDate';
 import type { StatementGapResponse, StatementGap, StatementOverlap } from '@/types/spendifiai';
 
 interface StatementGapAlertProps {
@@ -16,6 +18,7 @@ interface StatementGapAlertProps {
 }
 
 export default function StatementGapAlert({ onUploadStatement }: StatementGapAlertProps) {
+  const tz = (usePage().props.auth as { timezone?: string }).timezone;
   const { data, loading, refresh } = useApi<StatementGapResponse>('/api/v1/statements/gaps');
   const { submit: dismissGap } = useApiPost('/api/v1/statements/gaps/dismiss');
   const [dismissing, setDismissing] = useState<string | null>(null);
@@ -58,10 +61,7 @@ export default function StatementGapAlert({ onUploadStatement }: StatementGapAle
     refresh();
   };
 
-  const formatOverlapDate = (dateStr: string) => {
-    const d = new Date(dateStr + 'T00:00:00');
-    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-  };
+  const formatOverlapDate = (dateStr: string) => formatDateShort(dateStr, tz);
 
   return (
     <div className="rounded-2xl border border-amber-300/60 bg-gradient-to-br from-amber-50/80 via-orange-50/40 to-amber-50/60 p-5 mb-6">

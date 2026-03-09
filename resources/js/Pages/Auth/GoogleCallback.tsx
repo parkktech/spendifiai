@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { router } from '@inertiajs/react';
 import GuestLayout from '@/Layouts/GuestLayout';
 import { Loader2 } from 'lucide-react';
+import axios from 'axios';
 
 export default function GoogleCallback() {
   const [error, setError] = useState<string | null>(null);
@@ -33,6 +34,12 @@ export default function GoogleCallback() {
 
       // Set Authorization header
       window.axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+
+      // Send detected timezone to server (fire-and-forget)
+      const detectedTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      if (detectedTz) {
+        axios.patch('/api/v1/profile/timezone', { timezone: detectedTz }).catch(() => {});
+      }
 
       // Clear the URL fragment for security
       window.history.replaceState({}, document.title, window.location.pathname);

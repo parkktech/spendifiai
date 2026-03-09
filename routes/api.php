@@ -159,6 +159,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
             Route::get('/questions', [AIQuestionController::class, 'index']);
             Route::post('/questions/{question}/answer', [AIQuestionController::class, 'answer']);
             Route::post('/questions/{question}/chat', [AIQuestionController::class, 'chat']);
+            Route::post('/questions/{question}/search-emails', [AIQuestionController::class, 'searchEmails']);
             Route::post('/questions/bulk-answer', [AIQuestionController::class, 'bulkAnswer']);
 
             // Transactions
@@ -233,6 +234,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
         // User Profile
         Route::post('/profile/financial', [UserProfileController::class, 'updateFinancial']);
         Route::get('/profile/financial', [UserProfileController::class, 'showFinancial']);
+        Route::patch('/profile/timezone', [UserProfileController::class, 'updateTimezone']);
 
         // Account Deletion (GDPR/CCPA compliance)
         Route::delete('/account', [UserProfileController::class, 'deleteAccount']);

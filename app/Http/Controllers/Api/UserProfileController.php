@@ -39,7 +39,7 @@ class UserProfileController extends Controller
     {
         $profile = UserFinancialProfile::where('user_id', auth()->id())->first();
 
-        if (!$profile) {
+        if (! $profile) {
             return response()->json([
                 'message' => 'No financial profile set up yet.',
                 'profile' => null,
@@ -48,6 +48,25 @@ class UserProfileController extends Controller
 
         return response()->json([
             'profile' => $profile,
+        ]);
+    }
+
+    /**
+     * Update the user's timezone.
+     */
+    public function updateTimezone(Request $request): JsonResponse
+    {
+        $request->validate([
+            'timezone' => 'required|string|max:64|timezone:all',
+        ]);
+
+        $request->user()->update([
+            'timezone' => $request->timezone,
+        ]);
+
+        return response()->json([
+            'message' => 'Timezone updated',
+            'timezone' => $request->user()->timezone,
         ]);
     }
 
@@ -74,9 +93,9 @@ class UserProfileController extends Controller
             } catch (\Exception $e) {
                 // Log but continue -- don't block account deletion if Plaid fails
                 Log::warning('Failed to disconnect bank during account deletion', [
-                    'user_id'       => $connection->user_id,
+                    'user_id' => $connection->user_id,
                     'connection_id' => $connection->id,
-                    'error'         => $e->getMessage(),
+                    'error' => $e->getMessage(),
                 ]);
             }
         });

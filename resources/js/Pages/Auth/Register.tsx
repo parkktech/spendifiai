@@ -27,6 +27,7 @@ export default function Register() {
                 email,
                 password,
                 password_confirmation: passwordConfirmation,
+                timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
             });
 
             // Store token in localStorage and cookie

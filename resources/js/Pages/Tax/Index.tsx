@@ -10,15 +10,11 @@ import { useApi } from '@/hooks/useApi';
 import StatCard from '@/Components/SpendifiAI/StatCard';
 import ConnectBankPrompt from '@/Components/SpendifiAI/ConnectBankPrompt';
 import ExportModal from '@/Components/SpendifiAI/ExportModal';
+import { formatDateShort } from '@/utils/formatDate';
 import type { TaxSummary, TaxLineItem, NormalizedTaxLine } from '@/types/spendifiai';
 
 const fmt = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
 const currentYear = new Date().getFullYear();
-
-function formatDate(dateStr: string): string {
-  const date = new Date(dateStr + 'T00:00:00');
-  return new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' }).format(date);
-}
 
 interface MergedCategory {
   category: string;
@@ -31,7 +27,8 @@ interface MergedCategory {
 }
 
 export default function TaxIndex() {
-  const { auth } = usePage().props as unknown as { auth: { hasBankConnected: boolean } };
+  const { auth } = usePage().props as unknown as { auth: { hasBankConnected: boolean; timezone?: string } };
+  const tz = auth.timezone;
   const [year, setYear] = useState(currentYear);
   const [exportOpen, setExportOpen] = useState(false);
   const [exportMode, setExportMode] = useState<'download' | 'email'>('download');
@@ -428,6 +425,7 @@ function CategoryRow({
   isExpanded: boolean;
   onToggle: () => void;
 }) {
+  const tz = (usePage().props.auth as { timezone?: string }).timezone;
   const hasItems = deduction.items.length > 0;
   const isScheduleA = deduction.schedule === 'A';
 
@@ -493,7 +491,7 @@ function CategoryRow({
                   Bank
                 </span>
               )}
-              <span className="text-xs text-sw-dim shrink-0">{formatDate(item.date)}</span>
+              <span className="text-xs text-sw-dim shrink-0">{formatDateShort(item.date, tz)}</span>
               <span className="text-xs text-sw-text font-medium truncate">{item.merchant}</span>
               {item.description && item.description !== item.merchant && (
                 <span className="text-[11px] text-sw-dim truncate hidden md:inline">— {item.description}</span>

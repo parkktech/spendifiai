@@ -14,7 +14,9 @@ import {
   Heart,
   FileText,
 } from 'lucide-react';
+import { usePage } from '@inertiajs/react';
 import Badge from './Badge';
+import { formatDate } from '@/utils/formatDate';
 import type { Transaction, TransactionOrderItem } from '@/types/spendifiai';
 
 interface TransactionRowProps {
@@ -26,11 +28,6 @@ interface TransactionRowProps {
 }
 
 const fmt = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
-
-function formatDate(dateStr: string): string {
-  const date = new Date(dateStr);
-  return new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).format(date);
-}
 
 function formatAmount(amount: number): string {
   // Plaid convention: positive = debit (spent), negative = credit (received)
@@ -54,6 +51,7 @@ export default function TransactionRow({
   onConfirm,
   onDonationNoteChange,
 }: TransactionRowProps) {
+  const tz = (usePage().props.auth as { timezone?: string }).timezone;
   const [editingCategory, setEditingCategory] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [expanded, setExpanded] = useState(false);
@@ -100,7 +98,7 @@ export default function TransactionRow({
         <div className="flex-1 min-w-0">
           <div className="text-[13px] font-medium text-sw-text truncate">{transaction.merchant_name}</div>
           <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
-            <span className="text-[11px] text-sw-dim">{formatDate(transaction.date)}</span>
+            <span className="text-[11px] text-sw-dim">{formatDate(transaction.date, tz)}</span>
             <span className="text-sw-dim text-[11px]">-</span>
 
             {/* Category (editable) */}

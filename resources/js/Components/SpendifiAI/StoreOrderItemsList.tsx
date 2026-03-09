@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { Mail, Package, Tag, Loader2 } from 'lucide-react';
+import { usePage } from '@inertiajs/react';
 import axios from 'axios';
+import { formatDate } from '@/utils/formatDate';
 import type { StoreOrderItem } from '@/types/spendifiai';
 
 const fmt = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
@@ -11,6 +13,7 @@ interface StoreOrderItemsListProps {
 }
 
 export default function StoreOrderItemsList({ items, onItemUpdated }: StoreOrderItemsListProps) {
+  const tz = (usePage().props.auth as { timezone?: string }).timezone;
   const [togglingId, setTogglingId] = useState<number | null>(null);
 
   if (items.length === 0) return null;
@@ -55,11 +58,7 @@ export default function StoreOrderItemsList({ items, onItemUpdated }: StoreOrder
             <div className="flex items-center gap-2 mb-1.5">
               <span className="text-[11px] font-medium text-sw-muted">
                 {date !== 'Unknown'
-                  ? new Date(date + 'T00:00:00').toLocaleDateString('en-US', {
-                      month: 'short',
-                      day: 'numeric',
-                      year: 'numeric',
-                    })
+                  ? formatDate(date, tz)
                   : 'Unknown Date'}
               </span>
               {grouped[date][0]?.order?.order_number && (

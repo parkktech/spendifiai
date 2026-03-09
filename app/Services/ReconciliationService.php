@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\AIQuestion;
 use App\Models\MerchantAlias;
 use App\Models\Order;
 use App\Models\OrderItem;
@@ -259,6 +260,30 @@ class ReconciliationService
                 'matched_transaction_id' => $transaction->id,
                 'is_reconciled' => true,
             ]);
+
+            // Categorize from order items if transaction has a pending question
+            $primaryItem = OrderItem::where('order_id', $order->id)
+                ->orderByDesc('total_price')
+                ->first();
+
+            if ($primaryItem && $primaryItem->ai_category) {
+                $transaction->update([
+                    'ai_category' => $primaryItem->ai_category,
+                    'review_status' => 'auto_categorized',
+                    'expense_type' => $primaryItem->expense_type ?? $transaction->expense_type,
+                    'tax_deductible' => $primaryItem->tax_deductible ?? $transaction->tax_deductible,
+                ]);
+            }
+
+            // Resolve any pending AIQuestion for this transaction
+            AIQuestion::where('transaction_id', $transaction->id)
+                ->where('status', 'pending')
+                ->update([
+                    'status' => 'answered',
+                    'user_answer' => 'Auto-resolved via email receipt match',
+                    'answered_at' => now(),
+                    'email_search_status' => 'found',
+                ]);
 
             // Learn merchant alias from this successful reconciliation
             $bankName = strtoupper(trim($transaction->merchant_name ?? ''));

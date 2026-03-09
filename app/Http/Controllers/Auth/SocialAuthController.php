@@ -94,6 +94,7 @@ class SocialAuthController extends Controller
                 'avatar_url' => $googleUser->getAvatar(),
                 'password' => Hash::make(Str::random(32)), // Random pw, login via Google only
                 'email_verified_at' => now(), // Google-verified email
+                'timezone' => 'America/New_York', // Frontend will PATCH real timezone after callback
             ]);
 
             event(new Registered($user));
@@ -122,6 +123,7 @@ class SocialAuthController extends Controller
                     'is_google_user' => true,
                     'has_bank_connected' => $user->hasBankConnected(),
                     'has_profile_complete' => $user->hasProfileComplete(),
+                    'timezone' => $user->timezone,
                     'is_new_user' => $isNewUser,
                 ],
                 'token' => $token,

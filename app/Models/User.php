@@ -18,6 +18,7 @@ class User extends Authenticatable implements MustVerifyEmail
     protected $fillable = [
         'name',
         'email',
+        'timezone',
         'is_admin',
         'password',
         'google_id',

@@ -1,5 +1,7 @@
 import { FileText, Calendar, Hash, Upload } from 'lucide-react';
+import { usePage } from '@inertiajs/react';
 import Badge from './Badge';
+import { formatDateTime, formatDateShort } from '@/utils/formatDate';
 import type { StatementUploadHistory } from '@/types/spendifiai';
 
 interface UploadHistoryProps {
@@ -7,24 +9,9 @@ interface UploadHistoryProps {
   onUploadMore: () => void;
 }
 
-function formatDate(dateStr: string): string {
-  return new Intl.DateTimeFormat('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
-  }).format(new Date(dateStr));
-}
-
-function formatDateShort(dateStr: string): string {
-  return new Intl.DateTimeFormat('en-US', {
-    month: 'short',
-    day: 'numeric',
-  }).format(new Date(dateStr));
-}
-
 export default function UploadHistory({ uploads, onUploadMore }: UploadHistoryProps) {
+  const tz = (usePage().props.auth as { timezone?: string }).timezone;
+
   if (uploads.length === 0) {
     return null;
   }
@@ -71,8 +58,8 @@ export default function UploadHistory({ uploads, onUploadMore }: UploadHistoryPr
                 <span>{upload.bank_name}</span>
                 <span className="flex items-center gap-1">
                   <Calendar size={10} />
-                  {formatDateShort(upload.date_range.from)} &mdash;{' '}
-                  {formatDateShort(upload.date_range.to)}
+                  {formatDateShort(upload.date_range.from, tz)} &mdash;{' '}
+                  {formatDateShort(upload.date_range.to, tz)}
                 </span>
                 <span className="flex items-center gap-1">
                   <Hash size={10} />
@@ -88,7 +75,7 @@ export default function UploadHistory({ uploads, onUploadMore }: UploadHistoryPr
 
             <div className="text-right shrink-0">
               <span className="text-[11px] text-sw-dim">
-                {formatDate(upload.uploaded_at)}
+                {formatDateTime(upload.uploaded_at, tz)}
               </span>
             </div>
           </div>

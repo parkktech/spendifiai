@@ -187,25 +187,14 @@ class MicrosoftOutlookService
 
         foreach ($this->getSearchQueries() as $query) {
             try {
+                // Microsoft Graph does not support $search + $filter together on messages.
+                // Use $search alone and filter by date client-side.
                 $response = Http::withToken($accessToken)
                     ->get($this->graphUrl.'/me/messages', [
                         '$search' => '"'.$query.'"',
-                        '$filter' => "receivedDateTime ge {$sinceStr}",
                         '$top' => 100,
                         '$select' => 'id,subject,from,receivedDateTime,bodyPreview',
-                        '$orderby' => 'receivedDateTime desc',
                     ]);
-
-                // If $filter + $search combined fails, retry with $search only
-                $usedFilter = $response->successful();
-                if (! $usedFilter) {
-                    $response = Http::withToken($accessToken)
-                        ->get($this->graphUrl.'/me/messages', [
-                            '$search' => '"'.$query.'"',
-                            '$top' => 100,
-                            '$select' => 'id,subject,from,receivedDateTime,bodyPreview',
-                        ]);
-                }
 
                 // Paginate through all results via @odata.nextLink
                 do {
@@ -216,8 +205,8 @@ class MicrosoftOutlookService
                         foreach ($messages as $message) {
                             $msgId = $message['id'];
 
-                            // Filter by date if $filter wasn't applied
-                            if (! $usedFilter && isset($message['receivedDateTime'])) {
+                            // Client-side date filter
+                            if (isset($message['receivedDateTime'])) {
                                 $msgDate = Carbon::parse($message['receivedDateTime']);
                                 if ($msgDate->lt($since)) {
                                     continue;
@@ -298,7 +287,7 @@ class MicrosoftOutlookService
     /**
      * Clean HTML while preserving structure for Claude parsing.
      */
-    protected function cleanHtml(string $html): string
+    public function cleanHtml(string $html): string
     {
         $html = preg_replace('/<style[^>]*>.*?<\/style>/si', '', $html);
         $html = preg_replace('/<script[^>]*>.*?<\/script>/si', '', $html);

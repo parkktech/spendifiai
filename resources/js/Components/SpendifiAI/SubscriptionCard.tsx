@@ -1,6 +1,8 @@
 import { useState, useRef, useEffect } from 'react';
 import { CreditCard, Calendar, Tag, Hash, X, Ban, Loader2, ExternalLink, Phone, Pencil, Check, ChevronUp } from 'lucide-react';
+import { usePage } from '@inertiajs/react';
 import Badge from '@/Components/SpendifiAI/Badge';
+import { formatDate } from '@/utils/formatDate';
 import type { Subscription } from '@/types/spendifiai';
 import axios from 'axios';
 
@@ -32,13 +34,8 @@ const CATEGORIES = [
 
 const fmt = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
 
-function formatDate(dateStr: string | null): string {
-  if (!dateStr) return '';
-  const d = new Date(dateStr + 'T00:00:00');
-  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-}
-
 export default function SubscriptionCard({ subscription, onUpdate }: SubscriptionCardProps) {
+  const tz = (usePage().props.auth as { timezone?: string }).timezone;
   const [actionsOpen, setActionsOpen] = useState(false);
   const [loading, setLoading] = useState<string | null>(null);
   const [notes, setNotes] = useState(subscription.user_notes ?? '');
@@ -183,13 +180,13 @@ export default function SubscriptionCard({ subscription, onUpdate }: Subscriptio
         {subscription.first_charge_date && (
           <span className="inline-flex items-center gap-1">
             <Calendar size={12} />
-            Since {formatDate(subscription.first_charge_date)}
+            Since {subscription.first_charge_date ? formatDate(subscription.first_charge_date, tz) : ''}
           </span>
         )}
         {subscription.last_charge_date && (
           <span className="inline-flex items-center gap-1">
             <CreditCard size={12} />
-            Last: {formatDate(subscription.last_charge_date)}
+            Last: {subscription.last_charge_date ? formatDate(subscription.last_charge_date, tz) : ''}
           </span>
         )}
       </div>
@@ -317,7 +314,7 @@ export default function SubscriptionCard({ subscription, onUpdate }: Subscriptio
       {/* Cancelled indicator */}
       {isCancelled && subscription.responded_at && (
         <div className="text-xs text-sw-dim text-center py-1">
-          Cancelled {formatDate(subscription.responded_at.split('T')[0])}
+          Cancelled {formatDate(subscription.responded_at.split('T')[0], tz)}
         </div>
       )}
     </div>

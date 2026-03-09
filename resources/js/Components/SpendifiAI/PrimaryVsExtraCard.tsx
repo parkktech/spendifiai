@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { usePage } from '@inertiajs/react';
 import {
   Briefcase,
   FileText,
@@ -102,9 +103,10 @@ export default function PrimaryVsExtraCard({
   classifyLoading,
   period,
 }: Props) {
+  const tz = (usePage().props.auth as { timezone?: string }).timezone;
   const [showExtra, setShowExtra] = useState(false);
   const [loadingKey, setLoadingKey] = useState<string | null>(null);
-  const pl = period ? getPeriodLabels(period) : DEFAULT_PERIOD_LABELS;
+  const pl = period ? getPeriodLabels(period, false, tz) : DEFAULT_PERIOD_LABELS;
 
   const coveragePct = data.coverage_pct;
   const canLive = data.can_live_on_primary;

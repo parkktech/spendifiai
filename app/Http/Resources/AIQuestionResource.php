@@ -16,6 +16,7 @@ class AIQuestionResource extends JsonResource
             'ai_confidence' => $this->ai_confidence ? (float) $this->ai_confidence : null,
             'user_answer' => $this->user_answer,
             'status' => $this->status,
+            'email_search_status' => $this->email_search_status,
             'question_type' => $this->question_type,
             'answered_at' => $this->answered_at?->toIso8601String(),
             'created_at' => $this->created_at?->toIso8601String(),
