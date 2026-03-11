@@ -3,8 +3,11 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Jobs\SyncBankTransactions;
+use App\Models\BankConnection;
 use App\Models\EmailConnection;
 use App\Models\User;
+use App\Services\CookieConsentService;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -104,6 +107,23 @@ class SocialAuthController extends Controller
         // Auto-create Gmail email connection if user granted Gmail access
         $this->createGmailConnectionIfNeeded($user, $googleUser);
 
+        // Trigger immediate sync for returning existing users
+        $syncTriggered = false;
+        if (! $isNewUser && $user->isReturningUser() && $user->hasBankConnected()) {
+            BankConnection::where('user_id', $user->id)
+                ->where('status', 'active')
+                ->each(fn ($conn) => SyncBankTransactions::dispatch($conn));
+            $syncTriggered = true;
+        }
+
+        $user->updateQuietly(['last_active_at' => now()]);
+
+        // Link anonymous consent records to this user
+        $visitorId = $request->cookie(config('spendifiai.consent.visitor_cookie', 'sw_visitor_id'));
+        if ($visitorId) {
+            app(CookieConsentService::class)->linkVisitorToUser($visitorId, $user->id);
+        }
+
         // Generate API token
         $user->tokens()->delete();
         $token = $user->createToken('spendifiai-google')->plainTextToken;
@@ -127,6 +147,7 @@ class SocialAuthController extends Controller
                     'is_new_user' => $isNewUser,
                 ],
                 'token' => $token,
+                'sync_triggered' => $syncTriggered,
             ]);
         }
 
@@ -134,7 +155,9 @@ class SocialAuthController extends Controller
         // Fragments (#) are never sent to the server, so the token won't appear
         // in access logs, Referrer headers, or browser history synced to servers.
         // The frontend reads it via window.location.hash and then clears the URL.
-        return redirect("{$frontendUrl}/auth/callback#token={$token}&new={$isNewUser}");
+        $syncParam = $syncTriggered ? '&sync=1' : '';
+
+        return redirect("{$frontendUrl}/auth/callback#token={$token}&new={$isNewUser}{$syncParam}");
     }
 
     /**

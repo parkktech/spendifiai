@@ -19,6 +19,8 @@ class RegisterRequest extends FormRequest
             'email' => 'required|string|email|max:255|unique:users',
             'password' => 'required|string|min:8|confirmed',
             'timezone' => 'sometimes|string|max:64|timezone:all',
+            'user_type' => 'sometimes|string|in:personal,accountant',
+            'company_name' => 'nullable|string|max:255',
         ];
 
         if (config('spendifiai.captcha.enabled')) {

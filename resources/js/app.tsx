@@ -4,6 +4,10 @@ import './bootstrap';
 import { createInertiaApp } from '@inertiajs/react';
 import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
 import { createRoot } from 'react-dom/client';
+import { ConsentProvider } from '@/contexts/ConsentContext';
+import { ImpersonationProvider } from '@/contexts/ImpersonationContext';
+import GoogleConsentMode from '@/Components/SpendifiAI/GoogleConsentMode';
+import CookieConsentBanner from '@/Components/SpendifiAI/CookieConsentBanner';
 
 const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
 
@@ -30,7 +34,15 @@ createInertiaApp({
         ),
     setup({ el, App, props }) {
         const root = createRoot(el);
-        root.render(<App {...props} />);
+        root.render(
+            <ConsentProvider>
+                <GoogleConsentMode />
+                <ImpersonationProvider>
+                    <App {...props} />
+                </ImpersonationProvider>
+                <CookieConsentBanner />
+            </ConsentProvider>
+        );
     },
     progress: {
         color: '#2563eb',

@@ -801,3 +801,94 @@ export interface AdminCharityStats {
   categories: Array<{ category: string; count: number }>;
   recently_added: CharitableOrganization[];
 }
+
+// --- Cookie Consent Types ---
+
+export interface ConsentPreferences {
+  analytics: boolean;
+  marketing: boolean;
+  version: string;
+  region?: string;
+  updated_at?: string;
+}
+
+export interface ConsentConfig {
+  region: 'eu' | 'california' | 'other';
+  region_label: string;
+  requires_opt_in: boolean;
+  requires_opt_out_notice: boolean;
+  consent_version: string;
+  has_consent: boolean;
+  current_preferences: { analytics: boolean; marketing: boolean } | null;
+}
+
+export interface ConsentAuditEntry {
+  id: number;
+  action: 'grant' | 'revoke' | 'update' | 'admin_override';
+  analytics: boolean;
+  marketing: boolean;
+  region: string;
+  version: string;
+  admin_user_id: number | null;
+  created_at: string;
+}
+
+export interface AdminConsentStats {
+  total_users: number;
+  users_with_consent: number;
+  analytics_enabled: number;
+  marketing_enabled: number;
+  region_breakdown: Record<string, number>;
+}
+
+// --- Accountant Types ---
+
+export interface AccountantClient {
+    id: number;
+    client: { id: number; name: string; email: string; company_name?: string };
+    status: 'pending' | 'active' | 'revoked';
+    invited_by: 'client' | 'accountant';
+    has_bank: boolean;
+    transaction_range?: { start: string; end: string };
+    last_sync?: string;
+    created_at: string;
+}
+
+export interface AccountantSearchResult {
+    id: number;
+    name: string;
+    email: string;
+    company_name?: string;
+}
+
+export interface MyAccountant {
+    id: number;
+    accountant: { id: number; name: string; email: string; company_name?: string };
+    status: 'pending' | 'active' | 'revoked';
+    invited_by: 'client' | 'accountant';
+    created_at: string;
+}
+
+export interface AccountantInvite {
+    id: number;
+    accountant: { id: number; name: string; email: string; company_name?: string };
+    client: { id: number; name: string; email: string };
+    invited_by: 'client' | 'accountant';
+    can_respond: boolean;
+    created_at: string;
+}
+
+export interface AdminConsentUser {
+  id: number;
+  name: string;
+  email: string;
+  created_at: string;
+  consent: {
+    analytics: boolean;
+    marketing: boolean;
+    region: string;
+    version: string;
+    last_updated: string;
+    action: string;
+  } | null;
+}

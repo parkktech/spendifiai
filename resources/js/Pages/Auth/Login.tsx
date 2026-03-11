@@ -45,6 +45,11 @@ export default function Login({
                 window.axios.defaults.headers.common['Authorization'] = `Bearer ${response.data.token}`;
             }
 
+            // Flag sync if triggered for returning user
+            if (response.data.sync_triggered) {
+                sessionStorage.setItem('sync_triggered', '1');
+            }
+
             // Redirect unverified users to verification page instead of dashboard
             if (response.data.user && !response.data.user.email_verified) {
                 router.visit('/verify-email');

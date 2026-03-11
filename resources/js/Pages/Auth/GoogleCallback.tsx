@@ -14,6 +14,7 @@ export default function GoogleCallback() {
     const params = new URLSearchParams(hash);
     const token = params.get('token');
     const isNewUser = params.get('new') === 'true';
+    const syncTriggered = params.get('sync') === '1';
 
     if (!token) {
       setError('No authentication token received. Please try again.');
@@ -41,11 +42,30 @@ export default function GoogleCallback() {
         axios.patch('/api/v1/profile/timezone', { timezone: detectedTz }).catch(() => {});
       }
 
+      // For new Google users, apply the user type selection stashed before redirect
+      if (isNewUser) {
+        const pendingUserType = localStorage.getItem('pending_user_type');
+        if (pendingUserType && pendingUserType !== 'personal') {
+          const pendingCompanyName = localStorage.getItem('pending_company_name');
+          axios.patch('/api/auth/user-type', {
+            user_type: pendingUserType,
+            ...(pendingCompanyName ? { company_name: pendingCompanyName } : {}),
+          }).catch(() => {});
+        }
+        localStorage.removeItem('pending_user_type');
+        localStorage.removeItem('pending_company_name');
+      }
+
+      // Flag sync if triggered for returning user
+      if (syncTriggered) {
+        sessionStorage.setItem('sync_triggered', '1');
+      }
+
       // Clear the URL fragment for security
       window.history.replaceState({}, document.title, window.location.pathname);
 
       // Redirect to appropriate page
-      const destination = isNewUser ? '/email-verification-notice' : '/dashboard';
+      const destination = isNewUser ? '/verify-email' : '/dashboard';
       router.visit(destination);
     } catch (err) {
       setError('Failed to complete authentication. Please try again.');

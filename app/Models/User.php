@@ -2,8 +2,10 @@
 
 namespace App\Models;
 
+use App\Enums\UserType;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -20,12 +22,16 @@ class User extends Authenticatable implements MustVerifyEmail
         'email',
         'timezone',
         'is_admin',
+        'user_type',
+        'company_name',
         'password',
         'google_id',
         'avatar_url',
         'email_verified_at',
         'failed_login_attempts',
         'locked_until',
+        'last_active_at',
+        'last_sync_digest_at',
         'two_factor_secret',
         'two_factor_recovery_codes',
         'two_factor_confirmed_at',
@@ -44,7 +50,10 @@ class User extends Authenticatable implements MustVerifyEmail
         return [
             'email_verified_at' => 'datetime',
             'locked_until' => 'datetime',
+            'last_active_at' => 'datetime',
+            'last_sync_digest_at' => 'datetime',
             'is_admin' => 'boolean',
+            'user_type' => UserType::class,
             'password' => 'hashed',
             'two_factor_confirmed_at' => 'datetime',
             'two_factor_recovery_codes' => 'encrypted:array',  // Auto encrypt + JSON encode/decode
@@ -157,5 +166,54 @@ class User extends Authenticatable implements MustVerifyEmail
     public function isAdmin(): bool
     {
         return (bool) $this->is_admin;
+    }
+
+    public function isAccountant(): bool
+    {
+        return $this->user_type === UserType::Accountant;
+    }
+
+    /**
+     * Clients managed by this accountant (active relationships only).
+     */
+    public function clients(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'accountant_clients', 'accountant_id', 'client_id')
+            ->wherePivot('status', 'active')
+            ->withPivot('status', 'invited_by', 'created_at')
+            ->withTimestamps();
+    }
+
+    /**
+     * Accountants managing this user (active relationships only).
+     */
+    public function accountants(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'accountant_clients', 'client_id', 'accountant_id')
+            ->wherePivot('status', 'active')
+            ->withPivot('status', 'invited_by', 'created_at')
+            ->withTimestamps();
+    }
+
+    public function isReturningUser(): bool
+    {
+        if (is_null($this->last_active_at)) {
+            return false;
+        }
+
+        $threshold = config('spendifiai.sync.active_threshold_days', 28);
+
+        return $this->last_active_at->lt(now()->subDays($threshold));
+    }
+
+    public function syncTier(): string
+    {
+        $threshold = config('spendifiai.sync.active_threshold_days', 28);
+
+        if (is_null($this->last_active_at) || $this->last_active_at->lt(now()->subDays($threshold))) {
+            return 'inactive';
+        }
+
+        return 'active';
     }
 }

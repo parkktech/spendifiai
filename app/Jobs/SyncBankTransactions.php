@@ -46,6 +46,12 @@ class SyncBankTransactions implements ShouldQueue
             if ($result['added'] > 0) {
                 TransactionsImported::dispatch($this->bankConnection, $result['added']);
             }
+
+            // Queue digest email (delayed to let categorization finish)
+            $user = $this->bankConnection->user;
+            if ($user) {
+                SendSyncDigestEmail::dispatch($user, $result)->delay(now()->addSeconds(30));
+            }
         } catch (\Exception $e) {
             Log::error('Bank sync failed', [
                 'connection_id' => $this->bankConnection->id,

@@ -5,7 +5,10 @@ namespace App\Http\Controllers\Auth;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\LoginRequest;
 use App\Http\Requests\Auth\RegisterRequest;
+use App\Jobs\SyncBankTransactions;
+use App\Models\BankConnection;
 use App\Models\User;
+use App\Services\CookieConsentService;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -27,6 +30,8 @@ class AuthController extends Controller
             'email' => $request->email,
             'password' => Hash::make($request->password),
             'timezone' => $request->timezone ?? 'America/New_York',
+            'user_type' => $request->input('user_type', 'personal'),
+            'company_name' => $request->input('company_name'),
         ]);
 
         event(new Registered($user));
@@ -88,20 +93,39 @@ class AuthController extends Controller
         }
 
         // Success — reset failed attempts
-        $user->update([
+        $syncTriggered = false;
+        $updateData = [
             'failed_login_attempts' => 0,
             'locked_until' => null,
-        ]);
+        ];
+
+        // Trigger immediate sync for returning users
+        if ($user->isReturningUser() && $user->hasBankConnected()) {
+            BankConnection::where('user_id', $user->id)
+                ->where('status', 'active')
+                ->each(fn ($conn) => SyncBankTransactions::dispatch($conn));
+            $syncTriggered = true;
+        }
+
+        $updateData['last_active_at'] = now();
+        $user->update($updateData);
 
         // Revoke old tokens (single active session)
         $user->tokens()->delete();
 
         $token = $user->createToken('spendifiai')->plainTextToken;
 
+        // Link anonymous consent records to this user
+        $visitorId = $request->cookie(config('spendifiai.consent.visitor_cookie', 'sw_visitor_id'));
+        if ($visitorId) {
+            app(CookieConsentService::class)->linkVisitorToUser($visitorId, $user->id);
+        }
+
         return response()->json([
             'message' => 'Logged in successfully.',
             'user' => $this->userPayload($user),
             'token' => $token,
+            'sync_triggered' => $syncTriggered,
         ]);
     }
 
@@ -129,6 +153,26 @@ class AuthController extends Controller
         return response()->json([
             'user' => $this->userPayload($user),
         ]);
+    }
+
+    /**
+     * Update user type (for Google OAuth users who selected accountant before redirect).
+     *
+     * PATCH /api/auth/user-type
+     */
+    public function updateUserType(Request $request): JsonResponse
+    {
+        $request->validate([
+            'user_type' => 'required|string|in:personal,accountant',
+            'company_name' => 'nullable|string|max:255',
+        ]);
+
+        $request->user()->update([
+            'user_type' => $request->input('user_type'),
+            'company_name' => $request->input('company_name'),
+        ]);
+
+        return response()->json(['message' => 'User type updated.']);
     }
 
     // ─── Helpers ───
@@ -171,6 +215,9 @@ class AuthController extends Controller
             'has_bank_connected' => $user->hasBankConnected(),
             'has_profile_complete' => $user->hasProfileComplete(),
             'timezone' => $user->timezone,
+            'user_type' => $user->user_type?->value ?? 'personal',
+            'company_name' => $user->company_name,
+            'is_accountant' => $user->isAccountant(),
             'created_at' => $user->created_at->toIso8601String(),
         ];
     }

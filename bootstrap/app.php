@@ -22,15 +22,17 @@ return Application::configure(basePath: dirname(__DIR__))
             \App\Http\Middleware\HandleInertiaRequests::class,
             \Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets::class,
             \App\Http\Middleware\SecurityHeaders::class,
+            \App\Http\Middleware\TrackUserActivity::class,
         ]);
 
         // Exclude auth_token from cookie encryption — it's set by JavaScript
         // and read raw by ExtractTokenFromCookie middleware
-        $middleware->encryptCookies(except: ['auth_token']);
+        $middleware->encryptCookies(except: ['auth_token', 'sw_consent', 'sw_visitor_id', 'sw_accountant_token']);
 
         // Named middleware aliases
         $middleware->alias([
             'admin' => \App\Http\Middleware\EnsureAdmin::class,
+            'accountant' => \App\Http\Middleware\EnsureAccountant::class,
         ]);
 
         // Sanctum SPA authentication

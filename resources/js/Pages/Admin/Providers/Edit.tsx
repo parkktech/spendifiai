@@ -20,7 +20,8 @@ interface FormData {
 const categories = ['Streaming', 'Music', 'Software', 'VPN/Security', 'Finance', 'Fitness/Health', 'Gaming', 'Shopping', 'Hosting/Dev', 'Phone', 'Internet', 'Insurance', 'Utilities'];
 
 export default function EditProvider() {
-  const { provider: providerId } = usePage().props as unknown as { provider: number };
+  const providerProp = (usePage().props as unknown as { provider: number | { id: number } }).provider;
+  const providerId = typeof providerProp === 'object' ? providerProp.id : providerProp;
   const [provider, setProvider] = useState<CancellationProvider | null>(null);
   const [form, setForm] = useState<FormData | null>(null);
   const [saving, setSaving] = useState(false);

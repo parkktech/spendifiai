@@ -54,6 +54,20 @@ return [
         'subscription_detection' => 'daily',
         'savings_analysis' => 'weekly',
         'question_expiry_days' => 7,
+        'active_sync_days' => 7,
+        'inactive_sync_days' => 30,
+        'active_threshold_days' => 28,
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Sync Digest Email
+    |--------------------------------------------------------------------------
+    */
+    'sync_digest' => [
+        'enabled' => true,
+        'min_interval_hours' => 24,
+        'min_transactions' => 1,
     ],
 
     /*
@@ -91,6 +105,22 @@ return [
     'tax' => [
         'default_bracket' => 22,
         'export_dir' => 'tax-exports',
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Cookie Consent
+    |--------------------------------------------------------------------------
+    */
+    'consent' => [
+        'version' => '1.0',
+        'cookie_name' => 'sw_consent',
+        'visitor_cookie' => 'sw_visitor_id',
+        'cookie_lifetime_days' => 365,
+        'gtm_container_id' => env('GTM_CONTAINER_ID', ''),
+        'ga4_measurement_id' => env('GA4_MEASUREMENT_ID', ''),
+        'categories' => ['necessary', 'analytics', 'marketing'],
+        'eu_countries' => ['AT', 'BE', 'BG', 'HR', 'CY', 'CZ', 'DK', 'EE', 'FI', 'FR', 'DE', 'GR', 'HU', 'IE', 'IT', 'LV', 'LT', 'LU', 'MT', 'NL', 'PL', 'PT', 'RO', 'SK', 'SI', 'ES', 'SE', 'IS', 'LI', 'NO', 'CH', 'GB'],
     ],
 
 ];

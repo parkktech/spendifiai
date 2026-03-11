@@ -1,5 +1,6 @@
 import { Link, usePage, router } from '@inertiajs/react';
 import { PropsWithChildren, ReactNode, useState, useEffect } from 'react';
+import ImpersonationBar from '@/Components/SpendifiAI/ImpersonationBar';
 import {
   LayoutDashboard,
   Receipt,
@@ -19,6 +20,7 @@ import {
   Mail,
   ChevronDown,
   ChevronUp,
+  Users,
 } from 'lucide-react';
 
 interface NavItemDef {
@@ -66,6 +68,7 @@ export default function AuthenticatedLayout({
   const user = page.props.auth.user as { name: string; email: string };
   const auth = page.props.auth as Record<string, unknown>;
   const isAdmin = auth.isAdmin as boolean;
+  const isAccountant = auth.isAccountant as boolean;
   const hasBankConnected = auth.hasBankConnected as boolean;
   const hasEmailConnected = auth.hasEmailConnected as boolean;
   const currentRoute = (page.props as Record<string, unknown>).ziggy
@@ -98,7 +101,13 @@ export default function AuthenticatedLayout({
     { label: 'Connect', href: '/connect', routeName: 'connect', icon: <Link2 size={18} /> },
     { label: 'Settings', href: '/settings', routeName: 'settings', icon: <Settings size={18} /> },
     { label: 'AI Questions', href: '/questions', routeName: 'questions', icon: <HelpCircle size={18} /> },
-    ...(isAdmin ? [{ label: 'Admin', href: '/admin', routeName: 'admin.dashboard', icon: <ShieldCheck size={18} /> }] : []),
+    ...(isAccountant ? [
+      { label: 'Clients', href: '/accountant/clients', routeName: 'accountant.clients', icon: <Users size={18} /> },
+    ] : []),
+    ...(isAdmin ? [
+      { label: 'Admin', href: '/admin', routeName: 'admin.dashboard', icon: <ShieldCheck size={18} /> },
+      { label: 'Consent', href: '/admin/consent', routeName: 'admin.consent', icon: <ShieldCheck size={18} /> },
+    ] : []),
   ];
 
   const isActive = (routeName: string) => {
@@ -310,6 +319,9 @@ export default function AuthenticatedLayout({
           {children}
         </main>
       </div>
+
+      {/* Impersonation bar (shown when accountant is viewing client data) */}
+      <ImpersonationBar />
     </div>
     </>
   );

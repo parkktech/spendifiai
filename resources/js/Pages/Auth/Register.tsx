@@ -6,6 +6,7 @@ import GoogleLoginButton from '@/Components/GoogleLoginButton';
 import GuestLayout from '@/Layouts/GuestLayout';
 import { Head, Link, router } from '@inertiajs/react';
 import { FormEventHandler, useState } from 'react';
+import { User as UserIcon, Briefcase } from 'lucide-react';
 import axios from 'axios';
 
 export default function Register() {
@@ -13,6 +14,8 @@ export default function Register() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [passwordConfirmation, setPasswordConfirmation] = useState('');
+    const [userType, setUserType] = useState<'personal' | 'accountant'>('personal');
+    const [companyName, setCompanyName] = useState('');
     const [processing, setProcessing] = useState(false);
     const [errors, setErrors] = useState<Record<string, string[]>>({});
 
@@ -28,6 +31,8 @@ export default function Register() {
                 password,
                 password_confirmation: passwordConfirmation,
                 timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+                user_type: userType,
+                ...(companyName ? { company_name: companyName } : {}),
             });
 
             // Store token in localStorage and cookie
@@ -41,7 +46,7 @@ export default function Register() {
                 window.axios.defaults.headers.common['Authorization'] = `Bearer ${response.data.token}`;
             }
 
-            router.visit('/email-verification-notice');
+            router.visit('/verify-email');
         } catch (error: any) {
             setErrors(error.response?.data?.errors || { email: ['Registration failed'] });
         } finally {
@@ -62,8 +67,66 @@ export default function Register() {
                 </p>
             </div>
 
-            {/* Google OAuth — fastest signup path */}
-            <GoogleLoginButton label="Sign up with Google" />
+            {/* User Type Selector — applies to both Google and email signup */}
+            <div className="mb-6">
+                <InputLabel value="Account type" />
+                <div className="mt-1.5 grid grid-cols-2 gap-3">
+                    <button
+                        type="button"
+                        onClick={() => setUserType('personal')}
+                        className={`relative flex flex-col items-center gap-1.5 rounded-xl border-2 px-3 py-3.5 text-center transition cursor-pointer ${
+                            userType === 'personal'
+                                ? 'border-sw-accent bg-sw-accent/5 shadow-sm'
+                                : 'border-sw-border bg-sw-bg hover:border-sw-border-strong'
+                        }`}
+                    >
+                        <UserIcon size={20} className={userType === 'personal' ? 'text-sw-accent' : 'text-sw-muted'} />
+                        <span className={`text-sm font-semibold ${userType === 'personal' ? 'text-sw-accent' : 'text-sw-text'}`}>Personal</span>
+                        <span className="text-[10px] text-sw-dim leading-tight">Track finances, detect subscriptions, export taxes</span>
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => setUserType('accountant')}
+                        className={`relative flex flex-col items-center gap-1.5 rounded-xl border-2 px-3 py-3.5 text-center transition cursor-pointer ${
+                            userType === 'accountant'
+                                ? 'border-sw-accent bg-sw-accent/5 shadow-sm'
+                                : 'border-sw-border bg-sw-bg hover:border-sw-border-strong'
+                        }`}
+                    >
+                        <Briefcase size={20} className={userType === 'accountant' ? 'text-sw-accent' : 'text-sw-muted'} />
+                        <span className={`text-sm font-semibold ${userType === 'accountant' ? 'text-sw-accent' : 'text-sw-text'}`}>Accountant</span>
+                        <span className="text-[10px] text-sw-dim leading-tight">Manage client finances, download tax exports</span>
+                    </button>
+                </div>
+            </div>
+
+            {/* Company Name (shown for accountants) */}
+            {userType === 'accountant' && (
+                <div className="mb-6">
+                    <InputLabel htmlFor="company_name" value="Company / Firm Name (optional)" />
+                    <TextInput
+                        id="company_name"
+                        name="company_name"
+                        value={companyName}
+                        className="mt-1.5 block w-full"
+                        onChange={(e) => setCompanyName(e.target.value)}
+                        placeholder="e.g., Smith & Associates CPA"
+                    />
+                </div>
+            )}
+
+            {/* Google OAuth — stashes user type selection before redirect */}
+            <GoogleLoginButton
+                label="Sign up with Google"
+                onBeforeRedirect={() => {
+                    localStorage.setItem('pending_user_type', userType);
+                    if (companyName) {
+                        localStorage.setItem('pending_company_name', companyName);
+                    } else {
+                        localStorage.removeItem('pending_company_name');
+                    }
+                }}
+            />
 
             {/* Divider */}
             <div className="relative my-7">

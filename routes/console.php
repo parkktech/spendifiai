@@ -24,12 +24,30 @@ use Illuminate\Support\Facades\Schedule;
 |
 */
 
-// ── Sync bank transactions (every 4 hours) ──
+// ── Sync bank transactions (tiered: active users weekly, inactive monthly) ──
 Schedule::call(function () {
-    BankConnection::where('status', 'active')->each(function ($connection) {
-        SyncBankTransactions::dispatch($connection);
-    });
-})->everyFourHours()->name('sync-bank-transactions');
+    $activeSyncDays = config('spendifiai.sync.active_sync_days', 7);
+    $inactiveSyncDays = config('spendifiai.sync.inactive_sync_days', 30);
+    $thresholdDays = config('spendifiai.sync.active_threshold_days', 28);
+
+    BankConnection::where('status', 'active')
+        ->with('user:id,last_active_at')
+        ->each(function ($connection) use ($activeSyncDays, $inactiveSyncDays, $thresholdDays) {
+            $user = $connection->user;
+            if (! $user) {
+                return;
+            }
+
+            // Determine sync interval based on user activity tier
+            $isActive = $user->last_active_at && $user->last_active_at->gt(now()->subDays($thresholdDays));
+            $syncInterval = $isActive ? $activeSyncDays : $inactiveSyncDays;
+
+            // Always sync if never synced; otherwise respect tier interval
+            if (is_null($connection->last_synced_at) || $connection->last_synced_at->lt(now()->subDays($syncInterval))) {
+                SyncBankTransactions::dispatch($connection);
+            }
+        });
+})->daily()->name('sync-bank-transactions');
 
 // ── AI categorize pending transactions (every 2 hours) ──
 Schedule::call(function () {

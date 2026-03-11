@@ -20,7 +20,8 @@ interface FormData {
 const categories = ['Religious', 'Humanitarian', 'Health', 'Education', 'Environment', 'Community', 'Animal Welfare'];
 
 export default function EditCharity() {
-  const { charity: charityId } = usePage().props as unknown as { charity: number };
+  const charityProp = (usePage().props as unknown as { charity: number | { id: number } }).charity;
+  const charityId = typeof charityProp === 'object' ? charityProp.id : charityProp;
   const [charity, setCharity] = useState<CharitableOrganization | null>(null);
   const [form, setForm] = useState<FormData | null>(null);
   const [saving, setSaving] = useState(false);

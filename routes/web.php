@@ -46,15 +46,19 @@ Route::middleware(['auth:sanctum', 'verified'])->group(function () {
     Route::get('/settings', fn () => Inertia::render('Settings/Index'))->name('settings');
     Route::get('/questions', fn () => Inertia::render('Questions/Index'))->name('questions');
 
+    // Accountant pages
+    Route::get('/accountant/clients', fn () => Inertia::render('Accountant/Clients'))->name('accountant.clients');
+
     // Admin pages
     Route::middleware('admin')->group(function () {
         Route::get('/admin', fn () => Inertia::render('Admin/Dashboard'))->name('admin.dashboard');
         Route::get('/admin/providers', fn () => Inertia::render('Admin/Providers/Index'))->name('admin.providers');
         Route::get('/admin/providers/create', fn () => Inertia::render('Admin/Providers/Create'))->name('admin.providers.create');
-        Route::get('/admin/providers/{provider}/edit', fn () => Inertia::render('Admin/Providers/Edit'))->name('admin.providers.edit');
+        Route::get('/admin/providers/{provider}/edit', fn ($provider) => Inertia::render('Admin/Providers/Edit', ['provider' => $provider]))->name('admin.providers.edit');
+        Route::get('/admin/consent', fn () => Inertia::render('Admin/Consent'))->name('admin.consent');
         Route::get('/admin/charities', fn () => Inertia::render('Admin/Charities/Index'))->name('admin.charities');
         Route::get('/admin/charities/create', fn () => Inertia::render('Admin/Charities/Create'))->name('admin.charities.create');
-        Route::get('/admin/charities/{charity}/edit', fn () => Inertia::render('Admin/Charities/Edit'))->name('admin.charities.edit');
+        Route::get('/admin/charities/{charity}/edit', fn ($charity) => Inertia::render('Admin/Charities/Edit', ['charity' => $charity]))->name('admin.charities.edit');
     });
 });
 

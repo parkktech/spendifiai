@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef, useCallback } from 'react';
+import { useState, useMemo, useRef, useCallback, useEffect } from 'react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, Link, usePage } from '@inertiajs/react';
 import {
@@ -932,6 +932,28 @@ export default function Dashboard() {
   const [expandedCard, setExpandedCard] = useState<string | null>(null);
   const [respondedCards, setRespondedCards] = useState<Map<string, RespondedCard>>(new Map());
   const [responseLoading, setResponseLoading] = useState(false);
+  const [syncNotice, setSyncNotice] = useState(false);
+
+  // Check for returning-user sync trigger
+  useEffect(() => {
+    const triggered = sessionStorage.getItem('sync_triggered');
+    if (triggered) {
+      sessionStorage.removeItem('sync_triggered');
+      setSyncNotice(true);
+
+      // Poll for new data while syncing
+      const pollInterval = setInterval(() => refresh(), 10000);
+      const dismissTimer = setTimeout(() => {
+        setSyncNotice(false);
+        clearInterval(pollInterval);
+      }, 15000);
+
+      return () => {
+        clearInterval(pollInterval);
+        clearTimeout(dismissTimer);
+      };
+    }
+  }, []);
 
   const actionItems = useMemo(() => (data ? buildActionItems(data) : []), [data]);
 
@@ -1108,6 +1130,19 @@ export default function Dashboard() {
         <div className="fixed top-4 right-4 z-50 animate-in fade-in slide-in-from-top-2 rounded-lg bg-emerald-600 text-white px-4 py-2.5 text-sm font-medium shadow-lg flex items-center gap-2">
           <CheckCircle2 size={16} />
           {toast}
+        </div>
+      )}
+
+      {/* Sync notification for returning users */}
+      {syncNotice && (
+        <div className="mb-5 flex items-center justify-between rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800">
+          <div className="flex items-center gap-2.5">
+            <RefreshCw size={16} className="animate-spin text-blue-600" />
+            <span className="font-medium">Welcome back! Syncing your latest transactions...</span>
+          </div>
+          <button onClick={() => setSyncNotice(false)} className="text-blue-400 hover:text-blue-600 transition-colors">
+            <X size={16} />
+          </button>
         </div>
       )}
 

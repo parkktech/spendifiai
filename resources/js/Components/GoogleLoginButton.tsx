@@ -1,12 +1,14 @@
 import { useState } from 'react';
 import axios from 'axios';
 
-export default function GoogleLoginButton({ label = 'Continue with Google' }: { label?: string }) {
+export default function GoogleLoginButton({ label = 'Continue with Google', onBeforeRedirect }: { label?: string; onBeforeRedirect?: () => void }) {
   const [loading, setLoading] = useState(false);
 
   const handleGoogleLogin = async () => {
     setLoading(true);
     try {
+      onBeforeRedirect?.();
+
       const response = await axios.get('/api/auth/google/redirect', {
         headers: { 'Accept': 'application/json' },
       });

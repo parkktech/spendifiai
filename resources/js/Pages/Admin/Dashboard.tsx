@@ -1,22 +1,53 @@
 import { useEffect, useState } from 'react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, Link } from '@inertiajs/react';
-import { Database, CheckCircle, XCircle, Link2, ChevronRight, Heart, Star } from 'lucide-react';
+import { Database, CheckCircle, XCircle, Link2, ChevronRight, Heart, Star, Users, Activity, Landmark, ShieldCheck } from 'lucide-react';
 import type { AdminStats, AdminCharityStats } from '@/types/spendifiai';
 import axios from 'axios';
+
+interface UserStats {
+  total_users: number;
+  verified_users: number;
+  with_bank: number;
+  recently_active: number;
+  most_active: Array<{
+    id: number;
+    name: string;
+    email: string;
+    last_active_at: string | null;
+    created_at: string;
+  }>;
+}
+
+function timeAgo(dateStr: string): string {
+  const now = Date.now();
+  const then = new Date(dateStr).getTime();
+  const diffMs = now - then;
+  const mins = Math.floor(diffMs / 60000);
+  if (mins < 1) return 'Just now';
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  const days = Math.floor(hrs / 24);
+  if (days < 7) return `${days}d ago`;
+  return new Date(dateStr).toLocaleDateString();
+}
 
 export default function AdminDashboard() {
   const [stats, setStats] = useState<AdminStats | null>(null);
   const [charityStats, setCharityStats] = useState<AdminCharityStats | null>(null);
+  const [userStats, setUserStats] = useState<UserStats | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     Promise.all([
       axios.get('/api/admin/stats'),
       axios.get('/api/admin/charities/stats'),
-    ]).then(([statsRes, charityRes]) => {
+      axios.get('/api/admin/user-stats'),
+    ]).then(([statsRes, charityRes, userRes]) => {
       setStats(statsRes.data);
       setCharityStats(charityRes.data);
+      setUserStats(userRes.data);
       setLoading(false);
     }).catch(() => setLoading(false));
   }, []);
@@ -63,7 +94,66 @@ export default function AdminDashboard() {
     >
       <Head title="Admin" />
 
-      {/* Stats */}
+      {/* User Stats */}
+      {userStats && (
+        <div className="mb-8">
+          <h2 className="text-sm font-semibold text-sw-text mb-3">Users</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+            {[
+              { label: 'Total Users', value: userStats.total_users, icon: <Users size={18} />, color: 'text-sw-accent' },
+              { label: 'Email Verified', value: userStats.verified_users, icon: <ShieldCheck size={18} />, color: 'text-sw-success' },
+              { label: 'Bank Connected', value: userStats.with_bank, icon: <Landmark size={18} />, color: 'text-sw-info' },
+              { label: 'Active (7d)', value: userStats.recently_active, icon: <Activity size={18} />, color: 'text-emerald-600' },
+            ].map((stat) => (
+              <div key={stat.label} className="rounded-lg border border-sw-border bg-sw-card p-4">
+                <div className="flex items-center gap-3">
+                  <div className={`${stat.color}`}>{stat.icon}</div>
+                  <div>
+                    <div className="text-2xl font-bold text-sw-text">{stat.value}</div>
+                    <div className="text-xs text-sw-dim">{stat.label}</div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Most Active Users */}
+          {userStats.most_active.length > 0 && (
+            <div className="rounded-lg border border-sw-border bg-sw-card overflow-hidden">
+              <div className="px-4 py-2.5 border-b border-sw-border bg-sw-surface">
+                <span className="text-xs font-semibold text-sw-muted">Most Recently Active</span>
+              </div>
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="border-b border-sw-border">
+                    <th className="text-left px-4 py-2 text-sw-dim font-medium">Name</th>
+                    <th className="text-left px-4 py-2 text-sw-dim font-medium">Email</th>
+                    <th className="text-left px-4 py-2 text-sw-dim font-medium">Last Active</th>
+                    <th className="text-left px-4 py-2 text-sw-dim font-medium">Joined</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {userStats.most_active.map((u) => (
+                    <tr key={u.id} className="border-b border-sw-border last:border-b-0 hover:bg-sw-surface/50">
+                      <td className="px-4 py-2 text-sw-text font-medium">{u.name}</td>
+                      <td className="px-4 py-2 text-sw-muted">{u.email}</td>
+                      <td className="px-4 py-2 text-sw-muted">
+                        {u.last_active_at ? timeAgo(u.last_active_at) : '—'}
+                      </td>
+                      <td className="px-4 py-2 text-sw-dim">
+                        {new Date(u.created_at).toLocaleDateString()}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Provider Stats */}
+      <h2 className="text-sm font-semibold text-sw-text mb-3">Cancellation Providers</h2>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         {[
           { label: 'Total Providers', value: stats?.total_providers ?? 0, icon: <Database size={18} />, color: 'text-sw-accent' },

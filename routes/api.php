@@ -2,10 +2,15 @@
 
 use App\Http\Controllers\Admin\CancellationProviderController;
 use App\Http\Controllers\Admin\CharitableOrganizationController;
+use App\Http\Controllers\Admin\ConsentAdminController;
+use App\Http\Controllers\Api\AccountantController;
+use App\Http\Controllers\Api\AccountantTaxController;
 use App\Http\Controllers\Api\AIQuestionController;
 use App\Http\Controllers\Api\BankAccountController;
+use App\Http\Controllers\Api\CookieConsentController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\EmailConnectionController;
+use App\Http\Controllers\Api\ImpersonationController;
 use App\Http\Controllers\Api\OrderItemController;
 use App\Http\Controllers\Api\PlaidController;
 use App\Http\Controllers\Api\ReconciliationController;
@@ -83,6 +88,17 @@ Route::post('/v1/webhooks/plaid', [\App\Http\Controllers\Api\PlaidWebhookControl
 Route::get('/v1/email/callback/outlook', [EmailConnectionController::class, 'outlookCallback']);
 
 // ══════════════════════════════════════════════════════════
+// COOKIE CONSENT (public, no auth required)
+// ══════════════════════════════════════════════════════════
+
+Route::prefix('v1/consent')->group(function () {
+    Route::get('/config', [CookieConsentController::class, 'config'])
+        ->middleware('throttle:60,1');
+    Route::post('/', [CookieConsentController::class, 'store'])
+        ->middleware('throttle:30,1');
+});
+
+// ══════════════════════════════════════════════════════════
 // AUTHENTICATED ROUTES
 // ══════════════════════════════════════════════════════════
 
@@ -94,6 +110,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::get('/me', [AuthController::class, 'me']);
         Route::post('/change-password', [PasswordResetController::class, 'changePassword'])
             ->middleware('throttle:5,1');
+        Route::patch('/user-type', [AuthController::class, 'updateUserType']);
 
         // Email verification resend (authenticated only)
         Route::post('/email/resend', [EmailVerificationController::class, 'resend'])
@@ -238,11 +255,74 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
         // Account Deletion (GDPR/CCPA compliance)
         Route::delete('/account', [UserProfileController::class, 'deleteAccount']);
+
+        // Cookie Consent Preferences (authenticated)
+        Route::prefix('consent')->group(function () {
+            Route::get('/preferences', [CookieConsentController::class, 'preferences']);
+            Route::put('/preferences', [CookieConsentController::class, 'updatePreferences']);
+            Route::delete('/preferences', [CookieConsentController::class, 'revokeConsent']);
+        });
+    });
+
+    // ─── Accountant Routes (any authenticated user) ───
+    Route::prefix('v1/accountant')->middleware('throttle:120,1')->group(function () {
+        Route::get('/search', [AccountantController::class, 'searchAccountants']);
+        Route::post('/add', [AccountantController::class, 'addAccountant']);
+        Route::delete('/{accountant}', [AccountantController::class, 'removeAccountant']);
+        Route::get('/my-accountants', [AccountantController::class, 'myAccountants']);
+        Route::get('/invites', [AccountantController::class, 'pendingInvites']);
+        Route::post('/invites/{invite}/respond', [AccountantController::class, 'respondToInvite']);
+    });
+
+    // ─── Accountant-Only Routes ───
+    Route::prefix('v1/accountant')->middleware(['throttle:120,1', 'accountant'])->group(function () {
+        Route::get('/clients', [AccountantController::class, 'clients']);
+        Route::get('/clients/{client}/summary', [AccountantController::class, 'clientSummary']);
+        Route::post('/clients/invite', [AccountantController::class, 'inviteClient']);
+        Route::delete('/clients/{client}', [AccountantController::class, 'removeClient']);
+        Route::post('/clients/{client}/resend', [AccountantController::class, 'resendInvite']);
+        Route::get('/clients/{client}/tax/{year}', [AccountantTaxController::class, 'clientTaxSummary']);
+        Route::get('/clients/{client}/tax/{year}/download/{type}', [AccountantTaxController::class, 'downloadClientTax']);
+        Route::post('/clients/{client}/refresh', [AccountantTaxController::class, 'refreshClientData']);
+        Route::post('/impersonate/stop', [ImpersonationController::class, 'stop']);
+        Route::get('/impersonate/status', [ImpersonationController::class, 'status']);
+        Route::post('/impersonate/{client}', [ImpersonationController::class, 'start']);
+        Route::get('/activity', [AccountantController::class, 'activityLog']);
     });
 
     // ─── Admin Routes ───
     Route::prefix('admin')->middleware('admin')->group(function () {
         Route::get('/stats', [CancellationProviderController::class, 'stats']);
+
+        // User stats
+        Route::get('/user-stats', function () {
+            $totalUsers = \App\Models\User::count();
+            $verifiedUsers = \App\Models\User::whereNotNull('email_verified_at')->count();
+            $withBank = \App\Models\User::whereHas('bankConnections')->count();
+            $recentlyActive = \App\Models\User::whereNotNull('last_active_at')
+                ->where('last_active_at', '>=', now()->subDays(7))
+                ->count();
+
+            $mostActive = \App\Models\User::whereNotNull('last_active_at')
+                ->orderByDesc('last_active_at')
+                ->limit(10)
+                ->get(['id', 'name', 'email', 'last_active_at', 'created_at'])
+                ->map(fn ($u) => [
+                    'id' => $u->id,
+                    'name' => $u->name,
+                    'email' => $u->email,
+                    'last_active_at' => $u->last_active_at?->toIso8601String(),
+                    'created_at' => $u->created_at->toIso8601String(),
+                ]);
+
+            return response()->json([
+                'total_users' => $totalUsers,
+                'verified_users' => $verifiedUsers,
+                'with_bank' => $withBank,
+                'recently_active' => $recentlyActive,
+                'most_active' => $mostActive,
+            ]);
+        });
         Route::get('/providers', [CancellationProviderController::class, 'index']);
         Route::post('/providers', [CancellationProviderController::class, 'store']);
         Route::get('/providers/{provider}', [CancellationProviderController::class, 'show']);
@@ -250,6 +330,15 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::delete('/providers/{provider}', [CancellationProviderController::class, 'destroy']);
         Route::post('/providers/bulk-import', [CancellationProviderController::class, 'bulkImport']);
         Route::post('/providers/{provider}/find-link', [CancellationProviderController::class, 'findCancellationLink']);
+
+        // Consent Management
+        Route::prefix('consent')->group(function () {
+            Route::get('/stats', [ConsentAdminController::class, 'stats']);
+            Route::get('/search', [ConsentAdminController::class, 'search']);
+            Route::get('/user/{user}/history', [ConsentAdminController::class, 'userHistory']);
+            Route::post('/user/{user}/revoke', [ConsentAdminController::class, 'revokeUserConsent']);
+            Route::delete('/user/{user}/cookies', [ConsentAdminController::class, 'deleteCookieData']);
+        });
 
         // Charitable Organizations
         Route::get('/charities/stats', [CharitableOrganizationController::class, 'stats']);

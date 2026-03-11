@@ -22,15 +22,25 @@ class SecurityHeaders
         if (app()->environment('local', 'development')) {
             $csp = "default-src *; script-src * 'unsafe-inline' 'unsafe-eval'; style-src * 'unsafe-inline';";
         } else {
-            // Production CSP
+            // Production CSP — conditionally whitelist GTM/GA4 if configured
+            $scriptSrc = "'self' 'unsafe-inline' 'unsafe-eval' https://cdn.plaid.com";
+            $connectSrc = "'self' https://*.plaid.com";
+            $imgSrc = "'self' data: https://images.unsplash.com https://spendifiai.com https://*.googleusercontent.com";
+
+            if (config('spendifiai.consent.gtm_container_id') || config('spendifiai.consent.ga4_measurement_id')) {
+                $scriptSrc .= ' https://www.googletagmanager.com https://www.google-analytics.com';
+                $connectSrc .= ' https://www.google-analytics.com https://analytics.google.com https://*.google-analytics.com https://*.analytics.google.com';
+                $imgSrc .= ' https://www.googletagmanager.com';
+            }
+
             $csp = "default-src 'self'; "
-                . "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.plaid.com; "
-                . "style-src 'self' 'unsafe-inline' https://fonts.bunny.net; "
-                . "font-src 'self' data: https://fonts.bunny.net; "
-                . "img-src 'self' data: https://images.unsplash.com https://spendifiai.com https://*.googleusercontent.com; "
-                . "connect-src 'self' https://*.plaid.com; "
-                . "frame-src 'self' https://cdn.plaid.com https://accounts.google.com; "
-                . "frame-ancestors 'none';";
+                ."script-src {$scriptSrc}; "
+                ."style-src 'self' 'unsafe-inline' https://fonts.bunny.net; "
+                ."font-src 'self' data: https://fonts.bunny.net; "
+                ."img-src {$imgSrc}; "
+                ."connect-src {$connectSrc}; "
+                ."frame-src 'self' https://cdn.plaid.com https://accounts.google.com; "
+                ."frame-ancestors 'none';";
         }
 
         $response->headers->set('Content-Security-Policy', $csp);
