@@ -106,9 +106,11 @@ Schedule::call(function () {
         ->where('updated_at', '<', now()->subMinutes(30))
         ->update(['sync_status' => 'failed']);
 
-    EmailConnection::where('sync_status', '!=', 'syncing')->each(function ($conn) {
-        ProcessOrderEmails::dispatch($conn);
-    });
+    EmailConnection::where('status', 'active')
+        ->where('sync_status', '!=', 'syncing')
+        ->each(function ($conn) {
+            ProcessOrderEmails::dispatch($conn);
+        });
 })->everySixHours()->name('sync-email-orders');
 
 // ── Retry failed email parses (daily at 4am) ──

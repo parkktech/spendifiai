@@ -10,6 +10,7 @@ import { useApi } from '@/hooks/useApi';
 import StatCard from '@/Components/SpendifiAI/StatCard';
 import ConnectBankPrompt from '@/Components/SpendifiAI/ConnectBankPrompt';
 import ExportModal from '@/Components/SpendifiAI/ExportModal';
+import TaxDeductionFinder from '@/Components/SpendifiAI/TaxDeductionFinder';
 import { formatDateShort } from '@/utils/formatDate';
 import type { TaxSummary, TaxLineItem, NormalizedTaxLine } from '@/types/spendifiai';
 
@@ -401,6 +402,14 @@ export default function TaxIndex() {
               </table>
             </div>
           )}
+        </div>
+      )}
+
+      {/* Deduction Finder */}
+      {auth.hasBankConnected && (
+        <div className="rounded-2xl border border-sw-border bg-sw-card p-6 mt-6">
+          <h2 className="text-sm font-semibold text-sw-text mb-4">Deduction Finder</h2>
+          <TaxDeductionFinder year={year} />
         </div>
       )}
 

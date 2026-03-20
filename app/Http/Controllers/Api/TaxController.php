@@ -6,9 +6,11 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\ExportTaxRequest;
 use App\Http\Requests\SendToAccountantRequest;
 use App\Models\OrderItem;
+use App\Models\TaxDeduction;
 use App\Models\Transaction;
 use App\Models\UserFinancialProfile;
 use App\Services\TaxCategoryNormalizerService;
+use App\Services\TaxDeductionFinderService;
 use App\Services\TaxExportService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -20,6 +22,7 @@ class TaxController extends Controller
     public function __construct(
         private readonly TaxExportService $exporter,
         private readonly TaxCategoryNormalizerService $normalizer,
+        private readonly TaxDeductionFinderService $deductionFinder,
     ) {}
 
     /**
@@ -225,6 +228,131 @@ class TaxController extends Controller
             $downloadName,
             ['Content-Type' => $config['mime']]
         );
+    }
+
+    /**
+     * List all eligible/discovered deductions for a tax year.
+     */
+    public function deductions(Request $request): JsonResponse
+    {
+        $year = (int) $request->input('year', now()->year);
+        $result = $this->deductionFinder->findDeductions(auth()->user(), $year);
+
+        return response()->json([
+            'year' => $year,
+            ...$result,
+        ]);
+    }
+
+    /**
+     * Trigger a transaction scan to find deductions automatically.
+     */
+    public function scanDeductions(Request $request): JsonResponse
+    {
+        $year = (int) $request->input('year', now()->year);
+        $result = $this->deductionFinder->scanTransactions(auth()->user(), $year);
+        $profileResult = $this->deductionFinder->matchProfile(auth()->user(), $year);
+
+        return response()->json([
+            'message' => 'Deduction scan complete',
+            'scan' => $result,
+            'profile' => $profileResult,
+        ]);
+    }
+
+    /**
+     * Answer an eligibility question for a deduction.
+     */
+    public function answerDeductionQuestion(Request $request, TaxDeduction $deduction): JsonResponse
+    {
+        $validated = $request->validate([
+            'year' => 'required|integer',
+            'answer' => 'required|array',
+        ]);
+
+        $record = $this->deductionFinder->answerQuestion(
+            auth()->user(),
+            $deduction,
+            $validated['year'],
+            $validated['answer']
+        );
+
+        return response()->json([
+            'status' => $record->status,
+            'estimated_amount' => $record->estimated_amount ? (float) $record->estimated_amount : null,
+        ]);
+    }
+
+    /**
+     * Claim a deduction with an actual amount.
+     */
+    public function claimDeduction(Request $request, TaxDeduction $deduction): JsonResponse
+    {
+        $validated = $request->validate([
+            'year' => 'required|integer',
+            'amount' => 'required|numeric|min:0',
+            'notes' => 'nullable|string|max:500',
+        ]);
+
+        $record = $this->deductionFinder->claimDeduction(
+            auth()->user(),
+            $deduction,
+            $validated['year'],
+            (float) $validated['amount'],
+            $validated['notes'] ?? null
+        );
+
+        return response()->json([
+            'message' => 'Deduction claimed',
+            'actual_amount' => (float) $record->actual_amount,
+        ]);
+    }
+
+    /**
+     * Get the next batch of questionnaire questions.
+     */
+    public function questionnaireGet(Request $request): JsonResponse
+    {
+        $year = (int) $request->input('year', now()->year);
+        $result = $this->deductionFinder->getQuestionnaire(auth()->user(), $year);
+
+        return response()->json($result);
+    }
+
+    /**
+     * Submit multiple questionnaire answers at once.
+     */
+    public function questionnaireSubmit(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'year' => 'required|integer',
+            'answers' => 'required|array',
+            'answers.*.deduction_id' => 'required|integer|exists:tax_deductions,id',
+            'answers.*.answer' => 'required|array',
+        ]);
+
+        $user = auth()->user();
+        $year = $validated['year'];
+        $results = [];
+
+        foreach ($validated['answers'] as $item) {
+            $deduction = TaxDeduction::find($item['deduction_id']);
+            if (! $deduction) {
+                continue;
+            }
+
+            $record = $this->deductionFinder->answerQuestion($user, $deduction, $year, $item['answer']);
+            $results[] = [
+                'deduction_id' => $deduction->id,
+                'status' => $record->status,
+                'estimated_amount' => $record->estimated_amount ? (float) $record->estimated_amount : null,
+            ];
+        }
+
+        return response()->json([
+            'message' => count($results).' answers processed',
+            'results' => $results,
+        ]);
     }
 
     /**

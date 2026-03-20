@@ -207,10 +207,24 @@ class ProcessOrderEmails implements ShouldQueue
             ]);
 
         } catch (\Exception $e) {
-            $connection->update(['sync_status' => 'failed']);
+            $errorMsg = $e->getMessage();
+
+            // Mark connection as errored for auth failures so scheduled sync stops retrying
+            $isAuthError = str_contains($errorMsg, 'AUTHENTICATIONFAILED')
+                || str_contains($errorMsg, 'Invalid credentials')
+                || str_contains($errorMsg, 'refresh token')
+                || str_contains($errorMsg, 'token refresh failed')
+                || str_contains($errorMsg, 'Please reconnect');
+
+            $connection->update([
+                'sync_status' => 'failed',
+                'status' => $isAuthError ? 'error' : $connection->status,
+            ]);
+
             Log::error('Email sync job failed', [
-                'error' => $e->getMessage(),
+                'error' => $errorMsg,
                 'connection_id' => $connection->id,
+                'auth_error' => $isAuthError,
             ]);
             throw $e;
         }

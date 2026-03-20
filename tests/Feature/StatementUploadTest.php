@@ -4,7 +4,6 @@ use App\Models\BankAccount;
 use App\Models\BankConnection;
 use App\Models\StatementUpload;
 use App\Models\Transaction;
-use App\Services\BankStatementParserService;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Storage;
@@ -98,23 +97,6 @@ it('uploads a CSV and extracts transactions', function () {
         ],
     ];
 
-    $this->mock(BankStatementParserService::class, function ($mock) use ($mockTransactions) {
-        $mock->shouldReceive('parseFile')
-            ->once()
-            ->andReturn([
-                'transactions' => $mockTransactions,
-                'processing_notes' => [],
-            ]);
-
-        $mock->shouldReceive('detectDuplicates')
-            ->once()
-            ->andReturn([
-                'transactions' => $mockTransactions,
-                'duplicates_found' => 0,
-                'notes' => [],
-            ]);
-    });
-
     $file = UploadedFile::fake()->create('statement.csv', 100, 'text/csv');
 
     $response = $this->postJson('/api/v1/statements/upload', [
@@ -127,16 +109,11 @@ it('uploads a CSV and extracts transactions', function () {
     $response->assertOk()
         ->assertJsonStructure([
             'upload_id',
-            'file_name',
-            'total_extracted',
-            'duplicates_found',
-            'transactions',
-            'date_range' => ['from', 'to'],
-            'processing_notes',
+            'status',
+            'message',
         ]);
 
-    expect($response->json('total_extracted'))->toBe(2);
-    expect($response->json('duplicates_found'))->toBe(0);
+    expect($response->json('status'))->toBe('queued');
 
     // Verify database records
     expect(StatementUpload::where('user_id', $user->id)->count())->toBe(1);
@@ -247,7 +224,7 @@ it('prevents importing to another users upload', function () {
         ],
     ]);
 
-    $response->assertNotFound();
+    $response->assertForbidden();
 });
 
 it('returns upload history', function () {
@@ -284,7 +261,7 @@ it('returns upload history', function () {
     $response->assertOk();
 
     // Only completed uploads should appear
-    $data = $response->json();
+    $data = $response->json('uploads');
     expect($data)->toHaveCount(1);
     expect($data[0]['file_name'])->toBe('jan_statement.csv');
     expect($data[0]['transactions_imported'])->toBe(15);

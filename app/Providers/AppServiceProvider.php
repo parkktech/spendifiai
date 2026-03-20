@@ -50,6 +50,12 @@ class AppServiceProvider extends ServiceProvider
         Event::listen(MessageSent::class, [LogMailableMessage::class, 'handleSent']);
         Event::listen(MailFailed::class, [LogMailableMessage::class, 'handleFailed']);
 
+        // ── Onboarding Complete ──
+        Event::listen(
+            \App\Events\OnboardingComplete::class,
+            \App\Listeners\SendOnboardingCompleteNotification::class,
+        );
+
         // ── Route Model Binding ──
         // Automatically resolve {transaction}, {account}, {question} from URL
         Route::model('transaction', Transaction::class);
@@ -61,6 +67,7 @@ class AppServiceProvider extends ServiceProvider
         Route::model('connection', BankConnection::class);
         Route::model('item', OrderItem::class);
         Route::model('provider', CancellationProvider::class);
+        Route::model('deduction', \App\Models\TaxDeduction::class);
 
         // ── Middleware Aliases ──
         Route::aliasMiddleware('bank.connected', EnsureBankConnected::class);

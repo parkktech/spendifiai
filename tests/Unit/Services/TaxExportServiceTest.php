@@ -13,6 +13,7 @@ function getMapToScheduleC(): ReflectionMethod
 {
     $reflection = new ReflectionMethod(TaxExportService::class, 'mapToScheduleC');
     $reflection->setAccessible(true);
+
     return $reflection;
 }
 
@@ -20,11 +21,12 @@ function getGatherTaxData(): ReflectionMethod
 {
     $reflection = new ReflectionMethod(TaxExportService::class, 'gatherTaxData');
     $reflection->setAccessible(true);
+
     return $reflection;
 }
 
 it('maps Marketing & Advertising to Schedule C Line 8', function () {
-    $service = new TaxExportService();
+    $service = app(TaxExportService::class);
     $method = getMapToScheduleC();
 
     $result = $method->invoke($service, [
@@ -33,11 +35,11 @@ it('maps Marketing & Advertising to Schedule C Line 8', function () {
 
     expect($result[0]['line'])->toBe('8');
     expect($result[0]['label'])->toBe('Advertising');
-    expect($result[0]['total'])->toBe(500);
+    expect($result[0]['total'])->toEqual(500);
 });
 
 it('maps Gas & Fuel to Schedule C Line 9', function () {
-    $service = new TaxExportService();
+    $service = app(TaxExportService::class);
     $method = getMapToScheduleC();
 
     $result = $method->invoke($service, [
@@ -49,7 +51,7 @@ it('maps Gas & Fuel to Schedule C Line 9', function () {
 });
 
 it('maps Office Supplies to Schedule C Line 18', function () {
-    $service = new TaxExportService();
+    $service = app(TaxExportService::class);
     $method = getMapToScheduleC();
 
     $result = $method->invoke($service, [
@@ -61,7 +63,7 @@ it('maps Office Supplies to Schedule C Line 18', function () {
 });
 
 it('maps unknown category to Line 27a (Other expenses)', function () {
-    $service = new TaxExportService();
+    $service = app(TaxExportService::class);
     $method = getMapToScheduleC();
 
     $result = $method->invoke($service, [
@@ -73,7 +75,7 @@ it('maps unknown category to Line 27a (Other expenses)', function () {
 });
 
 it('aggregates multiple categories to same line', function () {
-    $service = new TaxExportService();
+    $service = app(TaxExportService::class);
     $method = getMapToScheduleC();
 
     $result = $method->invoke($service, [
@@ -84,7 +86,7 @@ it('aggregates multiple categories to same line', function () {
     // Both map to Line 9
     expect($result)->toHaveCount(1);
     expect($result[0]['line'])->toBe('9');
-    expect($result[0]['total'])->toBe(500);
+    expect($result[0]['total'])->toEqual(500);
     expect($result[0]['categories'])->toHaveCount(2);
 });
 
@@ -122,7 +124,7 @@ it('gatherTaxData returns correct deductible totals', function () {
         'transaction_date' => '2026-06-10',
     ]);
 
-    $service = new TaxExportService();
+    $service = app(TaxExportService::class);
     $method = getGatherTaxData();
     $data = $method->invoke($service, $user, 2026);
 

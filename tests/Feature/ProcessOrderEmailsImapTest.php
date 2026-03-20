@@ -8,6 +8,8 @@ use App\Models\Transaction;
 use App\Services\AI\EmailParserService;
 use App\Services\Email\GmailService;
 use App\Services\Email\ImapEmailService;
+use App\Services\Email\MicrosoftOutlookService;
+use App\Services\Email\TransactionGuidedSearchService;
 
 uses(Illuminate\Foundation\Testing\RefreshDatabase::class);
 
@@ -31,9 +33,11 @@ it('routes imap connections to ImapEmailService', function () {
     $gmailMock->shouldNotReceive('fetchOrderEmails');
 
     $parserMock = Mockery::mock(EmailParserService::class);
+    $microsoftMock = Mockery::mock(MicrosoftOutlookService::class);
+    $guidedSearchMock = Mockery::mock(TransactionGuidedSearchService::class);
 
     $job = new ProcessOrderEmails($connection);
-    $job->handle($gmailMock, $imapMock, $parserMock);
+    $job->handle($gmailMock, $imapMock, $microsoftMock, $parserMock, $guidedSearchMock);
 
     $connection->refresh();
     expect($connection->sync_status)->toBe('completed');
@@ -59,9 +63,11 @@ it('routes oauth connections to GmailService', function () {
         ->andReturn([]);
 
     $parserMock = Mockery::mock(EmailParserService::class);
+    $microsoftMock = Mockery::mock(MicrosoftOutlookService::class);
+    $guidedSearchMock = Mockery::mock(TransactionGuidedSearchService::class);
 
     $job = new ProcessOrderEmails($connection);
-    $job->handle($gmailMock, $imapMock, $parserMock);
+    $job->handle($gmailMock, $imapMock, $microsoftMock, $parserMock, $guidedSearchMock);
 
     $connection->refresh();
     expect($connection->sync_status)->toBe('completed');
@@ -125,8 +131,11 @@ it('processes imap emails and creates orders', function () {
             ],
         ]);
 
+    $microsoftMock = Mockery::mock(MicrosoftOutlookService::class);
+    $guidedSearchMock = Mockery::mock(TransactionGuidedSearchService::class);
+
     $job = new ProcessOrderEmails($connection);
-    $job->handle($gmailMock, $imapMock, $parserMock);
+    $job->handle($gmailMock, $imapMock, $microsoftMock, $parserMock, $guidedSearchMock);
 
     // Verify parsed email was created
     expect(ParsedEmail::where('user_id', $user->id)->count())->toBe(1);
@@ -172,8 +181,11 @@ it('skips non-purchase emails', function () {
         ->once()
         ->andReturn(['is_purchase' => false]);
 
+    $microsoftMock = Mockery::mock(MicrosoftOutlookService::class);
+    $guidedSearchMock = Mockery::mock(TransactionGuidedSearchService::class);
+
     $job = new ProcessOrderEmails($connection);
-    $job->handle($gmailMock, $imapMock, $parserMock);
+    $job->handle($gmailMock, $imapMock, $microsoftMock, $parserMock, $guidedSearchMock);
 
     expect(Order::where('user_id', $user->id)->count())->toBe(0);
     expect(ParsedEmail::where('user_id', $user->id)->first()->parse_status)->toBe('skipped');
@@ -230,11 +242,13 @@ it('sets sync_status to failed on error', function () {
 
     $gmailMock = Mockery::mock(GmailService::class);
     $parserMock = Mockery::mock(EmailParserService::class);
+    $microsoftMock = Mockery::mock(MicrosoftOutlookService::class);
+    $guidedSearchMock = Mockery::mock(TransactionGuidedSearchService::class);
 
     $job = new ProcessOrderEmails($connection);
 
     try {
-        $job->handle($gmailMock, $imapMock, $parserMock);
+        $job->handle($gmailMock, $imapMock, $microsoftMock, $parserMock, $guidedSearchMock);
     } catch (\RuntimeException) {
         // Expected
     }

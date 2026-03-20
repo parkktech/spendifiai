@@ -32,6 +32,7 @@ class User extends Authenticatable implements MustVerifyEmail
         'locked_until',
         'last_active_at',
         'last_sync_digest_at',
+        'onboarding_completed_at',
         'two_factor_secret',
         'two_factor_recovery_codes',
         'two_factor_confirmed_at',
@@ -52,6 +53,7 @@ class User extends Authenticatable implements MustVerifyEmail
             'locked_until' => 'datetime',
             'last_active_at' => 'datetime',
             'last_sync_digest_at' => 'datetime',
+            'onboarding_completed_at' => 'datetime',
             'is_admin' => 'boolean',
             'user_type' => UserType::class,
             'password' => 'hashed',
@@ -131,6 +133,16 @@ class User extends Authenticatable implements MustVerifyEmail
     public function statementUploads(): HasMany
     {
         return $this->hasMany(StatementUpload::class);
+    }
+
+    public function plaidStatements(): HasMany
+    {
+        return $this->hasMany(PlaidStatement::class);
+    }
+
+    public function userTaxDeductions(): HasMany
+    {
+        return $this->hasMany(UserTaxDeduction::class);
     }
 
     // ─── Helpers ───

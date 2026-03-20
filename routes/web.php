@@ -37,6 +37,7 @@ Route::get('/auth/callback', fn () => Inertia::render('Auth/GoogleCallback'))->n
 
 // ── Inertia SPA Pages (with Sanctum token auth for SPA) ──
 Route::middleware(['auth:sanctum', 'verified'])->group(function () {
+    Route::get('/onboarding', fn () => Inertia::render('Onboarding/Index'))->name('onboarding');
     Route::get('/dashboard', fn () => Inertia::render('Dashboard'))->name('dashboard');
     Route::get('/transactions', fn () => Inertia::render('Transactions/Index'))->name('transactions');
     Route::get('/subscriptions', fn () => Inertia::render('Subscriptions/Index'))->name('subscriptions');

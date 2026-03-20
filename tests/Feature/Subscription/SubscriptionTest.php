@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\CancellationProvider;
 use App\Models\Subscription;
 use App\Models\Transaction;
 
@@ -21,9 +22,21 @@ it('can list subscriptions', function () {
 it('can detect subscriptions from transaction patterns', function () {
     ['user' => $user, 'account' => $account] = createUserWithBank();
 
-    // Create recurring transactions for "NETFLIX" with monthly intervals
+    // Seed a known provider so the detector recognizes NETFLIX without AI
+    CancellationProvider::create([
+        'company_name' => 'Netflix',
+        'slug' => 'netflix',
+        'aliases' => ['netflix'],
+        'category' => 'Streaming',
+        'difficulty' => 'easy',
+    ]);
+
+    // Create recurring transactions for "NETFLIX" with monthly intervals (within 6-month lookback)
     $dates = [
-        '2025-09-15', '2025-10-15', '2025-11-15', '2025-12-15',
+        now()->subMonths(4)->format('Y-m-d'),
+        now()->subMonths(3)->format('Y-m-d'),
+        now()->subMonths(2)->format('Y-m-d'),
+        now()->subMonths(1)->format('Y-m-d'),
     ];
 
     foreach ($dates as $date) {
@@ -33,6 +46,7 @@ it('can detect subscriptions from transaction patterns', function () {
             'merchant_name' => 'NETFLIX',
             'amount' => 15.99,
             'transaction_date' => $date,
+            'plaid_category' => 'ENTERTAINMENT',
         ]);
     }
 

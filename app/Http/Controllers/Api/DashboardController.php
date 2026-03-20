@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Enums\SubscriptionStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\DashboardRequest;
 use App\Http\Resources\SavingsRecommendationResource;
@@ -262,7 +263,7 @@ class DashboardController extends Controller
                 ->select('id', 'merchant_name', 'merchant_normalized', 'amount', 'frequency', 'status', 'is_essential', 'last_charge_date', 'next_expected_date', 'annual_cost', 'response_type', 'responded_at')
                 ->get();
 
-            $totalMonthlyBills = $allRecurringBills->whereIn('status', ['active', 'unused'])->sum('amount');
+            $totalMonthlyBills = $allRecurringBills->whereIn('status', [SubscriptionStatus::Active, SubscriptionStatus::Unused])->sum('amount');
 
             // --- Monthly Budget Waterfall ---
             $essentialBills = $allRecurringBills->where('is_essential', true)->sum('amount');

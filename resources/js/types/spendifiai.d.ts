@@ -52,6 +52,8 @@ export interface BankAccount {
     status: string;
     is_plaid: boolean;
     last_synced_at: string | null;
+    statements_supported?: boolean | null;
+    statements_refresh_status?: string | null;
   };
 }
 
@@ -63,7 +65,56 @@ export interface BankConnection {
   last_synced_at: string | null;
   error_code: string | null;
   error_message: string | null;
+  statements_supported?: boolean | null;
+  statements_refresh_status?: string | null;
   accounts: BankAccount[];
+}
+
+export interface PlaidStatementRecord {
+  id: number;
+  month: number;
+  year: number;
+  status: string;
+  total_extracted: number;
+  duplicates_found: number;
+  transactions_imported: number;
+  date_range_from: string | null;
+  date_range_to: string | null;
+  created_at: string | null;
+}
+
+export interface TaxDeduction {
+  id: number;
+  slug: string;
+  name: string;
+  description: string;
+  category: string;
+  subcategory: string | null;
+  max_amount: number | null;
+  max_amount_mfj: number | null;
+  is_credit: boolean;
+  is_refundable: boolean;
+  irs_form: string | null;
+  irs_line: string | null;
+  detection_method: string;
+  question_text: string | null;
+  question_options: Record<string, string>[] | null;
+  help_text: string | null;
+  irs_url: string | null;
+}
+
+export interface UserTaxDeduction {
+  id: number;
+  tax_deduction_id: number;
+  tax_year: number;
+  status: string;
+  estimated_amount: number | null;
+  actual_amount: number | null;
+  answer: Record<string, unknown> | null;
+  detected_from: string | null;
+  detection_confidence: number | null;
+  notes: string | null;
+  deduction?: TaxDeduction;
 }
 
 export interface Subscription {

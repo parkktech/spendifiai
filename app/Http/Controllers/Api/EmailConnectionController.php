@@ -37,13 +37,13 @@ class EmailConnectionController extends Controller
     /**
      * Initiate OAuth email connection flow for a given provider.
      */
-    public function connect(Request $request, string $provider): JsonResponse
+    public function connect(Request $request, string $emailProvider): JsonResponse
     {
-        if ($provider === 'gmail') {
+        if ($emailProvider === 'gmail') {
             return response()->json(['auth_url' => $this->gmailService->getAuthUrl()]);
         }
 
-        if ($provider === 'outlook') {
+        if ($emailProvider === 'outlook') {
             if (! config('services.microsoft.client_id')) {
                 return response()->json(['error' => 'Microsoft OAuth is not configured. Please add MICROSOFT_CLIENT_ID and MICROSOFT_CLIENT_SECRET to your .env file.'], 500);
             }
@@ -118,12 +118,12 @@ class EmailConnectionController extends Controller
     {
         $request->validate(['email' => 'required|email']);
 
-        $provider = $this->imapService->detectProvider($request->email);
+        $emailProvider = $this->imapService->detectProvider($request->email);
         $settings = $this->imapService->detectSettings($request->email);
-        $instructions = $this->imapService->getSetupInstructions($provider);
+        $instructions = $this->imapService->getSetupInstructions($emailProvider);
 
         return response()->json([
-            'provider' => $provider,
+            'provider' => $emailProvider,
             'settings' => $settings,
             'instructions' => $instructions,
         ]);
@@ -132,11 +132,11 @@ class EmailConnectionController extends Controller
     /**
      * OAuth callback for email provider (authenticated — for Gmail API flow).
      */
-    public function callback(Request $request, string $provider): JsonResponse
+    public function callback(Request $request, string $emailProvider): JsonResponse
     {
         $request->validate(['code' => 'required|string']);
 
-        if ($provider === 'gmail') {
+        if ($emailProvider === 'gmail') {
             $connection = $this->gmailService->handleCallback(auth()->id(), $request->code);
 
             return response()->json([

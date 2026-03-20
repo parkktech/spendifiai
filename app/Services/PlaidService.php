@@ -41,9 +41,13 @@ class PlaidService
                 'phone_number_verified_time' => now()->toIso8601String(),
             ],
             'client_name' => config('app.name', 'SpendifiAI'),
-            'products' => config('spendifiai.plaid.products', ['transactions']),
+            'products' => config('spendifiai.plaid.products', ['transactions', 'statements']),
             'country_codes' => config('spendifiai.plaid.country_codes', ['US']),
             'language' => 'en',
+            'statements' => [
+                'start_date' => now()->subYear()->startOfYear()->format('Y-m-d'),
+                'end_date' => now()->format('Y-m-d'),
+            ],
         ];
 
         // Webhook is required in production, optional in sandbox
@@ -403,6 +407,91 @@ class PlaidService
             'total_available' => $totalAvailable,
             'skipped' => $skipped,
         ];
+    }
+
+    /**
+     * Create an update-mode Link token with statements product for an existing connection.
+     */
+    public function createStatementsLinkToken(User $user, BankConnection $connection, string $startDate, string $endDate): array
+    {
+        $params = [
+            'user' => [
+                'client_user_id' => (string) $user->id,
+            ],
+            'client_name' => config('app.name', 'SpendifiAI'),
+            'country_codes' => config('spendifiai.plaid.country_codes', ['US']),
+            'language' => 'en',
+            'access_token' => $connection->plaid_access_token,
+            'update' => [
+                'account_selection_enabled' => false,
+            ],
+            'statements' => [
+                'start_date' => $startDate,
+                'end_date' => $endDate,
+            ],
+        ];
+
+        if ($webhookUrl = config('spendifiai.plaid.webhook_url')) {
+            $params['webhook'] = $webhookUrl;
+        }
+
+        return $this->post('/link/token/create', $params);
+    }
+
+    /**
+     * List available statements for a bank connection.
+     */
+    public function listStatements(BankConnection $connection): array
+    {
+        return $this->post('/statements/list', [
+            'access_token' => $connection->plaid_access_token,
+        ]);
+    }
+
+    /**
+     * Download a statement PDF by its ID. Returns the binary content and content hash.
+     */
+    public function downloadStatement(BankConnection $connection, string $statementId): array
+    {
+        $data = [
+            'access_token' => $connection->plaid_access_token,
+            'statement_id' => $statementId,
+            'client_id' => $this->clientId,
+            'secret' => $this->secret,
+        ];
+
+        $response = Http::timeout(60)
+            ->post($this->baseUrl.'/statements/download', $data);
+
+        if (! $response->successful()) {
+            Log::error('Plaid statement download error', [
+                'status' => $response->status(),
+                'statement_id' => $statementId,
+            ]);
+            throw new \RuntimeException(
+                'Plaid error: Failed to download statement'
+            );
+        }
+
+        $content = $response->body();
+
+        return [
+            'content' => $content,
+            'content_hash' => hash('sha256', $content),
+        ];
+    }
+
+    /**
+     * Trigger an async statements refresh for a bank connection.
+     * Plaid will send a STATEMENTS webhook when complete.
+     */
+    public function refreshStatements(BankConnection $connection, string $startDate, string $endDate): array
+    {
+        return $this->post('/statements/refresh', [
+            'access_token' => $connection->plaid_access_token,
+            'start_date' => $startDate,
+            'end_date' => $endDate,
+        ]);
     }
 
     /**

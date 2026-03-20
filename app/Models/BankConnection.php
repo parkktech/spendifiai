@@ -16,6 +16,7 @@ class BankConnection extends Model
         'user_id', 'plaid_item_id', 'plaid_access_token', 'institution_name',
         'institution_id', 'status', 'last_synced_at', 'sync_cursor',
         'error_code', 'error_message',
+        'statements_supported', 'statements_last_refreshed_at', 'statements_refresh_status',
     ];
 
     protected $hidden = [
@@ -29,14 +30,31 @@ class BankConnection extends Model
     protected function casts(): array
     {
         return [
-            'status'              => ConnectionStatus::class,
-            'plaid_access_token'  => 'encrypted',  // AES-256-CBC via Laravel encrypt()
-            'last_synced_at'      => 'datetime',
+            'status' => ConnectionStatus::class,
+            'plaid_access_token' => 'encrypted',  // AES-256-CBC via Laravel encrypt()
+            'last_synced_at' => 'datetime',
+            'statements_supported' => 'boolean',
+            'statements_last_refreshed_at' => 'datetime',
         ];
     }
 
-    public function user(): BelongsTo { return $this->belongsTo(User::class); }
-    public function accounts(): HasMany { return $this->hasMany(BankAccount::class); }
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
+    }
 
-    public function scopeActive($q) { return $q->where('status', ConnectionStatus::Active); }
+    public function accounts(): HasMany
+    {
+        return $this->hasMany(BankAccount::class);
+    }
+
+    public function plaidStatements(): HasMany
+    {
+        return $this->hasMany(PlaidStatement::class);
+    }
+
+    public function scopeActive($q)
+    {
+        return $q->where('status', ConnectionStatus::Active);
+    }
 }

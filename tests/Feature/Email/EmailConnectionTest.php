@@ -363,10 +363,10 @@ it('returns 404 for non-existent connection disconnect', function () {
 it('rejects non-gmail oauth connect', function () {
     createAuthenticatedUser();
 
-    $response = $this->postJson('/api/v1/email/connect/outlook');
+    $response = $this->postJson('/api/v1/email/connect/yahoo');
 
     $response->assertBadRequest()
-        ->assertJsonPath('error', 'For non-Gmail providers, use the IMAP connection endpoint.');
+        ->assertJsonPath('error', 'For this provider, use the IMAP connection endpoint.');
 });
 
 // ── Auth required on all endpoints ───────────────────────────────────

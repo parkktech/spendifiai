@@ -94,11 +94,31 @@ class GmailService
         // Refresh if expired
         if ($this->client->isAccessTokenExpired()) {
             $refreshToken = $connection->refresh_token;
+
+            if (empty($refreshToken)) {
+                $connection->update(['status' => 'error', 'sync_status' => 'failed']);
+
+                throw new \RuntimeException('Gmail refresh token is missing. Please reconnect your Gmail account.');
+            }
+
             $newToken = $this->client->fetchAccessTokenWithRefreshToken($refreshToken);
+
+            // Google returns an error key when the refresh token is revoked or invalid
+            if (isset($newToken['error'])) {
+                $connection->update(['status' => 'error', 'sync_status' => 'failed']);
+
+                throw new \RuntimeException('Gmail token refresh failed: '.($newToken['error_description'] ?? $newToken['error']).'. Please reconnect your Gmail account.');
+            }
+
+            if (! isset($newToken['access_token'])) {
+                $connection->update(['status' => 'error', 'sync_status' => 'failed']);
+
+                throw new \RuntimeException('Gmail token refresh returned an unexpected response. Please reconnect your Gmail account.');
+            }
 
             $connection->update([
                 'access_token' => $newToken['access_token'],
-                'token_expires_at' => Carbon::now()->addSeconds($newToken['expires_in']),
+                'token_expires_at' => Carbon::now()->addSeconds($newToken['expires_in'] ?? 3600),
             ]);
         }
 

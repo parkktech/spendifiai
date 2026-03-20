@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\CookieConsentController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\EmailConnectionController;
 use App\Http\Controllers\Api\ImpersonationController;
+use App\Http\Controllers\Api\OnboardingController;
 use App\Http\Controllers\Api\OrderItemController;
 use App\Http\Controllers\Api\PlaidController;
 use App\Http\Controllers\Api\ReconciliationController;
@@ -132,6 +133,9 @@ Route::middleware(['auth:sanctum'])->group(function () {
     // ─── SpendifiAI API v1 ───
     Route::prefix('v1')->middleware('throttle:120,1')->group(function () {
 
+        // Onboarding
+        Route::post('/onboarding/start', [OnboardingController::class, 'start']);
+
         // Dashboard
         Route::get('/dashboard', [DashboardController::class, 'index']);
         Route::get('/dashboard/store/{storeName}', [DashboardController::class, 'storeDetail']);
@@ -149,7 +153,13 @@ Route::middleware(['auth:sanctum'])->group(function () {
             Route::post('/link-token', [PlaidController::class, 'createLinkToken']);
             Route::post('/exchange', [PlaidController::class, 'exchangeToken']);
             Route::post('/sync', [PlaidController::class, 'sync']);
-            Route::delete('/{connection}', [PlaidController::class, 'disconnect']);  // Revokes Plaid token + deletes connection
+            Route::delete('/{connection}', [PlaidController::class, 'disconnect']);
+
+            // Plaid Statements
+            Route::post('/{connection}/statements/link-token', [PlaidController::class, 'statementsLinkToken']);
+            Route::post('/{connection}/statements/refresh', [PlaidController::class, 'refreshStatements'])
+                ->middleware('throttle:5,1');
+            Route::get('/{connection}/statements', [PlaidController::class, 'listStatements']);
         });
 
         // Bank Accounts
@@ -227,6 +237,17 @@ Route::middleware(['auth:sanctum'])->group(function () {
                 Route::get('/download/{year}/{type}', [TaxController::class, 'download'])
                     ->name('tax.download');
             });
+
+            // Tax Deduction Finder (no profile.complete requirement)
+            Route::prefix('tax/deductions')->group(function () {
+                Route::get('/', [TaxController::class, 'deductions']);
+                Route::post('/scan', [TaxController::class, 'scanDeductions'])
+                    ->middleware('throttle:5,1');
+                Route::post('/{deduction}/answer', [TaxController::class, 'answerDeductionQuestion']);
+                Route::post('/{deduction}/claim', [TaxController::class, 'claimDeduction']);
+                Route::get('/questionnaire', [TaxController::class, 'questionnaireGet']);
+                Route::post('/questionnaire', [TaxController::class, 'questionnaireSubmit']);
+            });
         });
 
         // Reconciliation Candidates
@@ -239,11 +260,11 @@ Route::middleware(['auth:sanctum'])->group(function () {
         // Email Connections
         Route::prefix('email')->group(function () {
             Route::get('/connections', [EmailConnectionController::class, 'index']);
-            Route::post('/connect/{provider}', [EmailConnectionController::class, 'connect']);
+            Route::post('/connect/{emailProvider}', [EmailConnectionController::class, 'connect']);
             Route::post('/connect-imap', [EmailConnectionController::class, 'connectImap']);
             Route::post('/test', [EmailConnectionController::class, 'testConnection']);
             Route::post('/setup-instructions', [EmailConnectionController::class, 'setupInstructions']);
-            Route::get('/callback/{provider}', [EmailConnectionController::class, 'callback']);
+            Route::get('/callback/{emailProvider}', [EmailConnectionController::class, 'callback']);
             Route::post('/sync', [EmailConnectionController::class, 'sync']);
             Route::delete('/{emailConnection}', [EmailConnectionController::class, 'disconnect']);
         });

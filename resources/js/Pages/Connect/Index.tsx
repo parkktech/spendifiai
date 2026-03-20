@@ -28,6 +28,7 @@ import ConnectionMethodChooser from '@/Components/SpendifiAI/ConnectionMethodCho
 import StatementUploadWizard from '@/Components/SpendifiAI/StatementUploadWizard';
 import UploadHistory from '@/Components/SpendifiAI/UploadHistory';
 import StatementGapAlert from '@/Components/SpendifiAI/StatementGapAlert';
+import PlaidStatementsPanel from '@/Components/SpendifiAI/PlaidStatementsPanel';
 import { useApi, useApiPost } from '@/hooks/useApi';
 import type { BankAccount, StatementUploadHistory, PendingUpload } from '@/types/spendifiai';
 import { usePage } from '@inertiajs/react';
@@ -621,6 +622,28 @@ export default function ConnectIndex() {
           </p>
         </div>
       )}
+
+      {/* Plaid Statements — one panel per unique Plaid connection */}
+      {!loading && accountsList.length > 0 && (() => {
+        const seenConnections = new Set<number>();
+        return accountsList
+          .filter((a) => {
+            const conn = a.connection;
+            if (!conn?.is_plaid || !conn.id || seenConnections.has(conn.id)) return false;
+            if (conn.statements_supported === false) return false;
+            seenConnections.add(conn.id);
+            return true;
+          })
+          .map((a) => (
+            <PlaidStatementsPanel
+              key={a.connection!.id}
+              connectionId={a.connection!.id}
+              institutionName={a.connection!.institution_name}
+              statementsSupported={a.connection!.statements_supported ?? null}
+              statementsRefreshStatus={a.connection!.statements_refresh_status ?? null}
+            />
+          ));
+      })()}
 
       {/* Upload History */}
       {!showUploadWizard && (

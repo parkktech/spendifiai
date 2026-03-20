@@ -38,7 +38,7 @@ return [
             'development' => 'https://development.plaid.com',
             default => 'https://sandbox.plaid.com',
         },
-        'products' => ['transactions'],
+        'products' => ['transactions', 'statements'],
         'country_codes' => ['US'],
         'webhook_url' => env('PLAID_WEBHOOK_URL'),
     ],

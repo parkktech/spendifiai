@@ -54,6 +54,9 @@ class HandleInertiaRequests extends Middleware
                     return null;
                 })(),
                 'timezone' => $request->user()?->timezone ?? 'America/New_York',
+                'onboardingPending' => $request->user()
+                    ? (! $request->user()->onboarding_completed_at && ! $request->user()->hasBankConnected())
+                    : false,
             ],
             'canLogin' => Route::has('login'),
             'canRegister' => Route::has('register'),

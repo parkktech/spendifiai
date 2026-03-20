@@ -905,7 +905,16 @@ function LoadingSkeleton() {
 // --- Main Dashboard ---
 
 export default function Dashboard() {
-  const tz = (usePage().props.auth as { timezone?: string }).timezone;
+  const pageAuth = usePage().props.auth as { timezone?: string; onboardingPending?: boolean };
+  const tz = pageAuth.timezone;
+
+  // Redirect to onboarding if not yet completed
+  useEffect(() => {
+    if (pageAuth.onboardingPending) {
+      window.location.href = '/onboarding';
+    }
+  }, [pageAuth.onboardingPending]);
+
   const [periodStart, setPeriodStart] = useState<string | null>(null);
   const [periodEnd, setPeriodEnd] = useState<string | null>(null);
   const [avgMode, setAvgMode] = useState<'total' | 'monthly_avg'>('total');

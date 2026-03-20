@@ -2,6 +2,7 @@
 
 use App\Models\BankAccount;
 use App\Models\BankConnection;
+use App\Models\CancellationProvider;
 use App\Models\Subscription;
 use App\Models\Transaction;
 use App\Models\User;
@@ -27,8 +28,22 @@ function createDetectorTestData(): array
 it('detects monthly subscriptions from recurring charges', function () {
     ['user' => $user, 'account' => $account] = createDetectorTestData();
 
-    // Create 4 monthly NETFLIX charges
-    $dates = ['2025-09-15', '2025-10-15', '2025-11-15', '2025-12-15'];
+    // Seed a known provider so the detector recognizes NETFLIX without AI
+    CancellationProvider::create([
+        'company_name' => 'Netflix',
+        'slug' => 'netflix',
+        'aliases' => ['netflix'],
+        'category' => 'Streaming',
+        'difficulty' => 'easy',
+    ]);
+
+    // Create 4 monthly NETFLIX charges (within 6-month lookback window)
+    $dates = [
+        now()->subMonths(4)->format('Y-m-d'),
+        now()->subMonths(3)->format('Y-m-d'),
+        now()->subMonths(2)->format('Y-m-d'),
+        now()->subMonths(1)->format('Y-m-d'),
+    ];
     foreach ($dates as $date) {
         Transaction::factory()->create([
             'user_id' => $user->id,
@@ -36,6 +51,7 @@ it('detects monthly subscriptions from recurring charges', function () {
             'merchant_name' => 'NETFLIX',
             'amount' => 15.99,
             'transaction_date' => $date,
+            'plaid_category' => 'ENTERTAINMENT',
         ]);
     }
 
@@ -54,8 +70,23 @@ it('detects monthly subscriptions from recurring charges', function () {
 it('detects weekly subscriptions from frequent charges', function () {
     ['user' => $user, 'account' => $account] = createDetectorTestData();
 
-    // Create 5 weekly charges
-    $dates = ['2025-12-01', '2025-12-08', '2025-12-15', '2025-12-22', '2025-12-29'];
+    // Seed a known provider so the detector recognizes it without AI
+    CancellationProvider::create([
+        'company_name' => 'Meal Prep Co',
+        'slug' => 'meal-prep-co',
+        'aliases' => ['meal prep co'],
+        'category' => 'Food',
+        'difficulty' => 'easy',
+    ]);
+
+    // Create 5 weekly charges (within 6-month lookback window)
+    $dates = [
+        now()->subWeeks(5)->format('Y-m-d'),
+        now()->subWeeks(4)->format('Y-m-d'),
+        now()->subWeeks(3)->format('Y-m-d'),
+        now()->subWeeks(2)->format('Y-m-d'),
+        now()->subWeeks(1)->format('Y-m-d'),
+    ];
     foreach ($dates as $date) {
         Transaction::factory()->create([
             'user_id' => $user->id,
@@ -63,6 +94,7 @@ it('detects weekly subscriptions from frequent charges', function () {
             'merchant_name' => 'MEAL PREP CO',
             'amount' => 29.99,
             'transaction_date' => $date,
+            'plaid_category' => 'ENTERTAINMENT',
         ]);
     }
 
@@ -85,7 +117,7 @@ it('does not detect subscription from inconsistent charges', function () {
         'bank_account_id' => $account->id,
         'merchant_name' => 'RANDOM STORE',
         'amount' => 15.00,
-        'transaction_date' => '2025-09-05',
+        'transaction_date' => now()->subMonths(4)->format('Y-m-d'),
     ]);
 
     Transaction::factory()->create([
@@ -93,7 +125,7 @@ it('does not detect subscription from inconsistent charges', function () {
         'bank_account_id' => $account->id,
         'merchant_name' => 'RANDOM STORE',
         'amount' => 150.00,
-        'transaction_date' => '2025-12-20',
+        'transaction_date' => now()->subMonths(1)->format('Y-m-d'),
     ]);
 
     $service = new SubscriptionDetectorService;
@@ -110,7 +142,7 @@ it('does not detect subscription from single charge', function () {
         'bank_account_id' => $account->id,
         'merchant_name' => 'ONE TIME SHOP',
         'amount' => 49.99,
-        'transaction_date' => '2025-11-15',
+        'transaction_date' => now()->subMonths(2)->format('Y-m-d'),
     ]);
 
     $service = new SubscriptionDetectorService;

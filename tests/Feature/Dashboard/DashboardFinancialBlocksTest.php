@@ -101,8 +101,8 @@ it('returns recurring_bills, budget_waterfall, and home_affordability in dashboa
     // Home affordability should have the default $100k down payment
     expect($response->json('home_affordability.down_payment'))->toBe(100000);
 
-    // Interest rate should be 6.85%
-    expect($response->json('home_affordability.interest_rate'))->toBe(6.85);
+    // Interest rate should be 5.88% (5.875% rounded)
+    expect($response->json('home_affordability.interest_rate'))->toBe(5.88);
 
     // Loan term should be 30 years
     expect($response->json('home_affordability.loan_term_years'))->toBe(30);

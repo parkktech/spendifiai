@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Enums\ConnectionStatus;
 use App\Http\Controllers\Controller;
 use App\Jobs\CategorizePendingTransactions;
+use App\Jobs\DownloadPlaidStatements;
 use App\Models\BankConnection;
 use App\Models\PlaidWebhookLog;
 use App\Notifications\BankConnectionIssueNotification;
@@ -101,6 +102,7 @@ class PlaidWebhookController extends Controller
             $result = match ($webhookType) {
                 'TRANSACTIONS' => $this->handleTransactionWebhook($webhookCode, $connection),
                 'ITEM' => $this->handleItemWebhook($webhookCode, $connection, $request),
+                'STATEMENTS' => $this->handleStatementsWebhook($webhookCode, $connection, $request),
                 default => response()->json(['status' => 'unhandled']),
             };
 
@@ -242,6 +244,52 @@ class PlaidWebhookController extends Controller
         $this->plaidService->disconnect($connection);
 
         return response()->json(['status' => 'disconnected']);
+    }
+
+    /**
+     * Handle STATEMENTS webhook types.
+     */
+    private function handleStatementsWebhook(string $webhookCode, BankConnection $connection, Request $request): JsonResponse
+    {
+        $result = $request->input('result', []);
+        $status = $result['status'] ?? '';
+
+        return match ($webhookCode) {
+            'STATEMENTS_REFRESH_COMPLETE' => $this->handleStatementsRefreshComplete($connection, $status),
+            default => response()->json(['status' => 'unhandled']),
+        };
+    }
+
+    /**
+     * Handle STATEMENTS_REFRESH_COMPLETE webhook.
+     */
+    private function handleStatementsRefreshComplete(BankConnection $connection, string $status): JsonResponse
+    {
+        if ($status === 'SUCCESS') {
+            $connection->update(['statements_supported' => true, 'statements_refresh_status' => 'ready']);
+
+            DownloadPlaidStatements::dispatch($connection);
+
+            Log::info('Plaid statements refresh complete, dispatching download', [
+                'connection_id' => $connection->id,
+            ]);
+
+            return response()->json(['status' => 'download_dispatched']);
+        }
+
+        // Failure — mark unsupported or failed
+        $newStatus = $status === 'PRODUCTS_NOT_SUPPORTED' ? 'unsupported' : 'failed';
+        $connection->update([
+            'statements_supported' => $newStatus !== 'unsupported' ? $connection->statements_supported : false,
+            'statements_refresh_status' => $newStatus,
+        ]);
+
+        Log::warning('Plaid statements refresh failed', [
+            'connection_id' => $connection->id,
+            'status' => $status,
+        ]);
+
+        return response()->json(['status' => $newStatus]);
     }
 
     /**

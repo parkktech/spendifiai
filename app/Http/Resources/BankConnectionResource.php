@@ -15,6 +15,8 @@ class BankConnectionResource extends JsonResource
             'status' => $this->status,
             'is_plaid' => $this->plaid_item_id !== null,
             'last_synced_at' => $this->last_synced_at?->toIso8601String(),
+            'statements_supported' => $this->statements_supported,
+            'statements_refresh_status' => $this->statements_refresh_status,
             'created_at' => $this->created_at?->toIso8601String(),
         ];
     }
