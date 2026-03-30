@@ -2,45 +2,60 @@
 
 ## What This Is
 
-SpendifiAI is an AI-powered expense tracking SaaS that connects to users' bank accounts via Plaid, automatically categorizes transactions using Claude AI, detects subscriptions, generates savings recommendations, parses email receipts to match against bank charges, and exports tax-ready reports with IRS Schedule C mapping. It serves freelancers, small business owners, and consumers — the business/personal account purpose system adapts the experience to each user type.
+SpendifiAI is an AI-powered personal finance platform built for freelancers, small business owners, and their tax accountants. It connects to bank accounts via Plaid, auto-categorizes transactions with Claude AI, detects subscriptions, generates savings recommendations, parses email receipts, and now provides a secure Tax Document Vault with AI-powered document extraction, an Accountant Portal for firm-based client management, and a dual sign-off workflow for tax filing readiness.
 
 ## Core Value
 
-Users connect their bank and immediately get intelligent, automatic categorization of every transaction — with business/personal separation, tax deduction flagging, and AI-generated questions when confidence is low — so they never have to manually sort expenses again.
+Users connect their bank and immediately get intelligent, automatic categorization of every transaction — with business/personal separation, tax deduction flagging, and AI-generated questions when confidence is low — so they never have to manually sort expenses again. Tax accountants get a secure portal to review client documents, request missing items, annotate extractions, and co-sign tax year completion.
+
+## Current Milestone: v2.0 Tax Document Vault & Accountant Portal
+
+**Goal:** Build a secure document vault for tax documents with AI-powered extraction, an accountant portal for firm-based client management, and a dual sign-off workflow — making SpendifiAI the bridge between taxpayers and their accountants.
+
+**Target features:**
+- Secure tax document vault with upload, AI classification, and field extraction (25 form types)
+- Accountant portal with firm registration, branded invites, client management dashboard
+- Dual sign-off workflow for tax year completion (taxpayer + accountant)
+- Document sharing packages with time-limited signed URLs
+- Tax worksheets with auto-populated fields from AI extraction
+- Missing document detection and accountant-initiated document requests
+- Immutable audit trail for all document actions
+- Super Admin document storage configuration (local filesystem + S3)
+- Annotation/comment threads on documents between taxpayer and accountant
 
 ## Requirements
 
 ### Validated
 
-(None yet — ship to validate)
+- ✓ Full auth system (email/password, Google OAuth, 2FA, email verification, password reset) — v1.0
+- ✓ Plaid bank integration (link accounts, sync transactions, disconnect) — v1.0
+- ✓ Plaid webhook handler (real-time transaction updates, error handling) — v1.0
+- ✓ AI transaction categorization with confidence-based routing — v1.0
+- ✓ Business/personal account purpose tagging — v1.0
+- ✓ AI question generation and answer flow — v1.0
+- ✓ Subscription detection with unused service flagging — v1.0
+- ✓ Savings analysis and target planning — v1.0
+- ✓ Tax summary with IRS Schedule C mapping and export — v1.0
+- ✓ Email receipt parsing and reconciliation — v1.0
+- ✓ Dashboard, Transactions, Subscriptions, Savings, Tax, Connect, Settings, AI Questions pages — v1.0
+- ✓ Background jobs, event-driven architecture, notifications — v1.0
+- ✓ Full test suite and CI/CD pipeline — v1.0
 
 ### Active
 
-- [ ] Full auth system (email/password, Google OAuth, 2FA, email verification, password reset)
-- [ ] Plaid bank integration (link accounts, sync transactions up to 12 months back or beginning of prior year, disconnect)
-- [ ] Plaid webhook handler (real-time transaction updates, error handling, re-auth notifications)
-- [ ] AI transaction categorization with confidence-based routing (auto, flag-for-review, multiple-choice, open-ended)
-- [ ] Business/personal account purpose tagging that cascades to transactions and AI context
-- [ ] AI question generation and answer flow (single + bulk)
-- [ ] Subscription detection from transaction patterns with unused service flagging
-- [ ] Savings analysis (90-day spending analysis, recommendations, dismissible/actionable)
-- [ ] Savings target planning (goals with deadlines, AI-generated action plans, pulse checks)
-- [ ] Tax summary with IRS Schedule C line mapping and deduction tracking
-- [ ] Tax export (Excel 5-tab workbook + PDF cover sheet + CSV) with email-to-accountant
-- [ ] Email receipt parsing (Gmail OAuth, Claude-powered extraction, bank transaction reconciliation)
-- [ ] Dashboard (spending summary, category breakdown chart, recent transactions, AI question alerts)
-- [ ] Transaction list with filtering (date, category, account, business/personal, search) and inline category editing
-- [ ] Subscription management page (card grid, unused warnings, cost totals)
-- [ ] Savings page (target gauge, recommendation cards, action plan checklist)
-- [ ] Tax page (deduction summary, Schedule C mapping, export/send modals)
-- [ ] Connect page (Plaid Link button, connected accounts list, email connection flow)
-- [ ] Settings page (financial profile, security/2FA, delete account)
-- [ ] AI questions page (pending questions with transaction context, multiple-choice/free-text, bulk mode)
-- [ ] Background jobs (transaction sync, categorization, subscription detection, savings analysis, email processing, reconciliation)
-- [ ] Event-driven architecture (bank connected, transactions imported, categorized, question answered, etc.)
-- [ ] Notifications (AI questions ready, unused subscriptions, budget threshold, weekly digest)
-- [ ] Full test suite (Pest PHP — factories, feature tests for all flows, unit tests for services)
-- [ ] Deployment config (CI/CD pipeline, production env template)
+- [ ] Tax Document Vault with upload, AI classification, and storage (local + S3)
+- [ ] AI-powered tax document extraction (25 form types, two-pass classify→extract pipeline)
+- [ ] Tax worksheets with auto-populated fields from extraction data
+- [ ] Document annotation/comment threads between taxpayer and accountant
+- [ ] Missing document detection and accountant-initiated document requests
+- [ ] Accountant portal with firm registration and branded invite onboarding
+- [ ] Accountant client management dashboard with deadline tracking
+- [ ] Dual sign-off workflow for tax year completion
+- [ ] Document sharing packages with time-limited signed URLs
+- [ ] Immutable audit trail for all document actions
+- [ ] Super Admin document storage configuration (local + S3 toggle)
+- [ ] Anomaly detection on extracted document data (cross-document validation)
+- [ ] Tax software export format generation (TurboTax, H&R Block, etc.)
 
 ### Out of Scope
 
@@ -48,9 +63,11 @@ Users connect their bank and immediately get intelligent, automatic categorizati
 - Video content — no use case
 - Mobile native app — web-first; mobile comes after v1 validation
 - Billing/subscription management — free for now, monetization comes later
-- Admin panel — build when multi-user management is needed
-- Real-time push (WebSockets) — polling and page refresh sufficient for v1
-- Multi-currency — USD only for v1
+- Real-time push (WebSockets) — polling and page refresh sufficient for v2
+- Multi-currency — USD only for v2
+- Full SSN/TIN storage — security risk, store last 4 digits only
+- Direct e-filing integration — export formats only, no IRS submission
+- OCR for handwritten documents — AI extraction handles typed/digital forms only
 
 ## Context
 
@@ -102,7 +119,14 @@ The reference-dashboard.jsx prototype should be matched closely when building th
 | Plaid transaction sync (12 months / beginning of prior year) | Covers full tax year for users connecting mid-year | — Pending |
 | Free for now, monetize later | Build value first — billing infrastructure deferred to post-v1 | — Pending |
 | Email parsing in v1 | Core differentiator — matching receipts to bank charges adds unique value | — Pending |
-| Match reference dashboard closely | Consistent design vision — prototype already captures intended UX | — Pending |
+| Match reference dashboard closely | Consistent design vision — prototype already captures intended UX | ✓ Good |
+| Local-first document storage with S3 config switch | Simplifies dev/staging, S3 for production — runtime toggle in Super Admin | — Pending |
+| SSN last-4 only, EIN encrypted | Minimize PII exposure — compliance-first approach | — Pending |
+| Immutable audit log (no update/delete) | Regulatory compliance — full traceability of document access | — Pending |
+| Two-pass AI extraction (classify→extract) | Classification confidence gates extraction — prevents wasted API calls | — Pending |
+| Accountant onboarding via branded invite links | Friction-free onboarding — accountant shares link, clients self-register | — Pending |
+| Dual sign-off workflow | Both taxpayer and accountant must approve before tax year marked filed | — Pending |
+| Signed URLs for all document access | No direct file paths exposed — time-limited, tamper-proof access | — Pending |
 
 ---
-*Last updated: 2026-02-10 after initialization*
+*Last updated: 2026-03-30 after v2.0 milestone initialization*
