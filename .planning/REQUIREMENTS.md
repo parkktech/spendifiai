@@ -1,368 +1,172 @@
-# Requirements: SpendifiAI
+# Requirements: SpendifiAI v2.0
 
-**Defined:** 2026-02-10
-**Core Value:** Users connect their bank and immediately get intelligent, automatic categorization of every transaction with business/personal separation, tax deduction flagging, and AI-generated questions when confidence is low.
+**Defined:** 2026-03-30
+**Core Value:** Secure tax document vault with AI extraction, accountant collaboration portal, and intelligence layer — bridging taxpayers and their accountants
 
-## v1 Requirements
+## v2.0 Requirements
 
-Requirements for initial release. Each maps to roadmap phases.
+Requirements for Tax Document Vault & Accountant Portal milestone. Each maps to roadmap phases.
 
-### Project Foundation
+### Document Vault
 
-- [ ] **FNDN-01**: Laravel 12 project created with React starter kit (Inertia 2 + React 19 + TypeScript + shadcn/ui)
-- [ ] **FNDN-02**: All existing code from existing-code/ integrated into Laravel project structure (models, services, controllers, migrations, configs, routes)
-- [ ] **FNDN-03**: Database migrations run successfully creating all 14+ tables
-- [ ] **FNDN-04**: ExpenseCategorySeeder populates 50+ IRS-mapped categories
-- [ ] **FNDN-05**: All composer and npm dependencies installed and working
+- [ ] **VAULT-01**: User can upload tax documents (PDF, JPG, PNG) with server-side MIME validation
+- [ ] **VAULT-02**: System stores documents locally by default at `storage/app/private/tax-vault/{user_id}/{year}/{category}/`
+- [ ] **VAULT-03**: Super Admin can toggle storage driver between local filesystem and Amazon S3
+- [ ] **VAULT-04**: Super Admin can configure S3 credentials (bucket, region, access key, secret key) with AES-256 encryption
+- [ ] **VAULT-05**: Super Admin can test S3 connection and trigger document migration job
+- [ ] **VAULT-06**: All document access uses signed URLs (local via `URL::temporarySignedRoute()`, S3 via `Storage::temporaryUrl()`)
+- [ ] **VAULT-07**: User can view their uploaded documents organized by tax year and category
+- [ ] **VAULT-08**: User can soft-delete documents (admin can purge)
+- [ ] **VAULT-09**: Document status tracks through upload → classifying → extracting → ready → failed states
 
-### Authentication
+### AI Extraction
 
-- [ ] **AUTH-01**: User can register with name, email, and password
-- [ ] **AUTH-02**: User receives email verification after signup
-- [ ] **AUTH-03**: User can log in with email and password and receive a bearer token
-- [ ] **AUTH-04**: User session persists across browser refresh via Sanctum token
-- [ ] **AUTH-05**: User can log out and token is revoked
-- [ ] **AUTH-06**: User can reset password via email link
-- [ ] **AUTH-07**: User can change password while logged in
-- [ ] **AUTH-08**: User can log in via Google OAuth and receive token via URL fragment
-- [ ] **AUTH-09**: User can disconnect Google account
-- [ ] **AUTH-10**: User can enable TOTP 2FA with QR code
-- [ ] **AUTH-11**: User can verify 2FA code during login
-- [ ] **AUTH-12**: User can disable 2FA
-- [ ] **AUTH-13**: User can regenerate 2FA recovery codes
-- [ ] **AUTH-14**: Account locks after repeated failed login attempts
-- [ ] **AUTH-15**: reCAPTCHA v3 protects registration and login endpoints
+- [ ] **AIEX-01**: System auto-classifies uploaded documents into one of 25 tax form types using Claude AI
+- [ ] **AIEX-02**: Classification uses two-pass pipeline: classify first, then extract fields only if confidence ≥ threshold
+- [ ] **AIEX-03**: System extracts structured fields from W-2, 1099-NEC, 1099-INT, 1098 (Tier 1 forms)
+- [ ] **AIEX-04**: System extracts structured fields from remaining 21 form types (Tier 2+)
+- [ ] **AIEX-05**: Extracted data stored with `encrypted:array` cast — SSN stored as last 4 digits only, EIN encrypted
+- [ ] **AIEX-06**: Extraction confidence scored per field, surfaced in review UI
+- [ ] **AIEX-07**: User can review and correct AI-extracted fields side-by-side with document viewer
+- [ ] **AIEX-08**: Extraction runs as queued job (`ExtractTaxDocument`) with retries
 
-### Bank Integration (Plaid)
+### Accountant Portal
 
-- [ ] **PLAID-01**: User can create a Plaid Link token to start bank connection
-- [ ] **PLAID-02**: User can exchange Plaid public token to establish persistent bank connection
-- [ ] **PLAID-03**: System syncs transactions from connected bank (up to 12 months or beginning of prior year)
-- [ ] **PLAID-04**: User can view list of connected bank accounts with balances
-- [ ] **PLAID-05**: User can disconnect a bank connection
-- [ ] **PLAID-06**: User can tag bank account purpose (personal/business/mixed/investment)
-- [ ] **PLAID-07**: Account purpose cascades to all transactions from that account
-- [ ] **PLAID-08**: System fetches account balances from Plaid
+- [ ] **ACCT-01**: AccountingFirm model with firm registration flow (name, address, phone, branding)
+- [ ] **ACCT-02**: Accountant belongs to a firm; clients managed at firm level
+- [ ] **ACCT-03**: Firm generates branded invite links for client onboarding
+- [ ] **ACCT-04**: Accountant can view client's uploaded tax documents through existing portal
+- [ ] **ACCT-05**: Accountant can add annotations/comments on client documents (threaded)
+- [ ] **ACCT-06**: Accountant can request missing documents from client with description
+- [ ] **ACCT-07**: Client sees missing document requests as alerts with upload prompts
+- [ ] **ACCT-08**: Accountant dashboard shows client list with document completeness, deadline tracking
+- [ ] **ACCT-09**: 5 new Mail classes for accountant workflows (firm invite, document request, annotation notify, etc.)
 
-### Plaid Webhooks
+### Audit & Security
 
-- [ ] **HOOK-01**: System receives and verifies Plaid webhook signatures
-- [ ] **HOOK-02**: SYNC_UPDATES_AVAILABLE webhook triggers automatic transaction sync
-- [ ] **HOOK-03**: ITEM_LOGIN_REQUIRED webhook marks connection as error and notifies user
-- [ ] **HOOK-04**: PENDING_EXPIRATION webhook notifies user to re-authenticate
-- [ ] **HOOK-05**: TRANSACTIONS_REMOVED webhook deletes removed transactions
-- [ ] **HOOK-06**: USER_PERMISSION_REVOKED webhook disconnects the bank
-- [ ] **HOOK-07**: All webhooks are logged and handled idempotently
+- [ ] **AUDIT-01**: Immutable `tax_vault_audit_log` table — no update or delete routes, ever
+- [ ] **AUDIT-02**: Every document view, download, upload, delete, share, and extraction logged with user, IP, timestamp
+- [ ] **AUDIT-03**: Audit log enforced at database level (PostgreSQL rules to prevent UPDATE/DELETE)
+- [ ] **AUDIT-04**: Hash chain on audit entries (each entry stores `sha256(prev_hash + entry_data)`) for tamper detection
+- [ ] **AUDIT-05**: Audit log viewable by document owner and their accountant
+- [ ] **AUDIT-06**: All document access scoped through relationships — never `TaxDocument::find($id)` without tenant check
 
-### AI Categorization
+### Intelligence Layer
 
-- [ ] **AICAT-01**: System batches uncategorized transactions and sends to Claude API for categorization
-- [ ] **AICAT-02**: Transactions with confidence >= 0.85 are auto-categorized silently
-- [ ] **AICAT-03**: Transactions with confidence 0.60-0.84 are categorized but flagged for review
-- [ ] **AICAT-04**: Transactions with confidence 0.40-0.59 generate multiple-choice questions for user
-- [ ] **AICAT-05**: Transactions with confidence < 0.40 generate open-ended questions for user
-- [ ] **AICAT-06**: Account purpose (business/personal) is included in AI prompt context
-- [ ] **AICAT-07**: User can manually override transaction category
-
-### AI Questions
-
-- [ ] **AIQST-01**: User can view list of pending AI questions with transaction context
-- [ ] **AIQST-02**: User can answer a single AI question (multiple-choice or free-text)
-- [ ] **AIQST-03**: User can bulk-answer multiple AI questions at once
-- [ ] **AIQST-04**: Answering a question updates the transaction's category
-- [ ] **AIQST-05**: Unanswered questions expire after 7 days
-
-### Subscriptions
-
-- [ ] **SUBS-01**: System detects recurring charges from transaction patterns
-- [ ] **SUBS-02**: User can view list of detected subscriptions with status (active/unused/cancelled)
-- [ ] **SUBS-03**: Each subscription shows charge amount, frequency, and last charge date
-- [ ] **SUBS-04**: System flags unused subscriptions
-- [ ] **SUBS-05**: User can view total monthly and annual subscription costs
-
-### Savings
-
-- [ ] **SAVE-01**: System analyzes 90-day spending patterns via Claude API and generates savings recommendations
-- [ ] **SAVE-02**: User can view savings recommendations with action steps
-- [ ] **SAVE-03**: User can dismiss a savings recommendation
-- [ ] **SAVE-04**: User can apply a savings recommendation
-- [ ] **SAVE-05**: User can set a savings target with goal name, amount, deadline
-- [ ] **SAVE-06**: System generates AI-powered personalized action plan for savings target
-- [ ] **SAVE-07**: User can view savings target progress
-- [ ] **SAVE-08**: User can regenerate a savings plan
-- [ ] **SAVE-09**: User can respond to individual plan actions (completed/skipped)
-- [ ] **SAVE-10**: User can check savings pulse (progress summary)
-
-### Tax
-
-- [ ] **TAX-01**: User can view tax summary with deductions grouped by IRS Schedule C line
-- [ ] **TAX-02**: System separates business and personal spending for tax purposes
-- [ ] **TAX-03**: User can export tax package as Excel workbook (5 tabs)
-- [ ] **TAX-04**: User can export tax package as PDF cover sheet
-- [ ] **TAX-05**: User can export tax package as CSV
-- [ ] **TAX-06**: User can email tax package directly to their accountant
-- [ ] **TAX-07**: User can download previously generated tax exports
-
-### Email Parsing
-
-- [ ] **EMAIL-01**: User can connect Gmail account via OAuth
-- [ ] **EMAIL-02**: System syncs and parses email receipts using Claude AI
-- [ ] **EMAIL-03**: Parsed receipts create Order + OrderItem records with product details
-- [ ] **EMAIL-04**: System reconciles bank transactions with email orders (match by amount, date, merchant)
-- [ ] **EMAIL-05**: OrderItems include AI-determined category and tax deductibility
-
-### Controller Architecture
-
-- [ ] **CTRL-01**: SpendWiseController split into 10 focused API controllers (Dashboard, Plaid, BankAccount, Transaction, AIQuestion, Subscription, Savings, Tax, EmailConnection, UserProfile)
-- [ ] **CTRL-02**: API Resources created for all public-facing models (Transaction, BankAccount, BankConnection, Subscription, AIQuestion, SavingsRecommendation, SavingsTarget, Dashboard)
-- [ ] **CTRL-03**: Form Request validation classes created for all write endpoints
-- [ ] **CTRL-04**: All controllers use policy authorization
-- [ ] **CTRL-05**: All controllers inject services via constructor DI
-
-### User Profile
-
-- [ ] **PROF-01**: User can view and update financial profile (employment type, business type, tax filing status, income)
-- [ ] **PROF-02**: User can delete their entire account with cascading data removal
-
-### Events & Background Processing
-
-- [ ] **EVNT-01**: BankConnected event triggers initial transaction sync
-- [ ] **EVNT-02**: TransactionsImported event dispatches AI categorization job
-- [ ] **EVNT-03**: TransactionCategorized event triggers subscription detection check
-- [ ] **EVNT-04**: UserAnsweredQuestion event updates transaction category
-- [ ] **EVNT-05**: Background job: SyncBankTransactions (per-connection, dispatched by webhook/scheduler)
-- [ ] **EVNT-06**: Background job: CategorizePendingTransactions (AI batch processing)
-- [ ] **EVNT-07**: Background job: DetectSubscriptions (per-user scan)
-- [ ] **EVNT-08**: Background job: GenerateSavingsAnalysis (per-user analysis)
-- [ ] **EVNT-09**: Background job: ProcessOrderEmails (email sync + Claude parsing)
-- [ ] **EVNT-10**: Background job: ReconcileTransactionsWithOrders (match bank charges to email orders)
-- [ ] **EVNT-11**: Scheduled: Sync all bank connections every 4 hours
-- [ ] **EVNT-12**: Scheduled: AI categorize every 2 hours
-- [ ] **EVNT-13**: Scheduled: Detect subscriptions daily at 2:00 AM
-- [ ] **EVNT-14**: Scheduled: Savings analysis weekly Monday at 6:00 AM
-- [ ] **EVNT-15**: Scheduled: Expire unanswered AI questions daily at 3:00 AM
-
-### Notifications
-
-- [ ] **NOTF-01**: User receives notification when AI questions are ready for review
-- [ ] **NOTF-02**: User receives notification when unused subscriptions are detected
-- [ ] **NOTF-03**: User receives notification when budget threshold is reached (80%, 100%)
-- [ ] **NOTF-04**: User receives weekly savings digest summary
-- [ ] **NOTF-05**: Notifications delivered via database + email channels
+- [ ] **INTEL-01**: AI detects missing documents by cross-referencing Plaid transaction categories with expected tax form types
+- [ ] **INTEL-02**: Cross-document anomaly detection (e.g., W-2 wages vs bank deposit totals)
+- [ ] **INTEL-03**: Transaction-to-document linking (1099 linked to associated freelance deposits)
+- [ ] **INTEL-04**: Missing document alerts shown to user with explanation of why document is expected
 
 ### Frontend
 
-- [ ] **UI-01**: Dashboard page with spending summary cards, category breakdown donut chart, recent transactions, AI question alert banner, connected accounts summary
-- [ ] **UI-02**: Transactions page with filter bar (date range, category, business/personal, search), transaction table, inline category edit, pagination
-- [ ] **UI-03**: Subscriptions page with card grid, status badges, unused warnings, monthly/annual cost totals
-- [ ] **UI-04**: Savings page with target progress gauge, recommendation cards (dismiss/apply), set target form, pulse check summary
-- [ ] **UI-05**: Tax page with year selector, deduction summary by Schedule C line, business vs personal chart, export modal, send-to-accountant modal
-- [ ] **UI-06**: Connect page with Plaid Link button (react-plaid-link), connected accounts list with status, email connection flow, disconnect buttons
-- [ ] **UI-07**: Settings page with financial profile form, security settings (password change, 2FA toggle), delete account with confirmation
-- [ ] **UI-08**: AI Questions page with pending question list, transaction context per question, multiple-choice/free-text input, bulk answer mode
-- [ ] **UI-09**: Shared components: PlaidLinkButton, SpendingChart, TransactionRow, SubscriptionCard, RecommendationCard, QuestionCard, ViewModeToggle, ExportModal, ConfirmDialog
-- [ ] **UI-10**: Frontend design matches reference-dashboard.jsx prototype closely
+- [ ] **UI-01**: Tax Vault page with year selector tabs, document category grid, upload zone, missing alerts banner
+- [ ] **UI-02**: Document Detail page with split-panel PDF viewer + extracted fields + annotations thread
+- [ ] **UI-03**: Accountant Dashboard page with stats bar, client list table, deadline tracker, invite link generator
+- [ ] **UI-04**: 10 shared components (TaxYearTabs, DocumentCard, DocumentUploadZone, ExtractionPanel, AnnotationThread, DocumentRequestCard, MissingAlertBanner, AuditLogTable, etc.)
+- [ ] **UI-05**: All new pages follow existing SpendifiAI design system (navy #1E3A5F, teal #0D9488, sw-* tokens)
 
 ### Testing
 
-- [ ] **TEST-01**: Model factories created for all 16 models
-- [ ] **TEST-02**: Feature test: Auth flow (register, verify, login, 2FA, logout)
-- [ ] **TEST-03**: Feature test: Plaid flow (link token, exchange, sync, disconnect)
-- [ ] **TEST-04**: Feature test: Transaction list with filters and category update
-- [ ] **TEST-05**: Feature test: AI question answer and bulk answer
-- [ ] **TEST-06**: Feature test: Subscription list and detection
-- [ ] **TEST-07**: Feature test: Savings recommendations, set target, respond to action
-- [ ] **TEST-08**: Feature test: Tax summary, export, send to accountant
-- [ ] **TEST-09**: Feature test: Account deletion cascades properly
-- [ ] **TEST-10**: Unit test: TransactionCategorizerService confidence routing
-- [ ] **TEST-11**: Unit test: SubscriptionDetectorService recurrence detection
-- [ ] **TEST-12**: Unit test: TaxExportService Schedule C mapping
-- [ ] **TEST-13**: Unit test: CaptchaService score thresholds
+- [ ] **TEST-01**: Feature tests for all new API endpoints (document upload, extraction, accountant access, audit log)
+- [ ] **TEST-02**: Unit tests for TaxDocumentStorageService, TaxDocumentExtractorService, TaxWorksheetService, TaxVaultAuditService
+- [ ] **TEST-03**: AI extraction tests mock Claude API via `Http::fake()` — no live API calls
+- [ ] **TEST-04**: Cross-role authorization tests (owner access, accountant access, wrong-accountant blocked)
+- [ ] **TEST-05**: `npm run build` succeeds with zero TypeScript errors
+- [ ] **TEST-06**: `vendor/bin/pint` reports no formatting issues
 
-### Deployment
+## v2.1 Requirements
 
-- [ ] **DEPLOY-01**: GitHub Actions CI pipeline (install, build, test, audit)
-- [ ] **DEPLOY-02**: Production .env template with all required variables documented
+Deferred to next milestone. Tracked but not in current roadmap.
 
-## v2 Requirements
+### Workflow & Sharing
 
-Deferred to future release. Tracked but not in current roadmap.
+- **WFLOW-01**: Dual sign-off workflow (taxpayer attestation + accountant approval)
+- **WFLOW-02**: Tax year status tracking (in-progress → taxpayer-signed → accountant-signed → filed)
+- **WFLOW-03**: Document sharing packages with time-limited signed URLs
+- **WFLOW-04**: Tax worksheets with auto-populated fields from AI extraction data
+- **WFLOW-05**: Accountant can override worksheet values with explanation
 
-### Monetization
-- **BILL-01**: Subscription tier system (free/paid)
-- **BILL-02**: Feature gating based on tier
-- **BILL-03**: Stripe integration for payments
+### Firm Management
 
-### Admin
-- **ADMIN-01**: Admin panel for user management
-- **ADMIN-02**: System health dashboard
-- **ADMIN-03**: Usage analytics
+- **FIRM-01**: Multi-accountant firm support (team members under a firm)
+- **FIRM-02**: Firm-level permissions and roles (owner, manager, accountant, viewer)
+- **FIRM-03**: Firm branding on all client-facing communications
 
-### Real-time
-- **RT-01**: WebSocket push for real-time transaction updates
-- **RT-02**: Live notification delivery without page refresh
+### Additional Form Types
 
-### Mobile
-- **MOB-01**: Progressive Web App (PWA) support
-- **MOB-02**: Mobile-optimized responsive layouts
-
-### Multi-currency
-- **CURR-01**: Support for non-USD currencies
-- **CURR-02**: Currency conversion for reporting
+- **FORMS-01**: Tier 2 forms (1099-MISC, 1099-DIV, 1099-B, 1099-R, 1099-G, 1099-K, 1098-E, 1098-T)
+- **FORMS-02**: Tax software export formats (TurboTax TXF, H&R Block)
 
 ## Out of Scope
 
 | Feature | Reason |
 |---------|--------|
-| Native mobile app (iOS/Android) | Web-first strategy; mobile comes after v1 validation |
-| Real-time chat/messaging | Not relevant to expense tracking domain |
-| Video content | No use case in financial tracking |
-| Multi-currency support | USD only for v1; international users deferred |
-| Admin panel | Build when multi-user management becomes necessary |
-| Billing/payments | Free for now; monetization strategy comes after value validation |
-| WebSocket push notifications | Polling and page refresh sufficient for v1 financial data |
-| Outlook email parsing | Gmail-first; Outlook support in v2 |
-| Investment tracking | Account purpose supports "investment" tag but no dedicated investment features |
-| Budget creation UI | BudgetGoal model exists but creating/managing budgets deferred -- focus on detection and alerts |
+| Full SSN/TIN storage | Security risk — store last 4 digits only, strip from extraction |
+| Legal e-signature (ESIGN Act) | Compliance burden disproportionate to value — simple attestation with audit log |
+| Direct IRS e-filing | Requires EFIN certification — export to tax software instead |
+| Real-time collaborative editing | Comments/annotations are sufficient for document collaboration |
+| OCR for handwritten documents | AI extraction handles typed/digital forms only |
+| ClamAV virus scanning | Defer to production hardening — not MVP blocker |
+| Multi-currency tax documents | USD only for v2.0 |
 
 ## Traceability
 
-Which phases cover which requirements. Updated during roadmap creation.
-
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| FNDN-01 | Phase 1 | Pending |
-| FNDN-02 | Phase 1 | Pending |
-| FNDN-03 | Phase 1 | Pending |
-| FNDN-04 | Phase 1 | Pending |
-| FNDN-05 | Phase 1 | Pending |
-| AUTH-01 | Phase 2 | Pending |
-| AUTH-02 | Phase 2 | Pending |
-| AUTH-03 | Phase 2 | Pending |
-| AUTH-04 | Phase 2 | Pending |
-| AUTH-05 | Phase 2 | Pending |
-| AUTH-06 | Phase 2 | Pending |
-| AUTH-07 | Phase 2 | Pending |
-| AUTH-08 | Phase 2 | Pending |
-| AUTH-09 | Phase 2 | Pending |
-| AUTH-10 | Phase 2 | Pending |
-| AUTH-11 | Phase 2 | Pending |
-| AUTH-12 | Phase 2 | Pending |
-| AUTH-13 | Phase 2 | Pending |
-| AUTH-14 | Phase 2 | Pending |
-| AUTH-15 | Phase 2 | Pending |
-| PLAID-01 | Phase 2 | Pending |
-| PLAID-02 | Phase 2 | Pending |
-| PLAID-03 | Phase 2 | Pending |
-| PLAID-04 | Phase 2 | Pending |
-| PLAID-05 | Phase 2 | Pending |
-| PLAID-06 | Phase 2 | Pending |
-| PLAID-07 | Phase 2 | Pending |
-| PLAID-08 | Phase 2 | Pending |
-| HOOK-01 | Phase 2 | Pending |
-| HOOK-02 | Phase 2 | Pending |
-| HOOK-03 | Phase 2 | Pending |
-| HOOK-04 | Phase 2 | Pending |
-| HOOK-05 | Phase 2 | Pending |
-| HOOK-06 | Phase 2 | Pending |
-| HOOK-07 | Phase 2 | Pending |
-| AICAT-01 | Phase 3 | Pending |
-| AICAT-02 | Phase 3 | Pending |
-| AICAT-03 | Phase 3 | Pending |
-| AICAT-04 | Phase 3 | Pending |
-| AICAT-05 | Phase 3 | Pending |
-| AICAT-06 | Phase 3 | Pending |
-| AICAT-07 | Phase 3 | Pending |
-| AIQST-01 | Phase 3 | Pending |
-| AIQST-02 | Phase 3 | Pending |
-| AIQST-03 | Phase 3 | Pending |
-| AIQST-04 | Phase 3 | Pending |
-| AIQST-05 | Phase 3 | Pending |
-| SUBS-01 | Phase 3 | Pending |
-| SUBS-02 | Phase 3 | Pending |
-| SUBS-03 | Phase 3 | Pending |
-| SUBS-04 | Phase 3 | Pending |
-| SUBS-05 | Phase 3 | Pending |
-| SAVE-01 | Phase 3 | Pending |
-| SAVE-02 | Phase 3 | Pending |
-| SAVE-03 | Phase 3 | Pending |
-| SAVE-04 | Phase 3 | Pending |
-| SAVE-05 | Phase 3 | Pending |
-| SAVE-06 | Phase 3 | Pending |
-| SAVE-07 | Phase 3 | Pending |
-| SAVE-08 | Phase 3 | Pending |
-| SAVE-09 | Phase 3 | Pending |
-| SAVE-10 | Phase 3 | Pending |
-| TAX-01 | Phase 3 | Pending |
-| TAX-02 | Phase 3 | Pending |
-| TAX-03 | Phase 3 | Pending |
-| TAX-04 | Phase 3 | Pending |
-| TAX-05 | Phase 3 | Pending |
-| TAX-06 | Phase 3 | Pending |
-| TAX-07 | Phase 3 | Pending |
-| EMAIL-01 | Phase 3 | Pending |
-| EMAIL-02 | Phase 3 | Pending |
-| EMAIL-03 | Phase 3 | Pending |
-| EMAIL-04 | Phase 3 | Pending |
-| EMAIL-05 | Phase 3 | Pending |
-| CTRL-01 | Phase 1 | Pending |
-| CTRL-02 | Phase 1 | Pending |
-| CTRL-03 | Phase 1 | Pending |
-| CTRL-04 | Phase 1 | Pending |
-| CTRL-05 | Phase 1 | Pending |
-| PROF-01 | Phase 2 | Pending |
-| PROF-02 | Phase 2 | Pending |
-| EVNT-01 | Phase 4 | Pending |
-| EVNT-02 | Phase 4 | Pending |
-| EVNT-03 | Phase 4 | Pending |
-| EVNT-04 | Phase 4 | Pending |
-| EVNT-05 | Phase 4 | Pending |
-| EVNT-06 | Phase 4 | Pending |
-| EVNT-07 | Phase 4 | Pending |
-| EVNT-08 | Phase 4 | Pending |
-| EVNT-09 | Phase 4 | Pending |
-| EVNT-10 | Phase 4 | Pending |
-| EVNT-11 | Phase 4 | Pending |
-| EVNT-12 | Phase 4 | Pending |
-| EVNT-13 | Phase 4 | Pending |
-| EVNT-14 | Phase 4 | Pending |
-| EVNT-15 | Phase 4 | Pending |
-| NOTF-01 | Phase 4 | Pending |
-| NOTF-02 | Phase 4 | Pending |
-| NOTF-03 | Phase 4 | Pending |
-| NOTF-04 | Phase 4 | Pending |
-| NOTF-05 | Phase 4 | Pending |
-| UI-01 | Phase 4 | Pending |
-| UI-02 | Phase 4 | Pending |
-| UI-03 | Phase 4 | Pending |
-| UI-04 | Phase 4 | Pending |
-| UI-05 | Phase 4 | Pending |
-| UI-06 | Phase 4 | Pending |
-| UI-07 | Phase 4 | Pending |
-| UI-08 | Phase 4 | Pending |
-| UI-09 | Phase 4 | Pending |
-| UI-10 | Phase 4 | Pending |
-| TEST-01 | Phase 5 | Pending |
-| TEST-02 | Phase 5 | Pending |
-| TEST-03 | Phase 5 | Pending |
-| TEST-04 | Phase 5 | Pending |
-| TEST-05 | Phase 5 | Pending |
-| TEST-06 | Phase 5 | Pending |
-| TEST-07 | Phase 5 | Pending |
-| TEST-08 | Phase 5 | Pending |
-| TEST-09 | Phase 5 | Pending |
-| TEST-10 | Phase 5 | Pending |
-| TEST-11 | Phase 5 | Pending |
-| TEST-12 | Phase 5 | Pending |
-| TEST-13 | Phase 5 | Pending |
-| DEPLOY-01 | Phase 5 | Pending |
-| DEPLOY-02 | Phase 5 | Pending |
+| VAULT-01 | TBD | Pending |
+| VAULT-02 | TBD | Pending |
+| VAULT-03 | TBD | Pending |
+| VAULT-04 | TBD | Pending |
+| VAULT-05 | TBD | Pending |
+| VAULT-06 | TBD | Pending |
+| VAULT-07 | TBD | Pending |
+| VAULT-08 | TBD | Pending |
+| VAULT-09 | TBD | Pending |
+| AIEX-01 | TBD | Pending |
+| AIEX-02 | TBD | Pending |
+| AIEX-03 | TBD | Pending |
+| AIEX-04 | TBD | Pending |
+| AIEX-05 | TBD | Pending |
+| AIEX-06 | TBD | Pending |
+| AIEX-07 | TBD | Pending |
+| AIEX-08 | TBD | Pending |
+| ACCT-01 | TBD | Pending |
+| ACCT-02 | TBD | Pending |
+| ACCT-03 | TBD | Pending |
+| ACCT-04 | TBD | Pending |
+| ACCT-05 | TBD | Pending |
+| ACCT-06 | TBD | Pending |
+| ACCT-07 | TBD | Pending |
+| ACCT-08 | TBD | Pending |
+| ACCT-09 | TBD | Pending |
+| AUDIT-01 | TBD | Pending |
+| AUDIT-02 | TBD | Pending |
+| AUDIT-03 | TBD | Pending |
+| AUDIT-04 | TBD | Pending |
+| AUDIT-05 | TBD | Pending |
+| AUDIT-06 | TBD | Pending |
+| INTEL-01 | TBD | Pending |
+| INTEL-02 | TBD | Pending |
+| INTEL-03 | TBD | Pending |
+| INTEL-04 | TBD | Pending |
+| UI-01 | TBD | Pending |
+| UI-02 | TBD | Pending |
+| UI-03 | TBD | Pending |
+| UI-04 | TBD | Pending |
+| UI-05 | TBD | Pending |
+| TEST-01 | TBD | Pending |
+| TEST-02 | TBD | Pending |
+| TEST-03 | TBD | Pending |
+| TEST-04 | TBD | Pending |
+| TEST-05 | TBD | Pending |
+| TEST-06 | TBD | Pending |
 
 **Coverage:**
-- v1 requirements: 126 total
-- Mapped to phases: 126
-- Unmapped: 0
+- v2.0 requirements: 44 total
+- Mapped to phases: 0
+- Unmapped: 44 ⚠️
 
 ---
-*Requirements defined: 2026-02-10*
-*Last updated: 2026-02-10 after roadmap creation*
+*Requirements defined: 2026-03-30*
+*Last updated: 2026-03-30 after initial definition*
