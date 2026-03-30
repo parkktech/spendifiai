@@ -4,24 +4,33 @@
 
 See: .planning/PROJECT.md (updated 2026-03-30)
 
-**Core value:** Users connect their bank and immediately get intelligent, automatic categorization of every transaction with business/personal separation, tax deduction flagging, and AI-generated questions when confidence is low. Tax accountants get a secure portal to review client documents, request missing items, and co-sign tax year completion.
-**Current focus:** Milestone v2.0 — Tax Document Vault & Accountant Portal
+**Core value:** Secure tax document vault with AI extraction and accountant collaboration -- bridging taxpayers and their accountants
+**Current focus:** Phase 6: Document Vault & Audit Foundation
 
 ## Current Position
 
-Phase: Not started (defining requirements)
-Plan: —
-Status: Defining requirements
-Last activity: 2026-03-30 — Milestone v2.0 started
+Phase: 6 of 9 (Document Vault & Audit Foundation)
+Plan: 0 of ? in current phase
+Status: Ready to plan
+Last activity: 2026-03-30 -- Roadmap created for v2.0 milestone
 
-Progress: [░░░░░░░░░░░░░░░] 0%
+Progress: [##########..........] 56% (v1.0 complete, v2.0 starting)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 15 (from v1.0)
+- Total plans completed: 15 (v1.0)
 - Average duration: 5min
 - Total execution time: 1.3 hours
+
+**By Phase:**
+
+| Phase | Plans | Total | Avg/Plan |
+|-------|-------|-------|----------|
+| 1-5 (v1.0) | 15 | 1.3h | 5m |
+| 6-9 (v2.0) | - | - | - |
+
+*Updated after each plan completion*
 
 ## Accumulated Context
 
@@ -31,13 +40,12 @@ Decisions are logged in PROJECT.md Key Decisions table.
 Recent decisions affecting current work:
 
 - [v1.0]: All v1.0 decisions carry forward (see PROJECT.md Key Decisions table)
-- [v2.0]: Local-first document storage with S3 config switch via Super Admin
-- [v2.0]: SSN last-4 only, EIN encrypted — minimize PII exposure
-- [v2.0]: Immutable audit log — no update/delete routes, ever
-- [v2.0]: Two-pass AI extraction (classify→extract) with confidence gating
-- [v2.0]: Accountant onboarding via branded invite links
-- [v2.0]: Dual sign-off workflow for tax year completion
-- [v2.0]: Signed URLs for all document access — no direct file paths
+- [v2.0]: Audit trail built alongside vault in Phase 6, not deferred
+- [v2.0]: Extend existing accountant infrastructure, not rebuild
+- [v2.0]: Two-pass AI pipeline: classify first, extract only if confident
+- [v2.0]: Local-first storage with Super Admin S3 toggle
+- [v2.0]: Dual sign-off and worksheets deferred to v2.1
+- [v2.0]: Signed URLs for all document access -- no direct file paths
 
 ### Pending Todos
 
@@ -45,10 +53,11 @@ None yet.
 
 ### Blockers/Concerns
 
-None yet.
+- Per-field confidence storage schema needs design decision in Phase 7 planning
+- APP_KEY rotation runbook needed before production with encrypted extraction data
 
 ## Session Continuity
 
 Last session: 2026-03-30
-Stopped at: Milestone v2.0 initialization — defining requirements
+Stopped at: Roadmap created for v2.0 milestone
 Resume file: None

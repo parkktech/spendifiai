@@ -1,7 +1,7 @@
 # Requirements: SpendifiAI v2.0
 
 **Defined:** 2026-03-30
-**Core Value:** Secure tax document vault with AI extraction, accountant collaboration portal, and intelligence layer — bridging taxpayers and their accountants
+**Core Value:** Secure tax document vault with AI extraction, accountant collaboration portal, and intelligence layer -- bridging taxpayers and their accountants
 
 ## v2.0 Requirements
 
@@ -22,10 +22,10 @@ Requirements for Tax Document Vault & Accountant Portal milestone. Each maps to 
 ### AI Extraction
 
 - [ ] **AIEX-01**: System auto-classifies uploaded documents into one of 25 tax form types using Claude AI
-- [ ] **AIEX-02**: Classification uses two-pass pipeline: classify first, then extract fields only if confidence ≥ threshold
+- [ ] **AIEX-02**: Classification uses two-pass pipeline: classify first, then extract fields only if confidence >= threshold
 - [ ] **AIEX-03**: System extracts structured fields from W-2, 1099-NEC, 1099-INT, 1098 (Tier 1 forms)
 - [ ] **AIEX-04**: System extracts structured fields from remaining 21 form types (Tier 2+)
-- [ ] **AIEX-05**: Extracted data stored with `encrypted:array` cast — SSN stored as last 4 digits only, EIN encrypted
+- [ ] **AIEX-05**: Extracted data stored with `encrypted:array` cast -- SSN stored as last 4 digits only, EIN encrypted
 - [ ] **AIEX-06**: Extraction confidence scored per field, surfaced in review UI
 - [ ] **AIEX-07**: User can review and correct AI-extracted fields side-by-side with document viewer
 - [ ] **AIEX-08**: Extraction runs as queued job (`ExtractTaxDocument`) with retries
@@ -44,12 +44,12 @@ Requirements for Tax Document Vault & Accountant Portal milestone. Each maps to 
 
 ### Audit & Security
 
-- [ ] **AUDIT-01**: Immutable `tax_vault_audit_log` table — no update or delete routes, ever
+- [ ] **AUDIT-01**: Immutable `tax_vault_audit_log` table -- no update or delete routes, ever
 - [ ] **AUDIT-02**: Every document view, download, upload, delete, share, and extraction logged with user, IP, timestamp
 - [ ] **AUDIT-03**: Audit log enforced at database level (PostgreSQL rules to prevent UPDATE/DELETE)
 - [ ] **AUDIT-04**: Hash chain on audit entries (each entry stores `sha256(prev_hash + entry_data)`) for tamper detection
 - [ ] **AUDIT-05**: Audit log viewable by document owner and their accountant
-- [ ] **AUDIT-06**: All document access scoped through relationships — never `TaxDocument::find($id)` without tenant check
+- [ ] **AUDIT-06**: All document access scoped through relationships -- never `TaxDocument::find($id)` without tenant check
 
 ### Intelligence Layer
 
@@ -70,7 +70,7 @@ Requirements for Tax Document Vault & Accountant Portal milestone. Each maps to 
 
 - [ ] **TEST-01**: Feature tests for all new API endpoints (document upload, extraction, accountant access, audit log)
 - [ ] **TEST-02**: Unit tests for TaxDocumentStorageService, TaxDocumentExtractorService, TaxWorksheetService, TaxVaultAuditService
-- [ ] **TEST-03**: AI extraction tests mock Claude API via `Http::fake()` — no live API calls
+- [ ] **TEST-03**: AI extraction tests mock Claude API via `Http::fake()` -- no live API calls
 - [ ] **TEST-04**: Cross-role authorization tests (owner access, accountant access, wrong-accountant blocked)
 - [ ] **TEST-05**: `npm run build` succeeds with zero TypeScript errors
 - [ ] **TEST-06**: `vendor/bin/pint` reports no formatting issues
@@ -82,7 +82,7 @@ Deferred to next milestone. Tracked but not in current roadmap.
 ### Workflow & Sharing
 
 - **WFLOW-01**: Dual sign-off workflow (taxpayer attestation + accountant approval)
-- **WFLOW-02**: Tax year status tracking (in-progress → taxpayer-signed → accountant-signed → filed)
+- **WFLOW-02**: Tax year status tracking (in-progress -> taxpayer-signed -> accountant-signed -> filed)
 - **WFLOW-03**: Document sharing packages with time-limited signed URLs
 - **WFLOW-04**: Tax worksheets with auto-populated fields from AI extraction data
 - **WFLOW-05**: Accountant can override worksheet values with explanation
@@ -102,71 +102,71 @@ Deferred to next milestone. Tracked but not in current roadmap.
 
 | Feature | Reason |
 |---------|--------|
-| Full SSN/TIN storage | Security risk — store last 4 digits only, strip from extraction |
-| Legal e-signature (ESIGN Act) | Compliance burden disproportionate to value — simple attestation with audit log |
-| Direct IRS e-filing | Requires EFIN certification — export to tax software instead |
+| Full SSN/TIN storage | Security risk -- store last 4 digits only, strip from extraction |
+| Legal e-signature (ESIGN Act) | Compliance burden disproportionate to value -- simple attestation with audit log |
+| Direct IRS e-filing | Requires EFIN certification -- export to tax software instead |
 | Real-time collaborative editing | Comments/annotations are sufficient for document collaboration |
 | OCR for handwritten documents | AI extraction handles typed/digital forms only |
-| ClamAV virus scanning | Defer to production hardening — not MVP blocker |
+| ClamAV virus scanning | Defer to production hardening -- not MVP blocker |
 | Multi-currency tax documents | USD only for v2.0 |
 
 ## Traceability
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| VAULT-01 | TBD | Pending |
-| VAULT-02 | TBD | Pending |
-| VAULT-03 | TBD | Pending |
-| VAULT-04 | TBD | Pending |
-| VAULT-05 | TBD | Pending |
-| VAULT-06 | TBD | Pending |
-| VAULT-07 | TBD | Pending |
-| VAULT-08 | TBD | Pending |
-| VAULT-09 | TBD | Pending |
-| AIEX-01 | TBD | Pending |
-| AIEX-02 | TBD | Pending |
-| AIEX-03 | TBD | Pending |
-| AIEX-04 | TBD | Pending |
-| AIEX-05 | TBD | Pending |
-| AIEX-06 | TBD | Pending |
-| AIEX-07 | TBD | Pending |
-| AIEX-08 | TBD | Pending |
-| ACCT-01 | TBD | Pending |
-| ACCT-02 | TBD | Pending |
-| ACCT-03 | TBD | Pending |
-| ACCT-04 | TBD | Pending |
-| ACCT-05 | TBD | Pending |
-| ACCT-06 | TBD | Pending |
-| ACCT-07 | TBD | Pending |
-| ACCT-08 | TBD | Pending |
-| ACCT-09 | TBD | Pending |
-| AUDIT-01 | TBD | Pending |
-| AUDIT-02 | TBD | Pending |
-| AUDIT-03 | TBD | Pending |
-| AUDIT-04 | TBD | Pending |
-| AUDIT-05 | TBD | Pending |
-| AUDIT-06 | TBD | Pending |
-| INTEL-01 | TBD | Pending |
-| INTEL-02 | TBD | Pending |
-| INTEL-03 | TBD | Pending |
-| INTEL-04 | TBD | Pending |
-| UI-01 | TBD | Pending |
-| UI-02 | TBD | Pending |
-| UI-03 | TBD | Pending |
-| UI-04 | TBD | Pending |
-| UI-05 | TBD | Pending |
-| TEST-01 | TBD | Pending |
-| TEST-02 | TBD | Pending |
-| TEST-03 | TBD | Pending |
-| TEST-04 | TBD | Pending |
-| TEST-05 | TBD | Pending |
-| TEST-06 | TBD | Pending |
+| VAULT-01 | Phase 6 | Pending |
+| VAULT-02 | Phase 6 | Pending |
+| VAULT-03 | Phase 6 | Pending |
+| VAULT-04 | Phase 6 | Pending |
+| VAULT-05 | Phase 6 | Pending |
+| VAULT-06 | Phase 6 | Pending |
+| VAULT-07 | Phase 6 | Pending |
+| VAULT-08 | Phase 6 | Pending |
+| VAULT-09 | Phase 6 | Pending |
+| AIEX-01 | Phase 7 | Pending |
+| AIEX-02 | Phase 7 | Pending |
+| AIEX-03 | Phase 7 | Pending |
+| AIEX-04 | Phase 7 | Pending |
+| AIEX-05 | Phase 7 | Pending |
+| AIEX-06 | Phase 7 | Pending |
+| AIEX-07 | Phase 7 | Pending |
+| AIEX-08 | Phase 7 | Pending |
+| ACCT-01 | Phase 8 | Pending |
+| ACCT-02 | Phase 8 | Pending |
+| ACCT-03 | Phase 8 | Pending |
+| ACCT-04 | Phase 8 | Pending |
+| ACCT-05 | Phase 8 | Pending |
+| ACCT-06 | Phase 8 | Pending |
+| ACCT-07 | Phase 8 | Pending |
+| ACCT-08 | Phase 8 | Pending |
+| ACCT-09 | Phase 8 | Pending |
+| AUDIT-01 | Phase 6 | Pending |
+| AUDIT-02 | Phase 6 | Pending |
+| AUDIT-03 | Phase 6 | Pending |
+| AUDIT-04 | Phase 6 | Pending |
+| AUDIT-05 | Phase 6 | Pending |
+| AUDIT-06 | Phase 6 | Pending |
+| INTEL-01 | Phase 9 | Pending |
+| INTEL-02 | Phase 9 | Pending |
+| INTEL-03 | Phase 9 | Pending |
+| INTEL-04 | Phase 9 | Pending |
+| UI-01 | Phase 6 | Pending |
+| UI-02 | Phase 7 | Pending |
+| UI-03 | Phase 8 | Pending |
+| UI-04 | Phase 6 | Pending |
+| UI-05 | Phase 6 | Pending |
+| TEST-01 | Phase 9 | Pending |
+| TEST-02 | Phase 7 | Pending |
+| TEST-03 | Phase 7 | Pending |
+| TEST-04 | Phase 8 | Pending |
+| TEST-05 | Phase 9 | Pending |
+| TEST-06 | Phase 9 | Pending |
 
 **Coverage:**
 - v2.0 requirements: 44 total
-- Mapped to phases: 0
-- Unmapped: 44 ⚠️
+- Mapped to phases: 44
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-03-30*
-*Last updated: 2026-03-30 after initial definition*
+*Last updated: 2026-03-30 after roadmap creation*

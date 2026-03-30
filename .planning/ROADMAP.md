@@ -1,122 +1,162 @@
 # Roadmap: SpendifiAI
 
-## Overview
+## Milestones
 
-SpendifiAI is an AI-powered expense tracker with ~60% of backend code already built. The roadmap integrates existing code into a fresh Laravel 12 project, decomposes the monolithic controller, wires up all backend features (bank integration, AI categorization, subscriptions, savings, tax, email parsing), builds the React/Inertia frontend, and delivers a tested, deployable application. Five phases move from scaffolding through working product.
+- v1.0 MVP - Phases 1-5 (shipped 2026-02-11)
+- v2.0 Tax Document Vault & Accountant Portal - Phases 6-9 (in progress)
 
 ## Phases
 
-**Phase Numbering:**
-- Integer phases (1, 2, 3): Planned milestone work
-- Decimal phases (2.1, 2.2): Urgent insertions (marked with INSERTED)
-
-Decimal phases appear between their surrounding integers in numeric order.
-
-- [x] **Phase 1: Project Scaffolding & API Architecture** - Create Laravel 12 project, integrate existing code, split monolithic controller into 10 focused controllers
-- [x] **Phase 2: Auth & Bank Integration** - Wire up authentication, Plaid bank connection, webhooks, and user profile management
-- [x] **Phase 3: AI Intelligence & Financial Features** - AI categorization, questions, subscriptions, savings, tax export, email parsing
-- [x] **Phase 4: Events, Notifications & Frontend** - Event-driven automation, notification system, and all React/Inertia pages
-- [x] **Phase 5: Testing & Deployment** - Full Pest PHP test suite with factories, CI/CD pipeline
-
-## Phase Details
+<details>
+<summary>v1.0 MVP (Phases 1-5) - SHIPPED 2026-02-11</summary>
 
 ### Phase 1: Project Scaffolding & API Architecture
 **Goal**: A running Laravel 12 application with all existing code properly integrated, the monolithic SpendWiseController decomposed into 10 focused controllers, and all API resources and form requests in place
 **Depends on**: Nothing (first phase)
 **Requirements**: FNDN-01, FNDN-02, FNDN-03, FNDN-04, FNDN-05, CTRL-01, CTRL-02, CTRL-03, CTRL-04, CTRL-05
-**Success Criteria** (what must be TRUE):
-  1. Running `php artisan serve` starts the application without errors and the welcome page loads
-  2. Running `php artisan migrate` creates all 14+ database tables successfully
-  3. Running `php artisan db:seed --class=ExpenseCategorySeeder` populates 50+ expense categories
-  4. `php artisan route:list --path=api` shows all routes pointing to 10 separate controllers (not SpendWiseController)
-  5. Each API controller returns proper JSON via API Resources when called (even if empty data)
 **Plans**: 2 plans
 
 Plans:
-- [x] 01-01: Create Laravel 12 project and integrate all existing code (models, services, enums, middleware, policies, migrations, configs, routes, seeders)
+- [x] 01-01: Create Laravel 12 project and integrate all existing code
 - [x] 01-02: Split SpendWiseController into 10 controllers, create API Resources and Form Requests
 
 ### Phase 2: Auth & Bank Integration
-**Goal**: Users can register, log in (with optional 2FA and Google OAuth), connect their bank via Plaid, sync transactions, and manage their financial profile -- with real-time webhook handling for ongoing updates
+**Goal**: Users can register, log in, connect their bank via Plaid, sync transactions, and manage their financial profile
 **Depends on**: Phase 1
-**Requirements**: AUTH-01, AUTH-02, AUTH-03, AUTH-04, AUTH-05, AUTH-06, AUTH-07, AUTH-08, AUTH-09, AUTH-10, AUTH-11, AUTH-12, AUTH-13, AUTH-14, AUTH-15, PLAID-01, PLAID-02, PLAID-03, PLAID-04, PLAID-05, PLAID-06, PLAID-07, PLAID-08, HOOK-01, HOOK-02, HOOK-03, HOOK-04, HOOK-05, HOOK-06, HOOK-07, PROF-01, PROF-02
-**Success Criteria** (what must be TRUE):
-  1. User can register with email/password, verify email, log in, and stay logged in across browser refresh via Sanctum token
-  2. User can enable TOTP 2FA, is prompted for code on login, and can disable it or regenerate recovery codes
-  3. User can log in via Google OAuth and disconnect the linked Google account
-  4. User can connect a bank via Plaid Link, view connected accounts with balances, tag account purpose (business/personal), and disconnect
-  5. Transactions sync from Plaid (up to 12 months or beginning of prior year) and account purpose cascades to all transactions from that account
-  6. Plaid webhooks trigger automatic transaction sync, handle connection errors, and process transaction removals idempotently
-  7. User can view and update their financial profile, reset/change password, and delete their account with cascading data removal
+**Requirements**: AUTH-01 through AUTH-15, PLAID-01 through PLAID-08, HOOK-01 through HOOK-07, PROF-01, PROF-02
 **Plans**: 3 plans
 
 Plans:
-- [x] 02-01: Verify and complete authentication system (email/password, Google OAuth, 2FA, password reset, email verification, captcha, account lockout)
-- [x] 02-02: Wire up Plaid integration (link token, exchange, sync, balances, disconnect, account purpose tagging)
-- [x] 02-03: Build Plaid webhook handler and user profile management
+- [x] 02-01: Authentication system
+- [x] 02-02: Plaid integration
+- [x] 02-03: Webhooks and profile management
 
 ### Phase 3: AI Intelligence & Financial Features
-**Goal**: Transactions are automatically categorized by Claude AI with confidence-based routing, users can answer AI questions, subscriptions are detected, savings recommendations are generated, tax reports are exportable, and email receipts are parsed and reconciled
+**Goal**: AI categorization, subscriptions, savings, tax export, email parsing all functional
 **Depends on**: Phase 2
-**Requirements**: AICAT-01, AICAT-02, AICAT-03, AICAT-04, AICAT-05, AICAT-06, AICAT-07, AIQST-01, AIQST-02, AIQST-03, AIQST-04, AIQST-05, SUBS-01, SUBS-02, SUBS-03, SUBS-04, SUBS-05, SAVE-01, SAVE-02, SAVE-03, SAVE-04, SAVE-05, SAVE-06, SAVE-07, SAVE-08, SAVE-09, SAVE-10, TAX-01, TAX-02, TAX-03, TAX-04, TAX-05, TAX-06, TAX-07, EMAIL-01, EMAIL-02, EMAIL-03, EMAIL-04, EMAIL-05
-**Success Criteria** (what must be TRUE):
-  1. After transaction sync, uncategorized transactions are batched and sent to Claude API; results are routed by confidence (auto-categorize at >=0.85, flag for review at 0.60-0.84, generate questions below 0.60)
-  2. User can view pending AI questions with transaction context, answer individually or in bulk, and answers update the transaction category
-  3. System detects recurring subscriptions from transaction patterns, flags unused ones, and user can view subscription list with costs
-  4. User can trigger savings analysis, view AI-generated recommendations with action steps, dismiss or apply them, set savings targets, and track progress with pulse checks
-  5. User can view tax summary by IRS Schedule C line, export tax packages (Excel/PDF/CSV), email exports to accountant, and download previous exports
-  6. User can connect Gmail, system parses email receipts via Claude AI, creates order records, and reconciles them against bank transactions
+**Requirements**: AICAT-01 through AICAT-07, AIQST-01 through AIQST-05, SUBS-01 through SUBS-05, SAVE-01 through SAVE-10, TAX-01 through TAX-07, EMAIL-01 through EMAIL-05
 **Plans**: 3 plans
 
 Plans:
-- [x] 03-01-PLAN.md -- Fix AIQuestion model $fillable, wire categorization dispatch into PlaidController sync, enable subscription detection schedule
-- [x] 03-02-PLAN.md -- Fix SavingsPlanAction $fillable, add savings_recommendations migration, update SavingsAnalyzerService, enable savings schedule
-- [x] 03-03-PLAN.md -- Install Python deps for tax export, copy/fix email parsing services, implement EmailConnectionController, enable email sync schedule
+- [x] 03-01: AI categorization and subscription detection
+- [x] 03-02: Savings analysis and targets
+- [x] 03-03: Tax export and email parsing
 
 ### Phase 4: Events, Notifications & Frontend
-**Goal**: All backend features are connected via event-driven architecture with automated jobs and scheduled tasks, users receive actionable notifications, and all React/Inertia/TypeScript pages are built matching the reference dashboard design
+**Goal**: Event-driven architecture, notifications, and all React/Inertia pages
 **Depends on**: Phase 3
-**Requirements**: EVNT-01, EVNT-02, EVNT-03, EVNT-04, EVNT-05, EVNT-06, EVNT-07, EVNT-08, EVNT-09, EVNT-10, EVNT-11, EVNT-12, EVNT-13, EVNT-14, EVNT-15, NOTF-01, NOTF-02, NOTF-03, NOTF-04, NOTF-05, UI-01, UI-02, UI-03, UI-04, UI-05, UI-06, UI-07, UI-08, UI-09, UI-10
-**Success Criteria** (what must be TRUE):
-  1. Connecting a bank automatically triggers initial sync and categorization; importing transactions dispatches AI categorization; categorizing transactions triggers subscription detection
-  2. Scheduled tasks run: bank sync every 4 hours, categorization every 2 hours, subscription detection daily, savings analysis weekly, question expiry daily
-  3. User receives database and email notifications for AI questions ready, unused subscriptions, budget thresholds, and weekly savings digest
-  4. Dashboard page shows spending summary, category breakdown chart, recent transactions, and AI question alerts
-  5. Transaction, Subscription, Savings, Tax, Connect, Settings, and AI Questions pages all function with real API data, matching the reference dashboard design
-  6. All shared components work (PlaidLinkButton, SpendingChart, TransactionRow, SubscriptionCard, RecommendationCard, QuestionCard, ExportModal, ConfirmDialog)
+**Requirements**: EVNT-01 through EVNT-15, NOTF-01 through NOTF-05, UI-01 through UI-10
 **Plans**: 3 plans
 
 Plans:
-- [x] 04-01: Build event-driven architecture (events, listeners, job dispatching) and notification system
-- [x] 04-02: Build frontend pages -- Dashboard, Transactions, Connect, Settings, AI Questions
-- [x] 04-03: Build frontend pages -- Subscriptions, Savings, Tax, shared components
+- [x] 04-01: Events, listeners, notifications
+- [x] 04-02: Frontend pages (Dashboard, Transactions, Connect, Settings, AI Questions)
+- [x] 04-03: Frontend pages (Subscriptions, Savings, Tax, shared components)
 
 ### Phase 5: Testing & Deployment
-**Goal**: All critical flows are covered by automated tests, model factories exist for all 18 models, and a CI/CD pipeline runs lint, build, and test on every push
+**Goal**: Full test suite and CI/CD pipeline
 **Depends on**: Phase 4
-**Requirements**: TEST-01, TEST-02, TEST-03, TEST-04, TEST-05, TEST-06, TEST-07, TEST-08, TEST-09, TEST-10, TEST-11, TEST-12, TEST-13, DEPLOY-01, DEPLOY-02
-**Success Criteria** (what must be TRUE):
-  1. `php artisan test` runs all tests and passes (feature tests for auth, Plaid, transactions, AI questions, subscriptions, savings, tax, account deletion)
-  2. Unit tests verify TransactionCategorizerService confidence routing, SubscriptionDetectorService recurrence detection, TaxExportService Schedule C mapping, and CaptchaService thresholds
-  3. Model factories exist for all 18 models and can generate valid test data
-  4. GitHub Actions CI pipeline installs dependencies, builds frontend assets, runs full test suite, and reports pass/fail on every push
-  5. Production .env template documents all required environment variables
+**Requirements**: TEST-01 through TEST-13, DEPLOY-01, DEPLOY-02
 **Plans**: 3 plans
 
 Plans:
-- [x] 05-01: Test infrastructure — PostgreSQL test DB, HasFactory on 17 models, 18 factories, Pest.php helpers
-- [x] 05-02: All feature tests (auth, Plaid, transactions, AI questions, subscriptions, savings, tax, account deletion) and unit tests (categorizer, subscription detector, tax export, captcha)
-- [x] 05-03: GitHub Actions CI pipeline and production .env template
+- [x] 05-01: Test infrastructure and factories
+- [x] 05-02: Feature and unit tests
+- [x] 05-03: CI pipeline and production config
+
+</details>
+
+### v2.0 Tax Document Vault & Accountant Portal
+
+**Milestone Goal:** Build a secure document vault with AI-powered extraction, extend the accountant portal for firm-based client management, and add cross-document intelligence -- making SpendifiAI the bridge between taxpayers and their accountants.
+
+**Phase Numbering:**
+- Integer phases (6, 7, 8, 9): Planned milestone work
+- Decimal phases (6.1, 7.1): Urgent insertions (marked with INSERTED)
+
+- [ ] **Phase 6: Document Vault & Audit Foundation** - Secure document storage (local/S3), upload/view/delete, signed URLs, immutable audit trail, Super Admin storage config, vault UI
+- [ ] **Phase 7: AI Document Extraction** - Two-pass classify-then-extract pipeline, Tier 1 form extraction, confidence scoring, extraction review UI, document detail page
+- [ ] **Phase 8: Accountant Document Collaboration** - Firm registration, branded invites, document annotations, missing document requests, accountant dashboard, cross-role authorization
+- [ ] **Phase 9: Intelligence Layer & Final Validation** - AI missing document detection, cross-document anomaly detection, transaction-to-document linking, full test coverage validation
+
+## Phase Details
+
+### Phase 6: Document Vault & Audit Foundation
+**Goal**: Users can securely upload, view, and manage tax documents in a vault organized by year and category, with every action recorded in a tamper-proof audit trail and Super Admin control over storage backend
+**Depends on**: Phase 5 (v1.0 complete)
+**Requirements**: VAULT-01, VAULT-02, VAULT-03, VAULT-04, VAULT-05, VAULT-06, VAULT-07, VAULT-08, VAULT-09, AUDIT-01, AUDIT-02, AUDIT-03, AUDIT-04, AUDIT-05, AUDIT-06, UI-01, UI-04, UI-05
+**Success Criteria** (what must be TRUE):
+  1. User can upload PDF, JPG, and PNG tax documents; invalid file types are rejected with a clear error message
+  2. User can view their uploaded documents organized by tax year and category, and documents track status through upload/classifying/extracting/ready/failed states
+  3. All document actions (view, download, upload, delete) are recorded in the audit log, viewable by document owner and their accountant, with hash chain integrity verifiable
+  4. Super Admin can toggle between local and S3 storage, configure S3 credentials, test the connection, and trigger document migration
+  5. All document access uses time-limited signed URLs -- no direct file paths are ever exposed to the browser
+**Plans**: TBD
+
+Plans:
+- [ ] 06-01: TBD
+- [ ] 06-02: TBD
+
+### Phase 7: AI Document Extraction
+**Goal**: Uploaded documents are automatically classified into tax form types and have structured fields extracted by Claude AI, with per-field confidence scoring and a side-by-side review interface
+**Depends on**: Phase 6
+**Requirements**: AIEX-01, AIEX-02, AIEX-03, AIEX-04, AIEX-05, AIEX-06, AIEX-07, AIEX-08, UI-02, TEST-02, TEST-03
+**Success Criteria** (what must be TRUE):
+  1. After upload, documents are automatically classified into one of 25 tax form types; classification below confidence threshold skips extraction and flags for manual review
+  2. W-2, 1099-NEC, 1099-INT, and 1098 forms have structured fields extracted with per-field confidence scores visible in the UI
+  3. User can review extracted fields side-by-side with the document viewer and correct any AI-extracted values
+  4. Extraction runs as a background job with retries; SSN stored as last 4 digits only, EIN encrypted, all extraction data uses encrypted:array cast
+  5. Unit tests cover TaxDocumentExtractorService and TaxDocumentStorageService; AI extraction tests mock Claude API with no live API calls
+**Plans**: TBD
+
+Plans:
+- [ ] 07-01: TBD
+- [ ] 07-02: TBD
+
+### Phase 8: Accountant Document Collaboration
+**Goal**: Accountants can register their firm, invite clients via branded links, view client documents, annotate them with threaded comments, request missing documents, and track client readiness from a dedicated dashboard
+**Depends on**: Phase 7
+**Requirements**: ACCT-01, ACCT-02, ACCT-03, ACCT-04, ACCT-05, ACCT-06, ACCT-07, ACCT-08, ACCT-09, UI-03, TEST-04
+**Success Criteria** (what must be TRUE):
+  1. Accountant can register an accounting firm with name, address, phone, and branding details; firm generates branded invite links that clients use to self-register and link to the firm
+  2. Accountant can view a client's uploaded tax documents through the portal and see document completeness status per client
+  3. Accountant can add threaded annotations/comments on client documents; client sees the annotations on their document detail view
+  4. Accountant can request missing documents from a client with a description; client sees requests as alerts with upload prompts
+  5. Cross-role authorization tests verify: owner can access own documents, linked accountant can access client documents, unlinked accountant is blocked from accessing other clients' documents
+**Plans**: TBD
+
+Plans:
+- [ ] 08-01: TBD
+- [ ] 08-02: TBD
+
+### Phase 9: Intelligence Layer & Final Validation
+**Goal**: AI detects missing documents from transaction patterns, flags cross-document anomalies, links transactions to documents, and the full milestone passes comprehensive testing and build validation
+**Depends on**: Phase 8
+**Requirements**: INTEL-01, INTEL-02, INTEL-03, INTEL-04, TEST-01, TEST-05, TEST-06
+**Success Criteria** (what must be TRUE):
+  1. System detects missing tax documents by cross-referencing Plaid transaction categories with expected form types and shows alerts with explanations of why each document is expected
+  2. Cross-document anomaly detection flags discrepancies (e.g., W-2 wages vs bank deposit totals) and surfaces them in the user's vault view
+  3. Transactions are linked to their corresponding tax documents (e.g., 1099 linked to freelance deposits) and the links are visible in both transaction and document views
+  4. Feature tests cover all new API endpoints across document upload, extraction, accountant access, and audit log; `npm run build` succeeds with zero TypeScript errors; `vendor/bin/pint` reports no formatting issues
+**Plans**: TBD
+
+Plans:
+- [ ] 09-01: TBD
+- [ ] 09-02: TBD
 
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5
+Phases execute in numeric order: 6 -> 7 -> 8 -> 9
 
-| Phase | Plans Complete | Status | Completed |
-|-------|----------------|--------|-----------|
-| 1. Scaffolding & API Architecture | 2/2 | ✓ Complete | 2026-02-11 |
-| 2. Auth & Bank Integration | 3/3 | ✓ Complete | 2026-02-11 |
-| 3. AI Intelligence & Financial Features | 3/3 | ✓ Complete | 2026-02-11 |
-| 4. Events, Notifications & Frontend | 3/3 | ✓ Complete | 2026-02-11 |
-| 5. Testing & Deployment | 3/3 | ✓ Complete | 2026-02-11 |
+| Phase | Milestone | Plans Complete | Status | Completed |
+|-------|-----------|----------------|--------|-----------|
+| 1. Scaffolding & API Architecture | v1.0 | 2/2 | Complete | 2026-02-11 |
+| 2. Auth & Bank Integration | v1.0 | 3/3 | Complete | 2026-02-11 |
+| 3. AI Intelligence & Financial Features | v1.0 | 3/3 | Complete | 2026-02-11 |
+| 4. Events, Notifications & Frontend | v1.0 | 3/3 | Complete | 2026-02-11 |
+| 5. Testing & Deployment | v1.0 | 3/3 | Complete | 2026-02-11 |
+| 6. Document Vault & Audit Foundation | v2.0 | 0/? | Not started | - |
+| 7. AI Document Extraction | v2.0 | 0/? | Not started | - |
+| 8. Accountant Document Collaboration | v2.0 | 0/? | Not started | - |
+| 9. Intelligence Layer & Final Validation | v2.0 | 0/? | Not started | - |
