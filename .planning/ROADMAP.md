@@ -165,5 +165,5 @@ Phases execute in numeric order: 6 -> 7 -> 8 -> 9
 | 5. Testing & Deployment | v1.0 | 3/3 | Complete | 2026-02-11 |
 | 6. Document Vault & Audit Foundation | v2.0 | Complete    | 2026-03-31 | 2026-03-31 |
 | 7. AI Document Extraction | 3/3 | Complete    | 2026-03-31 | - |
-| 8. Accountant Document Collaboration | v2.0 | 0/5 | Planned | - |
+| 8. Accountant Document Collaboration | 3/5 | In Progress|  | - |
 | 9. Intelligence Layer & Final Validation | v2.0 | 0/? | Not started | - |

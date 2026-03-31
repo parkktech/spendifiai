@@ -35,10 +35,10 @@ Requirements for Tax Document Vault & Accountant Portal milestone. Each maps to 
 - [x] **ACCT-01**: AccountingFirm model with firm registration flow (name, address, phone, branding)
 - [x] **ACCT-02**: Accountant belongs to a firm; clients managed at firm level
 - [x] **ACCT-03**: Firm generates branded invite links for client onboarding
-- [ ] **ACCT-04**: Accountant can view client's uploaded tax documents through existing portal
-- [ ] **ACCT-05**: Accountant can add annotations/comments on client documents (threaded)
-- [ ] **ACCT-06**: Accountant can request missing documents from client with description
-- [ ] **ACCT-07**: Client sees missing document requests as alerts with upload prompts
+- [x] **ACCT-04**: Accountant can view client's uploaded tax documents through existing portal
+- [x] **ACCT-05**: Accountant can add annotations/comments on client documents (threaded)
+- [x] **ACCT-06**: Accountant can request missing documents from client with description
+- [x] **ACCT-07**: Client sees missing document requests as alerts with upload prompts
 - [ ] **ACCT-08**: Accountant dashboard shows client list with document completeness, deadline tracking
 - [x] **ACCT-09**: 5 new Mail classes for accountant workflows (firm invite, document request, annotation notify, etc.)
 
@@ -135,10 +135,10 @@ Deferred to next milestone. Tracked but not in current roadmap.
 | ACCT-01 | Phase 8 | Complete |
 | ACCT-02 | Phase 8 | Complete |
 | ACCT-03 | Phase 8 | Complete |
-| ACCT-04 | Phase 8 | Pending |
-| ACCT-05 | Phase 8 | Pending |
-| ACCT-06 | Phase 8 | Pending |
-| ACCT-07 | Phase 8 | Pending |
+| ACCT-04 | Phase 8 | Complete |
+| ACCT-05 | Phase 8 | Complete |
+| ACCT-06 | Phase 8 | Complete |
+| ACCT-07 | Phase 8 | Complete |
 | ACCT-08 | Phase 8 | Pending |
 | ACCT-09 | Phase 8 | Complete |
 | AUDIT-01 | Phase 6 | Complete |

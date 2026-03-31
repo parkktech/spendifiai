@@ -89,6 +89,8 @@ Recent decisions affecting current work:
 - [08-01]: Eager-load author on DocumentAnnotation via $with for display context
 - [Phase 08]: Firm invite token exposed via makeVisible() only on store response
 - [Phase 08]: FirmInviteMail uses firm primary_color for branded accent styling
+- [08-03]: class_exists() guards for mail classes from parallel Plan 02 execution
+- [08-03]: Annotation notifications to "other party" (accountant->client, client->all linked accountants)
 
 ### Pending Todos
 
@@ -101,6 +103,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-31T03:30:40.600Z
-Stopped at: Completed 08-02-PLAN.md
-Resume file: None
+Last session: 2026-03-31T03:30:00Z
+Stopped at: Completed 08-03-PLAN.md
+Resume file: .planning/phases/08-accountant-document-collaboration/08-04-PLAN.md
