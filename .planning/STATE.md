@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Tax Document Vault & Accountant Portal
-status: completed
-stopped_at: Phase 8 context gathered
-last_updated: "2026-03-31T03:08:12.961Z"
-last_activity: 2026-03-31 -- Completed 07-03 AI extraction test suite
+status: in-progress
+stopped_at: Completed 08-01-PLAN.md
+last_updated: "2026-03-31T03:25:00Z"
+last_activity: 2026-03-31 -- Completed 08-01 data foundation models and migrations
 progress:
   total_phases: 9
   completed_phases: 7
-  total_plans: 22
-  completed_plans: 22
-  percent: 100
+  total_plans: 27
+  completed_plans: 23
+  percent: 85
 ---
 
 # Project State
@@ -21,16 +21,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-30)
 
 **Core value:** Secure tax document vault with AI extraction and accountant collaboration -- bridging taxpayers and their accountants
-**Current focus:** Phase 7: AI Document Extraction
+**Current focus:** Phase 8: Accountant Document Collaboration
 
 ## Current Position
 
-Phase: 7 of 9 (AI Document Extraction) -- COMPLETE
-Plan: 3 of 3 in current phase
-Status: Phase Complete
-Last activity: 2026-03-31 -- Completed 07-03 AI extraction test suite
+Phase: 8 of 9 (Accountant Document Collaboration)
+Plan: 1 of 4 in current phase
+Status: In Progress
+Last activity: 2026-03-31 -- Completed 08-01 data foundation models and migrations
 
-Progress: [██████████] 100%
+Progress: [█████████░] 85%
 
 ## Performance Metrics
 
@@ -55,6 +55,7 @@ Progress: [██████████] 100%
 | Phase 07 P01 | 4min | 2 tasks | 8 files |
 | Phase 07 P02 | 2min | 2 tasks | 6 files |
 | Phase 07 P03 | 2min | 2 tasks | 2 files |
+| Phase 08 P01 | 3min | 2 tasks | 10 files |
 
 ## Accumulated Context
 
@@ -82,6 +83,8 @@ Recent decisions affecting current work:
 - [Phase 07]: SSN defense-in-depth: prompt instructs last-4 only plus sanitizeExtraction strips post-response
 - [Phase 07]: Pass documentId as Inertia prop, fetch via useApi (consistent with Index pattern)
 - [Phase 07]: Used direct TaxDocument::create() with helper for test data (no factory exists)
+- [08-01]: Auto-generate invite_token via Str::random(64) in booted() creating callback
+- [08-01]: Eager-load author on DocumentAnnotation via $with for display context
 
 ### Pending Todos
 
@@ -94,6 +97,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-31T03:08:12.959Z
-Stopped at: Phase 8 context gathered
-Resume file: .planning/phases/08-accountant-document-collaboration/08-CONTEXT.md
+Last session: 2026-03-31T03:25:00Z
+Stopped at: Completed 08-01-PLAN.md
+Resume file: .planning/phases/08-accountant-document-collaboration/08-02-PLAN.md

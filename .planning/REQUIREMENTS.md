@@ -32,8 +32,8 @@ Requirements for Tax Document Vault & Accountant Portal milestone. Each maps to 
 
 ### Accountant Portal
 
-- [ ] **ACCT-01**: AccountingFirm model with firm registration flow (name, address, phone, branding)
-- [ ] **ACCT-02**: Accountant belongs to a firm; clients managed at firm level
+- [x] **ACCT-01**: AccountingFirm model with firm registration flow (name, address, phone, branding)
+- [x] **ACCT-02**: Accountant belongs to a firm; clients managed at firm level
 - [ ] **ACCT-03**: Firm generates branded invite links for client onboarding
 - [ ] **ACCT-04**: Accountant can view client's uploaded tax documents through existing portal
 - [ ] **ACCT-05**: Accountant can add annotations/comments on client documents (threaded)
@@ -132,8 +132,8 @@ Deferred to next milestone. Tracked but not in current roadmap.
 | AIEX-06 | Phase 7 | Complete |
 | AIEX-07 | Phase 7 | Complete |
 | AIEX-08 | Phase 7 | Complete |
-| ACCT-01 | Phase 8 | Pending |
-| ACCT-02 | Phase 8 | Pending |
+| ACCT-01 | Phase 8 | Complete |
+| ACCT-02 | Phase 8 | Complete |
 | ACCT-03 | Phase 8 | Pending |
 | ACCT-04 | Phase 8 | Pending |
 | ACCT-05 | Phase 8 | Pending |
