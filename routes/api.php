@@ -268,7 +268,14 @@ Route::middleware(['auth:sanctum'])->group(function () {
             Route::post('/documents/{document}/retry-extraction', [TaxDocumentController::class, 'retryExtraction']);
             Route::get('/documents/{document}/audit-log', [TaxVaultAuditController::class, 'index']);
             Route::get('/documents/{document}/audit-log/verify', [TaxVaultAuditController::class, 'verifyChain']);
+
+            // Client annotations on own documents
+            Route::get('/documents/{document}/annotations', [DocumentAnnotationController::class, 'index']);
+            Route::post('/documents/{document}/annotations', [DocumentAnnotationController::class, 'store']);
         });
+
+        // Client document requests
+        Route::get('/document-requests', [DocumentRequestController::class, 'myRequests']);
 
         // Reconciliation Candidates
         Route::prefix('reconciliation')->group(function () {
@@ -337,6 +344,15 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::get('/impersonate/status', [ImpersonationController::class, 'status']);
         Route::post('/impersonate/{client}', [ImpersonationController::class, 'start']);
         Route::get('/activity', [AccountantController::class, 'activityLog']);
+
+        // Document annotations (accountant side)
+        Route::get('/documents/{document}/annotations', [DocumentAnnotationController::class, 'index']);
+        Route::post('/documents/{document}/annotations', [DocumentAnnotationController::class, 'store']);
+
+        // Document requests
+        Route::get('/clients/{client}/requests', [DocumentRequestController::class, 'index']);
+        Route::post('/clients/{client}/requests', [DocumentRequestController::class, 'store']);
+        Route::patch('/requests/{documentRequest}/dismiss', [DocumentRequestController::class, 'dismiss']);
     });
 
     // ─── Admin Routes ───

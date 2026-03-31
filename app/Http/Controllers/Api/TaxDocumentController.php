@@ -8,11 +8,14 @@ use App\Http\Requests\TaxDocumentUploadRequest;
 use App\Http\Requests\UpdateExtractionFieldRequest;
 use App\Http\Resources\TaxDocumentResource;
 use App\Jobs\ExtractTaxDocument;
+use App\Models\AccountantClient;
+use App\Models\DocumentRequest;
 use App\Models\TaxDocument;
 use App\Services\TaxVaultAuditService;
 use App\Services\TaxVaultStorageService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Mail;
 
 class TaxDocumentController extends Controller
 {
@@ -70,10 +73,72 @@ class TaxDocumentController extends Controller
 
         ExtractTaxDocument::dispatch($document->id);
 
+        // Auto-fulfill matching pending document requests
+        $this->autoFulfillRequests($document);
+
+        // Notify linked accountants about the upload
+        $this->notifyLinkedAccountants($document, $user);
+
         return response()->json(
             new TaxDocumentResource($document),
             201,
         );
+    }
+
+    /**
+     * Auto-fulfill pending document requests that match the uploaded document.
+     */
+    private function autoFulfillRequests(TaxDocument $document): void
+    {
+        $pendingRequests = DocumentRequest::where('client_id', $document->user_id)
+            ->pending()
+            ->get();
+
+        foreach ($pendingRequests as $request) {
+            // If request specifies tax_year, it must match
+            if ($request->tax_year !== null && $request->tax_year !== $document->tax_year) {
+                continue;
+            }
+
+            // If request specifies category, it must match document category
+            if ($request->category !== null && $request->category !== $document->category?->value) {
+                continue;
+            }
+
+            $request->update([
+                'status' => 'uploaded',
+                'fulfilled_document_id' => $document->id,
+            ]);
+
+            // Notify the accountant that the request was fulfilled
+            if (class_exists(\App\Mail\RequestFulfilledMail::class)) {
+                $accountant = $request->accountant;
+                if ($accountant) {
+                    Mail::to($accountant)->queue(new \App\Mail\RequestFulfilledMail($request, $document));
+                }
+            }
+        }
+    }
+
+    /**
+     * Notify all linked accountants about a document upload.
+     */
+    private function notifyLinkedAccountants(TaxDocument $document, mixed $user): void
+    {
+        if (! class_exists(\App\Mail\DocumentUploadedMail::class)) {
+            return;
+        }
+
+        $accountantLinks = AccountantClient::where('client_id', $user->id)
+            ->where('status', 'active')
+            ->with('accountant')
+            ->get();
+
+        foreach ($accountantLinks as $link) {
+            if ($link->accountant) {
+                Mail::to($link->accountant)->queue(new \App\Mail\DocumentUploadedMail($document, $user));
+            }
+        }
     }
 
     /**
