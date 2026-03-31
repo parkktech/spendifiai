@@ -110,11 +110,12 @@ Plans:
   3. User can review extracted fields side-by-side with the document viewer and correct any AI-extracted values
   4. Extraction runs as a background job with retries; SSN stored as last 4 digits only, EIN encrypted, all extraction data uses encrypted:array cast
   5. Unit tests cover TaxDocumentExtractorService and TaxDocumentStorageService; AI extraction tests mock Claude API with no live API calls
-**Plans**: TBD
+**Plans**: 3 plans
 
 Plans:
-- [ ] 07-01: TBD
-- [ ] 07-02: TBD
+- [ ] 07-01-PLAN.md -- Backend: enum expansion (25 types), TaxDocumentExtractorService, ExtractTaxDocument job, controller endpoints, field correction API
+- [ ] 07-02-PLAN.md -- Frontend: Document Detail page (split-panel viewer), ExtractionPanel, ConfidenceBadge, InlineEditField components
+- [ ] 07-03-PLAN.md -- Tests: unit tests for extractor service, feature tests for pipeline and field correction, Http::fake() mocking
 
 ### Phase 8: Accountant Document Collaboration
 **Goal**: Accountants can register their firm, invite clients via branded links, view client documents, annotate them with threaded comments, request missing documents, and track client readiness from a dedicated dashboard
@@ -160,6 +161,6 @@ Phases execute in numeric order: 6 -> 7 -> 8 -> 9
 | 4. Events, Notifications & Frontend | v1.0 | 3/3 | Complete | 2026-02-11 |
 | 5. Testing & Deployment | v1.0 | 3/3 | Complete | 2026-02-11 |
 | 6. Document Vault & Audit Foundation | v2.0 | Complete    | 2026-03-31 | 2026-03-31 |
-| 7. AI Document Extraction | v2.0 | 0/? | Not started | - |
+| 7. AI Document Extraction | v2.0 | 0/3 | Not started | - |
 | 8. Accountant Document Collaboration | v2.0 | 0/? | Not started | - |
 | 9. Intelligence Layer & Final Validation | v2.0 | 0/? | Not started | - |
