@@ -21,14 +21,14 @@ Requirements for Tax Document Vault & Accountant Portal milestone. Each maps to 
 
 ### AI Extraction
 
-- [ ] **AIEX-01**: System auto-classifies uploaded documents into one of 25 tax form types using Claude AI
-- [ ] **AIEX-02**: Classification uses two-pass pipeline: classify first, then extract fields only if confidence >= threshold
-- [ ] **AIEX-03**: System extracts structured fields from W-2, 1099-NEC, 1099-INT, 1098 (Tier 1 forms)
-- [ ] **AIEX-04**: System extracts structured fields from remaining 21 form types (Tier 2+)
-- [ ] **AIEX-05**: Extracted data stored with `encrypted:array` cast -- SSN stored as last 4 digits only, EIN encrypted
-- [ ] **AIEX-06**: Extraction confidence scored per field, surfaced in review UI
+- [x] **AIEX-01**: System auto-classifies uploaded documents into one of 25 tax form types using Claude AI
+- [x] **AIEX-02**: Classification uses two-pass pipeline: classify first, then extract fields only if confidence >= threshold
+- [x] **AIEX-03**: System extracts structured fields from W-2, 1099-NEC, 1099-INT, 1098 (Tier 1 forms)
+- [x] **AIEX-04**: System extracts structured fields from remaining 21 form types (Tier 2+)
+- [x] **AIEX-05**: Extracted data stored with `encrypted:array` cast -- SSN stored as last 4 digits only, EIN encrypted
+- [x] **AIEX-06**: Extraction confidence scored per field, surfaced in review UI
 - [ ] **AIEX-07**: User can review and correct AI-extracted fields side-by-side with document viewer
-- [ ] **AIEX-08**: Extraction runs as queued job (`ExtractTaxDocument`) with retries
+- [x] **AIEX-08**: Extraction runs as queued job (`ExtractTaxDocument`) with retries
 
 ### Accountant Portal
 
@@ -124,14 +124,14 @@ Deferred to next milestone. Tracked but not in current roadmap.
 | VAULT-07 | Phase 6 | Complete |
 | VAULT-08 | Phase 6 | Complete |
 | VAULT-09 | Phase 6 | Complete |
-| AIEX-01 | Phase 7 | Pending |
-| AIEX-02 | Phase 7 | Pending |
-| AIEX-03 | Phase 7 | Pending |
-| AIEX-04 | Phase 7 | Pending |
-| AIEX-05 | Phase 7 | Pending |
-| AIEX-06 | Phase 7 | Pending |
+| AIEX-01 | Phase 7 | Complete |
+| AIEX-02 | Phase 7 | Complete |
+| AIEX-03 | Phase 7 | Complete |
+| AIEX-04 | Phase 7 | Complete |
+| AIEX-05 | Phase 7 | Complete |
+| AIEX-06 | Phase 7 | Complete |
 | AIEX-07 | Phase 7 | Pending |
-| AIEX-08 | Phase 7 | Pending |
+| AIEX-08 | Phase 7 | Complete |
 | ACCT-01 | Phase 8 | Pending |
 | ACCT-02 | Phase 8 | Pending |
 | ACCT-03 | Phase 8 | Pending |
