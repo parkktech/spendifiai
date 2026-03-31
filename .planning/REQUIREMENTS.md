@@ -73,8 +73,8 @@ Requirements for Tax Document Vault & Accountant Portal milestone. Each maps to 
 - [x] **TEST-02**: Unit tests for TaxDocumentStorageService, TaxDocumentExtractorService, TaxWorksheetService, TaxVaultAuditService
 - [x] **TEST-03**: AI extraction tests mock Claude API via `Http::fake()` -- no live API calls
 - [x] **TEST-04**: Cross-role authorization tests (owner access, accountant access, wrong-accountant blocked)
-- [ ] **TEST-05**: `npm run build` succeeds with zero TypeScript errors
-- [ ] **TEST-06**: `vendor/bin/pint` reports no formatting issues
+- [x] **TEST-05**: `npm run build` succeeds with zero TypeScript errors
+- [x] **TEST-06**: `vendor/bin/pint` reports no formatting issues
 
 ## v2.1 Requirements
 
@@ -161,8 +161,8 @@ Deferred to next milestone. Tracked but not in current roadmap.
 | TEST-02 | Phase 7 | Complete |
 | TEST-03 | Phase 7 | Complete |
 | TEST-04 | Phase 8 | Complete |
-| TEST-05 | Phase 9 | Pending |
-| TEST-06 | Phase 9 | Pending |
+| TEST-05 | Phase 9 | Complete |
+| TEST-06 | Phase 9 | Complete |
 
 **Coverage:**
 - v2.0 requirements: 45 total (UI-04 split into UI-04a + UI-04b)
