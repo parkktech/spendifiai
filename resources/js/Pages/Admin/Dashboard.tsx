@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, Link } from '@inertiajs/react';
-import { Database, CheckCircle, XCircle, Link2, ChevronRight, Heart, Star, Users, Activity, Landmark, ShieldCheck } from 'lucide-react';
+import { Database, CheckCircle, XCircle, Link2, ChevronRight, Heart, Star, Users, Activity, Landmark, ShieldCheck, HardDrive } from 'lucide-react';
 import type { AdminStats, AdminCharityStats } from '@/types/spendifiai';
 import axios from 'axios';
 
@@ -76,6 +76,12 @@ export default function AdminDashboard() {
             <p className="text-xs text-sw-dim mt-0.5">Manage providers and charitable organizations</p>
           </div>
           <div className="flex items-center gap-2">
+            <Link
+              href="/admin/storage"
+              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border border-sw-border text-sw-muted hover:bg-sw-accent/5 hover:text-sw-accent text-xs font-semibold transition"
+            >
+              <HardDrive size={14} /> Storage Settings
+            </Link>
             <Link
               href="/admin/charities"
               className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border border-sw-accent text-sw-accent hover:bg-sw-accent/5 text-xs font-semibold transition"
