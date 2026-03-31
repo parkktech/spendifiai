@@ -27,7 +27,7 @@ Requirements for Tax Document Vault & Accountant Portal milestone. Each maps to 
 - [x] **AIEX-04**: System extracts structured fields from remaining 21 form types (Tier 2+)
 - [x] **AIEX-05**: Extracted data stored with `encrypted:array` cast -- SSN stored as last 4 digits only, EIN encrypted
 - [x] **AIEX-06**: Extraction confidence scored per field, surfaced in review UI
-- [ ] **AIEX-07**: User can review and correct AI-extracted fields side-by-side with document viewer
+- [x] **AIEX-07**: User can review and correct AI-extracted fields side-by-side with document viewer
 - [x] **AIEX-08**: Extraction runs as queued job (`ExtractTaxDocument`) with retries
 
 ### Accountant Portal
@@ -61,10 +61,10 @@ Requirements for Tax Document Vault & Accountant Portal milestone. Each maps to 
 ### Frontend
 
 - [x] **UI-01**: Tax Vault page with year selector tabs, document category grid, upload zone, missing alerts banner
-- [ ] **UI-02**: Document Detail page with split-panel PDF viewer + extracted fields + annotations thread
+- [x] **UI-02**: Document Detail page with split-panel PDF viewer + extracted fields + annotations thread
 - [ ] **UI-03**: Accountant Dashboard page with stats bar, client list table, deadline tracker, invite link generator
 - [x] **UI-04a**: 5 Phase 6 shared components (TaxYearTabs, DocumentCard, DocumentUploadZone, MissingAlertBanner, AuditLogTable)
-- [ ] **UI-04b**: 5 Phase 7/8 shared components (ExtractionPanel, AnnotationThread, DocumentRequestCard, and additional components built alongside their features)
+- [x] **UI-04b**: 5 Phase 7/8 shared components (ExtractionPanel, AnnotationThread, DocumentRequestCard, and additional components built alongside their features)
 - [x] **UI-05**: All new pages follow existing SpendifiAI design system (navy #1E3A5F, teal #0D9488, sw-* tokens)
 
 ### Testing
@@ -130,7 +130,7 @@ Deferred to next milestone. Tracked but not in current roadmap.
 | AIEX-04 | Phase 7 | Complete |
 | AIEX-05 | Phase 7 | Complete |
 | AIEX-06 | Phase 7 | Complete |
-| AIEX-07 | Phase 7 | Pending |
+| AIEX-07 | Phase 7 | Complete |
 | AIEX-08 | Phase 7 | Complete |
 | ACCT-01 | Phase 8 | Pending |
 | ACCT-02 | Phase 8 | Pending |
@@ -152,10 +152,10 @@ Deferred to next milestone. Tracked but not in current roadmap.
 | INTEL-03 | Phase 9 | Pending |
 | INTEL-04 | Phase 9 | Pending |
 | UI-01 | Phase 6 | Complete |
-| UI-02 | Phase 7 | Pending |
+| UI-02 | Phase 7 | Complete |
 | UI-03 | Phase 8 | Pending |
 | UI-04a | Phase 6 | Complete |
-| UI-04b | Phase 7, 8 | Pending |
+| UI-04b | Phase 7, 8 | Complete |
 | UI-05 | Phase 6 | Complete |
 | TEST-01 | Phase 9 | Pending |
 | TEST-02 | Phase 7 | Pending |
