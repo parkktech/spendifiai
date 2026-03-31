@@ -147,6 +147,26 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Intelligence (Cross-Reference Analysis)
+    |--------------------------------------------------------------------------
+    */
+    'intelligence' => [
+        'cache_hours' => 4,
+        'anomaly_tolerance' => 0.05,    // 5% variance threshold
+        'min_income_threshold' => 600,  // IRS 1099 reporting threshold ($600)
+        'income_type_to_document' => [
+            'employment' => 'w2',
+            'contractor' => '1099_nec',
+            'interest' => '1099_int',
+            'dividend' => '1099_div',
+        ],
+        'expense_type_to_document' => [
+            'mortgage' => '1098',
+        ],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Cookie Consent
     |--------------------------------------------------------------------------
     */

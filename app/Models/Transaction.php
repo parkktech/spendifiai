@@ -8,6 +8,7 @@ use App\Enums\ReviewStatus;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Transaction extends Model
@@ -66,6 +67,13 @@ class Transaction extends Model
     public function matchedOrder(): BelongsTo
     {
         return $this->belongsTo(Order::class, 'matched_order_id');
+    }
+
+    public function taxDocuments(): BelongsToMany
+    {
+        return $this->belongsToMany(TaxDocument::class, 'tax_document_transaction')
+            ->withPivot('link_reason')
+            ->withTimestamps();
     }
 
     // Query scopes
