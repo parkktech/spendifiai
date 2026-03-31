@@ -7,7 +7,8 @@ import TaxYearTabs from '@/Components/SpendifiAI/TaxYearTabs';
 import DocumentCard from '@/Components/SpendifiAI/DocumentCard';
 import DocumentUploadZone from '@/Components/SpendifiAI/DocumentUploadZone';
 import MissingAlertBanner from '@/Components/SpendifiAI/MissingAlertBanner';
-import type { TaxDocument, TaxDocumentCategory, VaultCategoryCard } from '@/types/spendifiai';
+import DocumentRequestCard from '@/Components/SpendifiAI/DocumentRequestCard';
+import type { TaxDocument, TaxDocumentCategory, VaultCategoryCard, DocumentRequest } from '@/types/spendifiai';
 
 const currentYear = new Date().getFullYear();
 
@@ -68,12 +69,15 @@ export default function VaultIndex() {
     `/api/v1/tax-vault/documents?year=${selectedYear}`,
   );
 
+  const { data: requestsData } = useApi<{ data: DocumentRequest[] }>('/api/v1/document-requests');
+
   useEffect(() => {
     refresh();
   }, [selectedYear]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const documents = data?.data || [];
   const categoryCards = useMemo(() => buildCategoryCards(documents), [documents]);
+  const pendingRequests = (requestsData?.data ?? []).filter((r) => r.status === 'pending');
 
   const toggleCard = (category: TaxDocumentCategory) => {
     setExpandedCards((prev) => {
@@ -109,6 +113,23 @@ export default function VaultIndex() {
             Upload and organize your tax documents by year and category. Documents are securely stored and available for export or sharing with your accountant.
           </p>
         </div>
+
+        {/* Document request alerts from accountant */}
+        {pendingRequests.length > 0 && (
+          <div className="space-y-2">
+            <h3 className="text-sm font-semibold text-sw-text">Document Requests from Your Accountant</h3>
+            {pendingRequests.map((req) => (
+              <DocumentRequestCard
+                key={req.id}
+                request={req}
+                onUpload={() => {
+                  const uploadZone = document.getElementById('upload-zone');
+                  if (uploadZone) uploadZone.scrollIntoView({ behavior: 'smooth' });
+                }}
+              />
+            ))}
+          </div>
+        )}
 
         {/* Missing alert banner -- Phase 9 will populate alerts */}
         <MissingAlertBanner alerts={[]} />
@@ -157,7 +178,7 @@ export default function VaultIndex() {
         )}
 
         {/* Upload zone */}
-        <div className="bg-sw-card rounded-lg border border-sw-border p-5">
+        <div id="upload-zone" className="bg-sw-card rounded-lg border border-sw-border p-5">
           <h2 className="text-sm font-semibold text-sw-text mb-3">Upload Documents</h2>
           <DocumentUploadZone
             taxYear={selectedYear}

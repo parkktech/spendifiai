@@ -6,18 +6,20 @@ import { useApi, useApiPost } from '@/hooks/useApi';
 import ExtractionPanel from '@/Components/SpendifiAI/ExtractionPanel';
 import AuditLogTable from '@/Components/SpendifiAI/AuditLogTable';
 import ConfidenceBadge from '@/Components/SpendifiAI/ConfidenceBadge';
-import type { TaxDocument, TaxVaultAuditEntry } from '@/types/spendifiai';
+import AnnotationThread from '@/Components/SpendifiAI/AnnotationThread';
+import type { TaxDocument, TaxVaultAuditEntry, DocumentAnnotation } from '@/types/spendifiai';
 
 interface ShowProps {
   documentId: number;
 }
 
-type TabKey = 'document' | 'fields' | 'audit';
+type TabKey = 'document' | 'fields' | 'audit' | 'comments';
 
 const TABS: { key: TabKey; label: string }[] = [
   { key: 'document', label: 'Document' },
   { key: 'fields', label: 'Extracted Fields' },
   { key: 'audit', label: 'Audit Log' },
+  { key: 'comments', label: 'Comments' },
 ];
 
 function StatusBadge({ status }: { status: string }) {
@@ -88,6 +90,11 @@ export default function VaultShow({ documentId }: ShowProps) {
     { immediate: false },
   );
 
+  const { data: annotationsData, refresh: refreshAnnotations } = useApi<{ data: DocumentAnnotation[] }>(
+    `/api/v1/tax-vault/documents/${documentId}/annotations`,
+    { immediate: false },
+  );
+
   const { submit: retryExtraction, loading: retrying } = useApiPost(
     `/api/v1/tax-vault/documents/${documentId}/retry-extraction`,
   );
@@ -116,6 +123,9 @@ export default function VaultShow({ documentId }: ShowProps) {
   useEffect(() => {
     if (activeTab === 'audit') {
       refreshAudit();
+    }
+    if (activeTab === 'comments') {
+      refreshAnnotations();
     }
   }, [activeTab]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -269,6 +279,17 @@ export default function VaultShow({ documentId }: ShowProps) {
                 entries={auditData?.data ?? []}
                 isLoading={auditLoading}
               />
+            )}
+
+            {/* Comments tab */}
+            {activeTab === 'comments' && (
+              <div className="bg-sw-card rounded-lg border border-sw-border min-h-[300px]">
+                <AnnotationThread
+                  documentId={documentId}
+                  annotations={annotationsData?.data ?? []}
+                  onAnnotationAdded={refreshAnnotations}
+                />
+              </div>
             )}
           </>
         )}
