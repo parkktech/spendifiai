@@ -17,8 +17,11 @@ use App\Http\Controllers\Api\PlaidController;
 use App\Http\Controllers\Api\ReconciliationController;
 use App\Http\Controllers\Api\SavingsController;
 use App\Http\Controllers\Api\StatementUploadController;
+use App\Http\Controllers\Api\StorageConfigController;
 use App\Http\Controllers\Api\SubscriptionController;
 use App\Http\Controllers\Api\TaxController;
+use App\Http\Controllers\Api\TaxDocumentController;
+use App\Http\Controllers\Api\TaxVaultAuditController;
 use App\Http\Controllers\Api\TransactionController;
 use App\Http\Controllers\Api\UserProfileController;
 use App\Http\Controllers\Auth\AuthController;
@@ -250,6 +253,17 @@ Route::middleware(['auth:sanctum'])->group(function () {
             });
         });
 
+        // Tax Vault
+        Route::prefix('tax-vault')->group(function () {
+            Route::get('/documents', [TaxDocumentController::class, 'index']);
+            Route::post('/documents', [TaxDocumentController::class, 'store']);
+            Route::get('/documents/{document}', [TaxDocumentController::class, 'show']);
+            Route::delete('/documents/{document}', [TaxDocumentController::class, 'destroy']);
+            Route::get('/documents/{document}/download', [TaxDocumentController::class, 'download'])->name('tax-vault.download');
+            Route::get('/documents/{document}/audit-log', [TaxVaultAuditController::class, 'index']);
+            Route::get('/documents/{document}/audit-log/verify', [TaxVaultAuditController::class, 'verifyChain']);
+        });
+
         // Reconciliation Candidates
         Route::prefix('reconciliation')->group(function () {
             Route::get('/candidates', [ReconciliationController::class, 'candidates']);
@@ -360,6 +374,16 @@ Route::middleware(['auth:sanctum'])->group(function () {
             Route::post('/user/{user}/revoke', [ConsentAdminController::class, 'revokeUserConsent']);
             Route::delete('/user/{user}/cookies', [ConsentAdminController::class, 'deleteCookieData']);
         });
+
+        // Storage Config
+        Route::get('/storage', [StorageConfigController::class, 'show']);
+        Route::put('/storage', [StorageConfigController::class, 'update']);
+        Route::post('/storage/test', [StorageConfigController::class, 'testConnection']);
+        Route::post('/storage/migrate', [StorageConfigController::class, 'migrate']);
+        Route::get('/storage/migration-status', [StorageConfigController::class, 'migrationStatus']);
+
+        // Document Purge (admin hard delete)
+        Route::delete('/documents/{document}/purge', [TaxDocumentController::class, 'purge'])->name('admin.documents.purge');
 
         // Charitable Organizations
         Route::get('/charities/stats', [CharitableOrganizationController::class, 'stats']);

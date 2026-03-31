@@ -47,6 +47,9 @@ Route::middleware(['auth:sanctum', 'verified'])->group(function () {
     Route::get('/settings', fn () => Inertia::render('Settings/Index'))->name('settings');
     Route::get('/questions', fn () => Inertia::render('Questions/Index'))->name('questions');
 
+    // Tax Vault
+    Route::get('/vault', fn () => Inertia::render('Vault/Index'))->name('vault');
+
     // Accountant pages
     Route::get('/accountant/clients', fn () => Inertia::render('Accountant/Clients'))->name('accountant.clients');
 
@@ -60,6 +63,7 @@ Route::middleware(['auth:sanctum', 'verified'])->group(function () {
         Route::get('/admin/charities', fn () => Inertia::render('Admin/Charities/Index'))->name('admin.charities');
         Route::get('/admin/charities/create', fn () => Inertia::render('Admin/Charities/Create'))->name('admin.charities.create');
         Route::get('/admin/charities/{charity}/edit', fn ($charity) => Inertia::render('Admin/Charities/Edit', ['charity' => $charity]))->name('admin.charities.edit');
+        Route::get('/admin/storage', fn () => Inertia::render('Admin/Storage'))->name('admin.storage');
     });
 });
 
