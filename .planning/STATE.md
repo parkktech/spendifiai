@@ -49,6 +49,7 @@ Progress: [██████████] 100%
 
 *Updated after each plan completion*
 | Phase 06 P02 | 3min | 2 tasks | 11 files |
+| Phase 06 P03 | 4min | 3 tasks | 9 files |
 | Phase 06 P04 | 2min | 2 tasks | 3 files |
 
 ## Accumulated Context
@@ -69,6 +70,9 @@ Recent decisions affecting current work:
 - [06-01]: Defense-in-depth: PostgreSQL RULE + app-level RuntimeException for audit immutability
 - [Phase 06]: Used isAdmin() for admin checks in vault controllers (consistent with 06-01)
 - [Phase 06]: S3 credentials stored encrypted in cache with no expiry for runtime-safe config
+- [06-03]: Used Archive icon for vault nav (distinguishes from Tax FileText)
+- [06-03]: FileDropZone made configurable via optional props for backward compatibility
+- [06-03]: Multiple card expansions allowed simultaneously for usability
 
 ### Pending Todos
 

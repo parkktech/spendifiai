@@ -74,7 +74,7 @@ Plans:
 - Integer phases (6, 7, 8, 9): Planned milestone work
 - Decimal phases (6.1, 7.1): Urgent insertions (marked with INSERTED)
 
-- [ ] **Phase 6: Document Vault & Audit Foundation** - Secure document storage (local/S3), upload/view/delete, signed URLs, immutable audit trail, Super Admin storage config, vault UI
+- [x] **Phase 6: Document Vault & Audit Foundation** - Secure document storage (local/S3), upload/view/delete, signed URLs, immutable audit trail, Super Admin storage config, vault UI (completed 2026-03-31)
 - [ ] **Phase 7: AI Document Extraction** - Two-pass classify-then-extract pipeline, Tier 1 form extraction, confidence scoring, extraction review UI, document detail page
 - [ ] **Phase 8: Accountant Document Collaboration** - Firm registration, branded invites, document annotations, missing document requests, accountant dashboard, cross-role authorization
 - [ ] **Phase 9: Intelligence Layer & Final Validation** - AI missing document detection, cross-document anomaly detection, transaction-to-document linking, full test coverage validation
@@ -158,7 +158,7 @@ Phases execute in numeric order: 6 -> 7 -> 8 -> 9
 | 3. AI Intelligence & Financial Features | v1.0 | 3/3 | Complete | 2026-02-11 |
 | 4. Events, Notifications & Frontend | v1.0 | 3/3 | Complete | 2026-02-11 |
 | 5. Testing & Deployment | v1.0 | 3/3 | Complete | 2026-02-11 |
-| 6. Document Vault & Audit Foundation | v2.0 | 0/4 | Planning | - |
+| 6. Document Vault & Audit Foundation | 4/4 | Complete   | 2026-03-31 | - |
 | 7. AI Document Extraction | v2.0 | 0/? | Not started | - |
 | 8. Accountant Document Collaboration | v2.0 | 0/? | Not started | - |
 | 9. Intelligence Layer & Final Validation | v2.0 | 0/? | Not started | - |

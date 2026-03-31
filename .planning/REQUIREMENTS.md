@@ -60,12 +60,12 @@ Requirements for Tax Document Vault & Accountant Portal milestone. Each maps to 
 
 ### Frontend
 
-- [ ] **UI-01**: Tax Vault page with year selector tabs, document category grid, upload zone, missing alerts banner
+- [x] **UI-01**: Tax Vault page with year selector tabs, document category grid, upload zone, missing alerts banner
 - [ ] **UI-02**: Document Detail page with split-panel PDF viewer + extracted fields + annotations thread
 - [ ] **UI-03**: Accountant Dashboard page with stats bar, client list table, deadline tracker, invite link generator
-- [ ] **UI-04a**: 5 Phase 6 shared components (TaxYearTabs, DocumentCard, DocumentUploadZone, MissingAlertBanner, AuditLogTable)
+- [x] **UI-04a**: 5 Phase 6 shared components (TaxYearTabs, DocumentCard, DocumentUploadZone, MissingAlertBanner, AuditLogTable)
 - [ ] **UI-04b**: 5 Phase 7/8 shared components (ExtractionPanel, AnnotationThread, DocumentRequestCard, and additional components built alongside their features)
-- [ ] **UI-05**: All new pages follow existing SpendifiAI design system (navy #1E3A5F, teal #0D9488, sw-* tokens)
+- [x] **UI-05**: All new pages follow existing SpendifiAI design system (navy #1E3A5F, teal #0D9488, sw-* tokens)
 
 ### Testing
 
@@ -151,12 +151,12 @@ Deferred to next milestone. Tracked but not in current roadmap.
 | INTEL-02 | Phase 9 | Pending |
 | INTEL-03 | Phase 9 | Pending |
 | INTEL-04 | Phase 9 | Pending |
-| UI-01 | Phase 6 | Pending |
+| UI-01 | Phase 6 | Complete |
 | UI-02 | Phase 7 | Pending |
 | UI-03 | Phase 8 | Pending |
-| UI-04a | Phase 6 | Pending |
+| UI-04a | Phase 6 | Complete |
 | UI-04b | Phase 7, 8 | Pending |
-| UI-05 | Phase 6 | Pending |
+| UI-05 | Phase 6 | Complete |
 | TEST-01 | Phase 9 | Pending |
 | TEST-02 | Phase 7 | Pending |
 | TEST-03 | Phase 7 | Pending |
