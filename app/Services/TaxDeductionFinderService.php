@@ -19,16 +19,18 @@ class TaxDeductionFinderService
         $transactionResults = $this->scanTransactions($user, $taxYear);
         $profileResults = $this->matchProfile($user, $taxYear);
 
+        $userIds = $user->householdUserIds();
+
         $questionnaire = TaxDeduction::active()
             ->questionnaire()
-            ->whereDoesntHave('userDeductions', function ($q) use ($user, $taxYear) {
-                $q->where('user_id', $user->id)
+            ->whereDoesntHave('userDeductions', function ($q) use ($userIds, $taxYear) {
+                $q->whereIn('user_id', $userIds)
                     ->where('tax_year', $taxYear);
             })
             ->orderBy('sort_order')
             ->get();
 
-        $discovered = UserTaxDeduction::where('user_id', $user->id)
+        $discovered = UserTaxDeduction::whereIn('user_id', $userIds)
             ->where('tax_year', $taxYear)
             ->with('deduction')
             ->get();
@@ -70,8 +72,8 @@ class TaxDeductionFinderService
                 continue;
             }
 
-            // Build ILIKE query for transaction matching
-            $query = Transaction::where('user_id', $user->id)
+            // Build ILIKE query for transaction matching (household-scoped)
+            $query = Transaction::whereIn('user_id', $user->householdUserIds())
                 ->whereYear('transaction_date', $taxYear)
                 ->where(function ($q) use ($keywords) {
                     foreach ($keywords as $keyword) {
@@ -142,8 +144,8 @@ class TaxDeductionFinderService
                 continue;
             }
 
-            // Check if already processed
-            $existing = UserTaxDeduction::where('user_id', $user->id)
+            // Check if already processed (by any household member)
+            $existing = UserTaxDeduction::whereIn('user_id', $user->householdUserIds())
                 ->where('tax_deduction_id', $deduction->id)
                 ->where('tax_year', $taxYear)
                 ->first();
@@ -223,7 +225,7 @@ class TaxDeductionFinderService
      */
     public function getQuestionnaire(User $user, int $taxYear, int $limit = 5): array
     {
-        $answeredIds = UserTaxDeduction::where('user_id', $user->id)
+        $answeredIds = UserTaxDeduction::whereIn('user_id', $user->householdUserIds())
             ->where('tax_year', $taxYear)
             ->pluck('tax_deduction_id');
 

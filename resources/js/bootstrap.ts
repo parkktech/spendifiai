@@ -13,27 +13,24 @@ function getCookie(name: string): string | null {
     return null;
 }
 
+// Helper to clear auth state
+function clearAuthState() {
+    localStorage.removeItem('auth_token');
+    document.cookie = 'auth_token=; path=/; max-age=0; SameSite=Lax';
+    delete window.axios.defaults.headers.common['Authorization'];
+}
+
 // Check for token in localStorage or cookie and add to Authorization header
 const tokenFromStorage = localStorage.getItem('auth_token');
 const tokenFromCookie = getCookie('auth_token');
 const token = tokenFromStorage || tokenFromCookie;
 
-console.log('🔍 Auth Token Check:', {
-    fromStorage: tokenFromStorage ? '✅ Found' : '❌ Not found',
-    fromCookie: tokenFromCookie ? '✅ Found' : '❌ Not found',
-    using: token ? `${token.substring(0, 30)}...` : '❌ No token',
-});
-
 if (token) {
     window.axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-    console.log('✅ Authorization header set');
     // Store in localStorage if it came from cookie
     if (!tokenFromStorage && tokenFromCookie) {
         localStorage.setItem('auth_token', tokenFromCookie);
-        console.log('📦 Token stored in localStorage');
     }
-} else {
-    console.log('⚠️ No token found in localStorage or cookies');
 }
 
 // Add interceptor to always check for token + method spoofing for PATCH/DELETE
@@ -59,17 +56,46 @@ window.axios.interceptors.request.use((config) => {
     return config;
 });
 
-// Suppress 403 errors in console (expected when bank not connected)
+// Track whether we're already redirecting to login to prevent multiple redirects
+let isRedirectingToLogin = false;
+
+// Response interceptor: handle 401 (expired/invalid token) and suppress expected 403s
 window.axios.interceptors.response.use(
     (response) => response,
     (error) => {
-        if (error.response?.status === 403) {
+        const status = error.response?.status;
+
+        if (status === 401) {
+            // Token is invalid or expired — clear auth state and redirect to login
+            // Skip if we're already redirecting, or if this is a login/register request
+            const url = error.config?.url || '';
+            const isAuthRequest = url.includes('/auth/login') || url.includes('/auth/register');
+
+            if (!isRedirectingToLogin && !isAuthRequest) {
+                isRedirectingToLogin = true;
+                clearAuthState();
+
+                // Only redirect if we're on an authenticated page (not already on login/register/welcome)
+                const path = window.location.pathname;
+                const publicPaths = ['/login', '/register', '/forgot-password', '/reset-password', '/', '/features', '/how-it-works', '/about', '/faq', '/contact', '/privacy', '/terms', '/data-retention', '/security-policy'];
+                if (!publicPaths.includes(path)) {
+                    window.location.href = '/login';
+                }
+
+                // Reset the flag after a short delay so future 401s can trigger redirect
+                setTimeout(() => { isRedirectingToLogin = false; }, 3000);
+            }
+
+            return Promise.reject(error);
+        }
+
+        if (status === 403) {
             // Suppress 403 errors from console - they're expected when bank not connected
-            // Return a resolved promise to prevent the error from being logged
             return Promise.resolve(undefined);
         }
+
         // Log other errors normally
-        console.error('API Error:', error.response?.status, error.response?.data?.message || error.message);
+        console.error('API Error:', status, error.response?.data?.message || error.message);
         return Promise.reject(error);
     }
 );

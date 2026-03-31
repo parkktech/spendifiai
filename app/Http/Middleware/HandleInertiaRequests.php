@@ -55,8 +55,14 @@ class HandleInertiaRequests extends Middleware
                 })(),
                 'timezone' => $request->user()?->timezone ?? 'America/New_York',
                 'onboardingPending' => $request->user()
-                    ? (! $request->user()->onboarding_completed_at && ! $request->user()->hasBankConnected())
+                    ? (! $request->user()->onboarding_completed_at && ! $request->user()->hasBankConnected() && ! $request->user()->isAccountant())
                     : false,
+                'household' => $request->user()?->household_id ? [
+                    'id' => $request->user()->household_id,
+                    'name' => $request->user()->household?->name,
+                    'role' => $request->user()->household_role,
+                    'memberCount' => $request->user()->household?->members()->count() ?? 0,
+                ] : null,
             ],
             'canLogin' => Route::has('login'),
             'canRegister' => Route::has('register'),

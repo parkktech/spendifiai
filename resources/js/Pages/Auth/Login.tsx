@@ -21,6 +21,9 @@ export default function Login({
     const [remember, setRemember] = useState(false);
     const [processing, setProcessing] = useState(false);
     const [errors, setErrors] = useState<Record<string, string>>({});
+    const [unverified, setUnverified] = useState(false);
+
+    const householdInvite = new URLSearchParams(window.location.search).get('household_invite');
 
     const submit: FormEventHandler = async (e) => {
         e.preventDefault();
@@ -50,9 +53,25 @@ export default function Login({
                 sessionStorage.setItem('sync_triggered', '1');
             }
 
+            // Auto-accept household invitation if present
+            if (householdInvite) {
+                try {
+                    await axios.post(`/api/v1/household/invite/${householdInvite}/accept`, {}, {
+                        headers: { Authorization: `Bearer ${response.data.token}` },
+                    });
+                } catch {
+                    // Non-blocking — user can accept later from Settings
+                }
+                window.location.href = '/dashboard';
+                return;
+            }
+
             // Redirect unverified users to verification page instead of dashboard
             if (response.data.user && !response.data.user.email_verified) {
-                router.visit('/verify-email');
+                setUnverified(true);
+                setTimeout(() => {
+                    router.visit('/verify-email');
+                }, 3000);
                 return;
             }
 
@@ -67,6 +86,15 @@ export default function Login({
     return (
         <GuestLayout>
             <Head title="Log in" />
+
+            {householdInvite && (
+                <div className="mb-6 flex items-center gap-3 px-4 py-3 rounded-xl bg-sw-accent/5 border border-sw-accent/20">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-sw-accent shrink-0"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                    <p className="text-xs text-sw-text leading-relaxed">
+                        Sign in to accept your household invitation. You'll be automatically added after login.
+                    </p>
+                </div>
+            )}
 
             <div className="mb-8">
                 <h1 className="text-2xl font-bold tracking-tight text-sw-text">
@@ -83,6 +111,22 @@ export default function Login({
                         <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
                     {status}
+                </div>
+            )}
+
+            {unverified && (
+                <div className="mb-5 rounded-xl border-2 border-amber-400 bg-amber-50 px-5 py-4 text-center">
+                    <div className="mx-auto mb-2 flex h-10 w-10 items-center justify-center rounded-full bg-amber-100">
+                        <svg className="h-6 w-6 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                        </svg>
+                    </div>
+                    <h3 className="text-base font-bold text-amber-800">Email verification required</h3>
+                    <p className="mt-1 text-sm text-amber-700">
+                        You must verify your email address before you can access your account.
+                        Check your inbox for a verification link.
+                    </p>
+                    <p className="mt-2 text-xs text-amber-600">Redirecting to verification page...</p>
                 </div>
             )}
 

@@ -447,6 +447,28 @@ export interface UserFinancialProfile {
   business_type: string | null;
   has_home_office: boolean | null;
   housing_status: string | null;
+  // Student info
+  is_student: boolean | null;
+  school_name: string | null;
+  enrollment_status: string | null;
+  // Spouse info
+  spouse_name: string | null;
+  spouse_employment_type: string | null;
+  spouse_income: number | null;
+  spouse_user_id: number | null;
+  // Tax-advantaged accounts
+  has_hsa: boolean | null;
+  has_fsa: boolean | null;
+  has_529_plan: boolean | null;
+  has_ira: boolean | null;
+  ira_type: string | null;
+  // Additional deductions
+  has_student_loans: boolean | null;
+  has_childcare_expenses: boolean | null;
+  childcare_annual_cost: number | null;
+  is_military: boolean | null;
+  has_rental_property: boolean | null;
+  education_credits_eligible: boolean | null;
 }
 
 export interface UserFinancialProfileResponse {
@@ -1030,6 +1052,61 @@ export interface StorageConfig {
     status: 'idle' | 'running' | 'complete' | 'failed';
     error?: string;
   } | null;
+}
+
+// --- Household Types ---
+
+export interface Household {
+  id: number;
+  name: string;
+  role: 'owner' | 'member';
+  memberCount: number;
+}
+
+export interface HouseholdMember {
+  id: number;
+  name: string;
+  email: string;
+  role: 'owner' | 'member';
+  joined_at: string;
+}
+
+export interface HouseholdInvitation {
+  id: number;
+  email: string | null;
+  status: 'pending' | 'accepted' | 'revoked' | 'expired';
+  expires_at: string;
+  created_at: string;
+}
+
+export interface HouseholdResponse {
+  household: {
+    id: number;
+    name: string;
+    role: string;
+    member_count: number;
+    created_at: string;
+  } | null;
+  members: HouseholdMember[];
+  invitations: HouseholdInvitation[];
+}
+
+// --- Dependent Types ---
+
+export interface Dependent {
+  id: number;
+  name: string;
+  date_of_birth: string;
+  relationship: string;
+  is_student: boolean;
+  is_disabled: boolean;
+  lives_with_you: boolean;
+  months_lived_with_you: number;
+  is_claimed: boolean;
+  tax_year: number;
+  age: number;
+  qualifies_for_child_tax_credit: boolean;
+  added_by: number;
 }
 
 export interface AdminConsentUser {

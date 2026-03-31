@@ -124,8 +124,12 @@ class SocialAuthController extends Controller
             app(CookieConsentService::class)->linkVisitorToUser($visitorId, $user->id);
         }
 
-        // Generate API token
-        $user->tokens()->delete();
+        // Prune old tokens — keep up to 4 recent sessions so multiple tabs/devices work
+        $tokenIds = $user->tokens()->orderByDesc('created_at')->pluck('id');
+        if ($tokenIds->count() >= 5) {
+            $keep = $tokenIds->take(4);
+            $user->tokens()->whereNotIn('id', $keep)->delete();
+        }
         $token = $user->createToken('spendifiai-google')->plainTextToken;
 
         // For SPA: redirect to frontend with token

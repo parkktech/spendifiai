@@ -27,8 +27,10 @@ class AIQuestionController extends Controller
      */
     public function index(): JsonResponse
     {
+        $userIds = auth()->user()->householdUserIds();
+
         // Clean up stale questions whose transactions were already resolved
-        AIQuestion::where('user_id', auth()->id())
+        AIQuestion::whereIn('user_id', $userIds)
             ->where('status', 'pending')
             ->whereHas('transaction', function ($q) {
                 $q->whereIn('review_status', ['user_confirmed', 'auto_categorized']);
@@ -39,7 +41,7 @@ class AIQuestionController extends Controller
                 'answered_at' => now(),
             ]);
 
-        $questions = AIQuestion::where('user_id', auth()->id())
+        $questions = AIQuestion::whereIn('user_id', $userIds)
             ->where('status', 'pending')
             ->with('transaction:id,merchant_name,merchant_normalized,amount,transaction_date,description,ai_category,user_category,ai_confidence,review_status,expense_type,account_purpose,tax_deductible,is_subscription')
             ->orderByDesc('created_at')
@@ -85,7 +87,8 @@ class AIQuestionController extends Controller
     {
         $this->authorize('update', $question);
 
-        $connections = EmailConnection::where('user_id', $request->user()->id)
+        $userIds = $request->user()->householdUserIds();
+        $connections = EmailConnection::whereIn('user_id', $userIds)
             ->where('status', 'active')
             ->count();
 
@@ -113,7 +116,7 @@ class AIQuestionController extends Controller
 
         foreach ($request->validated('answers') as $item) {
             $question = AIQuestion::where('id', $item['question_id'])
-                ->where('user_id', auth()->id())
+                ->whereIn('user_id', auth()->user()->householdUserIds())
                 ->first();
 
             if ($question && $question->status->value === 'pending') {

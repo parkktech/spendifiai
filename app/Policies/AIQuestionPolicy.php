@@ -9,16 +9,16 @@ class AIQuestionPolicy
 {
     public function view(User $user, AIQuestion $q): bool
     {
-        return $user->id === $q->user_id;
+        return $user->id === $q->user_id || $user->isInSameHousehold($q->user_id);
     }
 
     public function update(User $user, AIQuestion $q): bool
     {
-        return $user->id === $q->user_id;
+        return $user->id === $q->user_id || $user->isInSameHousehold($q->user_id);
     }
 
     public function answer(User $user, AIQuestion $q): bool
     {
-        return $user->id === $q->user_id;
+        return $user->id === $q->user_id || $user->isInSameHousehold($q->user_id);
     }
 }

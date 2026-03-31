@@ -9,11 +9,11 @@ class BankAccountPolicy
 {
     public function view(User $user, BankAccount $account): bool
     {
-        return $user->id === $account->user_id;
+        return $user->id === $account->user_id || $user->isInSameHousehold($account->user_id);
     }
 
     public function update(User $user, BankAccount $account): bool
     {
-        return $user->id === $account->user_id;
+        return $user->id === $account->user_id || $user->isInSameHousehold($account->user_id);
     }
 }

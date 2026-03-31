@@ -19,6 +19,9 @@ export default function Register() {
     const [processing, setProcessing] = useState(false);
     const [errors, setErrors] = useState<Record<string, string[]>>({});
 
+    // Household invite token from URL query params
+    const householdInvite = new URLSearchParams(window.location.search).get('household_invite');
+
     const submit: FormEventHandler = async (e) => {
         e.preventDefault();
         setErrors({});
@@ -46,6 +49,21 @@ export default function Register() {
                 window.axios.defaults.headers.common['Authorization'] = `Bearer ${response.data.token}`;
             }
 
+            // Auto-accept household invitation if present
+            if (householdInvite) {
+                try {
+                    await axios.post(`/api/v1/household/invite/${householdInvite}/accept`, {}, {
+                        headers: { Authorization: `Bearer ${response.data.token}` },
+                    });
+                } catch {
+                    // Non-blocking — user can accept later from Settings
+                }
+                // Skip verify-email page — go straight to dashboard
+                // The verified middleware will redirect to verify-email if needed
+                window.location.href = '/dashboard';
+                return;
+            }
+
             router.visit('/verify-email');
         } catch (error: any) {
             setErrors(error.response?.data?.errors || { email: ['Registration failed'] });
@@ -57,6 +75,15 @@ export default function Register() {
     return (
         <GuestLayout>
             <Head title="Create Account" />
+
+            {householdInvite && (
+                <div className="mb-6 flex items-center gap-3 px-4 py-3 rounded-xl bg-sw-accent/5 border border-sw-accent/20">
+                    <UserIcon size={18} className="text-sw-accent shrink-0" />
+                    <p className="text-xs text-sw-text leading-relaxed">
+                        You've been invited to join a household. Create your account to get started — you'll be automatically added.
+                    </p>
+                </div>
+            )}
 
             <div className="mb-8">
                 <h1 className="text-2xl font-bold tracking-tight text-sw-text">

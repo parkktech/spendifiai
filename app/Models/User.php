@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\UserType;
+use App\Traits\BelongsToHousehold;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -16,7 +17,7 @@ use Laravel\Sanctum\HasApiTokens;
 
 class User extends Authenticatable implements MustVerifyEmail
 {
-    use HasApiTokens, HasFactory, Notifiable, TwoFactorAuthenticatable;
+    use BelongsToHousehold, HasApiTokens, HasFactory, Notifiable, TwoFactorAuthenticatable;
 
     protected $fillable = [
         'name',
@@ -38,6 +39,8 @@ class User extends Authenticatable implements MustVerifyEmail
         'two_factor_recovery_codes',
         'two_factor_confirmed_at',
         'accounting_firm_id',
+        'household_id',
+        'household_role',
     ];
 
     protected $hidden = [
@@ -167,12 +170,19 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->hasMany(DocumentRequest::class, 'client_id');
     }
 
+    public function dependents(): HasMany
+    {
+        return $this->hasMany(Dependent::class);
+    }
+
     // ─── Helpers ───
 
     public function hasBankConnected(): bool
     {
-        return $this->bankConnections()->where('status', 'active')->exists()
-            || $this->statementUploads()->where('status', 'complete')->exists();
+        $userIds = $this->householdUserIds();
+
+        return BankConnection::whereIn('user_id', $userIds)->where('status', 'active')->exists()
+            || StatementUpload::whereIn('user_id', $userIds)->where('status', 'complete')->exists();
     }
 
     public function hasEmailConnected(): bool

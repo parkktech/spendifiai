@@ -79,3 +79,18 @@ function createUserWithBankAndProfile(array $userAttrs = []): array
 
     return array_merge($data, ['profile' => $profile]);
 }
+
+function createUserWithHousehold(array $userAttrs = []): array
+{
+    $owner = createAuthenticatedUser($userAttrs);
+    $household = \App\Models\Household::create([
+        'name' => 'Test Household',
+        'created_by_user_id' => $owner->id,
+    ]);
+    $owner->update(['household_id' => $household->id, 'household_role' => 'owner']);
+
+    $member = \App\Models\User::factory()->create();
+    $member->update(['household_id' => $household->id, 'household_role' => 'member']);
+
+    return compact('owner', 'member', 'household');
+}

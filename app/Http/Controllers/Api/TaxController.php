@@ -31,10 +31,11 @@ class TaxController extends Controller
     public function summary(Request $request): JsonResponse
     {
         $year = (int) $request->input('year', now()->year);
-        $userId = auth()->id();
+        $user = auth()->user();
+        $userIds = $user->householdUserIds();
 
         // Deductible transactions by category (toBase avoids model category accessor)
-        $categories = Transaction::where('user_id', $userId)
+        $categories = Transaction::whereIn('user_id', $userIds)
             ->where('tax_deductible', true)
             ->whereYear('transaction_date', $year)
             ->toBase()
@@ -53,7 +54,7 @@ class TaxController extends Controller
             ]);
 
         // Deductible order items (from email parsing)
-        $orderItems = OrderItem::where('user_id', $userId)
+        $orderItems = OrderItem::whereIn('user_id', $userIds)
             ->where('tax_deductible', true)
             ->whereHas('order', fn ($q) => $q->whereYear('order_date', $year))
             ->select(
@@ -71,7 +72,7 @@ class TaxController extends Controller
             ]);
 
         // Individual deductible transactions for drill-down
-        $transactionDetails = Transaction::where('user_id', $userId)
+        $transactionDetails = Transaction::whereIn('user_id', $userIds)
             ->where('tax_deductible', true)
             ->whereYear('transaction_date', $year)
             ->orderBy('transaction_date', 'desc')
@@ -87,7 +88,7 @@ class TaxController extends Controller
             ]);
 
         // Individual deductible order items for drill-down
-        $orderItemDetails = OrderItem::where('user_id', $userId)
+        $orderItemDetails = OrderItem::whereIn('user_id', $userIds)
             ->where('tax_deductible', true)
             ->whereHas('order', fn ($q) => $q->whereYear('order_date', $year))
             ->with('order:id,merchant,order_number,order_date')
@@ -104,7 +105,7 @@ class TaxController extends Controller
             ]);
 
         $totalDeductible = $categories->sum('total') + $orderItems->sum('total');
-        $profile = UserFinancialProfile::where('user_id', $userId)->first();
+        $profile = UserFinancialProfile::where('user_id', $user->id)->first();
         $estRate = ($profile?->estimated_tax_bracket ?? 22) / 100;
 
         // Build dynamic schedule map from actual category data

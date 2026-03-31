@@ -17,7 +17,8 @@ class BankAccountController extends Controller
      */
     public function index(): JsonResponse
     {
-        $accounts = BankAccount::where('user_id', auth()->id())
+        $userIds = auth()->user()->householdUserIds();
+        $accounts = BankAccount::whereIn('user_id', $userIds)
             ->where('is_active', true)
             ->with('bankConnection:id,institution_name,status,last_synced_at')
             ->get();

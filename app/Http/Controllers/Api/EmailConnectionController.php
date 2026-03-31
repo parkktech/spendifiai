@@ -27,8 +27,9 @@ class EmailConnectionController extends Controller
      */
     public function index(): JsonResponse
     {
-        $connections = EmailConnection::where('user_id', auth()->id())
-            ->select('id', 'provider', 'connection_type', 'email_address', 'status', 'last_synced_at', 'sync_status')
+        $userIds = auth()->user()->householdUserIds();
+        $connections = EmailConnection::whereIn('user_id', $userIds)
+            ->select('id', 'user_id', 'provider', 'connection_type', 'email_address', 'status', 'last_synced_at', 'sync_status')
             ->get();
 
         return response()->json(['connections' => $connections]);
@@ -203,13 +204,15 @@ class EmailConnectionController extends Controller
     {
         $connectionId = $request->input('connection_id');
 
+        $userIds = auth()->user()->householdUserIds();
+
         // Reset stale syncs — if stuck syncing for over 30 minutes, it timed out
-        EmailConnection::where('user_id', auth()->id())
+        EmailConnection::whereIn('user_id', $userIds)
             ->where('sync_status', 'syncing')
             ->where('updated_at', '<', now()->subMinutes(30))
             ->update(['sync_status' => 'failed']);
 
-        $query = EmailConnection::where('user_id', auth()->id())
+        $query = EmailConnection::whereIn('user_id', $userIds)
             ->where('sync_status', '!=', 'syncing');
 
         if ($connectionId) {
@@ -229,7 +232,7 @@ class EmailConnectionController extends Controller
     public function disconnect(string $emailConnection): JsonResponse
     {
         $emailConnection = EmailConnection::where('id', $emailConnection)
-            ->where('user_id', auth()->id())
+            ->whereIn('user_id', auth()->user()->householdUserIds())
             ->firstOrFail();
 
         $emailConnection->delete();

@@ -44,19 +44,21 @@ class SavingsTrackingService
      *
      * @return array{projected_monthly_savings: float, projected_annual_savings: float, breakdown: array, verification: array}
      */
-    public function getProjectedSavings(int $userId): array
+    public function getProjectedSavings(int $userId, ?array $userIds = null): array
     {
-        $fromRecommendations = (float) SavingsRecommendation::where('user_id', $userId)
+        $scopeIds = $userIds ?? [$userId];
+
+        $fromRecommendations = (float) SavingsRecommendation::whereIn('user_id', $scopeIds)
             ->where('status', 'applied')
             ->whereNotNull('actual_monthly_savings')
             ->sum('actual_monthly_savings');
 
-        $fromCancelledSubs = (float) Subscription::where('user_id', $userId)
+        $fromCancelledSubs = (float) Subscription::whereIn('user_id', $scopeIds)
             ->where('response_type', 'cancelled')
             ->whereNotNull('previous_amount')
             ->sum('previous_amount');
 
-        $fromReducedSubs = (float) (Subscription::where('user_id', $userId)
+        $fromReducedSubs = (float) (Subscription::whereIn('user_id', $scopeIds)
             ->where('response_type', 'reduced')
             ->whereNotNull('previous_amount')
             ->selectRaw('SUM(previous_amount - amount) as total')
@@ -65,17 +67,17 @@ class SavingsTrackingService
         $monthly = round($fromRecommendations + $fromCancelledSubs + $fromReducedSubs, 2);
 
         // Verification stats
-        $totalActions = SavingsRecommendation::where('user_id', $userId)
+        $totalActions = SavingsRecommendation::whereIn('user_id', $scopeIds)
             ->whereNotNull('response_type')
             ->count()
-            + Subscription::where('user_id', $userId)
+            + Subscription::whereIn('user_id', $scopeIds)
                 ->whereNotNull('response_type')
                 ->count();
 
-        $verifiedActions = SavingsRecommendation::where('user_id', $userId)
+        $verifiedActions = SavingsRecommendation::whereIn('user_id', $scopeIds)
             ->whereIn('response_type', ['cancelled', 'reduced'])
             ->count()
-            + Subscription::where('user_id', $userId)
+            + Subscription::whereIn('user_id', $scopeIds)
                 ->whereIn('response_type', ['cancelled', 'reduced'])
                 ->count();
 
@@ -103,9 +105,11 @@ class SavingsTrackingService
      *
      * @return array<int, array{month: string, total_savings: float, actions_count: int, verified_savings: float, subscription_savings: float, recommendation_savings: float}>
      */
-    public function getSavingsHistory(int $userId, int $months = 6): array
+    public function getSavingsHistory(int $userId, ?array $userIds = null, int $months = 6): array
     {
-        return SavingsLedger::where('user_id', $userId)
+        $scopeIds = $userIds ?? [$userId];
+
+        return SavingsLedger::whereIn('user_id', $scopeIds)
             ->where('month', '>=', now()->subMonths($months)->format('Y-m'))
             ->select(
                 'month',

@@ -9,6 +9,6 @@ class OrderItemPolicy
 {
     public function update(User $user, OrderItem $item): bool
     {
-        return $item->user_id === $user->id;
+        return $item->user_id === $user->id || $user->isInSameHousehold($item->user_id);
     }
 }

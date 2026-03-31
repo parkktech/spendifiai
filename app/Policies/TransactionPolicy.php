@@ -9,16 +9,16 @@ class TransactionPolicy
 {
     public function view(User $user, Transaction $tx): bool
     {
-        return $user->id === $tx->user_id;
+        return $user->id === $tx->user_id || $user->isInSameHousehold($tx->user_id);
     }
 
     public function update(User $user, Transaction $tx): bool
     {
-        return $user->id === $tx->user_id;
+        return $user->id === $tx->user_id || $user->isInSameHousehold($tx->user_id);
     }
 
     public function delete(User $user, Transaction $tx): bool
     {
-        return $user->id === $tx->user_id;
+        return $user->id === $tx->user_id || $user->isInSameHousehold($tx->user_id);
     }
 }

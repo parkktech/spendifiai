@@ -26,8 +26,11 @@ class SubscriptionController extends Controller
      */
     public function index(): JsonResponse
     {
+        $user = auth()->user();
+        $userIds = $user->householdUserIds();
+
         $subs = Subscription::with('cancellationProvider')
-            ->where('user_id', auth()->id())
+            ->whereIn('user_id', $userIds)
             ->orderByDesc('amount')
             ->get();
 
@@ -45,9 +48,22 @@ class SubscriptionController extends Controller
      */
     public function detect(): JsonResponse
     {
-        $result = $this->detector->detectSubscriptions(auth()->id());
+        $user = auth()->user();
+        $userIds = $user->householdUserIds();
 
-        return response()->json($result);
+        $totalDetected = 0;
+        $totalMonthly = 0;
+
+        foreach ($userIds as $uid) {
+            $result = $this->detector->detectSubscriptions($uid);
+            $totalDetected += $result['detected'] ?? 0;
+            $totalMonthly += $result['total_monthly'] ?? 0;
+        }
+
+        return response()->json([
+            'detected' => $totalDetected,
+            'total_monthly' => $totalMonthly,
+        ]);
     }
 
     /**

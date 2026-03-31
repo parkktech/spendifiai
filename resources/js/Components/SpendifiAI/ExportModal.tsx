@@ -9,6 +9,15 @@ interface ExportModalProps {
   year: number;
   mode: 'download' | 'email';
   onExport?: () => void;
+  /** When impersonating a client, use the accountant tax endpoint with the accountant's token */
+  impersonatingClientId?: number | null;
+}
+
+function getAccountantToken(): string | null {
+  const value = `; ${document.cookie}`;
+  const parts = value.split('; sw_accountant_token=');
+  if (parts.length === 2) return parts.pop()?.split(';').shift() || null;
+  return null;
 }
 
 const FORMAT_OPTIONS = [
@@ -22,7 +31,7 @@ const FORMAT_OPTIONS = [
 
 type FormatValue = typeof FORMAT_OPTIONS[number]['value'];
 
-export default function ExportModal({ open, onClose, year, mode, onExport }: ExportModalProps) {
+export default function ExportModal({ open, onClose, year, mode, onExport, impersonatingClientId }: ExportModalProps) {
   const [selectedFormats, setSelectedFormats] = useState<Set<FormatValue>>(new Set(['xlsx', 'pdf', 'csv']));
   const [email, setEmail] = useState('');
   const [message, setMessage] = useState('');
@@ -56,23 +65,47 @@ export default function ExportModal({ open, onClose, year, mode, onExport }: Exp
 
     try {
       if (mode === 'download') {
-        const response = await axios.post('/api/v1/tax/export', { year });
-
-        // Download each selected format
-        for (const fmt of selectedFormats) {
-          if (response.data?.downloads?.[fmt]) {
-            const dlResponse = await axios.get(`/api/v1/tax/download/${year}/${fmt}`, {
-              responseType: 'blob',
-            });
+        if (impersonatingClientId) {
+          // Accountant impersonating a client — use the accountant-specific endpoint with the accountant's own token
+          const accountantToken = getAccountantToken();
+          // Create a standalone axios instance to bypass the global interceptor that would override the Authorization header
+          const accountantAxios = axios.create();
+          const authHeader = accountantToken ? `Bearer ${accountantToken}` : undefined;
+          for (const fmt of selectedFormats) {
+            const dlResponse = await accountantAxios.get(
+              `/api/v1/accountant/clients/${impersonatingClientId}/tax/${year}/download/${fmt}`,
+              { responseType: 'blob', headers: authHeader ? { Authorization: authHeader } : {} }
+            );
             const blob = new Blob([dlResponse.data]);
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = response.data.downloads[fmt].filename || `SpendifiAI_Tax_${year}.${fmt}`;
+            const ext = fmt === 'qbo_csv' ? 'csv' : fmt;
+            a.download = `SpendifiAI_Tax_${year}.${ext}`;
             document.body.appendChild(a);
             a.click();
             a.remove();
             URL.revokeObjectURL(url);
+          }
+        } else {
+          const response = await axios.post('/api/v1/tax/export', { year });
+
+          // Download each selected format
+          for (const fmt of selectedFormats) {
+            if (response.data?.downloads?.[fmt]) {
+              const dlResponse = await axios.get(`/api/v1/tax/download/${year}/${fmt}`, {
+                responseType: 'blob',
+              });
+              const blob = new Blob([dlResponse.data]);
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement('a');
+              a.href = url;
+              a.download = response.data.downloads[fmt].filename || `SpendifiAI_Tax_${year}.${fmt}`;
+              document.body.appendChild(a);
+              a.click();
+              a.remove();
+              URL.revokeObjectURL(url);
+            }
           }
         }
         setSuccess(true);
@@ -92,8 +125,18 @@ export default function ExportModal({ open, onClose, year, mode, onExport }: Exp
         onExport?.();
       }
     } catch (err) {
-      const axiosErr = err as { response?: { data?: { message?: string } }; message?: string };
-      setError(axiosErr.response?.data?.message || axiosErr.message || 'An error occurred');
+      const axiosErr = err as { response?: { status?: number; data?: { message?: string } }; message?: string };
+      const status = axiosErr.response?.status;
+      const msg = axiosErr.response?.data?.message;
+      if (status === 401) {
+        setError('Your session has expired. Please refresh the page and try again.');
+      } else if (status === 403) {
+        setError(msg || 'Access denied. Please complete your financial profile in Settings first.');
+      } else if (status === 429) {
+        setError('Too many requests. Please wait a moment and try again.');
+      } else {
+        setError(msg || axiosErr.message || 'An error occurred generating the export.');
+      }
     } finally {
       setLoading(false);
     }

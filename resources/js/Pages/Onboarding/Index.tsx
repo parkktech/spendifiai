@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { Head, router, usePage } from '@inertiajs/react';
 import {
   Building2, Mail, User, Rocket, CheckCircle2, ChevronRight,
-  Loader2, SkipForward, ArrowRight,
+  Loader2, SkipForward, ArrowRight, Briefcase,
 } from 'lucide-react';
 import PlaidLinkButton from '@/Components/SpendifiAI/PlaidLinkButton';
 import axios from 'axios';
@@ -18,7 +18,7 @@ const STEPS: { key: Step; label: string; icon: typeof Building2 }[] = [
 
 export default function OnboardingIndex() {
   const pageProps = usePage().props as Record<string, unknown>;
-  const auth = pageProps.auth as { user?: { name?: string }; hasBankConnected?: boolean; hasEmailConnected?: boolean };
+  const auth = pageProps.auth as { user?: { name?: string }; hasBankConnected?: boolean; hasEmailConnected?: boolean; isAccountant?: boolean; userType?: string };
 
   const [currentStep, setCurrentStep] = useState<Step>('bank');
   const [completedSteps, setCompletedSteps] = useState<Set<Step>>(new Set());
@@ -115,7 +115,12 @@ export default function OnboardingIndex() {
     }
   };
 
-  const handleGoToDashboard = () => {
+  const handleGoToDashboard = async () => {
+    try {
+      await axios.post('/api/v1/onboarding/complete');
+    } catch {
+      // Best-effort — don't block navigation
+    }
     router.visit('/dashboard');
   };
 
@@ -171,6 +176,31 @@ export default function OnboardingIndex() {
         {/* Content */}
         <div className="flex-1 flex items-start justify-center px-6 py-10">
           <div className="w-full max-w-lg">
+
+            {/* Accountant fast-track option */}
+            {auth.isAccountant && !animating && currentStep === 'bank' && (
+              <div className="mb-8 p-5 rounded-2xl border-2 border-sw-accent/30 bg-sw-accent-light">
+                <div className="flex items-start gap-4">
+                  <div className="w-11 h-11 rounded-xl bg-sw-accent/10 flex items-center justify-center shrink-0">
+                    <Briefcase size={22} className="text-sw-accent" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="text-sm font-bold text-sw-text mb-1">Here for client access?</h3>
+                    <p className="text-xs text-sw-muted mb-3">
+                      Skip onboarding and go straight to your client management dashboard. You can always come back to connect your own bank and profile later.
+                    </p>
+                    <button
+                      onClick={handleGoToDashboard}
+                      className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-sw-accent text-white font-semibold text-sm hover:bg-sw-accent-hover transition"
+                    >
+                      <Briefcase size={14} />
+                      Skip to Client Dashboard
+                      <ChevronRight size={14} />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Step completion animation overlay */}
             {animating && (

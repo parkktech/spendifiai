@@ -49,6 +49,9 @@ Route::get('/invite/{token}', function (string $token) {
     ]);
 })->name('firm.invite');
 
+// ── Household Join Invitation ──
+Route::get('/household/join/{token}', fn (string $token) => Inertia::render('Household/Join', ['token' => $token]))->name('household.join');
+
 // ── Inertia SPA Pages (with Sanctum token auth for SPA) ──
 Route::middleware(['auth:sanctum', 'verified'])->group(function () {
     Route::get('/onboarding', fn () => Inertia::render('Onboarding/Index'))->name('onboarding');

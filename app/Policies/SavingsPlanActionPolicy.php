@@ -9,6 +9,6 @@ class SavingsPlanActionPolicy
 {
     public function update(User $user, SavingsPlanAction $action): bool
     {
-        return $action->savingsTarget && $action->savingsTarget->user_id === $user->id;
+        return $action->savingsTarget && ($action->savingsTarget->user_id === $user->id || $user->isInSameHousehold($action->savingsTarget->user_id));
     }
 }

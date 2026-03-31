@@ -9,11 +9,11 @@ class SavingsRecommendationPolicy
 {
     public function view(User $user, SavingsRecommendation $rec): bool
     {
-        return $user->id === $rec->user_id;
+        return $user->id === $rec->user_id || $user->isInSameHousehold($rec->user_id);
     }
 
     public function update(User $user, SavingsRecommendation $rec): bool
     {
-        return $user->id === $rec->user_id;
+        return $user->id === $rec->user_id || $user->isInSameHousehold($rec->user_id);
     }
 }

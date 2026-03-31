@@ -26,6 +26,9 @@ import { useConsent } from '@/contexts/ConsentContext';
 import type { UserFinancialProfile, UserFinancialProfileResponse, AccountantSearchResult, MyAccountant, AccountantInvite } from '@/types/spendifiai';
 import { US_TIMEZONES, getAllTimezones } from '@/utils/timezones';
 import axios from 'axios';
+import HouseholdSection from '@/Components/SpendifiAI/HouseholdSection';
+import DependentsSection from '@/Components/SpendifiAI/DependentsSection';
+import EnhancedProfileSection from '@/Components/SpendifiAI/EnhancedProfileSection';
 
 function SuccessToast({ message }: { message: string }) {
   return (
@@ -402,6 +405,15 @@ export default function SettingsIndex() {
             </button>
           </div>
         </div>
+
+        {/* Household Sharing */}
+        <HouseholdSection />
+
+        {/* Dependents */}
+        <DependentsSection />
+
+        {/* Enhanced Tax Profile */}
+        <EnhancedProfileSection />
 
         {/* Section 2: My Accountants (for personal users) */}
         {!isAccountant && (

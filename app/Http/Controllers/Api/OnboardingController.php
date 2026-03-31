@@ -26,4 +26,20 @@ class OnboardingController extends Controller
 
         return response()->json(['message' => 'Onboarding pipeline started']);
     }
+
+    /**
+     * Mark onboarding as complete (e.g. when user skips steps and goes to dashboard).
+     *
+     * POST /api/v1/onboarding/complete
+     */
+    public function complete(): JsonResponse
+    {
+        $user = auth()->user();
+
+        if (! $user->onboarding_completed_at) {
+            $user->update(['onboarding_completed_at' => now()]);
+        }
+
+        return response()->json(['message' => 'Onboarding marked complete']);
+    }
 }

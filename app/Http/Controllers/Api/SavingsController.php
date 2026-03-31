@@ -37,7 +37,10 @@ class SavingsController extends Controller
      */
     public function recommendations(): JsonResponse
     {
-        $recs = SavingsRecommendation::where('user_id', auth()->id())
+        $user = auth()->user();
+        $userIds = $user->householdUserIds();
+
+        $recs = SavingsRecommendation::whereIn('user_id', $userIds)
             ->where('status', 'active')
             ->orderByDesc('annual_savings')
             ->get();
@@ -55,13 +58,17 @@ class SavingsController extends Controller
      */
     public function analyze(): JsonResponse
     {
-        $result = $this->analyzer->analyze(auth()->user());
+        $user = auth()->user();
+        $userIds = $user->householdUserIds();
+
+        $result = $this->analyzer->analyze($user);
 
         // Clear dashboard cache so fresh recommendations show immediately
-        $userId = auth()->id();
-        Cache::forget("dashboard:{$userId}:all");
-        Cache::forget("dashboard:{$userId}:personal");
-        Cache::forget("dashboard:{$userId}:business");
+        foreach ($userIds as $uid) {
+            Cache::forget("dashboard:{$uid}:all");
+            Cache::forget("dashboard:{$uid}:personal");
+            Cache::forget("dashboard:{$uid}:business");
+        }
 
         return response()->json($result);
     }
@@ -83,25 +90,29 @@ class SavingsController extends Controller
     public function apply(SavingsRecommendation $rec): JsonResponse
     {
         $this->authorize('update', $rec);
+
+        $user = auth()->user();
+        $userIds = $user->householdUserIds();
+
         $rec->update(['status' => 'applied', 'applied_at' => now()]);
 
         // Auto-create a budget goal for the category if one doesn't exist
         $budgetCreated = false;
         if ($rec->category && $rec->monthly_savings > 0) {
-            $existing = \App\Models\BudgetGoal::where('user_id', auth()->id())
+            $existing = \App\Models\BudgetGoal::whereIn('user_id', $userIds)
                 ->where('category', $rec->category)
                 ->first();
 
             if (! $existing) {
                 // Estimate a reasonable budget: current avg spending minus recommended savings
-                $avgSpending = Transaction::where('user_id', auth()->id())
+                $avgSpending = Transaction::whereIn('user_id', $userIds)
                     ->where('amount', '>', 0)
                     ->where('transaction_date', '>=', now()->subMonths(3))
                     ->toBase()
                     ->where(DB::raw('COALESCE(user_category, ai_category)'), $rec->category)
                     ->avg('amount');
 
-                $monthlySpending = Transaction::where('user_id', auth()->id())
+                $monthlySpending = Transaction::whereIn('user_id', $userIds)
                     ->where('amount', '>', 0)
                     ->where('transaction_date', '>=', now()->subMonths(3))
                     ->toBase()
@@ -113,7 +124,7 @@ class SavingsController extends Controller
 
                 if ($suggestedBudget > 0) {
                     \App\Models\BudgetGoal::create([
-                        'user_id' => auth()->id(),
+                        'user_id' => $user->id,
                         'category' => $rec->category,
                         'monthly_limit' => $suggestedBudget,
                         'alert_threshold' => 0.80,
@@ -123,11 +134,12 @@ class SavingsController extends Controller
             }
         }
 
-        // Clear dashboard cache
-        $userId = auth()->id();
-        Cache::forget("dashboard:{$userId}:all");
-        Cache::forget("dashboard:{$userId}:personal");
-        Cache::forget("dashboard:{$userId}:business");
+        // Clear dashboard cache for all household members
+        foreach ($userIds as $uid) {
+            Cache::forget("dashboard:{$uid}:all");
+            Cache::forget("dashboard:{$uid}:personal");
+            Cache::forget("dashboard:{$uid}:business");
+        }
 
         return response()->json([
             'message' => 'Marked as applied',
@@ -140,15 +152,17 @@ class SavingsController extends Controller
      */
     public function setTarget(SetSavingsTargetRequest $request): JsonResponse
     {
+        $user = auth()->user();
+        $userIds = $user->householdUserIds();
         $validated = $request->validated();
 
         // Deactivate any existing target
-        SavingsTarget::where('user_id', auth()->id())
+        SavingsTarget::whereIn('user_id', $userIds)
             ->where('is_active', true)
             ->update(['is_active' => false]);
 
         $target = SavingsTarget::create([
-            'user_id' => auth()->id(),
+            'user_id' => $user->id,
             'monthly_target' => $validated['monthly_target'],
             'motivation' => $validated['motivation'] ?? null,
             'goal_total' => $validated['goal_total'] ?? null,
@@ -157,7 +171,7 @@ class SavingsController extends Controller
         ]);
 
         // Immediately generate an action plan
-        $plan = $this->planner->generatePlan(auth()->user(), $target);
+        $plan = $this->planner->generatePlan($user, $target);
 
         return response()->json([
             'target' => new SavingsTargetResource($target),
@@ -170,7 +184,10 @@ class SavingsController extends Controller
      */
     public function getTarget(): JsonResponse
     {
-        $target = SavingsTarget::where('user_id', auth()->id())
+        $user = auth()->user();
+        $userIds = $user->householdUserIds();
+
+        $target = SavingsTarget::whereIn('user_id', $userIds)
             ->where('is_active', true)
             ->first();
 
@@ -195,7 +212,7 @@ class SavingsController extends Controller
             ->get();
 
         // Current month progress
-        $currentMonth = $this->planner->calculateProgress(auth()->user(), $target);
+        $currentMonth = $this->planner->calculateProgress($user, $target);
 
         // Time to goal calculation
         $timeToGoal = null;
@@ -234,11 +251,14 @@ class SavingsController extends Controller
      */
     public function regeneratePlan(): JsonResponse
     {
-        $target = SavingsTarget::where('user_id', auth()->id())
+        $user = auth()->user();
+        $userIds = $user->householdUserIds();
+
+        $target = SavingsTarget::whereIn('user_id', $userIds)
             ->where('is_active', true)
             ->firstOrFail();
 
-        $plan = $this->planner->generatePlan(auth()->user(), $target);
+        $plan = $this->planner->generatePlan($user, $target);
 
         return response()->json($plan);
     }
@@ -283,7 +303,10 @@ class SavingsController extends Controller
      */
     public function pulseCheck(): JsonResponse
     {
-        $target = SavingsTarget::where('user_id', auth()->id())
+        $user = auth()->user();
+        $userIds = $user->householdUserIds();
+
+        $target = SavingsTarget::whereIn('user_id', $userIds)
             ->where('is_active', true)
             ->first();
 
@@ -299,19 +322,19 @@ class SavingsController extends Controller
         // Get current spending this month
         $monthStart = $now->copy()->startOfMonth();
 
-        $spending = Transaction::where('user_id', auth()->id())
+        $spending = Transaction::whereIn('user_id', $userIds)
             ->where('amount', '>', 0)
             ->where('transaction_date', '>=', $monthStart)
             ->sum('amount');
 
-        $income = Transaction::where('user_id', auth()->id())
+        $income = Transaction::whereIn('user_id', $userIds)
             ->where('amount', '<', 0)
             ->where('transaction_date', '>=', $monthStart)
             ->whereNotIn('plaid_category', ['TRANSFER_IN', 'TRANSFER_OUT'])
             ->sum(DB::raw('ABS(amount)'));
 
         // Spending by category so far (use toBase() to avoid model category accessor)
-        $categorySpending = Transaction::where('user_id', auth()->id())
+        $categorySpending = Transaction::whereIn('user_id', $userIds)
             ->where('amount', '>', 0)
             ->where('transaction_date', '>=', $monthStart)
             ->toBase()
@@ -381,6 +404,8 @@ class SavingsController extends Controller
     {
         $this->authorize('update', $rec);
 
+        $user = auth()->user();
+        $userIds = $user->householdUserIds();
         $validated = $request->validated();
         $responseType = $validated['response_type'];
 
@@ -421,7 +446,7 @@ class SavingsController extends Controller
         $actualSavings = (float) $rec->actual_monthly_savings;
         if ($actualSavings > 0) {
             $this->trackingService->recordSavings(
-                userId: auth()->id(),
+                userId: $user->id,
                 sourceType: 'recommendation',
                 sourceId: $rec->id,
                 actionTaken: $responseType,
@@ -430,15 +455,16 @@ class SavingsController extends Controller
             );
         }
 
-        // Clear dashboard cache
-        $userId = auth()->id();
-        Cache::forget("dashboard:{$userId}:all");
-        Cache::forget("dashboard:{$userId}:personal");
-        Cache::forget("dashboard:{$userId}:business");
+        // Clear dashboard cache for all household members
+        foreach ($userIds as $uid) {
+            Cache::forget("dashboard:{$uid}:all");
+            Cache::forget("dashboard:{$uid}:personal");
+            Cache::forget("dashboard:{$uid}:business");
+        }
 
         return response()->json([
             'recommendation' => new SavingsRecommendationResource($rec->fresh()),
-            'projected_savings' => $this->trackingService->getProjectedSavings($userId),
+            'projected_savings' => $this->trackingService->getProjectedSavings($user->id),
         ]);
     }
 
@@ -461,8 +487,11 @@ class SavingsController extends Controller
      */
     public function projected(): JsonResponse
     {
+        $user = auth()->user();
+        $userIds = $user->householdUserIds();
+
         return response()->json(
-            $this->trackingService->getProjectedSavings(auth()->id())
+            $this->trackingService->getProjectedSavings($user->id, $userIds)
         );
     }
 
@@ -471,8 +500,11 @@ class SavingsController extends Controller
      */
     public function savingsHistory(): JsonResponse
     {
+        $user = auth()->user();
+        $userIds = $user->householdUserIds();
+
         return response()->json(
-            $this->trackingService->getSavingsHistory(auth()->id())
+            $this->trackingService->getSavingsHistory($user->id, $userIds)
         );
     }
 }

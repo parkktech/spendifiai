@@ -36,6 +36,7 @@ class DashboardController extends Controller
     public function index(DashboardRequest $request): JsonResponse
     {
         $user = auth()->user();
+        $userIds = $user->householdUserIds();
         $viewMode = $request->input('view', 'all');
         $avgMode = $request->input('avg_mode', 'total');
 
@@ -51,7 +52,7 @@ class DashboardController extends Controller
         $periodEndKey = $periodEnd?->format('Y-m-d') ?? '';
         $cacheKey = "dashboard:{$user->id}:{$viewMode}:{$periodStartKey}:{$periodEndKey}";
 
-        return response()->json(Cache::remember($cacheKey, 60, function () use ($user, $viewMode, $periodStart, $periodEnd, $avgMode) {
+        return response()->json(Cache::remember($cacheKey, 60, function () use ($user, $userIds, $viewMode, $periodStart, $periodEnd, $avgMode) {
             $now = Carbon::now();
 
             // When custom period is set, use it; otherwise default to current month
@@ -68,7 +69,7 @@ class DashboardController extends Controller
             $periodMonths = max((int) round($monthStart->floatDiffInMonths($monthEnd)), 1);
 
             // Base query builder that respects the view filter
-            $txQuery = fn () => Transaction::where('user_id', $user->id)
+            $txQuery = fn () => Transaction::whereIn('user_id', $userIds)
                 ->when($viewMode === 'personal', fn ($q) => $q->where('account_purpose', 'personal'))
                 ->when($viewMode === 'business', fn ($q) => $q->where('account_purpose', 'business'));
 
@@ -119,7 +120,7 @@ class DashboardController extends Controller
                 ->get();
 
             // Pending AI questions (total count + limited preview)
-            $questionsQuery = AIQuestion::where('user_id', $user->id)
+            $questionsQuery = AIQuestion::whereIn('user_id', $userIds)
                 ->where('status', 'pending')
                 ->when($viewMode !== 'all', function ($q) use ($viewMode) {
                     $q->whereHas('transaction', fn ($tq) => $tq->where('account_purpose', $viewMode));
@@ -134,7 +135,7 @@ class DashboardController extends Controller
                 ->get();
 
             // Savings potential
-            $savingsTotal = SavingsRecommendation::where('user_id', $user->id)
+            $savingsTotal = SavingsRecommendation::whereIn('user_id', $userIds)
                 ->where('status', 'active')
                 ->sum('monthly_savings');
 
@@ -153,12 +154,12 @@ class DashboardController extends Controller
                 ->count();
 
             // Unused subscriptions
-            $unusedSubs = Subscription::where('user_id', $user->id)
+            $unusedSubs = Subscription::whereIn('user_id', $userIds)
                 ->where('status', 'unused')
                 ->count();
 
             // Unused subscription details for dashboard display
-            $unusedSubDetails = Subscription::where('user_id', $user->id)
+            $unusedSubDetails = Subscription::whereIn('user_id', $userIds)
                 ->where('status', 'unused')
                 ->select('id', 'merchant_name', 'merchant_normalized', 'amount', 'last_charge_date', 'last_used_at', 'annual_cost')
                 ->orderByDesc('amount')
@@ -166,14 +167,14 @@ class DashboardController extends Controller
                 ->get();
 
             // Top savings recommendations
-            $savingsRecs = SavingsRecommendation::where('user_id', $user->id)
+            $savingsRecs = SavingsRecommendation::whereIn('user_id', $userIds)
                 ->where('status', 'active')
                 ->orderByDesc('annual_savings')
                 ->limit(5)
                 ->get();
 
             // Savings target with progress
-            $savingsTarget = SavingsTarget::where('user_id', $user->id)
+            $savingsTarget = SavingsTarget::whereIn('user_id', $userIds)
                 ->where('is_active', true)
                 ->first();
 
@@ -190,7 +191,7 @@ class DashboardController extends Controller
             }
 
             // Applied recommendations in period (for momentum tracker)
-            $appliedThisMonth = SavingsRecommendation::where('user_id', $user->id)
+            $appliedThisMonth = SavingsRecommendation::whereIn('user_id', $userIds)
                 ->where('status', 'applied')
                 ->whereBetween('applied_at', [$monthStart, $monthEnd])
                 ->orderByDesc('monthly_savings')
@@ -200,7 +201,7 @@ class DashboardController extends Controller
             $appliedSavingsTotal = $appliedThisMonth->sum('monthly_savings');
 
             // Upcoming recurring charges (subscriptions due this month)
-            $upcomingRecurring = Subscription::where('user_id', $user->id)
+            $upcomingRecurring = Subscription::whereIn('user_id', $userIds)
                 ->where('status', 'active')
                 ->sum('amount');
 
@@ -257,7 +258,7 @@ class DashboardController extends Controller
                 ->get();
 
             // --- All Recurring Bills (active + unused + cancelled) ---
-            $allRecurringBills = Subscription::where('user_id', $user->id)
+            $allRecurringBills = Subscription::whereIn('user_id', $userIds)
                 ->whereIn('status', ['active', 'unused', 'cancelled'])
                 ->orderByDesc('amount')
                 ->select('id', 'merchant_name', 'merchant_normalized', 'amount', 'frequency', 'status', 'is_essential', 'last_charge_date', 'next_expected_date', 'annual_cost', 'response_type', 'responded_at')
@@ -286,7 +287,11 @@ class DashboardController extends Controller
             ];
 
             // --- Income Detection (early for use in home affordability) ---
-            $userOverrides = UserFinancialOverride::getOverridesFor($user->id);
+            $userOverrides = UserFinancialOverride::whereIn('user_id', $userIds)
+                ->get()
+                ->groupBy('override_type')
+                ->map(fn ($group) => $group->pluck('classification', 'override_key')->toArray())
+                ->toArray();
             $incomeDetector = app(IncomeDetectorService::class);
             $incomeMonths = $isCustomPeriod ? $periodMonths : 3;
             $incomeSources = $incomeDetector->analyze($user->id, $viewMode, $incomeMonths, $userOverrides);
@@ -294,7 +299,7 @@ class DashboardController extends Controller
             // --- Home Affordability Calculator ---
             // Use gross monthly income from financial profile (what lenders use),
             // fall back to estimated gross from detected net income + tax bracket
-            $financialProfile = UserFinancialProfile::where('user_id', $user->id)->first();
+            $financialProfile = UserFinancialProfile::whereIn('user_id', $userIds)->first();
             $grossMonthlyIncome = 0;
 
             if ($financialProfile && (float) $financialProfile->monthly_income > 0) {
@@ -746,7 +751,7 @@ class DashboardController extends Controller
                 ->limit(10)
                 ->get();
 
-            $donationProfile = UserFinancialProfile::where('user_id', $user->id)->first();
+            $donationProfile = UserFinancialProfile::whereIn('user_id', $userIds)->first();
             $donationTaxRate = ($donationProfile?->estimated_tax_bracket ?? 22) / 100;
 
             $charitableGiving = [
@@ -806,9 +811,9 @@ class DashboardController extends Controller
                 'questions' => $questions,
                 'recent' => TransactionResource::collection($recent),
                 'spending_trend' => $trend,
-                'sync_status' => BankConnection::where('user_id', $user->id)
+                'sync_status' => BankConnection::whereIn('user_id', $userIds)
                     ->first()?->only(['status', 'last_synced_at', 'institution_name']),
-                'accounts_summary' => BankAccount::where('user_id', $user->id)
+                'accounts_summary' => BankAccount::whereIn('user_id', $userIds)
                     ->select('purpose', DB::raw('COUNT(*) as count'))
                     ->groupBy('purpose')
                     ->pluck('count', 'purpose'),
@@ -832,7 +837,7 @@ class DashboardController extends Controller
                 'income_sources' => $incomeSources,
                 'primary_vs_extra' => $primaryVsExtra,
                 'projected_savings' => app(SavingsTrackingService::class)->getProjectedSavings($user->id),
-                'savings_history' => app(SavingsTrackingService::class)->getSavingsHistory($user->id, 6),
+                'savings_history' => app(SavingsTrackingService::class)->getSavingsHistory($user->id, null, 6),
                 'top_stores' => $topStoresFormatted,
                 'top_stores_total' => round($topStoresTotal, 2),
                 'charitable_giving' => $charitableGiving,
@@ -847,18 +852,19 @@ class DashboardController extends Controller
     public function storeDetail(Request $request, string $storeName): JsonResponse
     {
         $user = auth()->user();
+        $userIds = $user->householdUserIds();
         $storeName = urldecode($storeName);
 
         $cacheKey = "store_detail:{$user->id}:{$storeName}";
 
-        return response()->json(Cache::remember($cacheKey, 300, function () use ($user, $storeName) {
+        return response()->json(Cache::remember($cacheKey, 300, function () use ($userIds, $storeName) {
             $storeFilter = function ($q) use ($storeName) {
                 $q->where('merchant_normalized', $storeName)
                     ->orWhere('merchant_name', $storeName);
             };
 
             // Monthly spending trend at this store
-            $monthlyTrend = Transaction::where('user_id', $user->id)
+            $monthlyTrend = Transaction::whereIn('user_id', $userIds)
                 ->where('amount', '>', 0)
                 ->where($storeFilter)
                 ->toBase()
@@ -880,7 +886,7 @@ class DashboardController extends Controller
                 ]);
 
             // Individual transactions grouped by month for drill-down
-            $transactions = Transaction::where('user_id', $user->id)
+            $transactions = Transaction::whereIn('user_id', $userIds)
                 ->where('amount', '>', 0)
                 ->where($storeFilter)
                 ->with(['matchedOrder.items' => function ($q) {
@@ -925,7 +931,7 @@ class DashboardController extends Controller
             // Use flexible matching: exact, case-insensitive, and ILIKE partial match
             // so "PCI Race Radios" matches bank's "PCI RACE" and vice versa
             $storeNameLower = strtolower($storeName);
-            $orderItems = OrderItem::where('order_items.user_id', $user->id)
+            $orderItems = OrderItem::whereIn('order_items.user_id', $userIds)
                 ->whereHas('order', function ($q) use ($storeName, $storeNameLower) {
                     $q->where(function ($inner) use ($storeName, $storeNameLower) {
                         $inner->where('merchant_normalized', $storeName)
@@ -966,7 +972,9 @@ class DashboardController extends Controller
             'classification' => 'required|in:primary,extra',
         ]);
 
-        $userId = auth()->id();
+        $user = auth()->user();
+        $userIds = $user->householdUserIds();
+        $userId = $user->id;
 
         UserFinancialOverride::updateOrCreate(
             [

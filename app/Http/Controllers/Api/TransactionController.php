@@ -18,7 +18,10 @@ class TransactionController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
-        $query = Transaction::where('user_id', auth()->id())
+        $user = auth()->user();
+        $userIds = $user->householdUserIds();
+
+        $query = Transaction::whereIn('user_id', $userIds)
             ->with(['bankAccount:id,name,mask,purpose,nickname', 'matchedOrder.items']);
 
         // Account purpose filter (the key one)
@@ -74,6 +77,9 @@ class TransactionController extends Controller
      */
     public function updateCategory(UpdateTransactionCategoryRequest $request, Transaction $transaction): JsonResponse
     {
+        $user = auth()->user();
+        $userIds = $user->householdUserIds();
+
         $category = $request->validated('category');
         $expenseType = $request->validated('expense_type') ?? $transaction->expense_type;
         $taxDeductible = $request->validated('tax_deductible') ?? $transaction->tax_deductible;
@@ -98,7 +104,7 @@ class TransactionController extends Controller
         $matchCount = 0;
 
         if ($merchantName) {
-            $matchCount = Transaction::where('user_id', auth()->id())
+            $matchCount = Transaction::whereIn('user_id', $userIds)
                 ->where('id', '!=', $transaction->id)
                 ->where(function ($q) use ($merchantName) {
                     $q->where('merchant_normalized', $merchantName)
@@ -113,11 +119,12 @@ class TransactionController extends Controller
                 ]);
         }
 
-        // Invalidate dashboard cache for all view modes
-        $userId = auth()->id();
-        Cache::forget("dashboard:{$userId}:all");
-        Cache::forget("dashboard:{$userId}:personal");
-        Cache::forget("dashboard:{$userId}:business");
+        // Invalidate dashboard cache for all household members
+        foreach ($userIds as $id) {
+            Cache::forget("dashboard:{$id}:all");
+            Cache::forget("dashboard:{$id}:personal");
+            Cache::forget("dashboard:{$id}:business");
+        }
 
         return response()->json([
             'message' => $matchCount > 0
@@ -134,7 +141,10 @@ class TransactionController extends Controller
      */
     public function categorize(): JsonResponse
     {
-        $pending = Transaction::where('user_id', auth()->id())
+        $user = auth()->user();
+        $userIds = $user->householdUserIds();
+
+        $pending = Transaction::whereIn('user_id', $userIds)
             ->whereIn('review_status', ['pending_ai', 'needs_review'])
             ->count();
 
@@ -145,15 +155,18 @@ class TransactionController extends Controller
             ]);
         }
 
-        CategorizePendingTransactions::dispatchSync(auth()->id());
+        foreach ($userIds as $id) {
+            CategorizePendingTransactions::dispatchSync($id);
+        }
 
-        // Clear dashboard cache so fresh data shows immediately
-        $userId = auth()->id();
-        Cache::forget("dashboard:{$userId}:all");
-        Cache::forget("dashboard:{$userId}:personal");
-        Cache::forget("dashboard:{$userId}:business");
+        // Clear dashboard cache for all household members
+        foreach ($userIds as $id) {
+            Cache::forget("dashboard:{$id}:all");
+            Cache::forget("dashboard:{$id}:personal");
+            Cache::forget("dashboard:{$id}:business");
+        }
 
-        $stats = Transaction::where('user_id', auth()->id())
+        $stats = Transaction::whereIn('user_id', $userIds)
             ->selectRaw("COUNT(CASE WHEN review_status = 'auto_categorized' THEN 1 END) as auto_categorized")
             ->selectRaw("COUNT(CASE WHEN review_status = 'needs_review' THEN 1 END) as needs_review")
             ->selectRaw("COUNT(CASE WHEN review_status = 'pending_ai' THEN 1 END) as still_pending")

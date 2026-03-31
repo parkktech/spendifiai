@@ -11,6 +11,8 @@ use App\Models\AIQuestion;
 use App\Models\BankAccount;
 use App\Models\BankConnection;
 use App\Models\CancellationProvider;
+use App\Models\Dependent;
+use App\Models\Household;
 use App\Models\OrderItem;
 use App\Models\SavingsPlanAction;
 use App\Models\SavingsRecommendation;
@@ -20,6 +22,8 @@ use App\Policies\AIQuestionPolicy;
 use App\Policies\BankAccountPolicy;
 use App\Policies\BankConnectionPolicy;
 use App\Policies\CancellationProviderPolicy;
+use App\Policies\DependentPolicy;
+use App\Policies\HouseholdPolicy;
 use App\Policies\OrderItemPolicy;
 use App\Policies\SavingsPlanActionPolicy;
 use App\Policies\SavingsRecommendationPolicy;
@@ -67,6 +71,7 @@ class AppServiceProvider extends ServiceProvider
         Route::model('connection', BankConnection::class);
         Route::model('item', OrderItem::class);
         Route::model('provider', CancellationProvider::class);
+        Route::model('dependent', Dependent::class);
         Route::model('deduction', \App\Models\TaxDeduction::class);
 
         // ── Middleware Aliases ──
@@ -85,6 +90,8 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(SavingsPlanAction::class, SavingsPlanActionPolicy::class);
         Gate::policy(OrderItem::class, OrderItemPolicy::class);
         Gate::policy(CancellationProvider::class, CancellationProviderPolicy::class);
+        Gate::policy(Dependent::class, DependentPolicy::class);
+        Gate::policy(Household::class, HouseholdPolicy::class);
 
         // ── Vite Prefetch (from Breeze starter kit) ──
         Vite::prefetch(concurrency: 3);

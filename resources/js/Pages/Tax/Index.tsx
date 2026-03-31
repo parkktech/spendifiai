@@ -28,7 +28,7 @@ interface MergedCategory {
 }
 
 export default function TaxIndex() {
-  const { auth } = usePage().props as unknown as { auth: { hasBankConnected: boolean; timezone?: string } };
+  const { auth } = usePage().props as unknown as { auth: { hasBankConnected: boolean; timezone?: string; isImpersonating?: boolean; user?: { id: number } } };
   const tz = auth.timezone;
   const [year, setYear] = useState(currentYear);
   const [exportOpen, setExportOpen] = useState(false);
@@ -418,6 +418,7 @@ export default function TaxIndex() {
         onClose={() => setExportOpen(false)}
         year={year}
         mode={exportMode}
+        impersonatingClientId={auth.isImpersonating ? auth.user?.id : undefined}
       />
     </AuthenticatedLayout>
   );

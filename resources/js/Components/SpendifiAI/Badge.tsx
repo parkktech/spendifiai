@@ -1,8 +1,9 @@
 import { ReactNode } from 'react';
 
-interface BadgeProps {
+export interface BadgeProps {
   children: ReactNode;
   variant: 'success' | 'warning' | 'danger' | 'info' | 'neutral';
+  className?: string;
 }
 
 const variantClasses: Record<BadgeProps['variant'], string> = {
@@ -13,9 +14,9 @@ const variantClasses: Record<BadgeProps['variant'], string> = {
   neutral: 'text-sw-muted bg-slate-100 border-slate-200',
 };
 
-export default function Badge({ children, variant }: BadgeProps) {
+export default function Badge({ children, variant, className = '' }: BadgeProps) {
   return (
-    <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold tracking-wide border ${variantClasses[variant]}`}>
+    <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold tracking-wide border ${variantClasses[variant]} ${className}`}>
       {children}
     </span>
   );

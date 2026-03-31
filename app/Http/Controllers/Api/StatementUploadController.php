@@ -26,9 +26,10 @@ class StatementUploadController extends Controller
     public function upload(StatementUploadRequest $request): JsonResponse
     {
         $user = $request->user();
+        $userIds = $user->householdUserIds();
 
         // Guard: max 24 concurrent processing uploads per user
-        $activeUploads = StatementUpload::where('user_id', $user->id)
+        $activeUploads = StatementUpload::whereIn('user_id', $userIds)
             ->whereIn('status', ['queued', 'parsing', 'extracting', 'analyzing'])
             ->count();
 
@@ -44,7 +45,7 @@ class StatementUploadController extends Controller
         // Resolve the target bank account
         if ($bankAccountId) {
             $bankAccount = BankAccount::where('id', $bankAccountId)
-                ->where('user_id', $user->id)
+                ->whereIn('user_id', $userIds)
                 ->firstOrFail();
 
             $bankName = $bankAccount->bankConnection?->institution_name ?? 'Unknown';
@@ -90,7 +91,8 @@ class StatementUploadController extends Controller
 
     public function status(Request $request, StatementUpload $upload): JsonResponse
     {
-        if ($upload->user_id !== $request->user()->id) {
+        $userIds = $request->user()->householdUserIds();
+        if (! in_array($upload->user_id, $userIds)) {
             abort(403);
         }
 
@@ -124,8 +126,8 @@ class StatementUploadController extends Controller
             'upload_ids.*' => 'integer',
         ]);
 
-        $userId = $request->user()->id;
-        $uploads = StatementUpload::where('user_id', $userId)
+        $userIds = $request->user()->householdUserIds();
+        $uploads = StatementUpload::whereIn('user_id', $userIds)
             ->whereIn('id', $request->input('upload_ids'))
             ->get()
             ->keyBy('id');
@@ -193,8 +195,8 @@ class StatementUploadController extends Controller
             'upload_ids.*' => 'integer',
         ]);
 
-        $userId = $request->user()->id;
-        $uploads = StatementUpload::where('user_id', $userId)
+        $userIds = $request->user()->householdUserIds();
+        $uploads = StatementUpload::whereIn('user_id', $userIds)
             ->whereIn('id', $request->input('upload_ids'))
             ->where('status', 'complete')
             ->get();
@@ -266,11 +268,12 @@ class StatementUploadController extends Controller
     public function import(StatementImportRequest $request): JsonResponse
     {
         $user = $request->user();
+        $userIds = $user->householdUserIds();
 
         // Support both single upload_id and batch upload_ids
         $uploadIds = $request->validated('upload_ids') ?? [$request->validated('upload_id')];
 
-        $uploads = StatementUpload::where('user_id', $user->id)
+        $uploads = StatementUpload::whereIn('user_id', $userIds)
             ->whereIn('id', $uploadIds)
             ->get();
 
@@ -325,7 +328,7 @@ class StatementUploadController extends Controller
             // Auto-query emails for receipt matching within the statement date range
             $earliestDate = $uploads->min('date_range_from');
             if ($earliestDate) {
-                $emailConnections = EmailConnection::where('user_id', $user->id)
+                $emailConnections = EmailConnection::whereIn('user_id', $userIds)
                     ->where('status', 'active')
                     ->where('sync_status', '!=', 'syncing')
                     ->get();
@@ -359,7 +362,8 @@ class StatementUploadController extends Controller
 
     public function history(Request $request): JsonResponse
     {
-        $uploads = StatementUpload::where('user_id', $request->user()->id)
+        $userIds = $request->user()->householdUserIds();
+        $uploads = StatementUpload::whereIn('user_id', $userIds)
             ->where('status', 'complete')
             ->orderByDesc('created_at')
             ->get()
@@ -382,7 +386,8 @@ class StatementUploadController extends Controller
 
     public function pending(Request $request): JsonResponse
     {
-        $uploads = StatementUpload::where('user_id', $request->user()->id)
+        $userIds = $request->user()->householdUserIds();
+        $uploads = StatementUpload::whereIn('user_id', $userIds)
             ->whereIn('status', ['queued', 'parsing', 'extracting', 'analyzing'])
             ->orderByDesc('created_at')
             ->get()
@@ -441,15 +446,16 @@ class StatementUploadController extends Controller
     public function gaps(Request $request): JsonResponse
     {
         $user = $request->user();
+        $userIds = $user->householdUserIds();
 
         // Step 1: Identify accounts with statement uploads (gap detection applies to uploaded data)
-        $accountIdsWithUploads = StatementUpload::where('user_id', $user->id)
+        $accountIdsWithUploads = StatementUpload::whereIn('user_id', $userIds)
             ->where('status', 'complete')
             ->whereNotNull('bank_account_id')
             ->distinct()
             ->pluck('bank_account_id');
 
-        $accounts = BankAccount::where('user_id', $user->id)
+        $accounts = BankAccount::whereIn('user_id', $userIds)
             ->where('is_active', true)
             ->whereIn('id', $accountIdsWithUploads)
             ->with('bankConnection:id,institution_name')
@@ -464,7 +470,7 @@ class StatementUploadController extends Controller
         $accountIds = $accounts->pluck('id')->toArray();
 
         // Step 2: Bulk-fetch data (2 queries — no N+1)
-        $txCounts = Transaction::where('user_id', $user->id)
+        $txCounts = Transaction::whereIn('user_id', $userIds)
             ->whereIn('bank_account_id', $accountIds)
             ->select(
                 'bank_account_id',
@@ -481,7 +487,7 @@ class StatementUploadController extends Controller
             $txByAccount[$row->bank_account_id][$row->month] = $row;
         }
 
-        $uploadsByAccount = StatementUpload::where('user_id', $user->id)
+        $uploadsByAccount = StatementUpload::whereIn('user_id', $userIds)
             ->whereIn('bank_account_id', $accountIds)
             ->where('status', 'complete')
             ->whereNotNull('date_range_from')
@@ -491,7 +497,7 @@ class StatementUploadController extends Controller
             ->groupBy('bank_account_id');
 
         $dismissed = DB::table('dismissed_statement_gaps')
-            ->where('user_id', $user->id)
+            ->whereIn('user_id', $userIds)
             ->pluck('gap_key')
             ->flip();
 
@@ -833,7 +839,9 @@ class StatementUploadController extends Controller
 
     private function findOrCreateManualAccount(mixed $user, string $bankName, string $accountType, ?string $nickname): BankAccount
     {
-        $connection = BankConnection::where('user_id', $user->id)
+        $userIds = $user->householdUserIds();
+
+        $connection = BankConnection::whereIn('user_id', $userIds)
             ->where('institution_name', $bankName)
             ->whereNull('plaid_item_id')
             ->first();
@@ -854,7 +862,7 @@ class StatementUploadController extends Controller
             default => ['depository', 'checking'],
         };
 
-        $account = BankAccount::where('user_id', $user->id)
+        $account = BankAccount::whereIn('user_id', $userIds)
             ->where('bank_connection_id', $connection->id)
             ->where('type', $type)
             ->where('subtype', $subtype)

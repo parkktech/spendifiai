@@ -10,9 +10,11 @@ use App\Http\Controllers\Api\AIQuestionController;
 use App\Http\Controllers\Api\BankAccountController;
 use App\Http\Controllers\Api\CookieConsentController;
 use App\Http\Controllers\Api\DashboardController;
+use App\Http\Controllers\Api\DependentController;
 use App\Http\Controllers\Api\DocumentAnnotationController;
 use App\Http\Controllers\Api\DocumentRequestController;
 use App\Http\Controllers\Api\EmailConnectionController;
+use App\Http\Controllers\Api\HouseholdController;
 use App\Http\Controllers\Api\ImpersonationController;
 use App\Http\Controllers\Api\OnboardingController;
 use App\Http\Controllers\Api\OrderItemController;
@@ -95,6 +97,12 @@ Route::post('/v1/webhooks/plaid', [\App\Http\Controllers\Api\PlaidWebhookControl
 Route::get('/v1/email/callback/outlook', [EmailConnectionController::class, 'outlookCallback']);
 
 // ══════════════════════════════════════════════════════════
+// HOUSEHOLD INVITATIONS (public — token-based validation)
+// ══════════════════════════════════════════════════════════
+
+Route::get('/v1/household/invite/{token}', [HouseholdController::class, 'validateInvitation']);
+
+// ══════════════════════════════════════════════════════════
 // COOKIE CONSENT (public, no auth required)
 // ══════════════════════════════════════════════════════════
 
@@ -141,6 +149,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
         // Onboarding
         Route::post('/onboarding/start', [OnboardingController::class, 'start']);
+        Route::post('/onboarding/complete', [OnboardingController::class, 'complete']);
 
         // Dashboard
         Route::get('/dashboard', [DashboardController::class, 'index']);
@@ -184,6 +193,24 @@ Route::middleware(['auth:sanctum'])->group(function () {
             Route::get('/gaps', [StatementUploadController::class, 'gaps']);
             Route::post('/gaps/dismiss', [StatementUploadController::class, 'dismissGap']);
         });
+
+        // Household
+        Route::prefix('household')->group(function () {
+            Route::get('/', [HouseholdController::class, 'show']);
+            Route::post('/', [HouseholdController::class, 'create']);
+            Route::patch('/', [HouseholdController::class, 'update']);
+            Route::post('/invite', [HouseholdController::class, 'invite']);
+            Route::post('/invite/{token}/accept', [HouseholdController::class, 'acceptInvitation']);
+            Route::post('/invite/{token}/revoke', [HouseholdController::class, 'revokeInvitation']);
+            Route::delete('/members/{user}', [HouseholdController::class, 'removeMember']);
+            Route::post('/leave', [HouseholdController::class, 'leave']);
+        });
+
+        // Dependents
+        Route::get('/dependents', [DependentController::class, 'index']);
+        Route::post('/dependents', [DependentController::class, 'store']);
+        Route::patch('/dependents/{dependent}', [DependentController::class, 'update']);
+        Route::delete('/dependents/{dependent}', [DependentController::class, 'destroy']);
 
         // ── Routes requiring a linked bank account ──
         Route::middleware('bank.connected')->group(function () {
