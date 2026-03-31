@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Tax Document Vault & Accountant Portal
 status: executing
-stopped_at: Completed 08-03-PLAN.md
-last_updated: "2026-03-31T03:30:00Z"
-last_activity: 2026-03-31 -- Completed 08-03 document collaboration controllers
+stopped_at: Completed 08-05-PLAN.md
+last_updated: "2026-03-31T03:36:35.285Z"
+last_activity: 2026-03-31 -- Completed 08-05 cross-role authorization and firm tests
 progress:
   total_phases: 9
   completed_phases: 7
   total_plans: 27
-  completed_plans: 25
-  percent: 89
+  completed_plans: 26
+  percent: 96
 ---
 
 # Project State
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-03-30)
 ## Current Position
 
 Phase: 8 of 9 (Accountant Document Collaboration)
-Plan: 3 of 4 in current phase
+Plan: 4 of 4 in current phase (COMPLETE)
 Status: In Progress
-Last activity: 2026-03-31 -- Completed 08-03 document collaboration controllers
+Last activity: 2026-03-31 -- Completed 08-05 cross-role authorization and firm tests
 
-Progress: [█████████░] 89%
+Progress: [██████████] 96%
 
 ## Performance Metrics
 
@@ -58,6 +58,7 @@ Progress: [█████████░] 89%
 | Phase 08 P01 | 3min | 2 tasks | 10 files |
 | Phase 08 P03 | 3min | 2 tasks | 7 files |
 | Phase 08 P02 | 3min | 2 tasks | 16 files |
+| Phase 08 P05 | 4min | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -91,6 +92,7 @@ Recent decisions affecting current work:
 - [Phase 08]: FirmInviteMail uses firm primary_color for branded accent styling
 - [08-03]: class_exists() guards for mail classes from parallel Plan 02 execution
 - [08-03]: Annotation notifications to "other party" (accountant->client, client->all linked accountants)
+- [Phase 08]: Invite page test uses DB lookup instead of HTTP GET due to Blade view cache permission constraint in test env
 
 ### Pending Todos
 
@@ -103,6 +105,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-31T03:30:00Z
-Stopped at: Completed 08-03-PLAN.md
-Resume file: .planning/phases/08-accountant-document-collaboration/08-04-PLAN.md
+Last session: 2026-03-31T03:36:35.284Z
+Stopped at: Completed 08-05-PLAN.md
+Resume file: None
