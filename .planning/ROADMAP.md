@@ -127,11 +127,14 @@ Plans:
   3. Accountant can add threaded annotations/comments on client documents; client sees the annotations on their document detail view
   4. Accountant can request missing documents from a client with a description; client sees requests as alerts with upload prompts
   5. Cross-role authorization tests verify: owner can access own documents, linked accountant can access client documents, unlinked accountant is blocked from accessing other clients' documents
-**Plans**: TBD
+**Plans**: 5 plans
 
 Plans:
-- [ ] 08-01: TBD
-- [ ] 08-02: TBD
+- [ ] 08-01-PLAN.md -- Models, migrations, enum, TypeScript types (AccountingFirm, DocumentAnnotation, DocumentRequest)
+- [ ] 08-02-PLAN.md -- AccountantFirmController, branded invite flow, 5 Mail classes with Blade templates
+- [ ] 08-03-PLAN.md -- DocumentAnnotationController, DocumentRequestController, auto-fulfillment, route wiring
+- [ ] 08-04-PLAN.md -- Accountant Dashboard UI, FirmInvite page, AnnotationThread, DocumentRequestCard components
+- [ ] 08-05-PLAN.md -- Cross-role authorization tests and firm workflow tests
 
 ### Phase 9: Intelligence Layer & Final Validation
 **Goal**: AI detects missing documents from transaction patterns, flags cross-document anomalies, links transactions to documents, and the full milestone passes comprehensive testing and build validation
@@ -162,5 +165,5 @@ Phases execute in numeric order: 6 -> 7 -> 8 -> 9
 | 5. Testing & Deployment | v1.0 | 3/3 | Complete | 2026-02-11 |
 | 6. Document Vault & Audit Foundation | v2.0 | Complete    | 2026-03-31 | 2026-03-31 |
 | 7. AI Document Extraction | 3/3 | Complete    | 2026-03-31 | - |
-| 8. Accountant Document Collaboration | v2.0 | 0/? | Not started | - |
+| 8. Accountant Document Collaboration | v2.0 | 0/5 | Planned | - |
 | 9. Intelligence Layer & Final Validation | v2.0 | 0/? | Not started | - |
