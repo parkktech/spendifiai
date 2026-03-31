@@ -69,6 +69,7 @@ Route::middleware(['auth:sanctum', 'verified'])->group(function () {
 
     // Accountant pages
     Route::get('/accountant/clients', fn () => Inertia::render('Accountant/Clients'))->name('accountant.clients');
+    Route::get('/accountant/dashboard', fn () => Inertia::render('Accountant/Dashboard'))->name('accountant.dashboard');
 
     // Admin pages
     Route::middleware('admin')->group(function () {
