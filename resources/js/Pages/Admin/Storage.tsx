@@ -56,7 +56,7 @@ export default function AdminStorage() {
   const [saveMessage, setSaveMessage] = useState('');
 
   const fetchConfig = useCallback(() => {
-    axios.get<StorageConfig>('/api/v1/admin/storage')
+    axios.get<StorageConfig>('/api/admin/storage')
       .then((res) => {
         setConfig(res.data);
         setSelectedDriver(res.data.driver);
@@ -79,7 +79,7 @@ export default function AdminStorage() {
   const startPolling = () => {
     if (pollRef.current) clearInterval(pollRef.current);
     pollRef.current = setInterval(() => {
-      axios.get<StorageConfig['migration_progress']>('/api/v1/admin/storage/migration-status')
+      axios.get<StorageConfig['migration_progress']>('/api/admin/storage/migration-status')
         .then((res) => {
           setMigrationStatus(res.data);
           if (res.data?.status !== 'running') {
@@ -105,7 +105,7 @@ export default function AdminStorage() {
     setSaveMessage('');
 
     if (driver === 'local') {
-      axios.put('/api/v1/admin/storage', { driver: 'local' })
+      axios.put('/api/admin/storage', { driver: 'local' })
         .then(() => fetchConfig())
         .catch(() => {});
     }
@@ -114,11 +114,11 @@ export default function AdminStorage() {
   const handleTestConnection = () => {
     setTestStatus('testing');
     setTestMessage('');
-    axios.post('/api/v1/admin/storage/test', {
-      bucket,
-      region,
-      access_key: accessKey,
-      secret_key: secretKey,
+    axios.post('/api/admin/storage/test', {
+      s3_bucket: bucket,
+      s3_region: region,
+      s3_key: accessKey,
+      s3_secret: secretKey,
     })
       .then(() => {
         setTestStatus('success');
@@ -133,12 +133,12 @@ export default function AdminStorage() {
   const handleSaveConfig = () => {
     setSaving(true);
     setSaveMessage('');
-    axios.put('/api/v1/admin/storage', {
+    axios.put('/api/admin/storage', {
       driver: 's3',
-      bucket,
-      region,
-      access_key: accessKey,
-      secret_key: secretKey,
+      s3_bucket: bucket,
+      s3_region: region,
+      s3_key: accessKey,
+      s3_secret: secretKey,
     })
       .then(() => {
         setSaveMessage('Configuration saved successfully');
@@ -151,9 +151,10 @@ export default function AdminStorage() {
   };
 
   const handleMigrate = () => {
+    const target = selectedDriver === 'local' ? 's3' : 'local';
     setShowMigrateConfirm(false);
     setMigrating(true);
-    axios.post('/api/v1/admin/storage/migrate')
+    axios.post('/api/admin/storage/migrate', { target_disk: target })
       .then(() => {
         startPolling();
       })
