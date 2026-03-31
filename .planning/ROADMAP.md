@@ -91,13 +91,14 @@ Plans:
   3. All document actions (view, download, upload, delete) are recorded in the audit log, viewable by document owner and their accountant, with hash chain integrity verifiable
   4. Super Admin can toggle between local and S3 storage, configure S3 credentials, test the connection, and trigger document migration
   5. All document access uses time-limited signed URLs -- no direct file paths are ever exposed to the browser
-**Plans**: 4 plans
+**Plans**: 5 plans
 
 Plans:
-- [ ] 06-01-PLAN.md -- Backend foundation: models, migrations, enums, services (TaxDocument, TaxVaultAuditLog, storage + audit services)
-- [ ] 06-02-PLAN.md -- API layer: controllers, routes, form requests, policies, migration job, admin purge
-- [ ] 06-03-PLAN.md -- Vault UI: Tax Vault page, shared components (TaxYearTabs, DocumentCard, DocumentUploadZone, MissingAlertBanner, AuditLogTable)
-- [ ] 06-04-PLAN.md -- Admin Storage page: driver toggle, S3 config, connection test, migration progress
+- [x] 06-01-PLAN.md -- Backend foundation: models, migrations, enums, services (TaxDocument, TaxVaultAuditLog, storage + audit services)
+- [x] 06-02-PLAN.md -- API layer: controllers, routes, form requests, policies, migration job, admin purge
+- [x] 06-03-PLAN.md -- Vault UI: Tax Vault page, shared components (TaxYearTabs, DocumentCard, DocumentUploadZone, MissingAlertBanner, AuditLogTable)
+- [x] 06-04-PLAN.md -- Admin Storage page: driver toggle, S3 config, connection test, migration progress
+- [ ] 06-05-PLAN.md -- Gap closure: fix admin API URLs, S3 field names, migrate payload, category value mismatch
 
 ### Phase 7: AI Document Extraction
 **Goal**: Uploaded documents are automatically classified into tax form types and have structured fields extracted by Claude AI, with per-field confidence scoring and a side-by-side review interface
@@ -158,7 +159,7 @@ Phases execute in numeric order: 6 -> 7 -> 8 -> 9
 | 3. AI Intelligence & Financial Features | v1.0 | 3/3 | Complete | 2026-02-11 |
 | 4. Events, Notifications & Frontend | v1.0 | 3/3 | Complete | 2026-02-11 |
 | 5. Testing & Deployment | v1.0 | 3/3 | Complete | 2026-02-11 |
-| 6. Document Vault & Audit Foundation | 4/4 | Complete   | 2026-03-31 | - |
+| 6. Document Vault & Audit Foundation | v2.0 | 4/5 | Gap closure | 2026-03-31 |
 | 7. AI Document Extraction | v2.0 | 0/? | Not started | - |
 | 8. Accountant Document Collaboration | v2.0 | 0/? | Not started | - |
 | 9. Intelligence Layer & Final Validation | v2.0 | 0/? | Not started | - |
