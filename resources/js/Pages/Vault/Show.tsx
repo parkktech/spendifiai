@@ -1,13 +1,13 @@
 import { useState, useEffect, useRef } from 'react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, Link } from '@inertiajs/react';
-import { ArrowLeft, Archive, RefreshCw, Loader2, AlertTriangle, FileText, Image } from 'lucide-react';
+import { ArrowLeft, Archive, RefreshCw, Loader2, AlertTriangle, FileText, Image, Link2 } from 'lucide-react';
 import { useApi, useApiPost } from '@/hooks/useApi';
 import ExtractionPanel from '@/Components/SpendifiAI/ExtractionPanel';
 import AuditLogTable from '@/Components/SpendifiAI/AuditLogTable';
 import ConfidenceBadge from '@/Components/SpendifiAI/ConfidenceBadge';
 import AnnotationThread from '@/Components/SpendifiAI/AnnotationThread';
-import type { TaxDocument, TaxVaultAuditEntry, DocumentAnnotation } from '@/types/spendifiai';
+import type { TaxDocument, TaxVaultAuditEntry, DocumentAnnotation, IntelligenceResult } from '@/types/spendifiai';
 
 interface ShowProps {
   documentId: number;
@@ -93,6 +93,15 @@ export default function VaultShow({ documentId }: ShowProps) {
   const { data: annotationsData, refresh: refreshAnnotations } = useApi<{ data: DocumentAnnotation[] }>(
     `/api/v1/tax-vault/documents/${documentId}/annotations`,
     { immediate: false },
+  );
+
+  const { data: intelligence } = useApi<IntelligenceResult>(
+    `/api/v1/tax-vault/intelligence?year=${docData?.data?.tax_year ?? new Date().getFullYear()}`,
+    { enabled: !!docData?.data },
+  );
+
+  const linkedTransaction = (intelligence?.transaction_links ?? []).find(
+    (link) => link.document_id === documentId,
   );
 
   const { submit: retryExtraction, loading: retrying } = useApiPost(
@@ -292,6 +301,17 @@ export default function VaultShow({ documentId }: ShowProps) {
               </div>
             )}
           </>
+        )}
+
+        {/* Linked Transactions */}
+        {linkedTransaction && (
+          <div className="flex items-center gap-2 px-4 py-3 rounded-lg bg-sw-card border border-sw-border">
+            <Link2 size={16} className="text-sw-accent" />
+            <span className="text-sm text-sw-text">
+              {linkedTransaction.transaction_count} transaction{linkedTransaction.transaction_count !== 1 ? 's' : ''} linked
+              {' '}(${Number(linkedTransaction.total_amount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} total)
+            </span>
+          </div>
         )}
       </div>
     </AuthenticatedLayout>

@@ -8,7 +8,7 @@ import DocumentCard from '@/Components/SpendifiAI/DocumentCard';
 import DocumentUploadZone from '@/Components/SpendifiAI/DocumentUploadZone';
 import MissingAlertBanner from '@/Components/SpendifiAI/MissingAlertBanner';
 import DocumentRequestCard from '@/Components/SpendifiAI/DocumentRequestCard';
-import type { TaxDocument, TaxDocumentCategory, VaultCategoryCard, DocumentRequest } from '@/types/spendifiai';
+import type { TaxDocument, TaxDocumentCategory, VaultCategoryCard, DocumentRequest, IntelligenceResult } from '@/types/spendifiai';
 
 const currentYear = new Date().getFullYear();
 
@@ -71,13 +71,23 @@ export default function VaultIndex() {
 
   const { data: requestsData } = useApi<{ data: DocumentRequest[] }>('/api/v1/document-requests');
 
+  const { data: intelligence, refresh: refreshIntelligence } = useApi<IntelligenceResult>(
+    `/api/v1/tax-vault/intelligence?year=${selectedYear}`,
+  );
+
   useEffect(() => {
     refresh();
+    refreshIntelligence();
   }, [selectedYear]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const documents = data?.data || [];
   const categoryCards = useMemo(() => buildCategoryCards(documents), [documents]);
   const pendingRequests = (requestsData?.data ?? []).filter((r) => r.status === 'pending');
+
+  const missingAlerts = useMemo(() => [
+    ...(intelligence?.missing_documents ?? []).map((m) => ({ message: m.message, details: m.details })),
+    ...(intelligence?.anomalies ?? []).map((a) => ({ message: a.message, details: a.details })),
+  ], [intelligence]);
 
   const toggleCard = (category: TaxDocumentCategory) => {
     setExpandedCards((prev) => {
@@ -131,8 +141,8 @@ export default function VaultIndex() {
           </div>
         )}
 
-        {/* Missing alert banner -- Phase 9 will populate alerts */}
-        <MissingAlertBanner alerts={[]} />
+        {/* Missing document + anomaly alerts from intelligence */}
+        <MissingAlertBanner alerts={missingAlerts} />
 
         {/* Year tabs */}
         <TaxYearTabs

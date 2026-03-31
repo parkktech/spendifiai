@@ -947,6 +947,37 @@ export interface AdminConsentStats {
   region_breakdown: Record<string, number>;
 }
 
+// --- Intelligence Types ---
+
+export interface MissingDocumentAlert {
+  message: string;
+  details: string;
+  category: string;
+  severity: 'info' | 'warning' | 'alert';
+  merchant: string;
+  total_amount: number;
+}
+
+export interface DocumentAnomaly {
+  message: string;
+  details: string;
+  severity: 'info' | 'warning' | 'alert';
+  document_id: number;
+}
+
+export interface TransactionLink {
+  document_id: number;
+  document_name: string;
+  transaction_count: number;
+  total_amount: number;
+}
+
+export interface IntelligenceResult {
+  missing_documents: MissingDocumentAlert[];
+  anomalies: DocumentAnomaly[];
+  transaction_links: TransactionLink[];
+}
+
 // --- Accountant Types ---
 
 export interface AccountantClient {
