@@ -1,3 +1,39 @@
+export type DocumentStatus = 'upload' | 'classifying' | 'extracting' | 'ready' | 'failed';
+export type TaxDocumentCategory = 'w2' | '1099_nec' | '1099_int' | '1099_misc' | '1099_div' | '1098' | 'receipts' | 'other';
+
+export interface TaxDocument {
+  id: number;
+  original_filename: string;
+  mime_type: string;
+  file_size: number;
+  file_hash: string;
+  tax_year: number;
+  category: TaxDocumentCategory | null;
+  status: DocumentStatus;
+  classification_confidence: number | null;
+  created_at: string;
+  updated_at: string;
+  signed_url: string;
+}
+
+export interface TaxVaultAuditEntry {
+  id: number;
+  action: string;
+  user: { id: number; name: string };
+  metadata: Record<string, any> | null;
+  created_at: string;
+  ip_address?: string;
+  user_agent?: string;
+}
+
+export interface VaultCategoryCard {
+  category: TaxDocumentCategory;
+  label: string;
+  count: number;
+  statuses: { ready: number; processing: number; failed: number };
+  documents: TaxDocument[];
+}
+
 export type ActionResponseType = 'cancelled' | 'reduced' | 'kept';
 
 export interface TransactionOrderItem {
@@ -927,6 +963,23 @@ export interface AccountantInvite {
     invited_by: 'client' | 'accountant';
     can_respond: boolean;
     created_at: string;
+}
+
+// --- Storage Config Types ---
+
+export interface StorageConfig {
+  driver: 'local' | 's3';
+  stats: {
+    total_documents: number;
+    total_size_bytes: number;
+    active_driver: string;
+  };
+  migration_progress: {
+    total: number;
+    migrated: number;
+    status: 'idle' | 'running' | 'complete' | 'failed';
+    error?: string;
+  } | null;
 }
 
 export interface AdminConsentUser {

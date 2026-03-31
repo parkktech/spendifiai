@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useMemo } from 'react';
 import { Upload, FileText, X, AlertCircle } from 'lucide-react';
 
 interface FileDropZoneProps {
@@ -12,10 +12,15 @@ interface FileDropZoneProps {
   selectedFiles?: File[];
   onClearFile?: (index: number) => void;
   maxFiles?: number;
+  // Configurable accepted types (override defaults when provided)
+  acceptedExtensions?: string[];
+  acceptedMimes?: string[];
+  // Upload progress callback
+  onProgress?: (percent: number) => void;
 }
 
-const ACCEPTED_EXTENSIONS = ['.pdf', '.csv'];
-const ACCEPTED_MIMES = [
+const DEFAULT_EXTENSIONS = ['.pdf', '.csv'];
+const DEFAULT_MIMES = [
   'application/pdf',
   'text/csv',
   'application/vnd.ms-excel',
@@ -30,7 +35,50 @@ function formatFileSize(bytes: number): string {
 
 function getFileIcon(file: File): string {
   if (file.type === 'application/pdf' || file.name.endsWith('.pdf')) return 'PDF';
+  if (file.type.startsWith('image/') || /\.(jpg|jpeg|png)$/i.test(file.name)) return 'IMG';
   return 'CSV';
+}
+
+function getFileIconStyle(fileType: string): string {
+  if (fileType === 'PDF') return 'bg-red-50 text-red-600 border border-red-200';
+  if (fileType === 'IMG') return 'bg-blue-50 text-blue-600 border border-blue-200';
+  return 'bg-emerald-50 text-emerald-600 border border-emerald-200';
+}
+
+/** Build the accept string for <input> from extensions + mimes */
+function buildAcceptString(extensions: string[], mimes: string[]): string {
+  return [...extensions, ...mimes].join(',');
+}
+
+/** Human-readable label for accepted extensions */
+function extensionLabels(extensions: string[]): { label: string; style: string }[] {
+  const labels: { label: string; style: string }[] = [];
+  const seen = new Set<string>();
+  for (const ext of extensions) {
+    const upper = ext.replace('.', '').toUpperCase();
+    if (upper === 'JPG' || upper === 'JPEG') {
+      if (!seen.has('JPG')) {
+        labels.push({ label: 'JPG', style: 'bg-blue-50 border-blue-200 text-blue-600' });
+        seen.add('JPG');
+      }
+    } else if (upper === 'PNG') {
+      if (!seen.has('PNG')) {
+        labels.push({ label: 'PNG', style: 'bg-blue-50 border-blue-200 text-blue-600' });
+        seen.add('PNG');
+      }
+    } else if (upper === 'PDF') {
+      if (!seen.has('PDF')) {
+        labels.push({ label: 'PDF', style: 'bg-red-50 border-red-200 text-red-600' });
+        seen.add('PDF');
+      }
+    } else if (upper === 'CSV') {
+      if (!seen.has('CSV')) {
+        labels.push({ label: 'CSV', style: 'bg-emerald-50 border-emerald-200 text-emerald-600' });
+        seen.add('CSV');
+      }
+    }
+  }
+  return labels;
 }
 
 export default function FileDropZone({
@@ -43,23 +91,32 @@ export default function FileDropZone({
   selectedFiles = [],
   onClearFile,
   maxFiles = 24,
+  acceptedExtensions,
+  acceptedMimes,
+  onProgress: _onProgress,
 }: FileDropZoneProps) {
   const [isDragging, setIsDragging] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  const extensions = acceptedExtensions || DEFAULT_EXTENSIONS;
+  const mimes = acceptedMimes || DEFAULT_MIMES;
+  const acceptString = useMemo(() => buildAcceptString(extensions, mimes), [extensions, mimes]);
+  const typeBadges = useMemo(() => extensionLabels(extensions), [extensions]);
+
   const validateFile = useCallback(
     (file: File): string | null => {
       const extension = '.' + file.name.split('.').pop()?.toLowerCase();
-      if (!ACCEPTED_EXTENSIONS.includes(extension)) {
-        return `"${file.name}" is not a supported file type. Please upload PDF or CSV files.`;
+      if (!extensions.includes(extension)) {
+        const allowed = extensions.map(e => e.replace('.', '').toUpperCase()).join(', ');
+        return `"${file.name}" is not a supported file type. Accepted: ${allowed}.`;
       }
       if (file.size > maxSizeMb * 1024 * 1024) {
         return `"${file.name}" is too large. Maximum size is ${maxSizeMb}MB.`;
       }
       return null;
     },
-    [maxSizeMb],
+    [maxSizeMb, extensions],
   );
 
   // Single file handler
@@ -183,11 +240,7 @@ export default function FileDropZone({
                 className="flex items-center gap-3 px-3 py-2 rounded-lg bg-sw-card border border-sw-border/50"
               >
                 <span
-                  className={`shrink-0 px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wide ${
-                    fileType === 'PDF'
-                      ? 'bg-red-50 text-red-600 border border-red-200'
-                      : 'bg-emerald-50 text-emerald-600 border border-emerald-200'
-                  }`}
+                  className={`shrink-0 px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wide ${getFileIconStyle(fileType)}`}
                 >
                   {fileType}
                 </span>
@@ -261,7 +314,7 @@ export default function FileDropZone({
         <input
           ref={inputRef}
           type="file"
-          accept=".pdf,.csv,application/pdf,text/csv"
+          accept={acceptString}
           onChange={handleInputChange}
           className="hidden"
           aria-hidden="true"
@@ -359,8 +412,8 @@ export default function FileDropZone({
             {isDragging
               ? `Drop your file${multiple ? 's' : ''} here`
               : multiple
-                ? 'Drag and drop your statements'
-                : 'Drag and drop your statement'}
+                ? 'Drag and drop your files'
+                : 'Drag and drop your file'}
           </p>
           <p className="text-xs text-sw-muted mt-1">
             or{' '}
@@ -374,12 +427,14 @@ export default function FileDropZone({
         </div>
 
         <div className="flex items-center gap-3 mt-1">
-          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-red-50 border border-red-200 text-[10px] font-semibold text-red-600 uppercase tracking-wide">
-            PDF
-          </span>
-          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-emerald-50 border border-emerald-200 text-[10px] font-semibold text-emerald-600 uppercase tracking-wide">
-            CSV
-          </span>
+          {typeBadges.map((badge) => (
+            <span
+              key={badge.label}
+              className={`inline-flex items-center gap-1 px-2 py-1 rounded-md border text-[10px] font-semibold uppercase tracking-wide ${badge.style}`}
+            >
+              {badge.label}
+            </span>
+          ))}
           <span className="text-[11px] text-sw-dim">
             Up to {maxSizeMb}MB each
           </span>
@@ -388,7 +443,7 @@ export default function FileDropZone({
         <input
           ref={inputRef}
           type="file"
-          accept=".pdf,.csv,application/pdf,text/csv"
+          accept={acceptString}
           onChange={handleInputChange}
           className="hidden"
           aria-hidden="true"
