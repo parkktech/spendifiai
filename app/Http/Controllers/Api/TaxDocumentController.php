@@ -11,6 +11,7 @@ use App\Jobs\ExtractTaxDocument;
 use App\Models\AccountantClient;
 use App\Models\DocumentRequest;
 use App\Models\TaxDocument;
+use App\Services\AI\TaxDocumentIntelligenceService;
 use App\Services\TaxVaultAuditService;
 use App\Services\TaxVaultStorageService;
 use Illuminate\Http\JsonResponse;
@@ -22,6 +23,7 @@ class TaxDocumentController extends Controller
     public function __construct(
         private readonly TaxVaultStorageService $storageService,
         private readonly TaxVaultAuditService $auditService,
+        private readonly TaxDocumentIntelligenceService $intelligenceService,
     ) {}
 
     /**
@@ -72,6 +74,9 @@ class TaxDocumentController extends Controller
         ]);
 
         ExtractTaxDocument::dispatch($document->id);
+
+        // Invalidate intelligence cache for this tax year
+        TaxDocumentIntelligenceService::invalidateCache($user->id, $taxYear);
 
         // Auto-fulfill matching pending document requests
         $this->autoFulfillRequests($document);
@@ -229,6 +234,22 @@ class TaxDocumentController extends Controller
         $this->auditService->log($document, $request->user(), 'fields_accepted', $request);
 
         return response()->json(['success' => true]);
+    }
+
+    /**
+     * Cross-reference intelligence: missing documents, anomalies, transaction links.
+     */
+    public function intelligence(Request $request): JsonResponse
+    {
+        $year = (int) ($request->query('year', (string) now()->year));
+
+        if ($year < 2000 || $year > 2099) {
+            return response()->json(['error' => 'Year must be between 2000 and 2099'], 422);
+        }
+
+        $result = $this->intelligenceService->analyze($request->user()->id, $year);
+
+        return response()->json($result);
     }
 
     /**

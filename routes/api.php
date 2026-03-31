@@ -272,6 +272,9 @@ Route::middleware(['auth:sanctum'])->group(function () {
             // Client annotations on own documents
             Route::get('/documents/{document}/annotations', [DocumentAnnotationController::class, 'index']);
             Route::post('/documents/{document}/annotations', [DocumentAnnotationController::class, 'store']);
+
+            // Intelligence: cross-reference analysis
+            Route::get('/intelligence', [TaxDocumentController::class, 'intelligence']);
         });
 
         // Client document requests
