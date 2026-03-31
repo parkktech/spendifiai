@@ -35,6 +35,20 @@ Route::get('/security-policy', fn () => Inertia::render('Legal/Security'))->name
 // ── Google OAuth Frontend Callback ──
 Route::get('/auth/callback', fn () => Inertia::render('Auth/GoogleCallback'))->name('auth.callback');
 
+// ── Firm Invite (public branded page) ──
+Route::get('/invite/{token}', function (string $token) {
+    $firm = \App\Models\AccountingFirm::where('invite_token', $token)->firstOrFail();
+
+    return Inertia::render('Auth/FirmInvite', [
+        'firm' => [
+            'name' => $firm->name,
+            'logo_url' => $firm->logo_url,
+            'primary_color' => $firm->primary_color ?? '#0D9488',
+        ],
+        'token' => $token,
+    ]);
+})->name('firm.invite');
+
 // ── Inertia SPA Pages (with Sanctum token auth for SPA) ──
 Route::middleware(['auth:sanctum', 'verified'])->group(function () {
     Route::get('/onboarding', fn () => Inertia::render('Onboarding/Index'))->name('onboarding');

@@ -4,11 +4,14 @@ use App\Http\Controllers\Admin\CancellationProviderController;
 use App\Http\Controllers\Admin\CharitableOrganizationController;
 use App\Http\Controllers\Admin\ConsentAdminController;
 use App\Http\Controllers\Api\AccountantController;
+use App\Http\Controllers\Api\AccountantFirmController;
 use App\Http\Controllers\Api\AccountantTaxController;
 use App\Http\Controllers\Api\AIQuestionController;
 use App\Http\Controllers\Api\BankAccountController;
 use App\Http\Controllers\Api\CookieConsentController;
 use App\Http\Controllers\Api\DashboardController;
+use App\Http\Controllers\Api\DocumentAnnotationController;
+use App\Http\Controllers\Api\DocumentRequestController;
 use App\Http\Controllers\Api\EmailConnectionController;
 use App\Http\Controllers\Api\ImpersonationController;
 use App\Http\Controllers\Api\OnboardingController;
@@ -314,6 +317,14 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
     // ─── Accountant-Only Routes ───
     Route::prefix('v1/accountant')->middleware(['throttle:120,1', 'accountant'])->group(function () {
+        // Firm management
+        Route::post('/firm', [AccountantFirmController::class, 'store']);
+        Route::get('/firm', [AccountantFirmController::class, 'show']);
+        Route::patch('/firm', [AccountantFirmController::class, 'update']);
+        Route::get('/firm/invite-link', [AccountantFirmController::class, 'inviteLink']);
+        Route::post('/firm/invite-link/regenerate', [AccountantFirmController::class, 'regenerateInviteLink']);
+        Route::get('/dashboard', [AccountantFirmController::class, 'dashboard']);
+
         Route::get('/clients', [AccountantController::class, 'clients']);
         Route::get('/clients/{client}/summary', [AccountantController::class, 'clientSummary']);
         Route::post('/clients/invite', [AccountantController::class, 'inviteClient']);

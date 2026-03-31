@@ -115,6 +115,18 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Tax Filing Deadlines (Accountant Dashboard)
+    |--------------------------------------------------------------------------
+    */
+    'tax_deadlines' => [
+        ['label' => 'Corporate/Partnership/S-Corp (Form 1065/1120-S)', 'date' => now()->year.'-03-15', 'type' => 'corporate'],
+        ['label' => 'Individual (Form 1040)', 'date' => now()->year.'-04-15', 'type' => 'individual'],
+        ['label' => 'Corporate Extension (Form 7004)', 'date' => now()->year.'-09-15', 'type' => 'corporate_extension'],
+        ['label' => 'Individual Extension (Form 4868)', 'date' => now()->year.'-10-15', 'type' => 'individual_extension'],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Tax Document Vault
     |--------------------------------------------------------------------------
     */
