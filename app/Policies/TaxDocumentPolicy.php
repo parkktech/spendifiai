@@ -60,4 +60,20 @@ class TaxDocumentPolicy
     {
         return $this->view($user, $document);
     }
+
+    /**
+     * Owner or linked accountant can annotate a document.
+     */
+    public function annotate(User $user, TaxDocument $document): bool
+    {
+        return $this->view($user, $document);
+    }
+
+    /**
+     * Only accountant users can create document requests.
+     */
+    public function requestDocument(User $user): bool
+    {
+        return $user->isAccountant();
+    }
 }
