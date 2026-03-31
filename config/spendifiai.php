@@ -18,6 +18,12 @@ return [
             'ask_question' => 0.40,  // Generate question for user
             // Below 0.40 → open-ended question
         ],
+        'extraction_thresholds' => [
+            'classification_gate' => 0.70,  // Below this: skip extraction, flag for manual review
+            'field_auto_accept' => 0.85,    // Green badge
+            'field_review' => 0.60,         // Amber badge
+            // Below 0.60: Red badge
+        ],
         'alternatives' => [
             'cache_days' => 7,
             'max_per_item' => 4,
