@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Enums\UserType;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
@@ -36,6 +37,7 @@ class User extends Authenticatable implements MustVerifyEmail
         'two_factor_secret',
         'two_factor_recovery_codes',
         'two_factor_confirmed_at',
+        'accounting_firm_id',
     ];
 
     protected $hidden = [
@@ -148,6 +150,21 @@ class User extends Authenticatable implements MustVerifyEmail
     public function taxDocuments(): HasMany
     {
         return $this->hasMany(TaxDocument::class);
+    }
+
+    public function accountingFirm(): BelongsTo
+    {
+        return $this->belongsTo(AccountingFirm::class);
+    }
+
+    public function documentAnnotations(): HasMany
+    {
+        return $this->hasMany(DocumentAnnotation::class);
+    }
+
+    public function documentRequests(): HasMany
+    {
+        return $this->hasMany(DocumentRequest::class, 'client_id');
     }
 
     // ─── Helpers ───
