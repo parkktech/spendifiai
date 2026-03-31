@@ -145,6 +145,11 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->hasMany(UserTaxDeduction::class);
     }
 
+    public function taxDocuments(): HasMany
+    {
+        return $this->hasMany(TaxDocument::class);
+    }
+
     // ─── Helpers ───
 
     public function hasBankConnected(): bool

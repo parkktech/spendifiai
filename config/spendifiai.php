@@ -109,6 +109,26 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Tax Document Vault
+    |--------------------------------------------------------------------------
+    */
+    'vault' => [
+        'max_file_size_mb' => 100,
+        'allowed_mimes' => ['application/pdf', 'image/jpeg', 'image/png'],
+        'allowed_extensions' => ['pdf', 'jpg', 'jpeg', 'png'],
+        'storage_driver' => env('TAX_VAULT_STORAGE', 'local'),
+        'local_path' => 'tax-vault',
+        'signed_url_expiry_minutes' => 15,
+        's3' => [
+            'bucket' => env('TAX_VAULT_S3_BUCKET'),
+            'region' => env('TAX_VAULT_S3_REGION'),
+            'key' => env('TAX_VAULT_S3_KEY'),
+            'secret' => env('TAX_VAULT_S3_SECRET'),
+        ],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Cookie Consent
     |--------------------------------------------------------------------------
     */
