@@ -49,6 +49,9 @@ Route::middleware(['auth:sanctum', 'verified'])->group(function () {
 
     // Tax Vault
     Route::get('/vault', fn () => Inertia::render('Vault/Index'))->name('vault');
+    Route::get('/vault/documents/{document}', fn (\App\Models\TaxDocument $document) => Inertia::render('Vault/Show', [
+        'documentId' => $document->id,
+    ]))->name('vault.document');
 
     // Accountant pages
     Route::get('/accountant/clients', fn () => Inertia::render('Accountant/Clients'))->name('accountant.clients');
