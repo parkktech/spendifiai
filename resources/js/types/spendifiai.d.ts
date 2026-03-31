@@ -29,6 +29,7 @@ export interface TaxDocument {
   status: DocumentStatus;
   classification_confidence: number | null;
   extracted_data: ExtractedData | null;
+  annotations?: DocumentAnnotation[];
   created_at: string;
   updated_at: string;
   signed_url: string;
@@ -1013,4 +1014,49 @@ export interface AdminConsentUser {
     last_updated: string;
     action: string;
   } | null;
+}
+
+// --- Accountant Collaboration Types ---
+
+export interface AccountingFirm {
+    id: number;
+    name: string;
+    address?: string;
+    phone?: string;
+    logo_url?: string;
+    primary_color?: string;
+    invite_token?: string;
+    created_at: string;
+}
+
+export interface DocumentAnnotation {
+    id: number;
+    tax_document_id: number;
+    user_id: number;
+    parent_id: number | null;
+    body: string;
+    author: {
+        id: number;
+        name: string;
+        user_type: 'personal' | 'accountant';
+    };
+    replies: DocumentAnnotation[];
+    created_at: string;
+}
+
+export type DocumentRequestStatus = 'pending' | 'uploaded' | 'dismissed';
+
+export interface DocumentRequest {
+    id: number;
+    accounting_firm_id: number;
+    client_id: number;
+    accountant_id: number;
+    description: string;
+    tax_year?: number;
+    category?: string;
+    category_label?: string;
+    status: DocumentRequestStatus;
+    fulfilled_document_id?: number;
+    accountant_name: string;
+    created_at: string;
 }
