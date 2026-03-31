@@ -145,11 +145,12 @@ Plans:
   2. Cross-document anomaly detection flags discrepancies (e.g., W-2 wages vs bank deposit totals) and surfaces them in the user's vault view
   3. Transactions are linked to their corresponding tax documents (e.g., 1099 linked to freelance deposits) and the links are visible in both transaction and document views
   4. Feature tests cover all new API endpoints across document upload, extraction, accountant access, and audit log; `npm run build` succeeds with zero TypeScript errors; `vendor/bin/pint` reports no formatting issues
-**Plans**: TBD
+**Plans**: 3 plans
 
 Plans:
-- [ ] 09-01: TBD
-- [ ] 09-02: TBD
+- [ ] 09-01-PLAN.md -- Intelligence backend: TaxDocumentIntelligenceService, pivot migration, config, API endpoint, model relationships
+- [ ] 09-02-PLAN.md -- Intelligence frontend integration, vault endpoint tests, intelligence tests
+- [ ] 09-03-PLAN.md -- Build validation: TypeScript build, Pint formatting, full test suite
 
 ## Progress
 
@@ -166,4 +167,4 @@ Phases execute in numeric order: 6 -> 7 -> 8 -> 9
 | 6. Document Vault & Audit Foundation | v2.0 | Complete    | 2026-03-31 | 2026-03-31 |
 | 7. AI Document Extraction | 3/3 | Complete    | 2026-03-31 | - |
 | 8. Accountant Document Collaboration | 3/5 | Complete    | 2026-03-31 | - |
-| 9. Intelligence Layer & Final Validation | v2.0 | 0/? | Not started | - |
+| 9. Intelligence Layer & Final Validation | v2.0 | 0/3 | Not started | - |
