@@ -8,20 +8,9 @@ SpendifiAI is an AI-powered personal finance platform built for freelancers, sma
 
 Users connect their bank and immediately get intelligent, automatic categorization of every transaction — with business/personal separation, tax deduction flagging, and AI-generated questions when confidence is low — so they never have to manually sort expenses again. Tax accountants get a secure portal to review client documents, request missing items, annotate extractions, and co-sign tax year completion.
 
-## Current Milestone: v2.0 Tax Document Vault & Accountant Portal
+## Current State
 
-**Goal:** Build a secure document vault for tax documents with AI-powered extraction, an accountant portal for firm-based client management, and a dual sign-off workflow — making SpendifiAI the bridge between taxpayers and their accountants.
-
-**Target features:**
-- Secure tax document vault with upload, AI classification, and field extraction (25 form types)
-- Accountant portal with firm registration, branded invites, client management dashboard
-- Dual sign-off workflow for tax year completion (taxpayer + accountant)
-- Document sharing packages with time-limited signed URLs
-- Tax worksheets with auto-populated fields from AI extraction
-- Missing document detection and accountant-initiated document requests
-- Immutable audit trail for all document actions
-- Super Admin document storage configuration (local filesystem + S3)
-- Annotation/comment threads on documents between taxpayer and accountant
+v2.0 shipped 2026-03-31. No active milestone — ready for v2.1 planning.
 
 ## Requirements
 
@@ -40,22 +29,24 @@ Users connect their bank and immediately get intelligent, automatic categorizati
 - ✓ Dashboard, Transactions, Subscriptions, Savings, Tax, Connect, Settings, AI Questions pages — v1.0
 - ✓ Background jobs, event-driven architecture, notifications — v1.0
 - ✓ Full test suite and CI/CD pipeline — v1.0
+- ✓ Tax Document Vault with upload, AI classification, local/S3 storage, signed URLs — v2.0
+- ✓ AI-powered document extraction (25 form types, two-pass classify→extract, per-field confidence) — v2.0
+- ✓ Immutable hash-chain audit trail for all document actions — v2.0
+- ✓ Super Admin document storage configuration (local + S3 toggle with live migration) — v2.0
+- ✓ Accountant portal with firm registration, branded invite links, client dashboard — v2.0
+- ✓ Document annotations (threaded comments between taxpayer and accountant) — v2.0
+- ✓ Missing document detection from transaction patterns + accountant-initiated requests — v2.0
+- ✓ Cross-document anomaly detection (W-2 wages vs deposits, 1099 amounts vs income) — v2.0
+- ✓ Transaction-to-document linking — v2.0
+- ✓ 225 tests (761 assertions), zero build errors — v2.0
 
 ### Active
 
-- [ ] Tax Document Vault with upload, AI classification, and storage (local + S3)
-- [ ] AI-powered tax document extraction (25 form types, two-pass classify→extract pipeline)
-- [ ] Tax worksheets with auto-populated fields from extraction data
-- [ ] Document annotation/comment threads between taxpayer and accountant
-- [ ] Missing document detection and accountant-initiated document requests
-- [ ] Accountant portal with firm registration and branded invite onboarding
-- [ ] Accountant client management dashboard with deadline tracking
-- [ ] Dual sign-off workflow for tax year completion
+- [ ] Dual sign-off workflow for tax year completion (taxpayer + accountant attestation)
+- [ ] Tax worksheets with auto-populated fields from AI extraction data
 - [ ] Document sharing packages with time-limited signed URLs
-- [ ] Immutable audit trail for all document actions
-- [ ] Super Admin document storage configuration (local + S3 toggle)
-- [ ] Anomaly detection on extracted document data (cross-document validation)
-- [ ] Tax software export format generation (TurboTax, H&R Block, etc.)
+- [ ] Tax software export format generation (TurboTax TXF, H&R Block)
+- [ ] Multi-accountant firm support (team members, roles, permissions)
 
 ### Out of Scope
 
@@ -71,30 +62,16 @@ Users connect their bank and immediately get intelligent, automatic categorizati
 
 ## Context
 
-### Existing Codebase (~60% complete)
-The project has substantial existing code in `existing-code/` that needs to be integrated into a fresh Laravel 12 project:
-- **16 Eloquent models** — all complete with typed casts, relationships, scopes, $hidden, $fillable
-- **5 auth controllers** — registration, login, Google OAuth, 2FA, password reset, email verification
-- **7 services** — PlaidService, TransactionCategorizerService, SavingsAnalyzerService, SavingsTargetPlannerService, SubscriptionDetectorService, TaxExportService, CaptchaService
-- **1 monolithic controller** (SpendWiseController, ~939 lines) — all endpoint logic, needs splitting into 10 focused controllers
-- **7 PHP 8.2 backed enums** — AccountPurpose, ConnectionStatus, ExpenseType, QuestionStatus, QuestionType, ReviewStatus, SubscriptionStatus
-- **4 middleware** — VerifyCaptcha, EnsureBankConnected, EnsureProfileComplete, Enforce2FA
-- **4 policies** — Transaction, BankAccount, AIQuestion, Subscription
-- **5 database migrations** — 14+ core tables, account purpose, savings targets, auth columns, encryption column changes
-- **1 seeder** — ExpenseCategorySeeder (50+ IRS-mapped categories)
-- **1 job** — CategorizePendingTransactions
-- **Expense parser module** — partially built (GmailService, EmailParserService, ReconciliationService, ProcessOrderEmails job)
-- **Reference dashboard** — React prototype (reference-dashboard.jsx) with 5 pages using mock data
-- **Routes** — api.php already references target controllers that don't exist yet
-- **Config** — spendwise.php, services.php, fortify.php all configured
-- **Python scripts** — generate_tax_excel.py, generate_tax_pdf.py for tax export
-- **Plaid sandbox credentials** — pre-configured in .env, ready to use
-
-### Transaction History
-Plaid sync should pull transaction history up to 12 months back or to the beginning of the previous calendar year, whichever provides more data.
-
-### Frontend Design Reference
-The reference-dashboard.jsx prototype should be matched closely when building the real Inertia/React/TypeScript pages. Same layout, same flow — rebuilt properly with shadcn/ui components and real API calls.
+### Current Codebase (v2.0 shipped)
+- **33+ Eloquent models** including TaxDocument, TaxVaultAuditLog, AccountingFirm, DocumentAnnotation, DocumentRequest
+- **15+ API controllers** across auth, transactions, vault, accountant, admin
+- **14+ services** in app/Services/ and app/Services/AI/ including TaxDocumentExtractorService, TaxDocumentIntelligenceService
+- **10+ PHP 8.3 backed enums** including DocumentStatus, TaxDocumentCategory (25 types), DocumentRequestStatus
+- **225 tests (761 assertions)** — comprehensive coverage of vault, extraction, accountant, intelligence
+- **28+ Inertia pages** including Vault, Document Detail, Accountant Dashboard, Admin Storage
+- **20+ shared React components** in Components/SpendifiAI/
+- **5 Mail classes** for accountant collaboration workflows
+- Clean build: zero TypeScript errors, zero Pint formatting issues
 
 ## Constraints
 
@@ -120,13 +97,16 @@ The reference-dashboard.jsx prototype should be matched closely when building th
 | Free for now, monetize later | Build value first — billing infrastructure deferred to post-v1 | — Pending |
 | Email parsing in v1 | Core differentiator — matching receipts to bank charges adds unique value | — Pending |
 | Match reference dashboard closely | Consistent design vision — prototype already captures intended UX | ✓ Good |
-| Local-first document storage with S3 config switch | Simplifies dev/staging, S3 for production — runtime toggle in Super Admin | — Pending |
-| SSN last-4 only, EIN encrypted | Minimize PII exposure — compliance-first approach | — Pending |
-| Immutable audit log (no update/delete) | Regulatory compliance — full traceability of document access | — Pending |
-| Two-pass AI extraction (classify→extract) | Classification confidence gates extraction — prevents wasted API calls | — Pending |
-| Accountant onboarding via branded invite links | Friction-free onboarding — accountant shares link, clients self-register | — Pending |
-| Dual sign-off workflow | Both taxpayer and accountant must approve before tax year marked filed | — Pending |
-| Signed URLs for all document access | No direct file paths exposed — time-limited, tamper-proof access | — Pending |
+| Local-first document storage with S3 config switch | Simplifies dev/staging, S3 for production — runtime toggle in Super Admin | ✓ Good |
+| SSN last-4 only, EIN encrypted | Minimize PII exposure — compliance-first approach | ✓ Good |
+| Immutable audit log (no update/delete) | Regulatory compliance — full traceability of document access | ✓ Good |
+| Two-pass AI extraction (classify→extract) | Classification confidence gates extraction — prevents wasted API calls | ✓ Good |
+| Accountant onboarding via branded invite links | Friction-free onboarding — accountant shares link, clients self-register | ✓ Good |
+| Dual sign-off workflow | Both taxpayer and accountant must approve before tax year marked filed | — Deferred to v2.1 |
+| Signed URLs for all document access | No direct file paths exposed — time-limited, tamper-proof access | ✓ Good |
+| PostgreSQL BEFORE triggers over RULES for audit immutability | RULES conflicted with FK cascade operations — BEFORE triggers allow selective nullification | ✓ Good |
+| On-demand intelligence with 4-hour cache | No background jobs for intelligence — cached analysis on vault page load | ✓ Good |
+| $600 IRS threshold for missing document detection | Filters noise — only flags when income exceeds reporting threshold | ✓ Good |
 
 ---
-*Last updated: 2026-03-30 after v2.0 milestone initialization*
+*Last updated: 2026-03-31 after v2.0 milestone completion*
