@@ -56,7 +56,7 @@ Requirements for Tax Document Vault & Accountant Portal milestone. Each maps to 
 - [x] **INTEL-01**: AI detects missing documents by cross-referencing Plaid transaction categories with expected tax form types
 - [x] **INTEL-02**: Cross-document anomaly detection (e.g., W-2 wages vs bank deposit totals)
 - [x] **INTEL-03**: Transaction-to-document linking (1099 linked to associated freelance deposits)
-- [ ] **INTEL-04**: Missing document alerts shown to user with explanation of why document is expected
+- [x] **INTEL-04**: Missing document alerts shown to user with explanation of why document is expected
 
 ### Frontend
 
@@ -69,7 +69,7 @@ Requirements for Tax Document Vault & Accountant Portal milestone. Each maps to 
 
 ### Testing
 
-- [ ] **TEST-01**: Feature tests for all new API endpoints (document upload, extraction, accountant access, audit log)
+- [x] **TEST-01**: Feature tests for all new API endpoints (document upload, extraction, accountant access, audit log)
 - [x] **TEST-02**: Unit tests for TaxDocumentStorageService, TaxDocumentExtractorService, TaxWorksheetService, TaxVaultAuditService
 - [x] **TEST-03**: AI extraction tests mock Claude API via `Http::fake()` -- no live API calls
 - [x] **TEST-04**: Cross-role authorization tests (owner access, accountant access, wrong-accountant blocked)
@@ -150,14 +150,14 @@ Deferred to next milestone. Tracked but not in current roadmap.
 | INTEL-01 | Phase 9 | Complete |
 | INTEL-02 | Phase 9 | Complete |
 | INTEL-03 | Phase 9 | Complete |
-| INTEL-04 | Phase 9 | Pending |
+| INTEL-04 | Phase 9 | Complete |
 | UI-01 | Phase 6 | Complete |
 | UI-02 | Phase 7 | Complete |
 | UI-03 | Phase 8 | Complete |
 | UI-04a | Phase 6 | Complete |
 | UI-04b | Phase 7, 8 | Complete |
 | UI-05 | Phase 6 | Complete |
-| TEST-01 | Phase 9 | Pending |
+| TEST-01 | Phase 9 | Complete |
 | TEST-02 | Phase 7 | Complete |
 | TEST-03 | Phase 7 | Complete |
 | TEST-04 | Phase 8 | Complete |
