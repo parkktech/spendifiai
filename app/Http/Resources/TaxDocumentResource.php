@@ -23,6 +23,7 @@ class TaxDocumentResource extends JsonResource
             'category_label' => $this->category?->label(),
             'status' => $this->status?->value,
             'classification_confidence' => $this->classification_confidence ? (float) $this->classification_confidence : null,
+            'extracted_data' => $this->when($this->extracted_data !== null, $this->extracted_data),
             'created_at' => $this->created_at?->toIso8601String(),
             'updated_at' => $this->updated_at?->toIso8601String(),
             'signed_url' => $storageService->getSignedUrl($this->resource),

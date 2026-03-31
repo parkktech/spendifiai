@@ -260,6 +260,9 @@ Route::middleware(['auth:sanctum'])->group(function () {
             Route::get('/documents/{document}', [TaxDocumentController::class, 'show']);
             Route::delete('/documents/{document}', [TaxDocumentController::class, 'destroy']);
             Route::get('/documents/{document}/download', [TaxDocumentController::class, 'download'])->name('tax-vault.download');
+            Route::patch('/documents/{document}/fields', [TaxDocumentController::class, 'updateField']);
+            Route::post('/documents/{document}/accept-all', [TaxDocumentController::class, 'acceptAll']);
+            Route::post('/documents/{document}/retry-extraction', [TaxDocumentController::class, 'retryExtraction']);
             Route::get('/documents/{document}/audit-log', [TaxVaultAuditController::class, 'index']);
             Route::get('/documents/{document}/audit-log/verify', [TaxVaultAuditController::class, 'verifyChain']);
         });

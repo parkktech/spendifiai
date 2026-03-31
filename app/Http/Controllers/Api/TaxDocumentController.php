@@ -2,9 +2,12 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Enums\DocumentStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\TaxDocumentUploadRequest;
+use App\Http\Requests\UpdateExtractionFieldRequest;
 use App\Http\Resources\TaxDocumentResource;
+use App\Jobs\ExtractTaxDocument;
 use App\Models\TaxDocument;
 use App\Services\TaxVaultAuditService;
 use App\Services\TaxVaultStorageService;
@@ -65,6 +68,8 @@ class TaxDocumentController extends Controller
             'mime_type' => $storageData['mime_type'],
         ]);
 
+        ExtractTaxDocument::dispatch($document->id);
+
         return response()->json(
             new TaxDocumentResource($document),
             201,
@@ -109,6 +114,74 @@ class TaxDocumentController extends Controller
         $document->delete();
 
         return response()->json(null, 204);
+    }
+
+    /**
+     * Correct a single extracted field value.
+     */
+    public function updateField(UpdateExtractionFieldRequest $request, TaxDocument $document): JsonResponse
+    {
+        $this->authorize('view', $document);
+
+        $validated = $request->validated();
+        $data = $document->extracted_data ?? ['fields' => []];
+        $oldValue = $data['fields'][$validated['field']]['value'] ?? null;
+
+        $data['fields'][$validated['field']] = [
+            'value' => $validated['value'],
+            'confidence' => 1.0,
+            'verified' => true,
+        ];
+
+        $document->update(['extracted_data' => $data]);
+
+        $this->auditService->log($document, $request->user(), 'field_corrected', $request, [
+            'field' => $validated['field'],
+            'old_value' => $oldValue,
+            'new_value' => $validated['value'],
+        ]);
+
+        return response()->json(['success' => true]);
+    }
+
+    /**
+     * Mark all extracted fields as verified.
+     */
+    public function acceptAll(Request $request, TaxDocument $document): JsonResponse
+    {
+        $this->authorize('view', $document);
+
+        $data = $document->extracted_data ?? ['fields' => []];
+
+        foreach ($data['fields'] as $fieldName => &$field) {
+            if (! ($field['verified'] ?? false)) {
+                $field['verified'] = true;
+            }
+        }
+
+        $document->update(['extracted_data' => $data]);
+
+        $this->auditService->log($document, $request->user(), 'fields_accepted', $request);
+
+        return response()->json(['success' => true]);
+    }
+
+    /**
+     * Retry extraction for a failed document.
+     */
+    public function retryExtraction(Request $request, TaxDocument $document): JsonResponse
+    {
+        $this->authorize('view', $document);
+
+        if ($document->status !== DocumentStatus::Failed) {
+            return response()->json(['error' => 'Document is not in failed state'], 422);
+        }
+
+        $document->update(['status' => DocumentStatus::Upload->value]);
+
+        ExtractTaxDocument::dispatch($document->id);
+
+        return response()->json(['success' => true, 'message' => 'Extraction re-queued']);
     }
 
     /**
