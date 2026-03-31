@@ -84,7 +84,7 @@ Plans:
 ### Phase 6: Document Vault & Audit Foundation
 **Goal**: Users can securely upload, view, and manage tax documents in a vault organized by year and category, with every action recorded in a tamper-proof audit trail and Super Admin control over storage backend
 **Depends on**: Phase 5 (v1.0 complete)
-**Requirements**: VAULT-01, VAULT-02, VAULT-03, VAULT-04, VAULT-05, VAULT-06, VAULT-07, VAULT-08, VAULT-09, AUDIT-01, AUDIT-02, AUDIT-03, AUDIT-04, AUDIT-05, AUDIT-06, UI-01, UI-04, UI-05
+**Requirements**: VAULT-01, VAULT-02, VAULT-03, VAULT-04, VAULT-05, VAULT-06, VAULT-07, VAULT-08, VAULT-09, AUDIT-01, AUDIT-02, AUDIT-03, AUDIT-04, AUDIT-05, AUDIT-06, UI-01, UI-04a, UI-05
 **Success Criteria** (what must be TRUE):
   1. User can upload PDF, JPG, and PNG tax documents; invalid file types are rejected with a clear error message
   2. User can view their uploaded documents organized by tax year and category, and documents track status through upload/classifying/extracting/ready/failed states
@@ -95,14 +95,14 @@ Plans:
 
 Plans:
 - [ ] 06-01-PLAN.md -- Backend foundation: models, migrations, enums, services (TaxDocument, TaxVaultAuditLog, storage + audit services)
-- [ ] 06-02-PLAN.md -- API layer: controllers, routes, form requests, policies, migration job
+- [ ] 06-02-PLAN.md -- API layer: controllers, routes, form requests, policies, migration job, admin purge
 - [ ] 06-03-PLAN.md -- Vault UI: Tax Vault page, shared components (TaxYearTabs, DocumentCard, DocumentUploadZone, MissingAlertBanner, AuditLogTable)
 - [ ] 06-04-PLAN.md -- Admin Storage page: driver toggle, S3 config, connection test, migration progress
 
 ### Phase 7: AI Document Extraction
 **Goal**: Uploaded documents are automatically classified into tax form types and have structured fields extracted by Claude AI, with per-field confidence scoring and a side-by-side review interface
 **Depends on**: Phase 6
-**Requirements**: AIEX-01, AIEX-02, AIEX-03, AIEX-04, AIEX-05, AIEX-06, AIEX-07, AIEX-08, UI-02, TEST-02, TEST-03
+**Requirements**: AIEX-01, AIEX-02, AIEX-03, AIEX-04, AIEX-05, AIEX-06, AIEX-07, AIEX-08, UI-02, UI-04b, TEST-02, TEST-03
 **Success Criteria** (what must be TRUE):
   1. After upload, documents are automatically classified into one of 25 tax form types; classification below confidence threshold skips extraction and flags for manual review
   2. W-2, 1099-NEC, 1099-INT, and 1098 forms have structured fields extracted with per-field confidence scores visible in the UI
@@ -118,7 +118,7 @@ Plans:
 ### Phase 8: Accountant Document Collaboration
 **Goal**: Accountants can register their firm, invite clients via branded links, view client documents, annotate them with threaded comments, request missing documents, and track client readiness from a dedicated dashboard
 **Depends on**: Phase 7
-**Requirements**: ACCT-01, ACCT-02, ACCT-03, ACCT-04, ACCT-05, ACCT-06, ACCT-07, ACCT-08, ACCT-09, UI-03, TEST-04
+**Requirements**: ACCT-01, ACCT-02, ACCT-03, ACCT-04, ACCT-05, ACCT-06, ACCT-07, ACCT-08, ACCT-09, UI-03, UI-04b, TEST-04
 **Success Criteria** (what must be TRUE):
   1. Accountant can register an accounting firm with name, address, phone, and branding details; firm generates branded invite links that clients use to self-register and link to the firm
   2. Accountant can view a client's uploaded tax documents through the portal and see document completeness status per client
