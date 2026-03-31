@@ -39,7 +39,7 @@ Requirements for Tax Document Vault & Accountant Portal milestone. Each maps to 
 - [x] **ACCT-05**: Accountant can add annotations/comments on client documents (threaded)
 - [x] **ACCT-06**: Accountant can request missing documents from client with description
 - [x] **ACCT-07**: Client sees missing document requests as alerts with upload prompts
-- [ ] **ACCT-08**: Accountant dashboard shows client list with document completeness, deadline tracking
+- [x] **ACCT-08**: Accountant dashboard shows client list with document completeness, deadline tracking
 - [x] **ACCT-09**: 5 new Mail classes for accountant workflows (firm invite, document request, annotation notify, etc.)
 
 ### Audit & Security
@@ -62,7 +62,7 @@ Requirements for Tax Document Vault & Accountant Portal milestone. Each maps to 
 
 - [x] **UI-01**: Tax Vault page with year selector tabs, document category grid, upload zone, missing alerts banner
 - [x] **UI-02**: Document Detail page with split-panel PDF viewer + extracted fields + annotations thread
-- [ ] **UI-03**: Accountant Dashboard page with stats bar, client list table, deadline tracker, invite link generator
+- [x] **UI-03**: Accountant Dashboard page with stats bar, client list table, deadline tracker, invite link generator
 - [x] **UI-04a**: 5 Phase 6 shared components (TaxYearTabs, DocumentCard, DocumentUploadZone, MissingAlertBanner, AuditLogTable)
 - [x] **UI-04b**: 5 Phase 7/8 shared components (ExtractionPanel, AnnotationThread, DocumentRequestCard, and additional components built alongside their features)
 - [x] **UI-05**: All new pages follow existing SpendifiAI design system (navy #1E3A5F, teal #0D9488, sw-* tokens)
@@ -139,7 +139,7 @@ Deferred to next milestone. Tracked but not in current roadmap.
 | ACCT-05 | Phase 8 | Complete |
 | ACCT-06 | Phase 8 | Complete |
 | ACCT-07 | Phase 8 | Complete |
-| ACCT-08 | Phase 8 | Pending |
+| ACCT-08 | Phase 8 | Complete |
 | ACCT-09 | Phase 8 | Complete |
 | AUDIT-01 | Phase 6 | Complete |
 | AUDIT-02 | Phase 6 | Complete |
@@ -153,7 +153,7 @@ Deferred to next milestone. Tracked but not in current roadmap.
 | INTEL-04 | Phase 9 | Pending |
 | UI-01 | Phase 6 | Complete |
 | UI-02 | Phase 7 | Complete |
-| UI-03 | Phase 8 | Pending |
+| UI-03 | Phase 8 | Complete |
 | UI-04a | Phase 6 | Complete |
 | UI-04b | Phase 7, 8 | Complete |
 | UI-05 | Phase 6 | Complete |

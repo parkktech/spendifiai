@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Tax Document Vault & Accountant Portal
 status: executing
-stopped_at: Completed 08-05-PLAN.md
-last_updated: "2026-03-31T03:36:35.285Z"
+stopped_at: Completed 08-04-PLAN.md
+last_updated: "2026-03-31T03:37:12.320Z"
 last_activity: 2026-03-31 -- Completed 08-05 cross-role authorization and firm tests
 progress:
   total_phases: 9
-  completed_phases: 7
+  completed_phases: 8
   total_plans: 27
-  completed_plans: 26
-  percent: 96
+  completed_plans: 27
+  percent: 100
 ---
 
 # Project State
@@ -30,7 +30,7 @@ Plan: 4 of 4 in current phase (COMPLETE)
 Status: In Progress
 Last activity: 2026-03-31 -- Completed 08-05 cross-role authorization and firm tests
 
-Progress: [██████████] 96%
+Progress: [██████████] 100%
 
 ## Performance Metrics
 
@@ -59,6 +59,7 @@ Progress: [██████████] 96%
 | Phase 08 P03 | 3min | 2 tasks | 7 files |
 | Phase 08 P02 | 3min | 2 tasks | 16 files |
 | Phase 08 P05 | 4min | 2 tasks | 2 files |
+| Phase 08 P04 | 4min | 2 tasks | 7 files |
 
 ## Accumulated Context
 
@@ -93,6 +94,7 @@ Recent decisions affecting current work:
 - [08-03]: class_exists() guards for mail classes from parallel Plan 02 execution
 - [08-03]: Annotation notifications to "other party" (accountant->client, client->all linked accountants)
 - [Phase 08]: Invite page test uses DB lookup instead of HTTP GET due to Blade view cache permission constraint in test env
+- [Phase 08]: AnnotationThread uses apiPrefix prop for dual-context (client/accountant) annotation endpoints
 
 ### Pending Todos
 
@@ -105,6 +107,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-31T03:36:35.284Z
-Stopped at: Completed 08-05-PLAN.md
+Last session: 2026-03-31T03:37:12.318Z
+Stopped at: Completed 08-04-PLAN.md
 Resume file: None
