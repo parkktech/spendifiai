@@ -22,9 +22,9 @@ return [
     'middleware' => ['web'],
 
     'limiters' => [
-        'login'          => 'login',
-        'two-factor'     => 'two-factor',
-        'verification'   => '6,1',
+        'login' => 'login',
+        'two-factor' => 'two-factor',
+        'verification' => '6,1',
     ],
 
     'views' => false, // We handle views in the SPA, not Fortify
@@ -36,7 +36,7 @@ return [
         Features::updateProfileInformation(),
         Features::updatePasswords(),
         Features::twoFactorAuthentication([
-            'confirm'         => true,
+            'confirm' => true,
             'confirmPassword' => true,
         ]),
     ],

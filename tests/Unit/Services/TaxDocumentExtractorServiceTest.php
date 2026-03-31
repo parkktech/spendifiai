@@ -1,6 +1,5 @@
 <?php
 
-use App\Enums\DocumentStatus;
 use App\Enums\TaxDocumentCategory;
 use App\Models\TaxDocument;
 use App\Models\User;

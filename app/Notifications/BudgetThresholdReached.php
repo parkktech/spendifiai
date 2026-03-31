@@ -46,11 +46,11 @@ class BudgetThresholdReached extends Notification
     public function toArray(object $notifiable): array
     {
         return [
-            'type'       => 'budget_threshold',
-            'category'   => $this->category,
-            'spent'      => $this->spent,
-            'budget'     => $this->budget,
-            'exceeded'   => $this->exceeded,
+            'type' => 'budget_threshold',
+            'category' => $this->category,
+            'spent' => $this->spent,
+            'budget' => $this->budget,
+            'exceeded' => $this->exceeded,
             'percentage' => round(($this->spent / $this->budget) * 100),
         ];
     }

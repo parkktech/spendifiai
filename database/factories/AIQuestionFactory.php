@@ -21,7 +21,7 @@ class AIQuestionFactory extends Factory
         return [
             'user_id' => User::factory(),
             'transaction_id' => Transaction::factory(),
-            'question' => fake()->sentence() . '?',
+            'question' => fake()->sentence().'?',
             'options' => ['Personal', 'Business', 'Mixed', 'Skip'],
             'question_type' => QuestionType::BusinessPersonal,
             'ai_confidence' => fake()->randomFloat(2, 0.30, 0.59),

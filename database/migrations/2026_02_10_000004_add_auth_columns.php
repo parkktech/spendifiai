@@ -14,7 +14,7 @@ return new class extends Migration
             $table->string('avatar_url')->nullable()->after('google_id');
 
             // Fortify 2FA columns (if not using fortify:install migration)
-            if (!Schema::hasColumn('users', 'two_factor_secret')) {
+            if (! Schema::hasColumn('users', 'two_factor_secret')) {
                 $table->text('two_factor_secret')->nullable()->after('password');
                 $table->text('two_factor_recovery_codes')->nullable()->after('two_factor_secret');
                 $table->timestamp('two_factor_confirmed_at')->nullable()->after('two_factor_recovery_codes');

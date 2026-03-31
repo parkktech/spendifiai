@@ -51,9 +51,9 @@ class WeeklySavingsDigest extends Notification
             ->get();
 
         return [
-            'type'                  => 'weekly_savings_digest',
+            'type' => 'weekly_savings_digest',
             'recommendations_count' => $recommendations->count(),
-            'potential_savings'     => $recommendations->sum('estimated_savings'),
+            'potential_savings' => $recommendations->sum('estimated_savings'),
         ];
     }
 }

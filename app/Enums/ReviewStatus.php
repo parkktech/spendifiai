@@ -4,10 +4,10 @@ namespace App\Enums;
 
 enum ReviewStatus: string
 {
-    case PendingAI       = 'pending_ai';
-    case NeedsReview     = 'needs_review';
-    case UserConfirmed   = 'user_confirmed';
-    case AIUncertain     = 'ai_uncertain';
+    case PendingAI = 'pending_ai';
+    case NeedsReview = 'needs_review';
+    case UserConfirmed = 'user_confirmed';
+    case AIUncertain = 'ai_uncertain';
     case AutoCategorized = 'auto_categorized';
 
     public function isResolved(): bool

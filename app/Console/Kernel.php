@@ -55,7 +55,7 @@ class Kernel extends ConsoleKernel
             try {
                 \Illuminate\Support\Facades\Cache::store('redis')->put('health_check', now(), 60);
             } catch (\Exception $e) {
-                \Log::error('Redis health check failed: ' . $e->getMessage());
+                \Log::error('Redis health check failed: '.$e->getMessage());
             }
         })->everyFiveMinutes();
     }
@@ -65,7 +65,7 @@ class Kernel extends ConsoleKernel
      */
     protected function commands(): void
     {
-        $this->load(__DIR__ . '/Commands');
+        $this->load(__DIR__.'/Commands');
 
         require base_path('routes/console.php');
     }

@@ -32,8 +32,8 @@ class AIQuestionsReady extends Notification
     public function toArray(object $notifiable): array
     {
         return [
-            'type'    => 'ai_questions_ready',
-            'count'   => $this->questionCount,
+            'type' => 'ai_questions_ready',
+            'count' => $this->questionCount,
             'message' => "{$this->questionCount} transactions need your review",
         ];
     }

@@ -39,9 +39,9 @@ class UnusedSubscriptionAlert extends Notification
     public function toArray(object $notifiable): array
     {
         return [
-            'type'          => 'unused_subscriptions',
-            'count'         => count($this->subscriptions),
-            'monthly_cost'  => $this->totalMonthlyCost,
+            'type' => 'unused_subscriptions',
+            'count' => count($this->subscriptions),
+            'monthly_cost' => $this->totalMonthlyCost,
             'subscriptions' => $this->subscriptions,
         ];
     }

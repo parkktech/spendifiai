@@ -25,16 +25,16 @@ class BankAccountController extends Controller
         // Summary by purpose
         $personal = $accounts->where('purpose', 'personal');
         $business = $accounts->where('purpose', 'business');
-        $mixed    = $accounts->where('purpose', 'mixed');
+        $mixed = $accounts->where('purpose', 'mixed');
 
         return response()->json([
             'accounts' => BankAccountResource::collection($accounts),
-            'summary'  => [
+            'summary' => [
                 'personal_accounts' => $personal->count(),
                 'business_accounts' => $business->count(),
-                'mixed_accounts'    => $mixed->count(),
-                'personal_balance'  => $personal->sum('current_balance'),
-                'business_balance'  => $business->sum('current_balance'),
+                'mixed_accounts' => $mixed->count(),
+                'personal_balance' => $personal->sum('current_balance'),
+                'business_balance' => $business->sum('current_balance'),
             ],
         ]);
     }
@@ -63,21 +63,21 @@ class BankAccountController extends Controller
             Transaction::where('bank_account_id', $account->id)
                 ->whereNull('user_category')
                 ->update([
-                    'expense_type'   => match ($newPurpose) {
+                    'expense_type' => match ($newPurpose) {
                         'business' => 'business',
-                        'mixed'    => 'mixed',
-                        default    => 'personal',
+                        'mixed' => 'mixed',
+                        default => 'personal',
                     },
                     'tax_deductible' => $newPurpose === 'business',
-                    'review_status'  => 'pending_ai', // Queue for re-categorization
+                    'review_status' => 'pending_ai', // Queue for re-categorization
                 ]);
 
             // Re-run AI categorization with the new account context
             CategorizePendingTransactions::dispatch(auth()->id());
 
             return response()->json([
-                'message'              => "Account updated to '{$newPurpose}'. {$updated} transactions being re-categorized.",
-                'account'              => new BankAccountResource($account->fresh()),
+                'message' => "Account updated to '{$newPurpose}'. {$updated} transactions being re-categorized.",
+                'account' => new BankAccountResource($account->fresh()),
                 'transactions_updated' => $updated,
             ]);
         }

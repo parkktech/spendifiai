@@ -28,21 +28,43 @@ class BankAccount extends Model
     protected function casts(): array
     {
         return [
-            'purpose'              => AccountPurpose::class,
-            'ein'                  => 'encrypted',  // Federal EIN — AES-256 at rest
-            'current_balance'      => 'decimal:2',
-            'available_balance'    => 'decimal:2',
-            'include_in_spending'  => 'boolean',
+            'purpose' => AccountPurpose::class,
+            'ein' => 'encrypted',  // Federal EIN — AES-256 at rest
+            'current_balance' => 'decimal:2',
+            'available_balance' => 'decimal:2',
+            'include_in_spending' => 'boolean',
             'include_in_tax_tracking' => 'boolean',
-            'is_active'            => 'boolean',
+            'is_active' => 'boolean',
         ];
     }
 
-    public function user(): BelongsTo { return $this->belongsTo(User::class); }
-    public function bankConnection(): BelongsTo { return $this->belongsTo(BankConnection::class); }
-    public function transactions(): HasMany { return $this->hasMany(Transaction::class); }
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
+    }
 
-    public function scopeActive($q) { return $q->where('is_active', true); }
-    public function scopeBusiness($q) { return $q->where('purpose', AccountPurpose::Business); }
-    public function scopePersonal($q) { return $q->where('purpose', AccountPurpose::Personal); }
+    public function bankConnection(): BelongsTo
+    {
+        return $this->belongsTo(BankConnection::class);
+    }
+
+    public function transactions(): HasMany
+    {
+        return $this->hasMany(Transaction::class);
+    }
+
+    public function scopeActive($q)
+    {
+        return $q->where('is_active', true);
+    }
+
+    public function scopeBusiness($q)
+    {
+        return $q->where('purpose', AccountPurpose::Business);
+    }
+
+    public function scopePersonal($q)
+    {
+        return $q->where('purpose', AccountPurpose::Personal);
+    }
 }

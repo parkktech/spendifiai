@@ -14,10 +14,10 @@ class SendToAccountantRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'year'             => 'required|integer|min:2020|max:' . now()->year,
+            'year' => 'required|integer|min:2020|max:'.now()->year,
             'accountant_email' => 'required|email|max:255',
-            'accountant_name'  => 'nullable|string|max:255',
-            'message'          => 'nullable|string|max:1000',
+            'accountant_name' => 'nullable|string|max:255',
+            'message' => 'nullable|string|max:1000',
         ];
     }
 }

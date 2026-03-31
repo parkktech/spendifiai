@@ -14,7 +14,7 @@ class RespondToPlanActionRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'response'         => 'required|in:accept,reject',
+            'response' => 'required|in:accept,reject',
             'rejection_reason' => 'nullable|string|max:500',
         ];
     }

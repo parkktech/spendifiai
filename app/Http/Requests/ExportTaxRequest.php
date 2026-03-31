@@ -14,7 +14,7 @@ class ExportTaxRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'year' => 'required|integer|min:2020|max:' . now()->year,
+            'year' => 'required|integer|min:2020|max:'.now()->year,
         ];
     }
 }

@@ -37,10 +37,10 @@ class BankConnectionIssueNotification extends Notification
     public function toArray(object $notifiable): array
     {
         return [
-            'type'             => 'bank_connection_issue',
-            'issue_type'       => $this->issueType,
+            'type' => 'bank_connection_issue',
+            'issue_type' => $this->issueType,
             'institution_name' => $this->institutionName,
-            'message'          => $this->message,
+            'message' => $this->message,
         ];
     }
 }

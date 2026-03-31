@@ -19,11 +19,11 @@ class SavingsTarget extends Model
     protected function casts(): array
     {
         return [
-            'monthly_target'    => 'decimal:2',
-            'goal_total'        => 'decimal:2',
+            'monthly_target' => 'decimal:2',
+            'goal_total' => 'decimal:2',
             'target_start_date' => 'date',
-            'target_end_date'   => 'date',
-            'is_active'         => 'boolean',
+            'target_end_date' => 'date',
+            'is_active' => 'boolean',
         ];
     }
 

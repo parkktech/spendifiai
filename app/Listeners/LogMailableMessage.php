@@ -2,9 +2,9 @@
 
 namespace App\Listeners;
 
+use Illuminate\Mail\Events\MailFailed;
 use Illuminate\Mail\Events\MessageSending;
 use Illuminate\Mail\Events\MessageSent;
-use Illuminate\Mail\Events\MailFailed;
 use Psr\Log\LoggerInterface;
 
 class LogMailableMessage

@@ -20,7 +20,7 @@ class BankAccountFactory extends Factory
         return [
             'user_id' => User::factory(),
             'bank_connection_id' => BankConnection::factory(),
-            'plaid_account_id' => 'acc_' . fake()->uuid(),
+            'plaid_account_id' => 'acc_'.fake()->uuid(),
             'name' => fake()->randomElement(['Checking', 'Savings', 'Credit Card']),
             'type' => 'depository',
             'subtype' => 'checking',

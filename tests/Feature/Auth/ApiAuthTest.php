@@ -1,7 +1,6 @@
 <?php
 
 use App\Models\User;
-use Laravel\Sanctum\Sanctum;
 
 beforeEach(function () {
     config(['spendifiai.captcha.enabled' => false]);

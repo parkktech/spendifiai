@@ -2,8 +2,8 @@
 
 use App\Events\BankConnected;
 use App\Jobs\CategorizePendingTransactions;
-use App\Models\BankConnection;
 use App\Models\BankAccount;
+use App\Models\BankConnection;
 use App\Models\Transaction;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Http;

@@ -14,9 +14,9 @@ class BulkAnswerRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'answers'               => 'required|array',
+            'answers' => 'required|array',
             'answers.*.question_id' => 'required|integer|exists:ai_questions,id',
-            'answers.*.answer'      => 'required|string|max:200',
+            'answers.*.answer' => 'required|string|max:200',
         ];
     }
 }

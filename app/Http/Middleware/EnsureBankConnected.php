@@ -10,11 +10,11 @@ class EnsureBankConnected
 {
     public function handle(Request $request, Closure $next): Response
     {
-        if (!$request->user()?->hasBankConnected()) {
+        if (! $request->user()?->hasBankConnected()) {
             return response()->json([
                 'message' => 'Please connect a bank account first.',
-                'action'  => 'connect_bank',
-                'url'     => '/connect',
+                'action' => 'connect_bank',
+                'url' => '/connect',
             ], 403);
         }
 

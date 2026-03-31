@@ -17,14 +17,14 @@ class Enforce2FA
     {
         $user = $request->user();
 
-        if ($user?->hasTwoFactorEnabled() && !session('2fa_verified', false)) {
+        if ($user?->hasTwoFactorEnabled() && ! session('2fa_verified', false)) {
             // Token-based auth handles 2FA at login, so this is mainly for session-based
             if ($request->bearerToken()) {
                 return $next($request); // Token auth: 2FA was verified at login
             }
 
             return response()->json([
-                'message'             => 'Two-factor authentication required.',
+                'message' => 'Two-factor authentication required.',
                 'two_factor_required' => true,
             ], 403);
         }

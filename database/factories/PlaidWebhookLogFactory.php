@@ -17,7 +17,7 @@ class PlaidWebhookLogFactory extends Factory
         return [
             'webhook_type' => 'TRANSACTIONS',
             'webhook_code' => fake()->randomElement(['SYNC_UPDATES_AVAILABLE', 'DEFAULT_UPDATE', 'INITIAL_UPDATE']),
-            'item_id' => 'item_' . fake()->uuid(),
+            'item_id' => 'item_'.fake()->uuid(),
             'payload' => ['webhook_type' => 'TRANSACTIONS', 'webhook_code' => 'SYNC_UPDATES_AVAILABLE'],
             'status' => 'processed',
             'processed_at' => now(),

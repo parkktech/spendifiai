@@ -15,8 +15,8 @@ class SetSavingsTargetRequest extends FormRequest
     {
         return [
             'monthly_target' => 'required|numeric|min:1|max:100000',
-            'motivation'     => 'nullable|string|max:200',
-            'goal_total'     => 'nullable|numeric|min:0',
+            'motivation' => 'nullable|string|max:200',
+            'goal_total' => 'nullable|numeric|min:0',
         ];
     }
 }

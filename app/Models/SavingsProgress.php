@@ -22,16 +22,16 @@ class SavingsProgress extends Model
     protected function casts(): array
     {
         return [
-            'income'             => 'decimal:2',
-            'total_spending'     => 'decimal:2',
-            'actual_savings'     => 'decimal:2',
-            'target_savings'     => 'decimal:2',
-            'gap'                => 'decimal:2',
-            'cumulative_saved'   => 'decimal:2',
-            'cumulative_target'  => 'decimal:2',
-            'target_met'         => 'boolean',
+            'income' => 'decimal:2',
+            'total_spending' => 'decimal:2',
+            'actual_savings' => 'decimal:2',
+            'target_savings' => 'decimal:2',
+            'gap' => 'decimal:2',
+            'cumulative_saved' => 'decimal:2',
+            'cumulative_target' => 'decimal:2',
+            'target_met' => 'boolean',
             'category_breakdown' => 'array',
-            'plan_adherence'     => 'array',
+            'plan_adherence' => 'array',
         ];
     }
 

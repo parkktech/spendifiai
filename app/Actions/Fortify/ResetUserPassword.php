@@ -16,9 +16,9 @@ class ResetUserPassword implements ResetsUserPasswords
         ])->validate();
 
         $user->forceFill([
-            'password'              => Hash::make($input['password']),
+            'password' => Hash::make($input['password']),
             'failed_login_attempts' => 0,
-            'locked_until'          => null,
+            'locked_until' => null,
         ])->save();
 
         $user->tokens()->delete();

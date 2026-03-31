@@ -4,11 +4,11 @@ namespace App\Services\AI;
 
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Cache;
 
 class EmailParserService
 {
     protected string $apiKey;
+
     protected string $model;
 
     public function __construct()
@@ -41,19 +41,22 @@ class EmailParserService
                 ],
             ]);
 
-            if (!$response->successful()) {
+            if (! $response->successful()) {
                 Log::error('Claude API error', [
                     'status' => $response->status(),
                     'body' => $response->body(),
                 ]);
+
                 return ['error' => 'API request failed', 'status' => $response->status()];
             }
 
             $content = $response->json('content.0.text');
+
             return $this->parseResponse($content);
 
         } catch (\Exception $e) {
             Log::error('Email parsing failed', ['error' => $e->getMessage()]);
+
             return ['error' => $e->getMessage()];
         }
     }
@@ -176,6 +179,7 @@ PROMPT;
                 'error' => json_last_error_msg(),
                 'content' => substr($content, 0, 500),
             ]);
+
             return ['error' => 'Invalid JSON response', 'raw' => $content];
         }
 
@@ -218,6 +222,7 @@ PROMPT;
         ]);
 
         $content = $response->json('content.0.text');
+
         return $this->parseResponse($content);
     }
 }

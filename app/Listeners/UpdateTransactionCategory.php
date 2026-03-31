@@ -25,9 +25,9 @@ class UpdateTransactionCategory implements ShouldQueue
         $detector->detectSubscriptions($event->user->id);
 
         Log::info('User answered AI question', [
-            'user_id'     => $event->user->id,
+            'user_id' => $event->user->id,
             'question_id' => $event->question->id,
-            'answer'      => $event->question->user_answer,
+            'answer' => $event->question->user_answer,
         ]);
     }
 }

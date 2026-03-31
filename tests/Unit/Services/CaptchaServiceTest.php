@@ -6,7 +6,7 @@ use Illuminate\Support\Facades\Http;
 it('returns true when captcha is disabled', function () {
     config(['spendifiai.captcha.enabled' => false]);
 
-    $service = new CaptchaService();
+    $service = new CaptchaService;
     $result = $service->verify('any-token');
 
     expect($result)->toBeTrue();
@@ -28,7 +28,7 @@ it('returns true for score above threshold', function () {
         ]),
     ]);
 
-    $service = new CaptchaService();
+    $service = new CaptchaService;
     $result = $service->verify('token', 'login');
 
     expect($result)->toBeTrue();
@@ -50,7 +50,7 @@ it('returns false for score below threshold', function () {
         ]),
     ]);
 
-    $service = new CaptchaService();
+    $service = new CaptchaService;
     $result = $service->verify('token', 'login');
 
     expect($result)->toBeFalse();
@@ -72,7 +72,7 @@ it('returns false for action mismatch', function () {
         ]),
     ]);
 
-    $service = new CaptchaService();
+    $service = new CaptchaService;
     $result = $service->verify('token', 'login');
 
     expect($result)->toBeFalse();
@@ -93,7 +93,7 @@ it('returns false when API returns failure', function () {
         ]),
     ]);
 
-    $service = new CaptchaService();
+    $service = new CaptchaService;
     $result = $service->verify('bad-token');
 
     expect($result)->toBeFalse();
@@ -109,7 +109,7 @@ it('returns false on API exception', function () {
 
     Http::fake(fn () => throw new \RuntimeException('Connection failed'));
 
-    $service = new CaptchaService();
+    $service = new CaptchaService;
     $result = $service->verify('token');
 
     expect($result)->toBeFalse();

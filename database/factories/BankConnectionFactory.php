@@ -18,10 +18,10 @@ class BankConnectionFactory extends Factory
     {
         return [
             'user_id' => User::factory(),
-            'plaid_item_id' => 'item_' . fake()->uuid(),
-            'plaid_access_token' => 'access-sandbox-' . fake()->uuid(),
+            'plaid_item_id' => 'item_'.fake()->uuid(),
+            'plaid_access_token' => 'access-sandbox-'.fake()->uuid(),
             'institution_name' => fake()->randomElement(['Chase', 'Bank of America', 'Wells Fargo', 'Capital One']),
-            'institution_id' => 'ins_' . fake()->randomNumber(6),
+            'institution_id' => 'ins_'.fake()->randomNumber(6),
             'status' => ConnectionStatus::Active,
         ];
     }

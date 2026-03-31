@@ -10,11 +10,11 @@ class EnsureProfileComplete
 {
     public function handle(Request $request, Closure $next): Response
     {
-        if (!$request->user()?->hasProfileComplete()) {
+        if (! $request->user()?->hasProfileComplete()) {
             return response()->json([
                 'message' => 'Please complete your financial profile for accurate tax and spending analysis.',
-                'action'  => 'complete_profile',
-                'url'     => '/settings/profile',
+                'action' => 'complete_profile',
+                'url' => '/settings/profile',
             ], 403);
         }
 
