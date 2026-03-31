@@ -9,14 +9,14 @@ Requirements for Tax Document Vault & Accountant Portal milestone. Each maps to 
 
 ### Document Vault
 
-- [ ] **VAULT-01**: User can upload tax documents (PDF, JPG, PNG) with server-side MIME validation
+- [x] **VAULT-01**: User can upload tax documents (PDF, JPG, PNG) with server-side MIME validation
 - [x] **VAULT-02**: System stores documents locally by default at `storage/app/private/tax-vault/{user_id}/{year}/{category}/`
-- [ ] **VAULT-03**: Super Admin can toggle storage driver between local filesystem and Amazon S3
-- [ ] **VAULT-04**: Super Admin can configure S3 credentials (bucket, region, access key, secret key) with AES-256 encryption
-- [ ] **VAULT-05**: Super Admin can test S3 connection and trigger document migration job
+- [x] **VAULT-03**: Super Admin can toggle storage driver between local filesystem and Amazon S3
+- [x] **VAULT-04**: Super Admin can configure S3 credentials (bucket, region, access key, secret key) with AES-256 encryption
+- [x] **VAULT-05**: Super Admin can test S3 connection and trigger document migration job
 - [x] **VAULT-06**: All document access uses signed URLs (local via `URL::temporarySignedRoute()`, S3 via `Storage::temporaryUrl()`)
-- [ ] **VAULT-07**: User can view their uploaded documents organized by tax year and category
-- [ ] **VAULT-08**: User can soft-delete documents (admin can purge)
+- [x] **VAULT-07**: User can view their uploaded documents organized by tax year and category
+- [x] **VAULT-08**: User can soft-delete documents (admin can purge)
 - [x] **VAULT-09**: Document status tracks through upload → classifying → extracting → ready → failed states
 
 ### AI Extraction
@@ -48,7 +48,7 @@ Requirements for Tax Document Vault & Accountant Portal milestone. Each maps to 
 - [x] **AUDIT-02**: Every document view, download, upload, delete, share, and extraction logged with user, IP, timestamp
 - [x] **AUDIT-03**: Audit log enforced at database level (PostgreSQL rules to prevent UPDATE/DELETE)
 - [x] **AUDIT-04**: Hash chain on audit entries (each entry stores `sha256(prev_hash + entry_data)`) for tamper detection
-- [ ] **AUDIT-05**: Audit log viewable by document owner and their accountant
+- [x] **AUDIT-05**: Audit log viewable by document owner and their accountant
 - [x] **AUDIT-06**: All document access scoped through relationships -- never `TaxDocument::find($id)` without tenant check
 
 ### Intelligence Layer
@@ -115,14 +115,14 @@ Deferred to next milestone. Tracked but not in current roadmap.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| VAULT-01 | Phase 6 | Pending |
+| VAULT-01 | Phase 6 | Complete |
 | VAULT-02 | Phase 6 | Complete |
-| VAULT-03 | Phase 6 | Pending |
-| VAULT-04 | Phase 6 | Pending |
-| VAULT-05 | Phase 6 | Pending |
+| VAULT-03 | Phase 6 | Complete |
+| VAULT-04 | Phase 6 | Complete |
+| VAULT-05 | Phase 6 | Complete |
 | VAULT-06 | Phase 6 | Complete |
-| VAULT-07 | Phase 6 | Pending |
-| VAULT-08 | Phase 6 | Pending |
+| VAULT-07 | Phase 6 | Complete |
+| VAULT-08 | Phase 6 | Complete |
 | VAULT-09 | Phase 6 | Complete |
 | AIEX-01 | Phase 7 | Pending |
 | AIEX-02 | Phase 7 | Pending |
@@ -145,7 +145,7 @@ Deferred to next milestone. Tracked but not in current roadmap.
 | AUDIT-02 | Phase 6 | Complete |
 | AUDIT-03 | Phase 6 | Complete |
 | AUDIT-04 | Phase 6 | Complete |
-| AUDIT-05 | Phase 6 | Pending |
+| AUDIT-05 | Phase 6 | Complete |
 | AUDIT-06 | Phase 6 | Complete |
 | INTEL-01 | Phase 9 | Pending |
 | INTEL-02 | Phase 9 | Pending |
