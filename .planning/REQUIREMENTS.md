@@ -53,9 +53,9 @@ Requirements for Tax Document Vault & Accountant Portal milestone. Each maps to 
 
 ### Intelligence Layer
 
-- [ ] **INTEL-01**: AI detects missing documents by cross-referencing Plaid transaction categories with expected tax form types
-- [ ] **INTEL-02**: Cross-document anomaly detection (e.g., W-2 wages vs bank deposit totals)
-- [ ] **INTEL-03**: Transaction-to-document linking (1099 linked to associated freelance deposits)
+- [x] **INTEL-01**: AI detects missing documents by cross-referencing Plaid transaction categories with expected tax form types
+- [x] **INTEL-02**: Cross-document anomaly detection (e.g., W-2 wages vs bank deposit totals)
+- [x] **INTEL-03**: Transaction-to-document linking (1099 linked to associated freelance deposits)
 - [ ] **INTEL-04**: Missing document alerts shown to user with explanation of why document is expected
 
 ### Frontend
@@ -147,9 +147,9 @@ Deferred to next milestone. Tracked but not in current roadmap.
 | AUDIT-04 | Phase 6 | Complete |
 | AUDIT-05 | Phase 6 | Complete |
 | AUDIT-06 | Phase 6 | Complete |
-| INTEL-01 | Phase 9 | Pending |
-| INTEL-02 | Phase 9 | Pending |
-| INTEL-03 | Phase 9 | Pending |
+| INTEL-01 | Phase 9 | Complete |
+| INTEL-02 | Phase 9 | Complete |
+| INTEL-03 | Phase 9 | Complete |
 | INTEL-04 | Phase 9 | Pending |
 | UI-01 | Phase 6 | Complete |
 | UI-02 | Phase 7 | Complete |
