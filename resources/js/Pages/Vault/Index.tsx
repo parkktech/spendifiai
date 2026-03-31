@@ -1,7 +1,8 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head } from '@inertiajs/react';
-import { Archive } from 'lucide-react';
+import { Archive, RotateCcw, Download } from 'lucide-react';
+import axios from 'axios';
 import { useApi } from '@/hooks/useApi';
 import TaxYearTabs from '@/Components/SpendifiAI/TaxYearTabs';
 import DocumentCard from '@/Components/SpendifiAI/DocumentCard';
@@ -38,6 +39,8 @@ function buildCategoryCards(documents: TaxDocument[]): VaultCategoryCard[] {
   const grouped = new Map<TaxDocumentCategory, TaxDocument[]>();
 
   for (const doc of documents) {
+    // Hide parent docs that have been split into children
+    if (doc.status === 'split') continue;
     const cat = doc.category || 'other';
     if (!grouped.has(cat)) grouped.set(cat, []);
     grouped.get(cat)!.push(doc);
@@ -46,7 +49,7 @@ function buildCategoryCards(documents: TaxDocument[]): VaultCategoryCard[] {
   return CATEGORY_DEFS.map(({ category, label }) => {
     const docs = grouped.get(category) || [];
     const ready = docs.filter((d) => d.status === 'ready').length;
-    const processing = docs.filter((d) => d.status === 'classifying' || d.status === 'extracting' || d.status === 'upload').length;
+    const processing = docs.filter((d) => ['classifying', 'extracting', 'upload', 'splitting'].includes(d.status)).length;
     const failed = docs.filter((d) => d.status === 'failed').length;
 
     return {
@@ -101,6 +104,55 @@ export default function VaultIndex() {
     });
   };
 
+  const [retrying, setRetrying] = useState(false);
+  const [retryMessage, setRetryMessage] = useState<string | null>(null);
+
+  const totalFailed = useMemo(
+    () => categoryCards.reduce((sum, c) => sum + c.statuses.failed, 0),
+    [categoryCards],
+  );
+
+  const handleRetryAllFailed = useCallback(async () => {
+    setRetrying(true);
+    setRetryMessage(null);
+    try {
+      const res = await axios.post(`/api/v1/tax-vault/documents/retry-all-failed?year=${selectedYear}`);
+      setRetryMessage(res.data.message);
+      refresh();
+    } catch (err: any) {
+      setRetryMessage(err?.response?.data?.message || 'Retry failed');
+    } finally {
+      setRetrying(false);
+      setTimeout(() => setRetryMessage(null), 5000);
+    }
+  }, [selectedYear, refresh]);
+
+  const [downloading, setDownloading] = useState(false);
+
+  const totalDownloadable = useMemo(
+    () => categoryCards.reduce((sum, c) => sum + c.count, 0),
+    [categoryCards],
+  );
+
+  const handleDownloadYear = useCallback(async () => {
+    setDownloading(true);
+    try {
+      const res = await axios.get(`/api/v1/tax-vault/documents/download-year/${selectedYear}`, {
+        responseType: 'blob',
+      });
+      const url = URL.createObjectURL(res.data);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `TaxDocuments_${selectedYear}.zip`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      // silently fail
+    } finally {
+      setDownloading(false);
+    }
+  }, [selectedYear]);
+
   const handleUploadComplete = () => {
     refresh();
   };
@@ -144,12 +196,46 @@ export default function VaultIndex() {
         {/* Missing document + anomaly alerts from intelligence */}
         <MissingAlertBanner alerts={missingAlerts} />
 
-        {/* Year tabs */}
-        <TaxYearTabs
-          years={years}
-          selectedYear={selectedYear}
-          onChange={setSelectedYear}
-        />
+        {/* Year tabs + download */}
+        <div className="flex items-center justify-between">
+          <TaxYearTabs
+            years={years}
+            selectedYear={selectedYear}
+            onChange={setSelectedYear}
+          />
+          {totalDownloadable > 0 && (
+            <button
+              onClick={handleDownloadYear}
+              disabled={downloading}
+              className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-sw-accent text-white text-xs font-semibold hover:bg-sw-accent/90 transition disabled:opacity-50 shrink-0"
+            >
+              <Download size={14} className={downloading ? 'animate-bounce' : ''} />
+              {downloading ? 'Preparing...' : `Download All ${selectedYear} (${totalDownloadable})`}
+            </button>
+          )}
+        </div>
+
+        {/* Retry all failed banner */}
+        {totalFailed > 0 && (
+          <div className="flex items-center justify-between rounded-lg border border-sw-danger/20 bg-sw-danger-light px-4 py-3">
+            <p className="text-sm text-sw-danger">
+              <span className="font-semibold">{totalFailed}</span> document{totalFailed !== 1 ? 's' : ''} failed extraction.
+              {' '}This is usually caused by an API configuration issue.
+            </p>
+            <button
+              onClick={handleRetryAllFailed}
+              disabled={retrying}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-sw-danger text-white text-xs font-semibold hover:bg-sw-danger/90 transition disabled:opacity-50"
+            >
+              <RotateCcw size={12} className={retrying ? 'animate-spin' : ''} />
+              {retrying ? 'Retrying...' : 'Retry All'}
+            </button>
+          </div>
+        )}
+
+        {retryMessage && (
+          <p className="text-sm text-sw-success font-medium">{retryMessage}</p>
+        )}
 
         {/* Loading state */}
         {loading && (

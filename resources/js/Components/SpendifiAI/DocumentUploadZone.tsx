@@ -12,6 +12,7 @@ interface UploadProgress {
   fileName: string;
   percent: number;
   error: string | null;
+  isDuplicate: boolean;
   done: boolean;
 }
 
@@ -36,6 +37,7 @@ export default function DocumentUploadZone({ taxYear, onUploadComplete }: Docume
       fileName: f.name,
       percent: 0,
       error: null,
+      isDuplicate: false,
       done: false,
     }));
     setUploads([...progressState]);
@@ -59,8 +61,12 @@ export default function DocumentUploadZone({ taxYear, onUploadComplete }: Docume
         progressState[idx] = { ...progressState[idx], percent: 100, done: true };
         setUploads([...progressState]);
       } catch (err: any) {
-        const msg = err?.response?.data?.message || err?.message || 'Upload failed';
-        progressState[idx] = { ...progressState[idx], error: msg, done: true };
+        const status = err?.response?.status;
+        const isDupe = status === 409;
+        const msg = isDupe
+          ? 'Duplicate — this file was already uploaded'
+          : err?.response?.data?.message || err?.message || 'Upload failed';
+        progressState[idx] = { ...progressState[idx], error: msg, isDuplicate: isDupe, done: true };
         setUploads([...progressState]);
       }
     });
@@ -72,8 +78,11 @@ export default function DocumentUploadZone({ taxYear, onUploadComplete }: Docume
     // Notify parent to refresh documents
     onUploadComplete();
 
-    // Clear progress after a delay so user can see results
-    setTimeout(() => setUploads([]), 3000);
+    // Clear progress after a delay — longer if there were errors
+    const hasErrors = progressState.some((p) => p.error && !p.isDuplicate);
+    const hasDupes = progressState.some((p) => p.isDuplicate);
+    const delay = hasErrors ? 15000 : hasDupes ? 8000 : 3000;
+    setTimeout(() => setUploads([]), delay);
   }, [selectedFiles, taxYear, onUploadComplete]);
 
   return (
@@ -110,9 +119,15 @@ export default function DocumentUploadZone({ taxYear, onUploadComplete }: Docume
               <div className="flex items-center justify-between">
                 <span className="text-xs text-sw-text font-medium truncate">{up.fileName}</span>
                 {up.error ? (
-                  <span className="flex items-center gap-1 text-xs text-sw-danger">
-                    <AlertCircle size={12} /> Failed
-                  </span>
+                  up.isDuplicate ? (
+                    <span className="flex items-center gap-1 text-xs text-sw-warning">
+                      <AlertCircle size={12} /> Duplicate
+                    </span>
+                  ) : (
+                    <span className="flex items-center gap-1 text-xs text-sw-danger">
+                      <AlertCircle size={12} /> Failed
+                    </span>
+                  )
                 ) : (
                   <span className="text-xs text-sw-dim">{up.percent}%</span>
                 )}
@@ -120,13 +135,17 @@ export default function DocumentUploadZone({ taxYear, onUploadComplete }: Docume
               <div className="h-1.5 rounded-full bg-sw-border overflow-hidden">
                 <div
                   className={`h-full rounded-full transition-all duration-300 ${
-                    up.error ? 'bg-sw-danger' : up.done ? 'bg-sw-success' : 'bg-sw-accent'
+                    up.error
+                      ? up.isDuplicate ? 'bg-sw-warning' : 'bg-sw-danger'
+                      : up.done ? 'bg-sw-success' : 'bg-sw-accent'
                   }`}
-                  style={{ width: `${up.percent}%` }}
+                  style={{ width: `${up.error ? 100 : up.percent}%` }}
                 />
               </div>
               {up.error && (
-                <p className="text-[10px] text-sw-danger">{up.error}</p>
+                <p className={`text-[11px] ${up.isDuplicate ? 'text-sw-warning' : 'text-sw-danger'}`}>
+                  {up.error}
+                </p>
               )}
             </div>
           ))}

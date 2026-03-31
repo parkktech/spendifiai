@@ -110,14 +110,27 @@ class TaxDocumentIntelligenceService
         }
 
         // Get expense transactions for mortgage detection
+        // Exclude credit card payments which Plaid also tags as LOAN_PAYMENTS
         $mortgageTransactions = Transaction::where('user_id', $userId)
             ->where('amount', '>', 0)
             ->whereYear('transaction_date', $taxYear)
             ->where(function ($q) {
-                $q->where('plaid_category', 'like', '%LOAN_PAYMENTS%')
+                $q->where(function ($q2) {
+                    $q2->where('plaid_category', 'like', '%LOAN_PAYMENTS%')
+                        ->where('ai_category', 'like', '%Mortgage%');
+                })
                     ->orWhere('merchant_name', 'like', '%MORTGAGE%')
                     ->orWhere('merchant_name', 'like', '%HOME LOAN%');
             })
+            // Exclude known credit card companies
+            ->where('merchant_name', 'not like', '%CREDIT CRD%')
+            ->where('merchant_name', 'not like', '%CRCARDPMT%')
+            ->where('merchant_name', 'not like', '%AUTOPAY%PAYMENT%')
+            ->where('merchant_name', 'not like', '%Credit One%')
+            ->where('merchant_name', 'not like', '%Barclays%')
+            ->where('merchant_name', 'not like', '%CAPITAL ONE%')
+            ->where('merchant_name', 'not like', '%CITI AUTOPAY%')
+            ->where('ai_category', '!=', 'Debt Payment')
             ->select('id', 'merchant_name', 'amount')
             ->get();
 

@@ -9,4 +9,6 @@ enum DocumentStatus: string
     case Extracting = 'extracting';
     case Ready = 'ready';
     case Failed = 'failed';
+    case Splitting = 'splitting';
+    case Split = 'split';
 }

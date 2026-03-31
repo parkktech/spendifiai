@@ -15,7 +15,7 @@ class TaxDocumentUploadRequest extends FormRequest
     {
         return [
             'file' => 'required|file|mimes:pdf,jpg,jpeg,png|max:102400',
-            'tax_year' => 'required|integer|min:2000|max:'.(date('Y') + 1),
+            'tax_year' => 'nullable|integer|min:2000|max:'.(date('Y') + 1),
         ];
     }
 

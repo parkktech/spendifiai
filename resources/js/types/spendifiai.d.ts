@@ -1,4 +1,4 @@
-export type DocumentStatus = 'upload' | 'classifying' | 'extracting' | 'ready' | 'failed';
+export type DocumentStatus = 'upload' | 'classifying' | 'extracting' | 'ready' | 'failed' | 'splitting' | 'split';
 export type TaxDocumentCategory =
   | 'w2' | '1099_nec' | '1099_int' | '1099_misc' | '1099_div' | '1098'
   | '1099_b' | '1099_r' | '1099_g' | '1099_k' | '1099_s' | '1099_sa' | '1099_c'

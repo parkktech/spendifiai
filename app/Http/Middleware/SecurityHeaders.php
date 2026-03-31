@@ -25,7 +25,7 @@ class SecurityHeaders
             // Production CSP — conditionally whitelist GTM/GA4 if configured
             $scriptSrc = "'self' 'unsafe-inline' 'unsafe-eval' https://cdn.plaid.com";
             $connectSrc = "'self' https://*.plaid.com";
-            $imgSrc = "'self' data: https://images.unsplash.com https://spendifiai.com https://*.googleusercontent.com";
+            $imgSrc = "'self' data: blob: https://images.unsplash.com https://spendifiai.com https://*.googleusercontent.com";
 
             if (config('spendifiai.consent.gtm_container_id') || config('spendifiai.consent.ga4_measurement_id')) {
                 $scriptSrc .= ' https://www.googletagmanager.com https://www.google-analytics.com';
@@ -39,7 +39,7 @@ class SecurityHeaders
                 ."font-src 'self' data: https://fonts.bunny.net; "
                 ."img-src {$imgSrc}; "
                 ."connect-src {$connectSrc}; "
-                ."frame-src 'self' https://cdn.plaid.com https://accounts.google.com; "
+                ."frame-src 'self' blob: https://cdn.plaid.com https://accounts.google.com; "
                 ."frame-ancestors 'none';";
         }
 

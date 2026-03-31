@@ -2,10 +2,12 @@
 
 namespace App\Services;
 
+use App\Enums\DocumentStatus;
 use App\Mail\TaxPackageMail;
 use App\Models\BankAccount;
 use App\Models\OrderItem;
 use App\Models\Subscription;
+use App\Models\TaxDocument;
 use App\Models\Transaction;
 use App\Models\User;
 use App\Models\UserFinancialProfile;
@@ -95,12 +97,12 @@ class TaxExportService
      */
     protected function gatherTaxData(User $user, int $year): array
     {
-        $userId = $user->id;
-        $profile = UserFinancialProfile::where('user_id', $userId)->first();
+        $userIds = $user->householdUserIds();
+        $profile = UserFinancialProfile::where('user_id', $user->id)->first();
 
         // ── Deductible Transactions by Tax Category ──
         // toBase() avoids the model's `category` accessor overriding COALESCE alias
-        $deductionsByCategory = Transaction::where('user_id', $userId)
+        $deductionsByCategory = Transaction::whereIn('user_id', $userIds)
             ->where('tax_deductible', true)
             ->whereYear('transaction_date', $year)
             ->toBase()
@@ -118,7 +120,7 @@ class TaxExportService
             ->toArray();
 
         // ── All Deductible Transaction Details ──
-        $deductibleTransactions = Transaction::where('user_id', $userId)
+        $deductibleTransactions = Transaction::whereIn('user_id', $userIds)
             ->where('tax_deductible', true)
             ->whereYear('transaction_date', $year)
             ->with('bankAccount:id,name,mask,purpose,nickname,business_name')
@@ -143,7 +145,7 @@ class TaxExportService
             ->toArray();
 
         // ── Deductible Order Items (from email parsing) ──
-        $deductibleItems = OrderItem::where('user_id', $userId)
+        $deductibleItems = OrderItem::whereIn('user_id', $userIds)
             ->where('tax_deductible', true)
             ->whereHas('order', fn ($q) => $q->whereYear('order_date', $year))
             ->with('order:id,merchant,order_number,order_date')
@@ -162,7 +164,7 @@ class TaxExportService
             ->toArray();
 
         // ── Business vs Personal Spending Summary ──
-        $spendingByPurpose = Transaction::where('user_id', $userId)
+        $spendingByPurpose = Transaction::whereIn('user_id', $userIds)
             ->where('amount', '>', 0)
             ->whereYear('transaction_date', $year)
             ->select(
@@ -176,7 +178,7 @@ class TaxExportService
             ->toArray();
 
         // ── Business Subscription Expenses ──
-        $businessSubs = Subscription::where('user_id', $userId)
+        $businessSubs = Subscription::whereIn('user_id', $userIds)
             ->where('status', '!=', 'cancelled')
             ->where(function ($query) {
                 $query->where('category', 'Software')
@@ -191,6 +193,10 @@ class TaxExportService
                 'frequency' => $s->frequency,
             ])
             ->toArray();
+
+        // ── Tax Vault Documents (W-2, 1099, 1098 extracted data) ──
+        // Gathered early so 1098 data can be injected into Schedule A
+        $vaultData = $this->gatherVaultDocumentData($userIds, $year);
 
         // ── Schedule C/A Line Mapping (via normalizer) ──
         $scheduleCLines = $this->mapToScheduleC($deductionsByCategory);
@@ -208,6 +214,26 @@ class TaxExportService
                 $allScheduleA[$key]['total'] = $mapped['total'];
                 $allScheduleA[$key]['categories'] = $mapped['categories'];
             }
+        }
+
+        // ── Inject vault 1098 data into Schedule A lines ──
+        $vt = $vaultData['totals'];
+        if (($vt['mortgage_1098_interest'] ?? 0) > 0 || ($vt['mortgage_1098_points'] ?? 0) > 0) {
+            $mortgageTotal = ($vt['mortgage_1098_interest'] ?? 0) + ($vt['mortgage_1098_points'] ?? 0);
+            $allScheduleA['Sch A-mortgage']['total'] += $mortgageTotal;
+            $allScheduleA['Sch A-mortgage']['categories'][] = [
+                'name' => 'Mortgage Interest + Points (1098)',
+                'total' => $mortgageTotal,
+                'items' => 1,
+            ];
+        }
+        if (($vt['mortgage_1098_property_tax'] ?? 0) > 0) {
+            $allScheduleA['Sch A-salt']['total'] += $vt['mortgage_1098_property_tax'];
+            $allScheduleA['Sch A-salt']['categories'][] = [
+                'name' => 'Property Tax (1098)',
+                'total' => $vt['mortgage_1098_property_tax'],
+                'items' => 1,
+            ];
         }
 
         $scheduleCTotal = array_sum(array_column($allScheduleC, 'total'));
@@ -230,10 +256,20 @@ class TaxExportService
         $totalDeductible = array_sum(array_column($deductionsByCategory, 'total'));
         $totalItemized = array_sum(array_column($deductibleItems, 'amount'));
         $grandTotal = $totalDeductible + $totalItemized;
-        $estRate = ($profile?->estimated_tax_bracket ?? 22) / 100;
+
+        // Auto-calculate tax bracket from vault income + filing status
+        // Fall back to profile's manual bracket if no vault income documents
+        $vaultIncome = $vaultData['totals']['total_income'] ?? 0;
+        if ($vaultIncome > 0) {
+            $filingStatus = $profile?->tax_filing_status ?? 'single';
+            $autoTaxBracket = $this->calculateTaxBracket($vaultIncome, $filingStatus);
+        } else {
+            $autoTaxBracket = $profile?->estimated_tax_bracket ?? 22;
+        }
+        $estRate = $autoTaxBracket / 100;
 
         // ── Account Summary ──
-        $accounts = BankAccount::where('user_id', $userId)
+        $accounts = BankAccount::whereIn('user_id', $userIds)
             ->where('is_active', true)
             ->with('bankConnection:id,institution_name')
             ->get()
@@ -273,7 +309,8 @@ class TaxExportService
                 'schedule_c_total' => round($scheduleCTotal, 2),
                 'schedule_a_total' => round($scheduleATotal, 2),
                 'generated_at' => now()->toIso8601String(),
-            ],
+                'vault_document_count' => count($vaultData['documents']),
+            ] + collect($vaultData['totals'])->mapWithKeys(fn ($v, $k) => ["vault_{$k}" => $v])->toArray(),
             'deductions_by_category' => $deductionsByCategory,
             'deductible_transactions' => $deductibleTransactions,
             'deductible_items' => $deductibleItems,
@@ -284,8 +321,300 @@ class TaxExportService
             'all_schedule_a_lines' => array_values($allScheduleA),
             'transactions_by_line' => $transactionsByLine,
             'accounts' => $accounts,
+            'vault_documents' => $vaultData['documents'],
+            'vault_totals' => $vaultData['totals'],
             'logo_base64' => $this->getLogoBase64(),
         ];
+    }
+
+    /**
+     * Gather extracted data from Tax Vault documents (W-2, 1099, 1098, etc.).
+     */
+    protected function gatherVaultDocumentData(array $userIds, int $year): array
+    {
+        $docs = TaxDocument::whereIn('user_id', $userIds)
+            ->where('tax_year', $year)
+            ->where('status', DocumentStatus::Ready->value)
+            ->whereNotNull('extracted_data')
+            ->get();
+
+        $documents = [];
+        foreach ($docs as $doc) {
+            $fields = $doc->extracted_data['fields'] ?? [];
+
+            $entry = [
+                'id' => $doc->id,
+                'filename' => $doc->original_filename,
+                'category' => $doc->category?->value,
+                'category_label' => $doc->category?->label(),
+                'confidence' => $doc->classification_confidence,
+                'fields' => [],
+            ];
+
+            foreach ($fields as $name => $fieldData) {
+                $entry['fields'][$name] = [
+                    'value' => $fieldData['value'] ?? null,
+                    'confidence' => $fieldData['confidence'] ?? 0,
+                    'verified' => $fieldData['verified'] ?? false,
+                ];
+            }
+
+            $documents[] = $entry;
+        }
+
+        return [
+            'documents' => $documents,
+            'totals' => $this->aggregateVaultTotals($docs),
+        ];
+    }
+
+    /**
+     * Aggregate vault totals from a collection of TaxDocument models.
+     * Public so TaxController can reuse the same logic.
+     */
+    public function aggregateVaultTotals($docs): array
+    {
+        $totals = $this->initVaultTotals();
+
+        foreach ($docs as $doc) {
+            $fields = $doc->extracted_data['fields'] ?? [];
+            $category = $doc->category?->value;
+
+            match ($category) {
+                'w2' => $this->aggregateW2($fields, $totals),
+                '1099_nec' => $this->aggregate1099NEC($fields, $totals),
+                '1099_int' => $this->aggregate1099INT($fields, $totals),
+                '1099_misc' => $this->aggregate1099Misc($fields, $totals),
+                '1099_div' => $this->aggregate1099DIV($fields, $totals),
+                '1099_k' => $this->aggregate1099K($fields, $totals),
+                '1099_s' => $this->aggregate1099S($fields, $totals),
+                '1099_r' => $this->aggregate1099R($fields, $totals),
+                '1099_g' => $this->aggregate1099G($fields, $totals),
+                '1099_b' => $this->aggregate1099B($fields, $totals),
+                '1098' => $this->aggregate1098($fields, $totals),
+                default => null,
+            };
+        }
+
+        $totals['total_income'] = $totals['w2_wages']
+            + $totals['nec_1099_income'] + $totals['int_1099_income']
+            + $totals['misc_1099_income'] + $totals['div_1099_ordinary']
+            + $totals['k_1099_gross'] + $totals['s_1099_proceeds']
+            + $totals['r_1099_taxable'] + $totals['g_1099_unemployment']
+            + $totals['b_1099_gain_loss'];
+
+        // Add W-2 withholding to overall withholding totals
+        $totals['total_federal_withheld'] += $totals['w2_federal_withheld'];
+        $totals['total_state_withheld'] += $totals['w2_state_withheld'];
+
+        // Calculate linked business expenses (contract labor, etc.) from vault doc pivot
+        $linkedExpenseTotal = 0;
+        foreach ($docs as $doc) {
+            if (in_array($doc->category?->value, ['1099_nec', '1099_k'])) {
+                $linkedExpenseTotal += $doc->transactions()
+                    ->where('tax_deductible', true)
+                    ->sum('amount');
+            }
+        }
+        $totals['linked_business_expenses'] = round((float) $linkedExpenseTotal, 2);
+
+        // SE tax on NET self-employment income (gross minus linked expenses)
+        $totals['se_tax_income'] = $totals['nec_1099_income'] + $totals['k_1099_gross'];
+        $totals['se_net_income'] = max(0, $totals['se_tax_income'] - $totals['linked_business_expenses']);
+        if ($totals['se_net_income'] > 0) {
+            $totals['se_tax_estimated'] = round($totals['se_net_income'] * 0.9235 * 0.153, 2);
+        }
+
+        foreach ($totals as $key => $val) {
+            $totals[$key] = round((float) $val, 2);
+        }
+
+        return $totals;
+    }
+
+    private function initVaultTotals(): array
+    {
+        return [
+            'w2_wages' => 0, 'w2_federal_withheld' => 0, 'w2_state_withheld' => 0,
+            'w2_social_security_wages' => 0, 'w2_social_security_tax' => 0,
+            'w2_medicare_wages' => 0, 'w2_medicare_tax' => 0,
+            'nec_1099_income' => 0, 'int_1099_income' => 0, 'misc_1099_income' => 0,
+            'div_1099_ordinary' => 0, 'div_1099_qualified' => 0, 'div_1099_capital_gain' => 0,
+            'k_1099_gross' => 0, 's_1099_proceeds' => 0,
+            'r_1099_gross_distribution' => 0, 'r_1099_taxable' => 0,
+            'g_1099_unemployment' => 0, 'g_1099_state_refund' => 0,
+            'b_1099_proceeds' => 0, 'b_1099_cost_basis' => 0, 'b_1099_gain_loss' => 0,
+            'mortgage_1098_interest' => 0, 'mortgage_1098_property_tax' => 0, 'mortgage_1098_points' => 0,
+            'total_income' => 0, 'total_federal_withheld' => 0, 'total_state_withheld' => 0,
+            'linked_business_expenses' => 0, 'se_tax_income' => 0, 'se_net_income' => 0, 'se_tax_estimated' => 0,
+        ];
+    }
+
+    /**
+     * Calculate marginal tax bracket from income and filing status.
+     * Uses 2025 IRS tax brackets.
+     */
+    public function calculateTaxBracket(float $income, string $filingStatus): int
+    {
+        // 2025 Federal Income Tax Brackets
+        $brackets = match ($filingStatus) {
+            'married', 'married_filing_jointly' => [
+                [23850, 10], [96950, 12], [206700, 22], [394600, 24],
+                [501050, 32], [751600, 35], [PHP_INT_MAX, 37],
+            ],
+            'married_filing_separately' => [
+                [11925, 10], [48475, 12], [103350, 22], [197300, 24],
+                [250525, 32], [375800, 35], [PHP_INT_MAX, 37],
+            ],
+            'head_of_household' => [
+                [17000, 10], [63100, 12], [100500, 22], [191950, 24],
+                [243725, 32], [609350, 35], [PHP_INT_MAX, 37],
+            ],
+            default => [ // single
+                [11925, 10], [48475, 12], [103350, 22], [197300, 24],
+                [250525, 32], [626350, 35], [PHP_INT_MAX, 37],
+            ],
+        };
+
+        if ($income <= 0) {
+            return 10;
+        }
+
+        foreach ($brackets as [$threshold, $rate]) {
+            if ($income <= $threshold) {
+                return $rate;
+            }
+        }
+
+        return 37;
+    }
+
+    private function safeFloat(array $fields, string $key): float
+    {
+        $val = $fields[$key]['value'] ?? 0;
+
+        return (float) (is_numeric($val) ? $val : 0);
+    }
+
+    /**
+     * Mask an EIN/TIN to show only last 4 digits: XX-XXX6789
+     */
+    private function maskEin(?string $ein): string
+    {
+        if (! $ein) {
+            return '';
+        }
+        $digits = preg_replace('/\D/', '', $ein);
+        if (strlen($digits) < 4) {
+            return $ein;
+        }
+
+        return 'XX-XXX'.substr($digits, -4);
+    }
+
+    /**
+     * Check if a field name contains sensitive identifiers that should be masked.
+     */
+    private function isSensitiveField(string $fieldName): bool
+    {
+        return str_contains($fieldName, 'ssn') || str_contains($fieldName, 'tin') || str_contains($fieldName, 'ein');
+    }
+
+    /**
+     * Mask a field value if it's a sensitive identifier.
+     */
+    private function maskFieldValue(string $fieldName, mixed $value): mixed
+    {
+        if (! $this->isSensitiveField($fieldName) || ! is_string($value)) {
+            return $value;
+        }
+        if (str_contains($fieldName, 'ssn')) {
+            return '***-**-'.substr(preg_replace('/\D/', '', $value), -4);
+        }
+
+        return $this->maskEin($value);
+    }
+
+    private function aggregateW2(array $fields, array &$totals): void
+    {
+        $totals['w2_wages'] += $this->safeFloat($fields, 'wages');
+        $totals['w2_federal_withheld'] += $this->safeFloat($fields, 'federal_tax_withheld');
+        $totals['w2_state_withheld'] += $this->safeFloat($fields, 'state_tax_withheld');
+        $totals['w2_social_security_wages'] += $this->safeFloat($fields, 'social_security_wages');
+        $totals['w2_social_security_tax'] += $this->safeFloat($fields, 'social_security_tax');
+        $totals['w2_medicare_wages'] += $this->safeFloat($fields, 'medicare_wages');
+        $totals['w2_medicare_tax'] += $this->safeFloat($fields, 'medicare_tax');
+    }
+
+    private function aggregate1099NEC(array $fields, array &$totals): void
+    {
+        $totals['nec_1099_income'] += $this->safeFloat($fields, 'nonemployee_compensation');
+        $totals['total_federal_withheld'] += $this->safeFloat($fields, 'federal_tax_withheld');
+        $totals['total_state_withheld'] += $this->safeFloat($fields, 'state_tax_withheld');
+    }
+
+    private function aggregate1099INT(array $fields, array &$totals): void
+    {
+        $totals['int_1099_income'] += $this->safeFloat($fields, 'interest_income');
+        $totals['total_federal_withheld'] += $this->safeFloat($fields, 'federal_tax_withheld');
+        $totals['total_state_withheld'] += $this->safeFloat($fields, 'state_tax_withheld');
+    }
+
+    private function aggregate1099Misc(array $fields, array &$totals): void
+    {
+        $totals['misc_1099_income'] += $this->safeFloat($fields, 'total_amount');
+        $totals['total_federal_withheld'] += $this->safeFloat($fields, 'federal_tax_withheld');
+        $totals['total_state_withheld'] += $this->safeFloat($fields, 'state_tax_withheld');
+    }
+
+    private function aggregate1099DIV(array $fields, array &$totals): void
+    {
+        $totals['div_1099_ordinary'] += $this->safeFloat($fields, 'ordinary_dividends');
+        $totals['div_1099_qualified'] += $this->safeFloat($fields, 'qualified_dividends');
+        $totals['div_1099_capital_gain'] += $this->safeFloat($fields, 'capital_gain_distributions');
+        $totals['total_federal_withheld'] += $this->safeFloat($fields, 'federal_tax_withheld');
+    }
+
+    private function aggregate1099K(array $fields, array &$totals): void
+    {
+        $totals['k_1099_gross'] += $this->safeFloat($fields, 'gross_amount');
+        $totals['total_federal_withheld'] += $this->safeFloat($fields, 'federal_tax_withheld');
+        $totals['total_state_withheld'] += $this->safeFloat($fields, 'state_tax_withheld');
+    }
+
+    private function aggregate1099S(array $fields, array &$totals): void
+    {
+        $totals['s_1099_proceeds'] += $this->safeFloat($fields, 'gross_proceeds');
+    }
+
+    private function aggregate1099R(array $fields, array &$totals): void
+    {
+        $totals['r_1099_gross_distribution'] += $this->safeFloat($fields, 'gross_distribution');
+        $totals['r_1099_taxable'] += $this->safeFloat($fields, 'taxable_amount');
+        $totals['total_federal_withheld'] += $this->safeFloat($fields, 'federal_tax_withheld');
+        $totals['total_state_withheld'] += $this->safeFloat($fields, 'state_tax_withheld');
+    }
+
+    private function aggregate1099G(array $fields, array &$totals): void
+    {
+        $totals['g_1099_unemployment'] += $this->safeFloat($fields, 'unemployment_compensation');
+        $totals['g_1099_state_refund'] += $this->safeFloat($fields, 'state_tax_refund');
+        $totals['total_federal_withheld'] += $this->safeFloat($fields, 'federal_tax_withheld');
+    }
+
+    private function aggregate1099B(array $fields, array &$totals): void
+    {
+        $totals['b_1099_proceeds'] += $this->safeFloat($fields, 'proceeds');
+        $totals['b_1099_cost_basis'] += $this->safeFloat($fields, 'cost_basis');
+        $totals['b_1099_gain_loss'] += $this->safeFloat($fields, 'proceeds') - $this->safeFloat($fields, 'cost_basis');
+        $totals['total_federal_withheld'] += $this->safeFloat($fields, 'federal_tax_withheld');
+    }
+
+    private function aggregate1098(array $fields, array &$totals): void
+    {
+        $totals['mortgage_1098_interest'] += $this->safeFloat($fields, 'mortgage_interest');
+        $totals['mortgage_1098_property_tax'] += $this->safeFloat($fields, 'property_tax');
+        $totals['mortgage_1098_points'] += $this->safeFloat($fields, 'points_paid');
     }
 
     /**
@@ -307,6 +636,7 @@ class TaxExportService
             ->setCreator('SpendifiAI');
 
         $this->createSummarySheet($spreadsheet, $data);
+        $this->createIncomeDocumentsSheet($spreadsheet, $data);
         $this->createScheduleCSheet($spreadsheet, $data);
         $this->createCategorySheet($spreadsheet, $data);
         $this->createTransactionsSheet($spreadsheet, $data);
@@ -377,6 +707,56 @@ class TaxExportService
         $ws->getStyle("A{$row}")->getFont()->setBold(true)->setSize(12)->setColor(new Color('1a5276'));
         $row++;
 
+        // Income section (from Tax Vault documents)
+        if (($s['vault_total_income'] ?? 0) > 0) {
+            $ws->setCellValue("A{$row}", 'INCOME SUMMARY (from Tax Documents)');
+            $ws->getStyle("A{$row}")->getFont()->setBold(true)->setSize(12)->setColor(new Color('1a5276'));
+            $row++;
+
+            $blueFill = ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => 'e3f2fd']];
+            $incomeRows = [];
+            if (($s['vault_total_w2_wages'] ?? 0) > 0) {
+                $incomeRows[] = ['W-2 Wages', $s['vault_total_w2_wages']];
+            }
+            if (($s['vault_total_1099_nec_income'] ?? 0) > 0) {
+                $incomeRows[] = ['1099-NEC (Self-Employment)', $s['vault_total_1099_nec_income']];
+            }
+            if (($s['vault_total_1099_int_income'] ?? 0) > 0) {
+                $incomeRows[] = ['1099-INT (Interest)', $s['vault_total_1099_int_income']];
+            }
+            foreach ($incomeRows as [$label, $val]) {
+                $ws->setCellValue("A{$row}", $label);
+                $ws->getStyle("A{$row}")->getFont()->setBold(true)->setSize(10);
+                $ws->setCellValue("B{$row}", $val);
+                $ws->getStyle("B{$row}")->getNumberFormat()->setFormatCode('$#,##0.00');
+                $row++;
+            }
+            $ws->setCellValue("A{$row}", 'Total Gross Income');
+            $ws->getStyle("A{$row}")->getFont()->setBold(true)->setSize(11);
+            $ws->setCellValue("B{$row}", $s['vault_total_income']);
+            $ws->getStyle("B{$row}")->getNumberFormat()->setFormatCode('$#,##0.00');
+            $ws->getStyle("B{$row}")->getFont()->setBold(true)->setSize(13)->setColor(new Color('1565c0'));
+            $ws->getStyle("A{$row}")->getFill()->applyFromArray($blueFill);
+            $ws->getStyle("B{$row}")->getFill()->applyFromArray($blueFill);
+            $row++;
+
+            if (($s['vault_total_federal_withheld'] ?? 0) > 0) {
+                $ws->setCellValue("A{$row}", 'Federal Tax Withheld');
+                $ws->getStyle("A{$row}")->getFont()->setBold(true)->setSize(10);
+                $ws->setCellValue("B{$row}", $s['vault_total_federal_withheld']);
+                $ws->getStyle("B{$row}")->getNumberFormat()->setFormatCode('$#,##0.00');
+                $row++;
+            }
+            if (($s['vault_total_w2_state_withheld'] ?? 0) > 0) {
+                $ws->setCellValue("A{$row}", 'State Tax Withheld');
+                $ws->getStyle("A{$row}")->getFont()->setBold(true)->setSize(10);
+                $ws->setCellValue("B{$row}", $s['vault_total_w2_state_withheld']);
+                $ws->getStyle("B{$row}")->getNumberFormat()->setFormatCode('$#,##0.00');
+                $row++;
+            }
+            $row++;
+        }
+
         $greenFill = ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => 'e8f5e9']];
         $summaryRows = [
             ['Total Deductible (Bank Transactions)', $s['total_deductible_transactions'], false],
@@ -384,6 +764,14 @@ class TaxExportService
             ['Grand Total Deductible', $s['grand_total_deductible'], true],
             ['Estimated Tax Savings', $s['estimated_tax_savings'], true],
         ];
+
+        // Add mortgage interest if present
+        if (($s['vault_total_1098_mortgage_interest'] ?? 0) > 0) {
+            $summaryRows[] = ['Mortgage Interest (1098)', $s['vault_total_1098_mortgage_interest'], false];
+        }
+        if (($s['vault_total_1098_property_tax'] ?? 0) > 0) {
+            $summaryRows[] = ['Property Tax (1098)', $s['vault_total_1098_property_tax'], false];
+        }
 
         foreach ($summaryRows as [$label, $val, $highlight]) {
             $ws->setCellValue("A{$row}", $label);
@@ -434,6 +822,161 @@ class TaxExportService
         $ws->getColumnDimension('A')->setWidth(35);
         $ws->getColumnDimension('B')->setWidth(25);
         $this->autoWidth($ws, 'C', 'H');
+    }
+
+    protected function createIncomeDocumentsSheet(Spreadsheet $spreadsheet, array $data): void
+    {
+        $vaultDocs = $data['vault_documents'] ?? [];
+        if (empty($vaultDocs)) {
+            return; // No vault documents — skip sheet
+        }
+
+        $ws = $spreadsheet->createSheet();
+        $ws->setTitle('Income & Tax Documents');
+        $ws->getTabColor()->setRGB('1565c0');
+
+        $ws->mergeCells('A1:H1');
+        $ws->setCellValue('A1', "Income & Tax Documents — {$data['year']}");
+        $ws->getStyle('A1')->getFont()->setBold(true)->setSize(14)->setColor(new Color('1565c0'));
+
+        $ws->setCellValue('A2', 'Extracted from uploaded W-2, 1099, 1098, and other tax documents');
+        $ws->getStyle('A2')->getFont()->setSize(10)->setItalic(true)->setColor(new Color('666666'));
+
+        // Totals banner
+        $vt = $data['vault_totals'] ?? [];
+        $row = 4;
+
+        $ws->setCellValue("A{$row}", 'INCOME TOTALS');
+        $ws->getStyle("A{$row}")->getFont()->setBold(true)->setSize(12)->setColor(new Color('1565c0'));
+        $row++;
+
+        $blueFill = ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => 'e3f2fd']];
+        $totalsDisplay = [
+            ['W-2 Wages', $vt['w2_wages'] ?? 0],
+            ['1099-NEC (Self-Employment)', $vt['nec_1099_income'] ?? 0],
+            ['1099-INT (Interest)', $vt['int_1099_income'] ?? 0],
+            ['1099-MISC', $vt['misc_1099_income'] ?? 0],
+            ['1099-DIV (Dividends)', $vt['div_1099_income'] ?? 0],
+            ['Other 1099 Income', $vt['other_1099_income'] ?? 0],
+        ];
+        foreach ($totalsDisplay as [$label, $val]) {
+            if ($val > 0) {
+                $ws->setCellValue("A{$row}", $label);
+                $ws->getStyle("A{$row}")->getFont()->setBold(true);
+                $ws->setCellValue("B{$row}", $val);
+                $ws->getStyle("B{$row}")->getNumberFormat()->setFormatCode('$#,##0.00');
+                $row++;
+            }
+        }
+
+        // Grand total income
+        $ws->setCellValue("A{$row}", 'Total Gross Income');
+        $ws->getStyle("A{$row}")->getFont()->setBold(true)->setSize(12);
+        $ws->setCellValue("B{$row}", $vt['total_income'] ?? 0);
+        $ws->getStyle("B{$row}")->getNumberFormat()->setFormatCode('$#,##0.00');
+        $ws->getStyle("B{$row}")->getFont()->setBold(true)->setSize(13)->setColor(new Color('1565c0'));
+        $ws->getStyle("A{$row}")->getFill()->applyFromArray($blueFill);
+        $ws->getStyle("B{$row}")->getFill()->applyFromArray($blueFill);
+        $row += 2;
+
+        // Withholding totals
+        $ws->setCellValue("A{$row}", 'TAX WITHHOLDING');
+        $ws->getStyle("A{$row}")->getFont()->setBold(true)->setSize(12)->setColor(new Color('1565c0'));
+        $row++;
+        $withholdingRows = [
+            ['Federal Tax Withheld', $vt['total_federal_withheld'] ?? 0],
+            ['State Tax Withheld', $vt['total_state_withheld'] ?? 0],
+            ['Social Security Tax', $vt['w2_social_security_tax'] ?? 0],
+            ['Medicare Tax', $vt['w2_medicare_tax'] ?? 0],
+        ];
+        foreach ($withholdingRows as [$label, $val]) {
+            if ($val > 0) {
+                $ws->setCellValue("A{$row}", $label);
+                $ws->getStyle("A{$row}")->getFont()->setBold(true);
+                $ws->setCellValue("B{$row}", $val);
+                $ws->getStyle("B{$row}")->getNumberFormat()->setFormatCode('$#,##0.00');
+                $row++;
+            }
+        }
+
+        // Mortgage / deduction items
+        if (($vt['mortgage_1098_interest'] ?? 0) > 0 || ($vt['mortgage_1098_property_tax'] ?? 0) > 0) {
+            $row++;
+            $ws->setCellValue("A{$row}", 'SCHEDULE A DEDUCTIONS (from 1098)');
+            $ws->getStyle("A{$row}")->getFont()->setBold(true)->setSize(12)->setColor(new Color('2e7d32'));
+            $row++;
+            if (($vt['mortgage_1098_interest'] ?? 0) > 0) {
+                $ws->setCellValue("A{$row}", 'Mortgage Interest');
+                $ws->setCellValue("B{$row}", $vt['mortgage_1098_interest']);
+                $ws->getStyle("B{$row}")->getNumberFormat()->setFormatCode('$#,##0.00');
+                $row++;
+            }
+            if (($vt['mortgage_1098_property_tax'] ?? 0) > 0) {
+                $ws->setCellValue("A{$row}", 'Property Tax');
+                $ws->setCellValue("B{$row}", $vt['mortgage_1098_property_tax']);
+                $ws->getStyle("B{$row}")->getNumberFormat()->setFormatCode('$#,##0.00');
+                $row++;
+            }
+        }
+
+        // Individual document details
+        $row += 2;
+        $ws->setCellValue("A{$row}", 'DOCUMENT DETAILS');
+        $ws->getStyle("A{$row}")->getFont()->setBold(true)->setSize(12)->setColor(new Color('1565c0'));
+        $row++;
+
+        // Group by category
+        $grouped = [];
+        foreach ($vaultDocs as $doc) {
+            $cat = $doc['category_label'] ?? $doc['category'] ?? 'Other';
+            $grouped[$cat][] = $doc;
+        }
+
+        foreach ($grouped as $catLabel => $docs) {
+            $ws->setCellValue("A{$row}", strtoupper($catLabel));
+            $ws->getStyle("A{$row}")->getFont()->setBold(true)->setSize(11)->setColor(new Color('37474f'));
+            $ws->getStyle("A{$row}")->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB('eceff1');
+            $row++;
+
+            foreach ($docs as $doc) {
+                $ws->setCellValue("A{$row}", '  '.$doc['filename']);
+                $ws->getStyle("A{$row}")->getFont()->setItalic(true)->setSize(9)->setColor(new Color('666666'));
+                $row++;
+
+                foreach ($doc['fields'] as $fieldName => $field) {
+                    $label = ucwords(str_replace('_', ' ', $fieldName));
+                    $ws->setCellValue("B{$row}", $label);
+                    $ws->getStyle("B{$row}")->getFont()->setSize(10);
+
+                    $val = $this->maskFieldValue($fieldName, $field['value']);
+                    if (is_numeric($val) && ! $this->isSensitiveField($fieldName)) {
+                        $ws->setCellValue("C{$row}", (float) $val);
+                        $ws->getStyle("C{$row}")->getNumberFormat()->setFormatCode('$#,##0.00');
+                    } else {
+                        $ws->setCellValue("C{$row}", $val);
+                    }
+
+                    // Confidence indicator
+                    $conf = $field['confidence'] ?? 0;
+                    $ws->setCellValue("D{$row}", round($conf * 100).'%');
+                    if ($conf >= 0.95) {
+                        $ws->getStyle("D{$row}")->getFont()->setColor(new Color('2e7d32'));
+                    } elseif ($conf >= 0.80) {
+                        $ws->getStyle("D{$row}")->getFont()->setColor(new Color('f57f17'));
+                    } else {
+                        $ws->getStyle("D{$row}")->getFont()->setColor(new Color('c62828'));
+                    }
+
+                    $row++;
+                }
+                $row++; // Spacer between documents
+            }
+        }
+
+        $ws->getColumnDimension('A')->setWidth(40);
+        $ws->getColumnDimension('B')->setWidth(30);
+        $ws->getColumnDimension('C')->setWidth(20);
+        $ws->getColumnDimension('D')->setWidth(10);
     }
 
     protected function createScheduleCSheet(Spreadsheet $spreadsheet, array $data): void
@@ -756,6 +1299,45 @@ class TaxExportService
             ]);
         }
 
+        // Vault document income/withholding rows
+        foreach ($data['vault_documents'] ?? [] as $doc) {
+            $cat = $doc['category_label'] ?? $doc['category'] ?? '';
+            $fields = $doc['fields'] ?? [];
+
+            // Build a summary description from key fields
+            $source = '';
+            foreach (['employer_name', 'payer_name', 'lender_name', 'issuer_name'] as $nameField) {
+                if (isset($fields[$nameField]['value'])) {
+                    $source = $fields[$nameField]['value'];
+                    break;
+                }
+            }
+
+            // Write each monetary field as a row
+            foreach ($fields as $fieldName => $field) {
+                $val = $field['value'] ?? null;
+                if (! is_numeric($val) || $this->isSensitiveField($fieldName)) {
+                    continue;
+                }
+                $label = ucwords(str_replace('_', ' ', $fieldName));
+                fputcsv($fp, [
+                    $data['year'].'-01-01',
+                    $source,
+                    "{$cat}: {$label}",
+                    $val,
+                    $cat,
+                    $cat,
+                    'income',
+                    'Tax Document',
+                    'vault',
+                    '',
+                    round(($field['confidence'] ?? 0) * 100).'%',
+                    ($field['verified'] ?? false) ? 'Yes' : 'AI',
+                    "Source: {$doc['filename']}",
+                ]);
+            }
+        }
+
         fclose($fp);
     }
 
@@ -821,6 +1403,86 @@ class TaxExportService
             }
         }
 
+        // Vault document income records
+        $vt = $data['vault_totals'] ?? [];
+
+        // W-2 wages (TXF ref N301 = Wages, salaries, tips)
+        if (($vt['w2_wages'] ?? 0) > 0) {
+            $lines[] = '^';
+            $lines[] = 'TD';
+            $lines[] = 'N301';
+            $lines[] = 'C1';
+            $lines[] = 'L1';
+            $lines[] = '$'.number_format($vt['w2_wages'], 2, '.', '');
+            $lines[] = 'PWages and Salaries (W-2)';
+        }
+
+        // 1099-NEC self-employment (TXF ref N553 = Schedule C gross receipts)
+        if (($vt['nec_1099_income'] ?? 0) > 0) {
+            $lines[] = '^';
+            $lines[] = 'TD';
+            $lines[] = 'N553';
+            $lines[] = 'C1';
+            $lines[] = 'L1';
+            $lines[] = '$'.number_format($vt['nec_1099_income'], 2, '.', '');
+            $lines[] = 'P1099-NEC Self-Employment Income';
+        }
+
+        // 1099-INT interest (TXF ref N310 = Interest income)
+        if (($vt['int_1099_income'] ?? 0) > 0) {
+            $lines[] = '^';
+            $lines[] = 'TD';
+            $lines[] = 'N310';
+            $lines[] = 'C1';
+            $lines[] = 'L1';
+            $lines[] = '$'.number_format($vt['int_1099_income'], 2, '.', '');
+            $lines[] = 'PInterest Income (1099-INT)';
+        }
+
+        // 1099-DIV dividends (TXF ref N320 = Ordinary dividends)
+        if (($vt['div_1099_ordinary'] ?? 0) > 0) {
+            $lines[] = '^';
+            $lines[] = 'TD';
+            $lines[] = 'N320';
+            $lines[] = 'C1';
+            $lines[] = 'L1';
+            $lines[] = '$'.number_format($vt['div_1099_ordinary'], 2, '.', '');
+            $lines[] = 'POrdinary Dividends (1099-DIV)';
+        }
+
+        // 1098 mortgage interest (TXF ref N292 = Schedule A mortgage interest)
+        if (($vt['mortgage_1098_interest'] ?? 0) > 0) {
+            $lines[] = '^';
+            $lines[] = 'TD';
+            $lines[] = 'N292';
+            $lines[] = 'C1';
+            $lines[] = 'L1';
+            $lines[] = '$-'.number_format($vt['mortgage_1098_interest'], 2, '.', '');
+            $lines[] = 'PMortgage Interest (1098)';
+        }
+
+        // 1098 property tax (TXF ref N290 = Schedule A SALT)
+        if (($vt['mortgage_1098_property_tax'] ?? 0) > 0) {
+            $lines[] = '^';
+            $lines[] = 'TD';
+            $lines[] = 'N290';
+            $lines[] = 'C1';
+            $lines[] = 'L1';
+            $lines[] = '$-'.number_format($vt['mortgage_1098_property_tax'], 2, '.', '');
+            $lines[] = 'PProperty Tax (1098)';
+        }
+
+        // Federal withholding (TXF ref N340 = Federal tax withheld)
+        if (($vt['total_federal_withheld'] ?? 0) > 0) {
+            $lines[] = '^';
+            $lines[] = 'TD';
+            $lines[] = 'N340';
+            $lines[] = 'C1';
+            $lines[] = 'L1';
+            $lines[] = '$'.number_format($vt['total_federal_withheld'], 2, '.', '');
+            $lines[] = 'PFederal Income Tax Withheld';
+        }
+
         $lines[] = '^';
 
         file_put_contents($path, implode("\r\n", $lines));
@@ -846,6 +1508,29 @@ class TaxExportService
                 $desc,
                 '-'.number_format((float) $tx['amount'], 2, '.', ''),
             ]);
+        }
+
+        // Vault income entries
+        foreach ($data['vault_documents'] ?? [] as $doc) {
+            $fields = $doc['fields'] ?? [];
+            $source = $fields['employer_name']['value']
+                ?? $fields['payer_name']['value']
+                ?? $fields['pse_name']['value']
+                ?? $fields['lender_name']['value']
+                ?? $doc['filename'] ?? '';
+
+            foreach ($fields as $fieldName => $field) {
+                $val = $field['value'] ?? null;
+                if (! is_numeric($val) || $this->isSensitiveField($fieldName)) {
+                    continue;
+                }
+                $label = ucwords(str_replace('_', ' ', $fieldName));
+                fputcsv($fp, [
+                    "01/01/{$data['year']}",
+                    "{$doc['category_label']}: {$source} - {$label}",
+                    number_format((float) $val, 2, '.', ''),
+                ]);
+            }
         }
 
         fclose($fp);
@@ -906,6 +1591,47 @@ class TaxExportService
             $xml .= "          </STMTTRN>\n";
 
             $counter++;
+        }
+
+        // Vault document income entries
+        foreach ($data['vault_documents'] ?? [] as $doc) {
+            $fields = $doc['fields'] ?? [];
+            $source = $fields['employer_name']['value']
+                ?? $fields['payer_name']['value']
+                ?? $fields['pse_name']['value']
+                ?? $doc['filename'] ?? 'Tax Document';
+            $catLabel = $doc['category_label'] ?? $doc['category'] ?? '';
+
+            // Pick the primary monetary field per document type
+            $amount = match ($doc['category'] ?? '') {
+                'w2' => $this->safeFloat($fields, 'wages'),
+                '1099_nec' => $this->safeFloat($fields, 'nonemployee_compensation'),
+                '1099_int' => $this->safeFloat($fields, 'interest_income'),
+                '1099_k' => $this->safeFloat($fields, 'gross_amount'),
+                '1099_div' => $this->safeFloat($fields, 'ordinary_dividends'),
+                '1099_r' => $this->safeFloat($fields, 'taxable_amount'),
+                '1099_g' => $this->safeFloat($fields, 'unemployment_compensation'),
+                '1099_s' => $this->safeFloat($fields, 'gross_proceeds'),
+                default => $this->safeFloat($fields, 'total_amount'),
+            };
+
+            if ($amount > 0) {
+                $date = "{$year}0115120000";
+                $fitid = $year.str_pad((string) $counter, 8, '0', STR_PAD_LEFT);
+                $name = htmlspecialchars(substr("{$catLabel}: {$source}", 0, 32), ENT_XML1 | ENT_QUOTES, 'UTF-8');
+                $memo = htmlspecialchars("Income from {$catLabel}", ENT_XML1 | ENT_QUOTES, 'UTF-8');
+
+                $xml .= "          <STMTTRN>\n";
+                $xml .= "            <TRNTYPE>CREDIT</TRNTYPE>\n";
+                $xml .= "            <DTPOSTED>{$date}</DTPOSTED>\n";
+                $xml .= '            <TRNAMT>'.number_format($amount, 2, '.', '')."</TRNAMT>\n";
+                $xml .= "            <FITID>{$fitid}</FITID>\n";
+                $xml .= "            <NAME>{$name}</NAME>\n";
+                $xml .= "            <MEMO>{$memo}</MEMO>\n";
+                $xml .= "          </STMTTRN>\n";
+
+                $counter++;
+            }
         }
 
         $xml .= "        </BANKTRANLIST>\n";

@@ -513,7 +513,63 @@
 
     <div class="content">
 
+        {{-- ── Income from Tax Documents ── --}}
+        @php $vt = $summary; @endphp
+        @if(($vt['vault_total_income'] ?? 0) > 0)
+        <div class="section-label" style="margin-bottom: 6px;">Income Summary (from Tax Documents)</div>
+        <table style="width: 100%; border-collapse: collapse; margin-bottom: 8px; font-size: 9px;">
+            @foreach([
+                ['W-2 Wages', $vt['vault_w2_wages'] ?? 0],
+                ['1099-NEC (Self-Employment)', $vt['vault_nec_1099_income'] ?? 0],
+                ['1099-K (Payment Card)', $vt['vault_k_1099_gross'] ?? 0],
+                ['1099-INT (Interest)', $vt['vault_int_1099_income'] ?? 0],
+                ['1099-DIV (Dividends)', $vt['vault_div_1099_ordinary'] ?? 0],
+                ['1099-R (Retirement)', $vt['vault_r_1099_taxable'] ?? 0],
+                ['1099-G (Unemployment)', $vt['vault_g_1099_unemployment'] ?? 0],
+                ['1099-S (Real Estate)', $vt['vault_s_1099_proceeds'] ?? 0],
+                ['1099-B (Capital Gains)', $vt['vault_b_1099_gain_loss'] ?? 0],
+                ['1099-MISC', $vt['vault_misc_1099_income'] ?? 0],
+            ] as [$label, $amount])
+                @if($amount > 0)
+                <tr>
+                    <td style="padding: 2px 10px; width: 60%; font-weight: bold;">{{ $label }}</td>
+                    <td style="padding: 2px 10px; text-align: right; font-weight: bold;">${{ number_format($amount, 2) }}</td>
+                </tr>
+                @endif
+            @endforeach
+            <tr style="background: #e3f2fd;">
+                <td style="padding: 4px 10px; font-weight: bold; font-size: 11px; color: #1565c0;">Total Gross Income</td>
+                <td style="padding: 4px 10px; text-align: right; font-weight: bold; font-size: 11px; color: #1565c0;">${{ number_format($vt['vault_total_income'], 2) }}</td>
+            </tr>
+        </table>
+        <table style="width: 100%; border-collapse: collapse; margin-bottom: 8px; font-size: 9px;">
+            @foreach([
+                ['Federal Tax Withheld', $vt['vault_total_federal_withheld'] ?? 0],
+                ['State Tax Withheld', $vt['vault_total_state_withheld'] ?? 0],
+                ['Social Security Tax', $vt['vault_w2_social_security_tax'] ?? 0],
+                ['Medicare Tax', $vt['vault_w2_medicare_tax'] ?? 0],
+                ['Mortgage Interest (1098)', $vt['vault_mortgage_1098_interest'] ?? 0],
+                ['Property Tax (1098)', $vt['vault_mortgage_1098_property_tax'] ?? 0],
+                ['Mortgage Points (1098)', $vt['vault_mortgage_1098_points'] ?? 0],
+            ] as [$label, $amount])
+                @if($amount > 0)
+                <tr>
+                    <td style="padding: 2px 10px; width: 60%;">{{ $label }}</td>
+                    <td style="padding: 2px 10px; text-align: right;">${{ number_format($amount, 2) }}</td>
+                </tr>
+                @endif
+            @endforeach
+            @if(($vt['vault_se_tax_estimated'] ?? 0) > 0)
+            <tr style="background: #fff3e0;">
+                <td style="padding: 3px 10px; font-weight: bold; color: #e65100;">Est. Self-Employment Tax (15.3%)</td>
+                <td style="padding: 3px 10px; text-align: right; font-weight: bold; color: #e65100;">${{ number_format($vt['vault_se_tax_estimated'], 2) }}</td>
+            </tr>
+            @endif
+        </table>
+        @endif
+
         {{-- ── Hero Metrics (4 boxes) ── --}}
+        <div class="section-label" style="margin-bottom: 6px;">Deduction Summary</div>
         <table class="hero-metrics">
             <tr>
                 <td class="hl">
@@ -867,7 +923,71 @@
     @endif
 
     {{-- ════════════════════════════════════════════════════════════════ --}}
-    {{-- PAGE 4: TRANSACTION DETAIL BY IRS LINE                          --}}
+    {{-- VAULT DOCUMENTS: W-2, 1099, 1098 DETAIL                         --}}
+    {{-- ════════════════════════════════════════════════════════════════ --}}
+
+    @if(!empty($vault_documents))
+        <div class="page-break"></div>
+        <div class="page-header">
+            <table style="width: 100%; border-collapse: collapse;">
+                <tr>
+                    <td style="vertical-align: middle; width: 42px; padding-right: 10px;">
+                        @if(!empty($logo_base64))
+                            <img src="data:image/png;base64,{{ $logo_base64 }}" height="32" alt="SpendifiAI" />
+                        @endif
+                    </td>
+                    <td style="vertical-align: middle;">
+                        <div style="font-size: 16px; font-weight: bold; color: #1565c0;">Tax Document Details</div>
+                        <div style="font-size: 9px; color: #94a3b8;">Extracted data from uploaded W-2, 1099, 1098, and other tax forms &mdash; {{ $year }}</div>
+                    </td>
+                </tr>
+            </table>
+        </div>
+
+        @php
+            $vaultGrouped = collect($vault_documents)->groupBy('category_label');
+        @endphp
+
+        @foreach($vaultGrouped as $catLabel => $docs)
+            <div class="cat-header" style="background: #e3f2fd; border-left: 4px solid #1565c0; padding: 6px 12px; margin-top: 12px; margin-bottom: 4px;">
+                <span style="font-weight: bold; font-size: 11px; color: #1565c0;">{{ $catLabel }}</span>
+                <span style="font-size: 9px; color: #64748b; margin-left: 8px;">{{ $docs->count() }} document{{ $docs->count() !== 1 ? 's' : '' }}</span>
+            </div>
+
+            @foreach($docs as $doc)
+                <table style="width: 100%; border-collapse: collapse; margin-bottom: 8px; font-size: 9px;">
+                    <tr style="background: #f8fafc;">
+                        <td colspan="3" style="padding: 4px 10px; font-weight: bold; font-size: 9.5px; color: #334155; border-bottom: 1px solid #e2e8f0;">
+                            {{ $doc['filename'] }}
+                            <span style="font-weight: normal; color: #94a3b8; margin-left: 6px;">Confidence: {{ round(($doc['confidence'] ?? 0) * 100) }}%</span>
+                        </td>
+                    </tr>
+                    @foreach($doc['fields'] as $fieldName => $field)
+                        @php
+                            $label = ucwords(str_replace('_', ' ', $fieldName));
+                            $val = $field['value'] ?? '—';
+                            $isAmount = is_numeric($val) && !str_contains($fieldName, 'ssn') && !str_contains($fieldName, 'tin') && !str_contains($fieldName, 'ein');
+                        @endphp
+                        <tr>
+                            <td style="padding: 2px 10px; width: 40%; color: #64748b;">{{ $label }}</td>
+                            <td style="padding: 2px 10px; font-weight: bold; {{ $isAmount ? 'text-align: right;' : '' }}">
+                                @if($isAmount)
+                                    ${{ number_format((float)$val, 2) }}
+                                @else
+                                    {{ $val }}
+                                @endif
+                            </td>
+                            <td style="padding: 2px 10px; width: 10%; text-align: right; color: {{ ($field['confidence'] ?? 0) >= 0.95 ? '#2e7d32' : '#f57f17' }}; font-size: 8px;">
+                                {{ round(($field['confidence'] ?? 0) * 100) }}%
+                            </td>
+                        </tr>
+                    @endforeach
+                </table>
+            @endforeach
+        @endforeach
+    @endif
+
+    {{-- PAGE: TRANSACTION DETAIL BY IRS LINE                              --}}
     {{-- ════════════════════════════════════════════════════════════════ --}}
 
     @if(!empty($transactions_by_line))

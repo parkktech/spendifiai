@@ -2,11 +2,13 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Enums\DocumentStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\ExportTaxRequest;
 use App\Http\Requests\SendToAccountantRequest;
 use App\Models\OrderItem;
 use App\Models\TaxDeduction;
+use App\Models\TaxDocument;
 use App\Models\Transaction;
 use App\Models\UserFinancialProfile;
 use App\Services\TaxCategoryNormalizerService;
@@ -106,7 +108,6 @@ class TaxController extends Controller
 
         $totalDeductible = $categories->sum('total') + $orderItems->sum('total');
         $profile = UserFinancialProfile::where('user_id', $user->id)->first();
-        $estRate = ($profile?->estimated_tax_bracket ?? 22) / 100;
 
         // Build dynamic schedule map from actual category data
         $allCats = $categories->merge($orderItems);
@@ -123,11 +124,54 @@ class TaxController extends Controller
         $scheduleCTotal = collect($normalizedLines)->where('schedule', 'C')->sum('total');
         $scheduleATotal = collect($normalizedLines)->where('schedule', 'A')->sum('total');
 
+        // Vault document income/withholding — delegate to TaxExportService's method
+        $vaultDocs = TaxDocument::whereIn('user_id', $userIds)
+            ->where('tax_year', $year)
+            ->where('status', DocumentStatus::Ready->value)
+            ->whereNotNull('extracted_data')
+            ->get();
+
+        $vaultIncome = [];
+        foreach ($vaultDocs as $doc) {
+            $fields = $doc->extracted_data['fields'] ?? [];
+            $source = $fields['employer_name']['value']
+                ?? $fields['payer_name']['value']
+                ?? $fields['pse_name']['value']
+                ?? $fields['lender_name']['value']
+                ?? $fields['filer_name']['value']
+                ?? $fields['issuer_name']['value']
+                ?? $doc->original_filename;
+
+            $vaultIncome[] = [
+                'id' => $doc->id,
+                'category' => $doc->category?->value,
+                'category_label' => $doc->category?->label(),
+                'source' => $source,
+                'fields' => collect($fields)->map(fn ($f) => $f['value'] ?? null)->toArray(),
+            ];
+        }
+
+        // Use the exporter's vault aggregation for consistent totals
+        $exporter = app(TaxExportService::class);
+        $vaultTotals = $exporter->aggregateVaultTotals($vaultDocs);
+
+        // Auto-calculate tax bracket from vault income + filing status
+        // Fall back to profile's manual bracket if no vault income documents
+        $vaultIncomeTotalForBracket = $vaultTotals['total_income'] ?? 0;
+        if ($vaultIncomeTotalForBracket > 0) {
+            $filingStatus = $profile?->tax_filing_status ?? 'single';
+            $autoTaxBracket = $exporter->calculateTaxBracket($vaultIncomeTotalForBracket, $filingStatus);
+        } else {
+            $autoTaxBracket = $profile?->estimated_tax_bracket ?? 22;
+        }
+        $estRate = $autoTaxBracket / 100;
+
         return response()->json([
             'year' => $year,
             'total_deductible' => round($totalDeductible, 2),
             'estimated_tax_savings' => round($totalDeductible * $estRate, 2),
             'effective_rate_used' => $estRate,
+            'auto_tax_bracket' => $autoTaxBracket,
             'transaction_categories' => $categories,
             'order_item_categories' => $orderItems,
             'transaction_details' => $transactionDetails,
@@ -136,6 +180,8 @@ class TaxController extends Controller
             'normalized_lines' => $normalizedLines,
             'schedule_c_total' => round($scheduleCTotal, 2),
             'schedule_a_total' => round($scheduleATotal, 2),
+            'vault_documents' => $vaultIncome,
+            'vault_totals' => $vaultTotals,
         ]);
     }
 

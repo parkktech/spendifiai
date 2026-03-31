@@ -286,13 +286,22 @@ Route::middleware(['auth:sanctum'])->group(function () {
         // Tax Vault
         Route::prefix('tax-vault')->group(function () {
             Route::get('/documents', [TaxDocumentController::class, 'index']);
+            Route::get('/documents/download-year/{year}', [TaxDocumentController::class, 'downloadYear']);
             Route::post('/documents', [TaxDocumentController::class, 'store']);
             Route::get('/documents/{document}', [TaxDocumentController::class, 'show']);
             Route::delete('/documents/{document}', [TaxDocumentController::class, 'destroy']);
             Route::get('/documents/{document}/download', [TaxDocumentController::class, 'download'])->name('tax-vault.download');
+            Route::get('/documents/{document}/stream', [TaxDocumentController::class, 'stream'])->name('tax-vault.stream');
             Route::patch('/documents/{document}/fields', [TaxDocumentController::class, 'updateField']);
             Route::post('/documents/{document}/accept-all', [TaxDocumentController::class, 'acceptAll']);
             Route::post('/documents/{document}/retry-extraction', [TaxDocumentController::class, 'retryExtraction']);
+            Route::post('/documents/retry-all-failed', [TaxDocumentController::class, 'retryAllFailed']);
+            // Expense linking (subcontractor payments for 1099 income)
+            Route::post('/documents/{document}/link-transactions', [TaxDocumentController::class, 'linkTransactions']);
+            Route::get('/documents/{document}/linked-transactions', [TaxDocumentController::class, 'linkedTransactions']);
+            Route::delete('/documents/{document}/unlink-transaction/{transaction}', [TaxDocumentController::class, 'unlinkTransaction']);
+            Route::get('/documents/{document}/find-related-expenses', [TaxDocumentController::class, 'findRelatedExpenses']);
+
             Route::get('/documents/{document}/audit-log', [TaxVaultAuditController::class, 'index']);
             Route::get('/documents/{document}/audit-log/verify', [TaxVaultAuditController::class, 'verifyChain']);
 

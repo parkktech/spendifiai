@@ -1,26 +1,35 @@
 import { useState, useEffect, useRef } from 'react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, Link } from '@inertiajs/react';
+import axios from 'axios';
 import { ArrowLeft, Archive, RefreshCw, Loader2, AlertTriangle, FileText, Image, Link2 } from 'lucide-react';
 import { useApi, useApiPost } from '@/hooks/useApi';
 import ExtractionPanel from '@/Components/SpendifiAI/ExtractionPanel';
 import AuditLogTable from '@/Components/SpendifiAI/AuditLogTable';
 import ConfidenceBadge from '@/Components/SpendifiAI/ConfidenceBadge';
 import AnnotationThread from '@/Components/SpendifiAI/AnnotationThread';
+import LinkedExpensesPanel from '@/Components/SpendifiAI/LinkedExpensesPanel';
 import type { TaxDocument, TaxVaultAuditEntry, DocumentAnnotation, IntelligenceResult } from '@/types/spendifiai';
 
 interface ShowProps {
   documentId: number;
 }
 
-type TabKey = 'document' | 'fields' | 'audit' | 'comments';
+type TabKey = 'document' | 'fields' | 'expenses' | 'audit' | 'comments';
 
-const TABS: { key: TabKey; label: string }[] = [
-  { key: 'document', label: 'Document' },
-  { key: 'fields', label: 'Extracted Fields' },
-  { key: 'audit', label: 'Audit Log' },
-  { key: 'comments', label: 'Comments' },
-];
+function buildTabs(category: string | null, status: string | null): { key: TabKey; label: string }[] {
+  const tabs: { key: TabKey; label: string }[] = [
+    { key: 'document', label: 'Document' },
+    { key: 'fields', label: 'Extracted Fields' },
+  ];
+  // Show linked transactions tab for all ready documents
+  if (status === 'ready') {
+    tabs.push({ key: 'expenses', label: 'Linked Transactions' });
+  }
+  tabs.push({ key: 'audit', label: 'Audit Log' });
+  tabs.push({ key: 'comments', label: 'Comments' });
+  return tabs;
+}
 
 function StatusBadge({ status }: { status: string }) {
   const styles: Record<string, string> = {
@@ -38,23 +47,59 @@ function StatusBadge({ status }: { status: string }) {
 }
 
 function DocumentViewer({ document }: { document: TaxDocument }) {
+  const [blobUrl, setBlobUrl] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState(false);
   const isPdf = document.mime_type === 'application/pdf';
   const isImage = document.mime_type.startsWith('image/');
 
-  if (isPdf) {
+  useEffect(() => {
+    let revoke: string | null = null;
+    if (isPdf || isImage) {
+      axios
+        .get(`/api/v1/tax-vault/documents/${document.id}/stream`, { responseType: 'blob' })
+        .then((res) => {
+          const url = URL.createObjectURL(res.data);
+          revoke = url;
+          setBlobUrl(url);
+        })
+        .catch(() => setLoadError(true));
+    }
+    return () => {
+      if (revoke) URL.revokeObjectURL(revoke);
+    };
+  }, [document.id, isPdf, isImage]);
+
+  if (loadError) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full text-center p-8">
+        <AlertTriangle size={32} className="text-sw-dim mb-3" />
+        <p className="text-sm text-sw-muted">Could not load document preview.</p>
+      </div>
+    );
+  }
+
+  if ((isPdf || isImage) && !blobUrl) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <Loader2 size={24} className="animate-spin text-sw-accent" />
+      </div>
+    );
+  }
+
+  if (isPdf && blobUrl) {
     return (
       <iframe
-        src={document.signed_url}
+        src={blobUrl}
         className="w-full h-full border-0 rounded-lg"
         title={document.original_filename}
       />
     );
   }
 
-  if (isImage) {
+  if (isImage && blobUrl) {
     return (
       <img
-        src={document.signed_url}
+        src={blobUrl}
         alt={document.original_filename}
         className="w-full h-full object-contain rounded-lg"
       />
@@ -65,14 +110,6 @@ function DocumentViewer({ document }: { document: TaxDocument }) {
     <div className="flex flex-col items-center justify-center h-full text-center p-8">
       <FileText size={48} className="text-sw-dim mb-3" />
       <p className="text-sm text-sw-muted">Preview not available for this file type.</p>
-      <a
-        href={document.signed_url}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="mt-2 text-sm text-sw-accent hover:underline"
-      >
-        Download file
-      </a>
     </div>
   );
 }
@@ -235,7 +272,7 @@ export default function VaultShow({ documentId }: ShowProps) {
         {document && (
           <>
             <div className="flex gap-1 border-b border-sw-border">
-              {TABS.map((tab) => (
+              {buildTabs(document.category, document.status).map((tab) => (
                 <button
                   key={tab.key}
                   onClick={() => setActiveTab(tab.key)}
@@ -282,6 +319,26 @@ export default function VaultShow({ documentId }: ShowProps) {
               </div>
             )}
 
+            {/* Linked Transactions tab — all document types */}
+            {activeTab === 'expenses' && (
+              <div className="bg-sw-card rounded-lg border border-sw-border">
+                <LinkedExpensesPanel
+                  documentId={document.id}
+                  documentCategory={document.category ?? 'other'}
+                  grossIncome={(() => {
+                    const f = document.extracted_data?.fields ?? {};
+                    return Number(
+                      f.nonemployee_compensation?.value ?? f.gross_amount?.value
+                      ?? f.wages?.value ?? f.interest_income?.value
+                      ?? f.ordinary_dividends?.value ?? f.gross_distribution?.value
+                      ?? f.gross_proceeds?.value ?? f.unemployment_compensation?.value
+                      ?? f.total_amount?.value ?? 0,
+                    );
+                  })()}
+                />
+              </div>
+            )}
+
             {/* Audit Log tab */}
             {activeTab === 'audit' && (
               <AuditLogTable
@@ -303,16 +360,6 @@ export default function VaultShow({ documentId }: ShowProps) {
           </>
         )}
 
-        {/* Linked Transactions */}
-        {linkedTransaction && (
-          <div className="flex items-center gap-2 px-4 py-3 rounded-lg bg-sw-card border border-sw-border">
-            <Link2 size={16} className="text-sw-accent" />
-            <span className="text-sm text-sw-text">
-              {linkedTransaction.transaction_count} transaction{linkedTransaction.transaction_count !== 1 ? 's' : ''} linked
-              {' '}(${Number(linkedTransaction.total_amount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} total)
-            </span>
-          </div>
-        )}
       </div>
     </AuthenticatedLayout>
   );
