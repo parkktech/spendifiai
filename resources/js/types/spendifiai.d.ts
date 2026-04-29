@@ -70,6 +70,7 @@ export interface TransactionOrderItem {
 
 export interface Transaction {
   id: number;
+  merchant: string;
   merchant_name: string;
   amount: number;
   date: string;
@@ -806,6 +807,7 @@ export interface PeriodMeta {
 export interface TopStore {
   store_name: string;
   total_spent: number;
+  monthly_avg: number;
   transaction_count: number;
   avg_per_visit: number;
   pct_of_total: number;

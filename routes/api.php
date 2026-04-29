@@ -225,6 +225,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
             // Transactions
             Route::get('/transactions', [TransactionController::class, 'index']);
             Route::patch('/transactions/{transaction}/category', [TransactionController::class, 'updateCategory']);
+            Route::patch('/transactions/{transaction}/rename', [TransactionController::class, 'renameMerchant']);
             Route::post('/transactions/categorize', [TransactionController::class, 'categorize'])
                 ->middleware('throttle:5,1');
 

@@ -130,6 +130,22 @@ export default function TransactionsIndex() {
     [updateCategory, refresh, transactions]
   );
 
+  const handleMerchantRename = useCallback(
+    async (id: number, newName: string) => {
+      try {
+        const response = await window.axios.patch(`/api/v1/transactions/${id}/rename`, { display_name: newName });
+        const result = response?.data as { message?: string; matched?: number } | undefined;
+        if (result?.message) {
+          setCategorizationResult(result.message);
+        }
+        refresh();
+      } catch {
+        // ignore
+      }
+    },
+    [refresh]
+  );
+
   // Compute summary stats
   const totalAmount = transactions.reduce((sum, tx) => sum + Math.abs(tx.amount), 0);
   const businessCount = transactions.filter((tx) => tx.account_purpose === 'business').length;
@@ -259,6 +275,7 @@ export default function TransactionsIndex() {
               transaction={tx}
               categories={categoryNames}
               onCategoryChange={handleCategoryChange}
+              onMerchantRename={handleMerchantRename}
               onConfirm={handleConfirm}
               onDonationNoteChange={handleDonationNoteChange}
             />

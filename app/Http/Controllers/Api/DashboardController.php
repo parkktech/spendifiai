@@ -777,10 +777,10 @@ class DashboardController extends Controller
                     : 0,
             ];
 
-            // --- Top Stores by Spend ---
+            // --- Top Stores by Spend (3-month window, same as cost of living) ---
             $topStores = $txQuery()
                 ->where('amount', '>', 0)
-                ->whereBetween('transaction_date', [$monthStart, $monthEnd])
+                ->whereBetween('transaction_date', [$essentialStart, $monthEnd])
                 ->toBase()
                 ->select(
                     DB::raw("COALESCE(NULLIF(merchant_normalized, ''), merchant_name, 'Unknown') as store_name"),
@@ -803,6 +803,7 @@ class DashboardController extends Controller
             $topStoresFormatted = $topStores->map(fn ($store) => [
                 'store_name' => $store->store_name,
                 'total_spent' => round((float) $store->total_spent, 2),
+                'monthly_avg' => round((float) $store->total_spent / max($monthsElapsed, 1), 2),
                 'transaction_count' => (int) $store->transaction_count,
                 'avg_per_visit' => round((float) $store->avg_per_visit, 2),
                 'pct_of_total' => $topStoresTotal > 0

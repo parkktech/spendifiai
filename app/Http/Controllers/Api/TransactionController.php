@@ -136,6 +136,54 @@ class TransactionController extends Controller
     }
 
     /**
+     * Rename a merchant across all matching transactions.
+     * Sets merchant_normalized as a display alias — preserves original merchant_name
+     * for Plaid/statement matching.
+     */
+    public function renameMerchant(Request $request, Transaction $transaction): JsonResponse
+    {
+        $this->authorize('update', $transaction);
+
+        $validated = $request->validate([
+            'display_name' => 'required|string|max:255',
+        ]);
+
+        $user = auth()->user();
+        $userIds = $user->householdUserIds();
+        $originalName = $transaction->merchant_name;
+        $displayName = $validated['display_name'];
+
+        // Update this transaction's display name (merchant_normalized)
+        $transaction->update(['merchant_normalized' => $displayName]);
+
+        // Update all matching transactions from the same original merchant
+        $matchCount = Transaction::whereIn('user_id', $userIds)
+            ->where('id', '!=', $transaction->id)
+            ->where('merchant_name', $originalName)
+            ->update(['merchant_normalized' => $displayName]);
+
+        // Save alias for future imports — when this merchant name appears again,
+        // auto-set the display name
+        \App\Models\MerchantAlias::updateOrCreate(
+            ['bank_name' => strtolower($originalName)],
+            ['normalized_name' => $displayName, 'match_count' => $matchCount + 1]
+        );
+
+        // Clear dashboard cache
+        foreach ($userIds as $id) {
+            Cache::forget("dashboard:{$id}:all");
+            Cache::forget("dashboard:{$id}:personal");
+            Cache::forget("dashboard:{$id}:business");
+        }
+
+        return response()->json([
+            'message' => "Renamed to \"{$displayName}\"".($matchCount > 0 ? " — also updated {$matchCount} other transaction".($matchCount !== 1 ? 's' : '') : ''),
+            'matched' => $matchCount,
+            'transaction' => new TransactionResource($transaction->fresh()),
+        ]);
+    }
+
+    /**
      * Trigger AI categorization for pending transactions.
      * Runs synchronously so the user gets immediate results.
      */

@@ -23,6 +23,7 @@ interface TransactionRowProps {
   transaction: Transaction;
   categories?: string[];
   onCategoryChange?: (id: number, category: string) => void;
+  onMerchantRename?: (id: number, newName: string) => void;
   onConfirm?: (id: number) => void;
   onDonationNoteChange?: (id: number, note: string) => void;
 }
@@ -48,11 +49,16 @@ export default function TransactionRow({
   transaction,
   categories = [],
   onCategoryChange,
+  onMerchantRename,
   onConfirm,
   onDonationNoteChange,
 }: TransactionRowProps) {
   const tz = (usePage().props.auth as { timezone?: string }).timezone;
   const [editingCategory, setEditingCategory] = useState(false);
+  const [editingMerchant, setEditingMerchant] = useState(false);
+  const displayName = transaction.merchant || transaction.merchant_name;
+  const hasAlias = transaction.merchant && transaction.merchant !== transaction.merchant_name;
+  const [merchantValue, setMerchantValue] = useState(displayName);
   const [searchQuery, setSearchQuery] = useState('');
   const [expanded, setExpanded] = useState(false);
   const [editingNote, setEditingNote] = useState(false);
@@ -96,7 +102,58 @@ export default function TransactionRow({
 
         {/* Info */}
         <div className="flex-1 min-w-0">
-          <div className="text-[13px] font-medium text-sw-text truncate">{transaction.merchant_name}</div>
+          {editingMerchant ? (
+            <div className="flex items-center gap-1.5">
+              <input
+                type="text"
+                value={merchantValue}
+                onChange={(e) => setMerchantValue(e.target.value)}
+                className="text-[13px] font-medium text-sw-text bg-white border border-sw-accent/50 rounded px-1.5 py-0.5 outline-none focus:ring-1 focus:ring-sw-accent/30 w-full max-w-[250px]"
+                autoFocus
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && merchantValue.trim()) {
+                    onMerchantRename?.(transaction.id, merchantValue.trim());
+                    setEditingMerchant(false);
+                  } else if (e.key === 'Escape') {
+                    setMerchantValue(displayName);
+                    setEditingMerchant(false);
+                  }
+                }}
+              />
+              <button
+                onClick={() => {
+                  if (merchantValue.trim()) {
+                    onMerchantRename?.(transaction.id, merchantValue.trim());
+                    setEditingMerchant(false);
+                  }
+                }}
+                className="text-[10px] px-1.5 py-0.5 rounded bg-sw-accent/10 text-sw-accent border border-sw-accent/30 hover:bg-sw-accent/20 transition font-medium shrink-0"
+              >
+                Save
+              </button>
+              <button
+                onClick={() => { setMerchantValue(displayName); setEditingMerchant(false); }}
+                className="text-[10px] text-sw-dim hover:text-sw-text transition shrink-0"
+              >
+                Cancel
+              </button>
+            </div>
+          ) : (
+            <div className="min-w-0">
+              <button
+                onClick={() => onMerchantRename && setEditingMerchant(true)}
+                className="text-[13px] font-medium text-sw-text truncate text-left hover:text-sw-accent transition block max-w-full"
+                title={onMerchantRename ? 'Click to rename' : undefined}
+              >
+                {displayName}
+              </button>
+              {hasAlias && (
+                <div className="text-[10px] text-sw-dim truncate" title={transaction.merchant_name}>
+                  {transaction.merchant_name}
+                </div>
+              )}
+            </div>
+          )}
           <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
             <span className="text-[11px] text-sw-dim">{formatDate(transaction.date, tz)}</span>
             <span className="text-sw-dim text-[11px]">-</span>
