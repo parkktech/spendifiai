@@ -13,12 +13,35 @@ function getCookie(name: string): string | null {
     return null;
 }
 
+// Cookie domain helper — always use bare domain to avoid www vs non-www duplicates
+function getAuthCookieDomain(): string {
+    return window.location.hostname.replace(/^www\./, '.');
+}
+
+// Helper to set auth cookie consistently
+function setAuthCookie(token: string) {
+    const date = new Date();
+    date.setTime(date.getTime() + (30 * 24 * 60 * 60 * 1000));
+    const secure = window.location.protocol === 'https:' ? ' secure;' : '';
+    const domain = getAuthCookieDomain();
+    document.cookie = `auth_token=${token}; expires=${date.toUTCString()}; path=/; domain=${domain};${secure} samesite=lax`;
+}
+
 // Helper to clear auth state
 function clearAuthState() {
     localStorage.removeItem('auth_token');
-    document.cookie = 'auth_token=; path=/; max-age=0; SameSite=Lax';
+    const domain = getAuthCookieDomain();
+    const secure = window.location.protocol === 'https:' ? ' secure;' : '';
+    // Clear on bare domain
+    document.cookie = `auth_token=; path=/; domain=${domain}; max-age=0;${secure} samesite=lax`;
+    // Also clear on exact hostname (legacy cookies)
+    document.cookie = `auth_token=; path=/; max-age=0;${secure} samesite=lax`;
     delete window.axios.defaults.headers.common['Authorization'];
 }
+
+// Expose helpers for use in other files
+(window as any).__setAuthCookie = setAuthCookie;
+(window as any).__clearAuthState = clearAuthState;
 
 // Check for token in localStorage or cookie and add to Authorization header
 const tokenFromStorage = localStorage.getItem('auth_token');
@@ -92,6 +115,11 @@ window.axios.interceptors.response.use(
         if (status === 403) {
             // Suppress 403 errors from console - they're expected when bank not connected
             return Promise.resolve(undefined);
+        }
+
+        // Suppress non-standard status codes (e.g. 469 from bot rate-limiting)
+        if (status && (status < 400 || status > 451)) {
+            return Promise.reject(error);
         }
 
         // Log other errors normally

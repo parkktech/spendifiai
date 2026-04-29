@@ -66,8 +66,8 @@ export default function AuthenticatedLayout({
   children,
 }: PropsWithChildren<{ header?: ReactNode }>) {
   const page = usePage();
-  const user = page.props.auth.user as { name: string; email: string };
   const auth = page.props.auth as Record<string, unknown>;
+  const user = auth.user as { name: string; email: string };
   const isAdmin = auth.isAdmin as boolean;
   const isAccountant = auth.isAccountant as boolean;
   const hasBankConnected = auth.hasBankConnected as boolean;
@@ -258,8 +258,7 @@ export default function AuthenticatedLayout({
                     <button
                       onClick={() => {
                         // Clear authentication tokens before logout
-                        localStorage.removeItem('auth_token');
-                        document.cookie = 'auth_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+                        (window as any).__clearAuthState?.();
                         router.post('/logout');
                       }}
                       role="menuitem"

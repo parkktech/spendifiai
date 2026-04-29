@@ -195,6 +195,9 @@ export interface Subscription {
   response_reason: string | null;
   has_alternatives: boolean;
   responded_at: string | null;
+  missed_charge_at: string | null;
+  recharged_at: string | null;
+  recharged_amount: number | null;
   cancellation_url: string | null;
   cancellation_phone: string | null;
   cancellation_instructions: string | null;
@@ -205,8 +208,9 @@ export interface SubscriptionsResponse {
   subscriptions: Subscription[];
   total_monthly: number;
   total_annual: number;
-  unused_monthly: number;
-  unused_count: number;
+  cancelled_count: number;
+  confirmed_savings_monthly: number;
+  recharged_count: number;
 }
 
 export interface AIQuestion {
@@ -652,6 +656,7 @@ export interface RecurringBill {
   is_essential: boolean | null;
   last_charge_date: string | null;
   next_expected_date: string | null;
+  missed_charge_at: string | null;
   annual_cost: number;
   response_type?: string | null;
   responded_at?: string | null;

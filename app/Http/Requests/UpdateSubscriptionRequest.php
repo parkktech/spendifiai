@@ -16,6 +16,7 @@ class UpdateSubscriptionRequest extends FormRequest
         return [
             'user_notes' => 'nullable|string|max:500',
             'category' => 'nullable|string|max:100',
+            'is_essential' => 'sometimes|boolean',
         ];
     }
 }

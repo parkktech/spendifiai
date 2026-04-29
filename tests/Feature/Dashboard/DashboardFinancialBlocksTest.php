@@ -41,14 +41,6 @@ it('returns recurring_bills, budget_waterfall, and home_affordability in dashboa
         'is_essential' => false,
     ]);
 
-    // Create unused subscription
-    Subscription::factory()->unused()->create([
-        'user_id' => $user->id,
-        'merchant_name' => 'Old Gym',
-        'amount' => 30,
-        'is_essential' => false,
-    ]);
-
     $response = $this->getJson('/api/v1/dashboard');
 
     $response->assertOk();
@@ -83,11 +75,11 @@ it('returns recurring_bills, budget_waterfall, and home_affordability in dashboa
         ],
     ]);
 
-    // Should include all 3 subscriptions (2 active + 1 unused)
-    expect($response->json('recurring_bills'))->toHaveCount(3);
+    // Should include 2 active subscriptions
+    expect($response->json('recurring_bills'))->toHaveCount(2);
 
-    // Total monthly bills = 150 + 15.99 + 30 = 195.99
-    expect($response->json('total_monthly_bills'))->toBe(195.99);
+    // Total monthly bills = 150 + 15.99 = 165.99
+    expect($response->json('total_monthly_bills'))->toBe(165.99);
 
     // Budget waterfall income should be 5000
     expect($response->json('budget_waterfall.monthly_income'))->toEqual(5000);

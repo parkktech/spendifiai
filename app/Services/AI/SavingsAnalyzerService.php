@@ -84,10 +84,8 @@ class SavingsAnalyzerService
 
         return [
             'active' => $subs->where('status', 'active')->values()->toArray(),
-            'unused' => $subs->where('status', 'unused')->values()->toArray(),
             'total_monthly' => $subs->where('status', 'active')->sum('amount'),
             'total_annual' => $subs->where('status', 'active')->sum('annual_cost'),
-            'unused_monthly' => $subs->where('status', 'unused')->sum('amount'),
         ];
     }
 

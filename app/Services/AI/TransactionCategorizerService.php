@@ -522,11 +522,15 @@ MSG;
                 }
 
                 $text = $response->json('content.0.text');
-                $text = preg_replace('/^```json\s*/i', '', $text);
-                $text = preg_replace('/\s*```$/i', '', $text);
+                $decoded = $this->parseJsonResponse($text);
 
-                $decoded = json_decode(trim($text), true);
-                if (json_last_error() !== JSON_ERROR_NONE) {
+                if ($decoded === null) {
+                    if ($attempt < $maxRetries) {
+                        sleep(2);
+
+                        continue;
+                    }
+
                     return ['error' => 'Invalid JSON: '.json_last_error_msg()];
                 }
 
@@ -544,5 +548,45 @@ MSG;
         }
 
         return ['error' => 'Max retries exceeded'];
+    }
+
+    /**
+     * Parse JSON from Claude API response, handling common formatting issues.
+     */
+    protected function parseJsonResponse(?string $text): ?array
+    {
+        if (empty($text)) {
+            return null;
+        }
+
+        // Strip markdown code fences (```json ... ``` or ``` ... ```)
+        $text = preg_replace('/^```(?:json)?\s*/i', '', trim($text));
+        $text = preg_replace('/\s*```\s*$/i', '', $text);
+
+        // Remove control characters (except newlines and tabs within strings)
+        $text = preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/', '', $text);
+
+        $decoded = json_decode(trim($text), true);
+        if (json_last_error() === JSON_ERROR_NONE) {
+            return $decoded;
+        }
+
+        // Try extracting JSON array from surrounding text
+        if (preg_match('/\[.*\]/s', $text, $matches)) {
+            $decoded = json_decode($matches[0], true);
+            if (json_last_error() === JSON_ERROR_NONE) {
+                return $decoded;
+            }
+        }
+
+        // Try extracting JSON object from surrounding text
+        if (preg_match('/\{.*\}/s', $text, $matches)) {
+            $decoded = json_decode($matches[0], true);
+            if (json_last_error() === JSON_ERROR_NONE) {
+                return $decoded;
+            }
+        }
+
+        return null;
     }
 }

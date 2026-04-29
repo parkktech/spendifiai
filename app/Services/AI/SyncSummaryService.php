@@ -84,11 +84,8 @@ class SyncSummaryService
 
         // Pending actions
         $pendingQuestions = $user->aiQuestions()->where('status', 'pending')->count();
-        $unusedSubs = Subscription::where('user_id', $user->id)
-            ->where('status', 'unused')
-            ->get();
-        $unusedCount = $unusedSubs->count();
-        $unusedWasted = $unusedSubs->sum('amount');
+        $unusedCount = 0;
+        $unusedWasted = 0;
 
         // Savings target progress
         $savingsTarget = $user->savingsTarget;
@@ -285,14 +282,7 @@ PROMPT;
         return [
             'headline' => sprintf('Your %s financial update is here', $data['month_name']),
             'insights' => $insights ?: ['Your accounts have been synced with the latest data.'],
-            'recommendation' => $data['pending_actions']['unused_subscriptions'] > 0
-                ? sprintf(
-                    'You have %d unused subscription%s costing $%.2f/mo — consider cancelling.',
-                    $data['pending_actions']['unused_subscriptions'],
-                    $data['pending_actions']['unused_subscriptions'] === 1 ? '' : 's',
-                    $data['pending_actions']['unused_wasted_monthly']
-                )
-                : 'Keep tracking your spending to stay on top of your finances.',
+            'recommendation' => 'Keep tracking your spending to stay on top of your finances.',
             'closing' => $data['savings_target']
                 ? sprintf('Keep going — you\'re working toward "%s"!', $data['savings_target']['motivation'] ?? 'your savings goal')
                 : 'Every dollar tracked is a step toward financial clarity.',

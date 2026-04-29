@@ -151,23 +151,47 @@ it('does not detect subscription from single charge', function () {
     expect($result['detected'])->toBe(0);
 });
 
-it('marks subscriptions as unused when no charge in over 2x billing cycle', function () {
+it('flags subscriptions with missed charges when overdue', function () {
     ['user' => $user] = createDetectorTestData();
 
-    // Create a monthly subscription with last_charge_date 65 days ago (> 2× monthly = 60 days)
+    // Create a monthly subscription with last_charge_date 45 days ago (> 38 day grace, < 68 day auto-cancel)
     Subscription::factory()->create([
         'user_id' => $user->id,
         'status' => 'active',
         'is_essential' => false,
         'frequency' => 'monthly',
-        'last_charge_date' => now()->subDays(65),
+        'last_charge_date' => now()->subDays(45),
     ]);
 
     $service = new SubscriptionDetectorService;
     $service->detectSubscriptions($user->id);
 
     $sub = Subscription::where('user_id', $user->id)->first();
-    expect($sub->status->value)->toBe('unused');
+    expect($sub->status->value)->toBe('active');
+    expect($sub->missed_charge_at)->not->toBeNull();
+});
+
+it('auto-cancels subscriptions after 2 missed billing cycles', function () {
+    ['user' => $user] = createDetectorTestData();
+
+    // Create a monthly subscription with last_charge_date 75 days ago (> 68 day auto-cancel threshold)
+    Subscription::factory()->create([
+        'user_id' => $user->id,
+        'status' => 'active',
+        'is_essential' => false,
+        'frequency' => 'monthly',
+        'amount' => 29.99,
+        'last_charge_date' => now()->subDays(75),
+    ]);
+
+    $service = new SubscriptionDetectorService;
+    $service->detectSubscriptions($user->id);
+
+    $sub = Subscription::where('user_id', $user->id)->first();
+    expect($sub->status->value)->toBe('cancelled');
+    expect($sub->response_type)->toBe('cancelled');
+    expect((float) $sub->previous_amount)->toBe(29.99);
+    expect($sub->missed_charge_at)->toBeNull();
 });
 
 it('keeps subscription active when charge is within expected interval', function () {

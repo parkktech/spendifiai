@@ -123,7 +123,7 @@ class SavingsTargetPlannerService
     protected function getActiveSubscriptions(int $userId): array
     {
         return Subscription::where('user_id', $userId)
-            ->whereIn('status', ['active', 'unused'])
+            ->where('status', 'active')
             ->orderByDesc('amount')
             ->get()
             ->map(fn ($s) => [
@@ -132,7 +132,7 @@ class SavingsTargetPlannerService
                 'frequency' => $s->frequency,
                 'annual_cost' => $s->annual_cost,
                 'category' => $s->category,
-                'is_unused' => $s->status === 'unused',
+                'is_unused' => false,
                 'is_essential' => $s->is_essential,
             ])
             ->toArray();

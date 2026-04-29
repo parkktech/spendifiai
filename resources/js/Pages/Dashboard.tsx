@@ -77,14 +77,7 @@ function UpcomingPaymentsCarousel({ bills }: { bills: RecurringBill[] }) {
       .filter(b => {
         if (!b.next_expected_date) return false;
 
-        // Cancelled subscriptions: show until grace period confirms no recharge
-        if (b.status === 'cancelled') {
-          const nextExpected = new Date(b.next_expected_date + 'T00:00:00');
-          const daysPast = Math.round((today.getTime() - nextExpected.getTime()) / (1000 * 60 * 60 * 24));
-          // Keep showing for 14 days past expected date, then drop (confirmed cancelled)
-          return daysPast <= 14;
-        }
-
+        // Server already filters to truly active (not cancelled, not overdue)
         if (b.status !== 'active') return false;
 
         // If last_charge_date is on or after next_expected_date, payment cleared — drop it
@@ -123,15 +116,10 @@ function UpcomingPaymentsCarousel({ bills }: { bills: RecurringBill[] }) {
 
   if (upcoming.length === 0) return null;
 
-  const activeUpcoming = upcoming.filter(b => b.status !== 'cancelled');
-  const next7Days = activeUpcoming.filter(b => b.daysUntil >= 0 && b.daysUntil <= 7);
+  const next7Days = upcoming.filter(b => b.daysUntil >= 0 && b.daysUntil <= 7);
   const next7Total = next7Days.reduce((s, b) => s + Number(b.amount), 0);
 
   function getDueBadge(bill: typeof upcoming[0]) {
-    if (bill.status === 'cancelled') {
-      if (bill.daysUntil < 0) return { label: 'No charge — cancelled', cls: 'bg-emerald-100 text-emerald-700 border-emerald-200' };
-      return { label: 'Cancelled', cls: 'bg-slate-100 text-slate-600 border-slate-200' };
-    }
     if (bill.daysUntil < 0) return { label: 'Expected any day', cls: 'bg-violet-100 text-violet-700 border-violet-200' };
     if (bill.daysUntil === 0) return { label: 'Due today', cls: 'bg-amber-100 text-amber-700 border-amber-200' };
     if (bill.daysUntil <= 3) return { label: `In ${bill.daysUntil}d`, cls: 'bg-amber-100 text-amber-700 border-amber-200' };
@@ -148,7 +136,7 @@ function UpcomingPaymentsCarousel({ bills }: { bills: RecurringBill[] }) {
           </div>
           <div>
             <h2 className="text-[15px] font-semibold text-sw-text">Upcoming Payments</h2>
-            <p className="text-xs text-sw-muted mt-0.5">{activeUpcoming.length} scheduled charges</p>
+            <p className="text-xs text-sw-muted mt-0.5">{upcoming.length} scheduled charges</p>
           </div>
         </div>
         <div className="flex items-center gap-3">
@@ -406,15 +394,11 @@ function MonthlyBillsSection({ bills: allBills, totalMonthly, monthlyIncome, dis
         {displayBills.map((bill) => (
           <div key={bill.id} className="flex items-center gap-3 py-2 border-b border-sw-border last:border-b-0">
             <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
-              bill.status === 'unused'
-                ? 'bg-red-50 border border-red-200'
-                : bill.is_essential
-                  ? 'bg-slate-50 border border-slate-200'
-                  : 'bg-amber-50 border border-amber-200'
+              bill.is_essential
+                ? 'bg-slate-50 border border-slate-200'
+                : 'bg-amber-50 border border-amber-200'
             }`}>
-              {bill.status === 'unused' ? (
-                <AlertCircle size={14} className="text-red-500" />
-              ) : bill.is_essential ? (
+              {bill.is_essential ? (
                 <Building2 size={14} className="text-slate-500" />
               ) : (
                 <CreditCard size={14} className="text-amber-500" />
@@ -425,11 +409,6 @@ function MonthlyBillsSection({ bills: allBills, totalMonthly, monthlyIncome, dis
                 <span className="text-[13px] font-medium text-sw-text truncate">
                   {bill.merchant_normalized || bill.merchant_name}
                 </span>
-                {bill.status === 'unused' && (
-                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-red-50 text-red-600 border border-red-200" title="No charges detected in over 2× the normal billing cycle. This subscription may have lapsed or been cancelled by the provider.">
-                    Stopped billing
-                  </span>
-                )}
               </div>
               <div className="text-[11px] text-sw-dim mt-0.5">
                 {bill.frequency}
@@ -598,28 +577,7 @@ interface RespondedCard {
 function buildActionItems(data: DashboardData): ActionItem[] {
   const items: ActionItem[] = [];
 
-  // 1. Unused subscriptions -> Quick Wins
-  for (const sub of data.unused_subscription_details) {
-    const merchant = sub.merchant_normalized || sub.merchant_name;
-    const daysSinceCharge = sub.last_charge_date
-      ? Math.floor((Date.now() - new Date(sub.last_charge_date).getTime()) / 86400000)
-      : null;
-    items.push({
-      id: `sub-${sub.id}`,
-      type: 'subscription',
-      title: `Review ${merchant}`,
-      description: daysSinceCharge
-        ? `No charges from ${merchant} in ${daysSinceCharge} days — billing may have stopped. Was ${fmt.format(sub.amount)}/mo (${fmt.format(sub.annual_cost)}/yr). Confirm if you still use it.`
-        : `${merchant} hasn't billed recently. You were paying ${fmt.format(sub.amount)}/mo (${fmt.format(sub.annual_cost)}/yr). Verify if this is still active.`,
-      monthlySavings: Number(sub.amount),
-      annualSavings: Number(sub.annual_cost),
-      tab: 'quick',
-      actionLabel: 'Respond',
-      sourceId: sub.id,
-    });
-  }
-
-  // 2. AI savings recommendations -> by difficulty
+  // 1. AI savings recommendations -> by difficulty
   for (const rec of data.savings_recommendations) {
     const tab: ActionTab = rec.difficulty === 'easy' ? 'quick' : rec.difficulty === 'medium' ? 'week' : 'month';
     items.push({

@@ -14,10 +14,11 @@ class Subscription extends Model
     protected $fillable = [
         'user_id', 'merchant_name', 'merchant_normalized', 'description', 'user_notes', 'amount',
         'frequency', 'category', 'status', 'is_essential', 'cancellation_provider_id',
-        'months_active', 'last_charge_date', 'next_expected_date', 'last_used_at',
+        'months_active', 'last_charge_date', 'next_expected_date', 'missed_charge_at', 'last_used_at',
         'annual_cost', 'charge_history',
         'response_type', 'previous_amount', 'response_reason',
-        'ai_alternatives', 'responded_at', 'alternatives_generated_at',
+        'ai_alternatives', 'responded_at', 'recharged_at', 'recharged_amount',
+        'alternatives_generated_at',
     ];
 
     protected function casts(): array
@@ -32,8 +33,11 @@ class Subscription extends Model
             'ai_alternatives' => 'array',
             'last_charge_date' => 'date',
             'next_expected_date' => 'date',
+            'missed_charge_at' => 'datetime',
             'last_used_at' => 'datetime',
             'responded_at' => 'datetime',
+            'recharged_at' => 'datetime',
+            'recharged_amount' => 'decimal:2',
             'alternatives_generated_at' => 'datetime',
         ];
     }

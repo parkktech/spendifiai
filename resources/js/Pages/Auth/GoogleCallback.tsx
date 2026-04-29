@@ -25,15 +25,7 @@ export default function GoogleCallback() {
     try {
       // Store token in localStorage and cookie
       localStorage.setItem('auth_token', token);
-
-      // Set secure cookie (30 days)
-      const date = new Date();
-      date.setTime(date.getTime() + (30 * 24 * 60 * 60 * 1000));
-      const expires = `expires=${date.toUTCString()}`;
-      const secure = window.location.protocol === 'https:' ? ' secure;' : '';
-      document.cookie = `auth_token=${token}; ${expires}; path=/;${secure} samesite=lax`;
-
-      // Set Authorization header
+      (window as any).__setAuthCookie(token);
       window.axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
 
       // Send detected timezone to server (fire-and-forget)

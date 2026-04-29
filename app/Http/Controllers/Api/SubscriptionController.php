@@ -34,12 +34,17 @@ class SubscriptionController extends Controller
             ->orderByDesc('amount')
             ->get();
 
+        $cancelled = $subs->where('status', 'cancelled');
+        $confirmedCancelled = $cancelled->filter(fn ($s) => $s->responded_at && ! $s->recharged_at);
+        $rechargedCount = $cancelled->filter(fn ($s) => $s->recharged_at !== null)->count();
+
         return response()->json([
             'subscriptions' => SubscriptionResource::collection($subs),
             'total_monthly' => $subs->where('status', 'active')->sum('amount'),
             'total_annual' => $subs->where('status', 'active')->sum('annual_cost'),
-            'unused_monthly' => $subs->where('status', 'unused')->sum('amount'),
-            'unused_count' => $subs->where('status', 'unused')->count(),
+            'cancelled_count' => $cancelled->count(),
+            'confirmed_savings_monthly' => round((float) $confirmedCancelled->sum('previous_amount'), 2),
+            'recharged_count' => $rechargedCount,
         ]);
     }
 
@@ -85,6 +90,8 @@ class SubscriptionController extends Controller
                     'response_type' => 'cancelled',
                     'previous_amount' => $previousAmount,
                     'responded_at' => now(),
+                    'recharged_at' => null,
+                    'recharged_amount' => null,
                 ]);
                 $savings = $previousAmount;
                 break;

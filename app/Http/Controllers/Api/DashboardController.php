@@ -153,19 +153,6 @@ class DashboardController extends Controller
                 ->whereIn('review_status', ['needs_review', 'pending_ai', 'ai_uncertain'])
                 ->count();
 
-            // Unused subscriptions
-            $unusedSubs = Subscription::whereIn('user_id', $userIds)
-                ->where('status', 'unused')
-                ->count();
-
-            // Unused subscription details for dashboard display
-            $unusedSubDetails = Subscription::whereIn('user_id', $userIds)
-                ->where('status', 'unused')
-                ->select('id', 'merchant_name', 'merchant_normalized', 'amount', 'last_charge_date', 'last_used_at', 'annual_cost')
-                ->orderByDesc('amount')
-                ->limit(5)
-                ->get();
-
             // Top savings recommendations
             $savingsRecs = SavingsRecommendation::whereIn('user_id', $userIds)
                 ->where('status', 'active')
@@ -200,9 +187,10 @@ class DashboardController extends Controller
 
             $appliedSavingsTotal = $appliedThisMonth->sum('monthly_savings');
 
-            // Upcoming recurring charges (subscriptions due this month)
+            // Upcoming recurring charges (only truly active — not overdue/missed)
             $upcomingRecurring = Subscription::whereIn('user_id', $userIds)
                 ->where('status', 'active')
+                ->whereNull('missed_charge_at')
                 ->sum('amount');
 
             $freeToSpend = max(round($thisMonthIncome - $thisMonth - $upcomingRecurring, 2), 0);
@@ -257,18 +245,23 @@ class DashboardController extends Controller
                 ->limit(10)
                 ->get();
 
-            // --- All Recurring Bills (active + unused + cancelled) ---
+            // --- All Recurring Bills ---
             $allRecurringBills = Subscription::whereIn('user_id', $userIds)
-                ->whereIn('status', ['active', 'unused', 'cancelled'])
+                ->whereIn('status', ['active', 'cancelled'])
                 ->orderByDesc('amount')
-                ->select('id', 'merchant_name', 'merchant_normalized', 'amount', 'frequency', 'status', 'is_essential', 'last_charge_date', 'next_expected_date', 'annual_cost', 'response_type', 'responded_at')
+                ->select('id', 'merchant_name', 'merchant_normalized', 'amount', 'frequency', 'status', 'is_essential', 'last_charge_date', 'next_expected_date', 'missed_charge_at', 'annual_cost', 'response_type', 'responded_at')
                 ->get();
 
-            $totalMonthlyBills = $allRecurringBills->whereIn('status', [SubscriptionStatus::Active, SubscriptionStatus::Unused])->sum('amount');
+            // "Truly active" = active AND not overdue (same logic as Subscriptions page)
+            $trulyActiveBills = $allRecurringBills->filter(
+                fn ($b) => $b->status === SubscriptionStatus::Active && ! $b->missed_charge_at
+            );
+
+            $totalMonthlyBills = $trulyActiveBills->sum('amount');
 
             // --- Monthly Budget Waterfall ---
-            $essentialBills = $allRecurringBills->where('is_essential', true)->sum('amount');
-            $nonEssentialBills = $allRecurringBills->where('is_essential', false)->sum('amount');
+            $essentialBills = $trulyActiveBills->where('is_essential', true)->sum('amount');
+            $nonEssentialBills = $trulyActiveBills->where('is_essential', false)->sum('amount');
 
             // Discretionary = total spending minus recurring bills
             $discretionarySpending = max(round($thisMonth - $totalMonthlyBills, 2), 0);
@@ -577,7 +570,7 @@ class DashboardController extends Controller
             // Also include housing from subscriptions (mortgage/rent) if not
             // already captured from transactions
             if (! isset($buckets['Housing']) || $buckets['Housing']['total'] == 0) {
-                $housingSubscriptions = $allRecurringBills->filter(function ($bill) {
+                $housingSubscriptions = $trulyActiveBills->filter(function ($bill) {
                     $name = strtolower($bill->merchant_normalized ?? $bill->merchant_name);
 
                     return str_contains($name, 'mortgage') || str_contains($name, 'rent')
@@ -804,7 +797,7 @@ class DashboardController extends Controller
                     'potential_savings' => round($savingsTotal, 2),
                     'tax_deductible_ytd' => round($taxDeductible, 2),
                     'needs_review' => $needsReview,
-                    'unused_subscriptions' => $unusedSubs,
+                    'unused_subscriptions' => 0,
                     'pending_questions' => $pendingQuestionsCount,
                 ],
                 'categories' => $categories,
@@ -819,7 +812,7 @@ class DashboardController extends Controller
                     ->pluck('count', 'purpose'),
                 'savings_recommendations' => SavingsRecommendationResource::collection($savingsRecs),
                 'savings_target' => $savingsTargetData,
-                'unused_subscription_details' => $unusedSubDetails,
+                'unused_subscription_details' => [],
                 'savings_opportunities' => $savingsOpportunities,
                 'free_to_spend' => $freeToSpend,
                 'applied_this_month' => $appliedThisMonth,
@@ -829,7 +822,7 @@ class DashboardController extends Controller
                     'pending_review' => $pendingReview,
                     'questions_generated' => $pendingQuestionsCount,
                 ],
-                'recurring_bills' => $allRecurringBills,
+                'recurring_bills' => $trulyActiveBills->values(),
                 'total_monthly_bills' => round($totalMonthlyBills, 2),
                 'budget_waterfall' => $budgetWaterfall,
                 'home_affordability' => $homeAffordability,

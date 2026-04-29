@@ -33,6 +33,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'admin' => \App\Http\Middleware\EnsureAdmin::class,
             'accountant' => \App\Http\Middleware\EnsureAccountant::class,
+            'auth.optional' => \App\Http\Middleware\OptionalAuth::class,
         ]);
 
         // Sanctum SPA authentication
