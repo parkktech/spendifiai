@@ -426,18 +426,39 @@ export default function CostOfLivingBreakdown({ data, incomeSources, onClassify,
 
                 {/* Expanded merchant breakdown */}
                 {isExpanded && item.top_merchants.length > 0 && (
-                  <div className="ml-13 pl-2 border-l-2 mb-2 space-y-1 animate-in fade-in slide-in-from-top-1 duration-200" style={{ borderColor: config.color + '40', marginLeft: '3.25rem' }}>
+                  <div className="ml-13 pl-2 border-l-2 mb-2 space-y-1.5 animate-in fade-in slide-in-from-top-1 duration-200" style={{ borderColor: config.color + '40', marginLeft: '3.25rem' }}>
                     {item.top_merchants.map((m, idx) => (
-                      <div key={idx} className="flex items-center justify-between py-1 px-2">
-                        <div className="flex items-center gap-1.5">
-                          <span className="text-xs text-sw-muted truncate max-w-[200px]">{m.name}</span>
+                      <div key={idx} className="flex items-center justify-between py-1 px-2 group">
+                        <div className="flex items-center gap-1.5 min-w-0 flex-1">
+                          <span className="text-xs text-sw-muted truncate max-w-[180px]">{m.name}</span>
                           {item.category === 'Housing' && m.name === 'Rent / Mortgage' && (
-                            <span className="text-[9px] text-indigo-600 bg-indigo-50 border border-indigo-200 px-1 py-0.5 rounded font-medium">
-                              servicer change detected
+                            <span className="text-[9px] text-indigo-600 bg-indigo-50 border border-indigo-200 px-1 py-0.5 rounded font-medium shrink-0">
+                              recurring
                             </span>
                           )}
                         </div>
-                        <span className="text-xs font-semibold text-sw-text-secondary">{fmt.format(m.monthly_avg)}/mo</span>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <span className="text-xs font-semibold text-sw-text-secondary">{fmt.format(m.monthly_avg)}/mo</span>
+                          {onClassify && m.name !== 'Rent / Mortgage' && (
+                            <select
+                              defaultValue=""
+                              onChange={(e) => {
+                                if (e.target.value) {
+                                  onClassify('expense_category', `merchant:${m.name}:${item.category}`, e.target.value);
+                                  e.target.value = '';
+                                }
+                              }}
+                              className="opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity w-16 text-[10px] text-sw-dim bg-sw-surface border border-sw-border rounded px-1 py-0.5 focus:outline-none focus:border-sw-accent/50"
+                              title="Recategorize this merchant"
+                            >
+                              <option value="">Move...</option>
+                              {Object.keys(CATEGORY_CONFIG).filter(c => c !== item.category).map(c => (
+                                <option key={c} value={c}>{c}</option>
+                              ))}
+                              <option value="exclude">Not Essential</option>
+                            </select>
+                          )}
+                        </div>
                       </div>
                     ))}
                     <div className="flex items-center justify-between py-1 px-2 border-t border-sw-border">

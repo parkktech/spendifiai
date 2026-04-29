@@ -416,9 +416,11 @@ class DashboardController extends Controller
                 // Plaid detailed → bucket
                 'RENT_AND_UTILITIES_GAS_AND_ELECTRICITY' => 'Utilities',
                 'RENT_AND_UTILITIES_SEWAGE_AND_WASTE_MANAGEMENT' => 'Utilities',
+                'RENT_AND_UTILITIES_WATER' => 'Utilities',
                 'RENT_AND_UTILITIES_INTERNET_AND_CABLE' => 'Internet & Cable',
                 'RENT_AND_UTILITIES_TELEPHONE' => 'Phone',
                 'RENT_AND_UTILITIES_RENT' => 'Housing',
+                'RENT_AND_UTILITIES_OTHER_UTILITIES' => 'Utilities',
                 'FOOD_AND_DRINK_GROCERIES' => 'Groceries',
                 'GENERAL_SERVICES_INSURANCE' => 'Insurance',
                 'TRANSPORTATION_GAS' => 'Gas & Auto',
@@ -426,23 +428,36 @@ class DashboardController extends Controller
                 'MEDICAL_PRIMARY_CARE' => 'Medical',
                 'MEDICAL_PHARMACIES_AND_SUPPLEMENTS' => 'Medical',
                 'MEDICAL_OTHER_MEDICAL' => 'Medical',
+                'LOAN_PAYMENTS_MORTGAGE_PAYMENT' => 'Housing',
                 'LOAN_PAYMENTS_CREDIT_CARD_PAYMENT' => 'Credit Card Payments',
                 'LOAN_PAYMENTS_OTHER_PAYMENT' => '_loan_detect', // Needs smart detection
             ];
             $essentialAiCategoryMap = [
+                'Housing & Rent' => 'Housing',
                 'Mortgage' => 'Housing',
+                'Rent' => 'Housing',
                 'Utilities (Electric/Water/Gas)' => 'Utilities',
+                'Utilities' => 'Utilities',
                 'Trash & Recycling' => 'Utilities',
                 'Phone & Internet' => 'Phone',
+                'Phone' => 'Phone',
+                'Internet' => 'Internet & Cable',
                 'Food & Groceries' => 'Groceries',
+                'Groceries' => 'Groceries',
                 'Car Insurance' => 'Insurance',
                 'Home Insurance' => 'Insurance',
+                'Health Insurance' => 'Insurance',
+                'Insurance' => 'Insurance',
                 'Gas & Fuel' => 'Gas & Auto',
                 'Auto Maintenance' => 'Gas & Auto',
                 'Car Payment' => 'Car Payment',
                 'Debt Payment' => '_debt_detect', // Needs smart detection
+                'Loan Payment' => 'Loan Payments',
+                'Personal Loan' => 'Loan Payments',
+                'Line of Credit' => 'Loan Payments',
                 'Medical & Dental' => 'Medical',
                 'Childcare & Kids' => 'Childcare',
+                'Childcare' => 'Childcare',
             ];
 
             // Query average for essential categories from transactions
@@ -458,6 +473,37 @@ class DashboardController extends Controller
                 })
                 ->select('plaid_detailed_category', DB::raw('COALESCE(user_category, ai_category) as resolved_category'), 'amount', 'merchant_name', 'transaction_date')
                 ->get();
+
+            // Detect recurring fixed-amount transfers that are likely loan payments
+            // (e.g. credit union transfers at $500/mo and $350/mo to the same institution)
+            $recurringTransfers = $txQuery()
+                ->where('amount', '>', 50)
+                ->whereBetween('transaction_date', [$essentialStart, $monthEnd])
+                ->where(function ($q) {
+                    $q->where('plaid_category', 'TRANSFER_OUT')
+                        ->orWhere('plaid_detailed_category', 'TRANSFER_OUT_ACCOUNT_TRANSFER');
+                })
+                ->select('plaid_detailed_category', DB::raw("'Loan Payment' as resolved_category"), 'amount', 'merchant_name', 'transaction_date')
+                ->get()
+                ->groupBy(fn ($tx) => strtolower(preg_replace('/\s+(WEBXFR|TRANSFER|WEB ID).*$/i', '', $tx->merchant_name)))
+                ->filter(function ($group) {
+                    // Only include if there are 2+ charges at the same amount (recurring pattern)
+                    $amountGroups = $group->groupBy(fn ($tx) => number_format((float) $tx->amount, 2));
+
+                    return $amountGroups->contains(fn ($g) => $g->count() >= 2);
+                })
+                ->flatten(1)
+                ->filter(function ($tx) {
+                    // Only include amounts that recur (2+ charges at this exact amount from this merchant)
+                    static $seen = [];
+                    $key = strtolower(preg_replace('/\s+(WEBXFR|TRANSFER|WEB ID).*$/i', '', $tx->merchant_name)).'|'.number_format((float) $tx->amount, 2);
+                    $seen[$key] = ($seen[$key] ?? 0) + 1;
+
+                    return true; // Include all from qualifying merchants — filtered above
+                });
+
+            // Merge into essential spending
+            $essentialSpending = $essentialSpending->merge($recurringTransfers);
 
             // First pass: identify the housing payment by finding the largest
             // recurring loan/debt charge (rent/mortgage is typically the biggest
@@ -535,14 +581,34 @@ class DashboardController extends Controller
                 }
             }
 
+            // Load merchant-level category overrides for cost of living
+            $merchantOverrides = collect($userOverrides['expense_category'] ?? [])
+                ->filter(fn ($v, $k) => str_starts_with($k, 'merchant:'))
+                ->mapWithKeys(function ($newBucket, $key) {
+                    // key format: "merchant:MerchantName:OldCategory"
+                    $parts = explode(':', $key, 3);
+                    $merchantName = $parts[1] ?? '';
+
+                    return [$merchantName => $newBucket];
+                })
+                ->toArray();
+
             // Second pass: bucket all transactions
             $buckets = [];
             foreach ($essentialSpending as $tx) {
+                // Determine the bucket using AI/user category as primary signal.
+                // Plaid's broad categories (e.g. GENERAL_SERVICES_INSURANCE) often miscategorize
+                // transactions — Claude's contextual analysis is more accurate.
+                // Only fall back to Plaid when AI has no category at all.
                 $bucket = null;
-                if ($tx->plaid_detailed_category && isset($essentialCategoryMap[$tx->plaid_detailed_category])) {
-                    $bucket = $essentialCategoryMap[$tx->plaid_detailed_category];
-                } elseif ($tx->resolved_category && isset($essentialAiCategoryMap[$tx->resolved_category])) {
+                if ($tx->resolved_category && isset($essentialAiCategoryMap[$tx->resolved_category])) {
                     $bucket = $essentialAiCategoryMap[$tx->resolved_category];
+                } elseif ($tx->resolved_category && ! isset($essentialAiCategoryMap[$tx->resolved_category])) {
+                    // AI categorized this as something non-essential (e.g. "Electronics", "Fitness & Gym")
+                    // — don't let Plaid override that into an essential bucket
+                    continue;
+                } elseif ($tx->plaid_detailed_category && isset($essentialCategoryMap[$tx->plaid_detailed_category])) {
+                    $bucket = $essentialCategoryMap[$tx->plaid_detailed_category];
                 }
                 if (! $bucket) {
                     continue;
@@ -550,9 +616,24 @@ class DashboardController extends Controller
 
                 // Resolve smart detection buckets
                 if (in_array($bucket, ['_loan_detect', '_debt_detect', 'Housing'])) {
-                    $bucket = in_array($tx->merchant_name, $housingMerchants)
-                        ? 'Housing'
-                        : 'Credit Card Payments';
+                    // Check: is this a housing payment?
+                    // 1. Smart detection matched this merchant as housing
+                    // 2. AI/user categorized as housing/mortgage/rent
+                    $isHousing = in_array($tx->merchant_name, $housingMerchants);
+                    if (! $isHousing && $tx->resolved_category) {
+                        $isHousing = in_array($tx->resolved_category, ['Mortgage', 'Housing & Rent', 'Rent', 'Housing']);
+                    }
+                    $bucket = $isHousing ? 'Housing' : 'Credit Card Payments';
+                }
+
+                // Apply merchant-level overrides (user recategorized from the UI)
+                $merchant = $tx->merchant_name ?? 'Unknown';
+                if (isset($merchantOverrides[$merchant])) {
+                    $override = $merchantOverrides[$merchant];
+                    if ($override === 'exclude') {
+                        continue; // User marked as "Not Essential"
+                    }
+                    $bucket = $override; // Move to a different bucket
                 }
 
                 if (! isset($buckets[$bucket])) {
@@ -560,11 +641,11 @@ class DashboardController extends Controller
                 }
                 $buckets[$bucket]['total'] += $tx->amount;
                 $buckets[$bucket]['count']++;
-                $merchant = $tx->merchant_name ?? 'Unknown';
                 if (! isset($buckets[$bucket]['merchants'][$merchant])) {
-                    $buckets[$bucket]['merchants'][$merchant] = 0;
+                    $buckets[$bucket]['merchants'][$merchant] = ['total' => 0, 'count' => 0];
                 }
-                $buckets[$bucket]['merchants'][$merchant] += $tx->amount;
+                $buckets[$bucket]['merchants'][$merchant]['total'] += $tx->amount;
+                $buckets[$bucket]['merchants'][$merchant]['count']++;
             }
 
             // Also include housing from subscriptions (mortgage/rent) if not
@@ -585,7 +666,11 @@ class DashboardController extends Controller
                         $buckets['Housing']['total'] += $subMonthly;
                         $buckets['Housing']['count'] += $monthsElapsed;
                         $merchant = $sub->merchant_normalized ?? $sub->merchant_name;
-                        $buckets['Housing']['merchants'][$merchant] = ($buckets['Housing']['merchants'][$merchant] ?? 0) + $subMonthly;
+                        if (! isset($buckets['Housing']['merchants'][$merchant])) {
+                            $buckets['Housing']['merchants'][$merchant] = ['total' => 0, 'count' => 0];
+                        }
+                        $buckets['Housing']['merchants'][$merchant]['total'] += $subMonthly;
+                        $buckets['Housing']['merchants'][$merchant]['count'] += $monthsElapsed;
                     }
                 }
             }
@@ -602,12 +687,12 @@ class DashboardController extends Controller
                 $monthlyAvg = round($data['total'] / $monthsElapsed, 2);
                 $totalEssentialSpending += $monthlyAvg;
 
-                // Top merchants for this bucket
-                arsort($data['merchants']);
+                // Top merchants for this bucket — sort by total descending
+                uasort($data['merchants'], fn ($a, $b) => $b['total'] <=> $a['total']);
                 $topMerchants = array_slice(
-                    array_map(fn ($merchant, $amt) => [
+                    array_map(fn ($merchant, $info) => [
                         'name' => $merchant,
-                        'monthly_avg' => round($amt / $monthsElapsed, 2),
+                        'monthly_avg' => round($info['total'] / $monthsElapsed, 2),
                     ], array_keys($data['merchants']), $data['merchants']),
                     0,
                     5
@@ -962,7 +1047,7 @@ class DashboardController extends Controller
         $validated = $request->validate([
             'override_type' => 'required|in:income_source,expense_category',
             'override_key' => 'required|string|max:255',
-            'classification' => 'required|in:primary,extra',
+            'classification' => 'required|string|max:100',
         ]);
 
         $user = auth()->user();
@@ -1002,31 +1087,83 @@ class DashboardController extends Controller
      * Merge housing merchants when a servicer changes (one stops, another starts
      * at the same amount). Returns the modified bucket data.
      */
+    /**
+     * Merge housing merchants that are servicer changes for the same recurring payment.
+     * Excludes one-time charges (deposits, closing costs) from the monthly average.
+     */
     private function mergeHousingMerchants(array $bucket, int $monthsElapsed): array
     {
-        $merchants = $bucket['merchants'];
+        $merchants = $bucket['merchants']; // Each: ['total' => float, 'count' => int]
         if (count($merchants) <= 1) {
             return $bucket;
         }
 
-        // Get per-charge averages for each merchant
-        $merchantAmounts = [];
-        foreach ($merchants as $name => $total) {
-            // Approximate per-charge amount from total / months (rough)
-            $perCharge = $total / max($monthsElapsed, 1);
-            $merchantAmounts[$name] = $perCharge;
+        // Calculate per-transaction amount for each merchant
+        $merchantInfo = [];
+        foreach ($merchants as $name => $info) {
+            $perTx = $info['count'] > 0 ? $info['total'] / $info['count'] : $info['total'];
+            $merchantInfo[$name] = [
+                'total' => $info['total'],
+                'count' => $info['count'],
+                'per_tx' => round($perTx, 2),
+            ];
         }
 
-        // Check if all merchants have similar per-charge amounts (within 5%)
-        $amounts = array_values($merchantAmounts);
-        $maxAmount = max($amounts);
-        $minAmount = min($amounts);
+        // Group merchants with the same per-transaction amount (within 5%) — these are
+        // the same recurring payment through different servicers/names.
+        // The most common per-tx amount is the recurring rent/mortgage.
+        $perTxAmounts = array_column($merchantInfo, 'per_tx');
+        sort($perTxAmounts);
+        $medianPerTx = $perTxAmounts[(int) floor(count($perTxAmounts) / 2)];
 
-        if ($maxAmount > 0 && ($maxAmount - $minAmount) / $maxAmount <= 0.05) {
-            // Similar amounts — likely a servicer change. Merge into one entry.
-            $mergedTotal = array_sum($merchants);
-            $bucket['merchants'] = ['Rent / Mortgage' => $mergedTotal];
+        $recurring = [];
+        $oneOff = [];
+        $recurringTotal = 0;
+        $recurringCount = 0;
+
+        foreach ($merchantInfo as $name => $info) {
+            $matchesRecurring = $medianPerTx > 0
+                && abs($info['per_tx'] - $medianPerTx) / $medianPerTx <= 0.05;
+
+            if ($matchesRecurring) {
+                $recurring[$name] = $merchants[$name];
+                $recurringTotal += $info['total'];
+                $recurringCount += $info['count'];
+            } else {
+                $oneOff[$name] = $merchants[$name];
+            }
         }
+
+        // Rebuild bucket: use the per-transaction amount as the monthly cost for recurring,
+        // exclude one-time charges entirely from the housing total.
+        $newMerchants = [];
+        $newTotal = 0;
+        $newCount = 0;
+
+        if (! empty($recurring)) {
+            // Monthly cost = the per-transaction amount (what you actually pay each month)
+            $monthlyRent = $medianPerTx;
+            $rentTotal = $monthlyRent * $monthsElapsed;
+            $label = count($recurring) > 1 ? 'Rent / Mortgage' : array_key_first($recurring);
+            $newMerchants[$label] = ['total' => $rentTotal, 'count' => $monthsElapsed];
+            $newTotal += $rentTotal;
+            $newCount += $monthsElapsed;
+        }
+
+        // Include other recurring housing charges (e.g. separate mortgage at different amount)
+        // but only if they have 2+ transactions (likely recurring)
+        foreach ($oneOff as $name => $info) {
+            if ($info['count'] >= 2) {
+                $newMerchants[$name] = $info;
+                $newTotal += $info['total'];
+                $newCount += $info['count'];
+            }
+            // Single transactions at a different amount = one-time (deposit, closing cost) — exclude
+        }
+
+        $bucket['merchants'] = $newMerchants;
+        $bucket['total'] = $newTotal;
+        $bucket['count'] = $newCount;
 
         return $bucket;
     }

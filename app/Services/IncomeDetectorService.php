@@ -41,11 +41,15 @@ class IncomeDetectorService
      */
     protected array $aiTypeMap = [
         'Salary & Wages' => 'employment',
+        'Income (Salary)' => 'employment',
         'Payroll' => 'employment',
         'Direct Deposit' => 'employment',
         'Contractor Income' => 'contractor',
         'Freelance Income' => 'contractor',
+        'Income (Freelance)' => 'contractor',
+        'Income (1099)' => 'contractor',
         'Interest Income' => 'interest',
+        'Income (Investment)' => 'interest',
         'Dividends' => 'interest',
         'Investment Income' => 'interest',
         'Rental Income' => 'other',
@@ -190,8 +194,9 @@ class IncomeDetectorService
      */
     protected function autoClassify(string $type, bool $isRegular, ?string $frequency): string
     {
-        // Regular employment is always primary
-        if ($type === 'employment' && $isRegular) {
+        // Employment with a known recurring frequency is primary (payroll)
+        // Even if CV is slightly high due to bonuses/adjustments, payroll is primary
+        if ($type === 'employment' && in_array($frequency, ['weekly', 'bi-weekly', 'monthly'])) {
             return 'primary';
         }
 
@@ -300,21 +305,37 @@ class IncomeDetectorService
         // Median interval (more robust than average)
         $sortedIntervals = $intervals;
         sort($sortedIntervals);
-        $medianInterval = $sortedIntervals[(int) floor(count($sortedIntervals) / 2)];
+        $rawMedian = $sortedIntervals[(int) floor(count($sortedIntervals) / 2)];
 
-        // Check regularity via coefficient of variation
-        $avgInterval = array_sum($intervals) / count($intervals);
+        // Filter out outlier intervals (same-day deposits, mid-cycle bonuses, etc.)
+        // Keep only intervals within 40%-220% of the raw median
+        $filtered = $rawMedian > 0
+            ? array_values(array_filter($intervals, fn ($i) => $i >= ($rawMedian * 0.4) && $i <= ($rawMedian * 2.2)))
+            : $intervals;
+        if (empty($filtered)) {
+            $filtered = $intervals;
+        }
+
+        sort($filtered);
+        $medianInterval = $filtered[(int) floor(count($filtered) / 2)];
+
+        // Check regularity via coefficient of variation on filtered intervals
+        $avgInterval = array_sum($filtered) / count($filtered);
         $isRegular = false;
-        if (count($intervals) >= 2 && $avgInterval > 0) {
+        if (count($filtered) >= 2 && $avgInterval > 0) {
             $variance = array_sum(array_map(
-                fn ($i) => ($i - $avgInterval) ** 2, $intervals
-            )) / count($intervals);
+                fn ($i) => ($i - $avgInterval) ** 2, $filtered
+            )) / count($filtered);
             $cv = sqrt($variance) / $avgInterval;
-            $isRegular = $cv < 0.25;
-        } elseif (count($intervals) === 1) {
+            $isRegular = $cv < 0.30;
+        } elseif (count($filtered) === 1 || count($intervals) === 1) {
             // Single interval — regular if it matches a known cycle
             $isRegular = $medianInterval >= 5 && $medianInterval <= 35;
         }
+
+        // Employment type with recurring frequency is almost certainly regular payroll
+        // even if CV is slightly high (bonuses, adjustments, etc.)
+        // This is handled by the caller via autoClassify
 
         // Determine frequency from median interval (includes bi-weekly)
         $frequency = match (true) {
