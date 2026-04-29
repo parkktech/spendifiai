@@ -259,25 +259,10 @@ class DashboardController extends Controller
 
             $totalMonthlyBills = $trulyActiveBills->sum('amount');
 
-            // --- Monthly Budget Waterfall ---
+            // --- Monthly Budget Waterfall (placeholder — rebuilt after cost of living) ---
             $essentialBills = $trulyActiveBills->where('is_essential', true)->sum('amount');
             $nonEssentialBills = $trulyActiveBills->where('is_essential', false)->sum('amount');
-
-            // Discretionary = total spending minus recurring bills
-            $discretionarySpending = max(round($thisMonth - $totalMonthlyBills, 2), 0);
-
-            $monthlySurplus = round($thisMonthIncome - $thisMonth, 2);
-
-            $budgetWaterfall = [
-                'monthly_income' => round($thisMonthIncome, 2),
-                'essential_bills' => round($essentialBills, 2),
-                'non_essential_subscriptions' => round($nonEssentialBills, 2),
-                'discretionary_spending' => $discretionarySpending,
-                'total_spending' => round($thisMonth, 2),
-                'monthly_surplus' => $monthlySurplus,
-                'can_save' => $monthlySurplus > 0,
-                'savings_rate' => $thisMonthIncome > 0 ? round(($monthlySurplus / $thisMonthIncome) * 100, 1) : 0,
-            ];
+            $budgetWaterfall = []; // Will be populated below after cost of living is computed
 
             // --- Income Detection (early for use in home affordability) ---
             $userOverrides = UserFinancialOverride::whereIn('user_id', $userIds)
@@ -775,6 +760,27 @@ class DashboardController extends Controller
                 'coverage_pct' => $primaryIncome > 0
                     ? round(($primaryExpenses / $primaryIncome) * 100, 1)
                     : 0,
+            ];
+
+            // --- Rebuild Budget Waterfall with accurate data ---
+            // Use reliable income (from income detector) and cost of living essentials
+            // instead of raw this-month totals which miss bi-weekly pay cycles
+            $reliableIncome = $incomeSources['total_monthly_avg'] ?? $thisMonthIncome;
+            $essentialMonthly = $costOfLiving['total_essential_monthly'] ?? 0;
+            $nonEssentialMonthly = $trulyActiveBills->where('is_essential', false)->sum('amount');
+            $otherSpending = max(round($thisMonth - $essentialMonthly - (float) $nonEssentialMonthly, 2), 0);
+            $totalSpending = round($essentialMonthly + (float) $nonEssentialMonthly + $otherSpending, 2);
+            $monthlySurplus = round($reliableIncome - $totalSpending, 2);
+
+            $budgetWaterfall = [
+                'monthly_income' => round($reliableIncome, 2),
+                'essential_bills' => round($essentialMonthly, 2),
+                'non_essential_subscriptions' => round((float) $nonEssentialMonthly, 2),
+                'discretionary_spending' => $otherSpending,
+                'total_spending' => $totalSpending,
+                'monthly_surplus' => $monthlySurplus,
+                'can_save' => $monthlySurplus > 0,
+                'savings_rate' => $reliableIncome > 0 ? round(($monthlySurplus / $reliableIncome) * 100, 1) : 0,
             ];
 
             // --- Top Stores by Spend (3-month window, same as cost of living) ---
