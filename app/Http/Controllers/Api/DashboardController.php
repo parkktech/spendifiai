@@ -476,34 +476,57 @@ class DashboardController extends Controller
 
             // Detect recurring fixed-amount transfers that are likely loan payments
             // (e.g. credit union transfers at $500/mo and $350/mo to the same institution)
-            $recurringTransfers = $txQuery()
+            // Skip merchants already captured in essential spending (e.g. Elements Financial as Car Payment)
+            $existingMerchants = $essentialSpending->pluck('merchant_name')
+                ->map(fn ($n) => strtolower(preg_replace('/\s+(WEBXFR|TRANSFER|WEB ID|PPD ID|CK-WTH|CK).*$/i', '', $n ?? '')))
+                ->filter(fn ($n) => strlen($n) >= 4)
+                ->unique()
+                ->toArray();
+
+            $allTransfers = $txQuery()
                 ->where('amount', '>', 50)
                 ->whereBetween('transaction_date', [$essentialStart, $monthEnd])
                 ->where(function ($q) {
                     $q->where('plaid_category', 'TRANSFER_OUT')
-                        ->orWhere('plaid_detailed_category', 'TRANSFER_OUT_ACCOUNT_TRANSFER');
+                        ->orWhere('plaid_detailed_category', 'TRANSFER_OUT_ACCOUNT_TRANSFER')
+                        ->orWhere('plaid_detailed_category', 'TRANSFER_OUT_WITHDRAWAL');
                 })
-                ->select('plaid_detailed_category', DB::raw("'Loan Payment' as resolved_category"), 'amount', 'merchant_name', 'transaction_date')
-                ->get()
-                ->groupBy(fn ($tx) => strtolower(preg_replace('/\s+(WEBXFR|TRANSFER|WEB ID).*$/i', '', $tx->merchant_name)))
-                ->filter(function ($group) {
-                    // Only include if there are 2+ charges at the same amount (recurring pattern)
-                    $amountGroups = $group->groupBy(fn ($tx) => number_format((float) $tx->amount, 2));
+                ->select('plaid_detailed_category', 'amount', 'merchant_name', 'transaction_date')
+                ->get();
 
-                    return $amountGroups->contains(fn ($g) => $g->count() >= 2);
-                })
-                ->flatten(1)
-                ->filter(function ($tx) {
-                    // Only include amounts that recur (2+ charges at this exact amount from this merchant)
-                    static $seen = [];
-                    $key = strtolower(preg_replace('/\s+(WEBXFR|TRANSFER|WEB ID).*$/i', '', $tx->merchant_name)).'|'.number_format((float) $tx->amount, 2);
-                    $seen[$key] = ($seen[$key] ?? 0) + 1;
+            // Find merchants with recurring same-amount transfers (2+ at the same price)
+            $transferGroups = $allTransfers->groupBy(function ($tx) {
+                $cleanName = preg_replace('/\s+(WEBXFR|TRANSFER|WEB ID|PPD ID|CK-WTH|CK).*$/i', '', $tx->merchant_name);
 
-                    return true; // Include all from qualifying merchants — filtered above
-                });
+                return strtolower(trim($cleanName)).'|'.number_format((float) $tx->amount, 2);
+            })->filter(fn ($group) => $group->count() >= 2);
 
-            // Merge into essential spending
-            $essentialSpending = $essentialSpending->merge($recurringTransfers);
+            // Add qualifying transfers as loan payments (skip already-bucketed merchants)
+            foreach ($transferGroups as $key => $group) {
+                $merchantKey = explode('|', $key)[0];
+
+                // Skip if this merchant is already in essential spending under a different category
+                $alreadyCaptured = false;
+                foreach ($existingMerchants as $existing) {
+                    if (str_contains($existing, $merchantKey) || str_contains($merchantKey, $existing)) {
+                        $alreadyCaptured = true;
+                        break;
+                    }
+                }
+                if ($alreadyCaptured) {
+                    continue;
+                }
+
+                foreach ($group as $tx) {
+                    $essentialSpending->push((object) [
+                        'plaid_detailed_category' => $tx->plaid_detailed_category,
+                        'resolved_category' => 'Loan Payment',
+                        'amount' => $tx->amount,
+                        'merchant_name' => preg_replace('/\s+(WEBXFR|TRANSFER|WEB ID|PPD ID).*$/i', '', $tx->merchant_name),
+                        'transaction_date' => $tx->transaction_date,
+                    ]);
+                }
+            }
 
             // First pass: identify the housing payment by finding the largest
             // recurring loan/debt charge (rent/mortgage is typically the biggest
