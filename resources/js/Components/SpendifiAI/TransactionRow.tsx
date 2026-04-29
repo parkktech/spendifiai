@@ -140,13 +140,18 @@ export default function TransactionRow({
             </div>
           ) : (
             <div className="min-w-0">
-              <button
-                onClick={() => onMerchantRename && setEditingMerchant(true)}
-                className="text-[13px] font-medium text-sw-text truncate text-left hover:text-sw-accent transition block max-w-full"
-                title={onMerchantRename ? 'Click to rename' : undefined}
-              >
-                {displayName}
-              </button>
+              {onMerchantRename ? (
+                <button
+                  onClick={() => setEditingMerchant(true)}
+                  className="group/rename flex items-center gap-1 text-[13px] font-medium text-sw-text text-left hover:text-sw-accent transition max-w-full"
+                  title="Click to rename"
+                >
+                  <span className="truncate">{displayName}</span>
+                  <Tag size={10} className="shrink-0 opacity-0 group-hover/rename:opacity-100 text-sw-dim transition" />
+                </button>
+              ) : (
+                <span className="text-[13px] font-medium text-sw-text truncate block">{displayName}</span>
+              )}
               {hasAlias && (
                 <div className="text-[10px] text-sw-dim truncate" title={transaction.merchant_name}>
                   {transaction.merchant_name}

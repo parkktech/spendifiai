@@ -74,7 +74,7 @@ it('detects weekly subscriptions from frequent charges', function () {
     CancellationProvider::create([
         'company_name' => 'Meal Prep Co',
         'slug' => 'meal-prep-co',
-        'aliases' => ['meal prep co'],
+        'aliases' => ['meal prep co', 'meal prep'],
         'category' => 'Food',
         'difficulty' => 'easy',
     ]);

@@ -65,6 +65,10 @@ class SubscriptionDetectorService
             return $this->normalizeMerchant($tx->merchant_name);
         });
 
+        // Merge groups with overlapping prefixes (handles truncated bank names like
+        // "relaxed communic" vs "relaxed communications" vs "relaxed communication")
+        $merchantGroups = $this->mergeOverlappingMerchantGroups($merchantGroups);
+
         $detected = [];
         $aiCandidates = [];
         $matchedSubIds = []; // Track already-matched subscription IDs to prevent duplicates
@@ -984,24 +988,75 @@ class SubscriptionDetectorService
      * Normalize a merchant name for grouping.
      * Handles payment processor extraction (PayPal, Venmo, etc.)
      */
+    /**
+     * Merge merchant groups where one name is a prefix of another (truncated bank names).
+     * E.g. "relaxed communic" + "relaxed communications" + "relaxed communication" → single group.
+     * Only merges when the shorter name is 8+ characters (to avoid false prefix matches).
+     */
+    protected function mergeOverlappingMerchantGroups(Collection $groups): Collection
+    {
+        $keys = $groups->keys()->sort()->values()->toArray();
+        $merged = collect();
+        $consumed = [];
+
+        foreach ($keys as $key) {
+            if (in_array($key, $consumed)) {
+                continue;
+            }
+
+            $combinedGroup = $groups[$key];
+            $longestKey = $key;
+
+            // Only attempt prefix matching for names 8+ chars (avoid "gas" matching "gas & fuel")
+            if (strlen($key) >= 8) {
+                foreach ($keys as $otherKey) {
+                    if ($otherKey === $key || in_array($otherKey, $consumed) || strlen($otherKey) < 8) {
+                        continue;
+                    }
+                    if (str_starts_with($otherKey, $key) || str_starts_with($key, $otherKey)) {
+                        $combinedGroup = $combinedGroup->concat($groups[$otherKey]);
+                        $consumed[] = $otherKey;
+                        if (strlen($otherKey) > strlen($longestKey)) {
+                            $longestKey = $otherKey;
+                        }
+                    }
+                }
+            }
+
+            $merged[$longestKey] = $combinedGroup;
+        }
+
+        return $merged;
+    }
+
     protected function normalizeMerchant(?string $name): string
     {
         if (! $name) {
             return 'unknown';
         }
 
-        // Try to extract actual merchant from payment processors first
+        // Handle IAT PAYPAL format: "VIDEOBOLT D.O.O. IAT PAYPAL 12345 WEB ID: xxx"
+        // Extract the merchant name before "IAT PAYPAL"
+        if (preg_match('/^(.+?)\s+IAT\s+PAYPAL/i', $name, $iatMatch)) {
+            $name = trim($iatMatch[1]);
+        }
+
+        // Try to extract actual merchant from payment processors
         $extracted = $this->extractMerchantFromProcessor($name);
         if ($extracted) {
             $name = $extracted;
         }
 
         $lower = strtolower(trim($name));
-        // Strip trailing numbers, #, *, locations
-        $clean = preg_replace('/[#*]+\d*\s*$/', '', $lower);
-        $clean = preg_replace('/\s+\d{3,}$/', '', $clean);
 
-        return trim($clean);
+        // Strip common business suffixes
+        $lower = preg_replace('/\s+(d\.?o\.?o\.?|llc|inc|corp|ltd|co)\s*$/i', '', $lower);
+
+        // Strip trailing numbers, #, *, locations, transaction IDs
+        $lower = preg_replace('/[#*]+\d*\s*$/', '', $lower);
+        $lower = preg_replace('/\s+\d{3,}$/', '', $lower);
+
+        return trim($lower);
     }
 
     /**
