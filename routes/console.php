@@ -59,29 +59,35 @@ Schedule::call(function () {
 // ── Detect subscriptions (daily at 2am) + notify about unused ──
 Schedule::call(function () {
     $detector = app(\App\Services\SubscriptionDetectorService::class);
-    User::whereHas('bankConnections')->each(function ($user) use ($detector) {
-        $detector->detectSubscriptions($user->id);
+    $thresholdDays = config('spendifiai.sync.active_threshold_days', 28);
+    User::whereHas('bankConnections')
+        ->where('last_active_at', '>', now()->subDays($thresholdDays))
+        ->each(function ($user) use ($detector) {
+            $detector->detectSubscriptions($user->id);
 
-        // After detection, notify users about unused subscriptions
-        $unused = Subscription::where('user_id', $user->id)
-            ->where('status', 'unused')
-            ->get();
+            // After detection, notify users about unused subscriptions
+            $unused = Subscription::where('user_id', $user->id)
+                ->where('status', 'unused')
+                ->get();
 
-        if ($unused->isNotEmpty()) {
-            $totalMonthlyCost = $unused->sum('amount');
-            $subscriptionNames = $unused->pluck('merchant_normalized')->toArray();
+            if ($unused->isNotEmpty()) {
+                $totalMonthlyCost = $unused->sum('amount');
+                $subscriptionNames = $unused->pluck('merchant_normalized')->toArray();
 
-            $user->notify(new UnusedSubscriptionAlert($subscriptionNames, $totalMonthlyCost));
-        }
-    });
+                $user->notify(new UnusedSubscriptionAlert($subscriptionNames, $totalMonthlyCost));
+            }
+        });
 })->dailyAt('02:00')->name('detect-subscriptions');
 
 // ── Generate savings recommendations (weekly on Mondays at 06:00) ──
 Schedule::call(function () {
     $analyzer = app(\App\Services\AI\SavingsAnalyzerService::class);
-    User::whereHas('bankConnections')->each(function ($user) use ($analyzer) {
-        $analyzer->analyze($user);
-    });
+    $thresholdDays = config('spendifiai.sync.active_threshold_days', 28);
+    User::whereHas('bankConnections')
+        ->where('last_active_at', '>', now()->subDays($thresholdDays))
+        ->each(function ($user) use ($analyzer) {
+            $analyzer->analyze($user);
+        });
 })->weeklyOn(1, '06:00')->name('generate-savings-recommendations');
 
 // ── Weekly savings digest (Monday 07:00, after savings analysis at 06:00) ──
@@ -106,8 +112,10 @@ Schedule::call(function () {
         ->where('updated_at', '<', now()->subMinutes(30))
         ->update(['sync_status' => 'failed']);
 
+    $thresholdDays = config('spendifiai.sync.active_threshold_days', 28);
     EmailConnection::where('status', 'active')
         ->where('sync_status', '!=', 'syncing')
+        ->whereHas('user', fn ($q) => $q->where('last_active_at', '>', now()->subDays($thresholdDays)))
         ->each(function ($conn) {
             ProcessOrderEmails::dispatch($conn);
         });

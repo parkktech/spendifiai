@@ -31,9 +31,11 @@ class RetryFailedEmails implements ShouldQueue
         MicrosoftOutlookService $microsoftService,
         EmailParserService $parser,
     ): void {
+        $thresholdDays = config('spendifiai.sync.active_threshold_days', 28);
         $failedEmails = ParsedEmail::where('parse_status', 'failed')
             ->where('retry_count', '<', 3)
             ->where('created_at', '>', now()->subDays(7))
+            ->whereHas('emailConnection.user', fn ($q) => $q->where('last_active_at', '>', now()->subDays($thresholdDays)))
             ->with('emailConnection')
             ->get();
 
