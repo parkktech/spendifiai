@@ -10,7 +10,22 @@ Users connect their bank and immediately get intelligent, automatic categorizati
 
 ## Current State
 
-v2.0 shipped 2026-03-31. No active milestone — ready for v2.1 planning.
+v2.0 shipped 2026-03-31. **Active milestone: v2.1 Optimize My Income.**
+
+## Current Milestone: v2.1 Optimize My Income
+
+**Goal:** Help users find every legal edge to maximize take-home income and savings by reviewing all their financial documents plus linked email/bank data, then interviewing them with only high-value questions and red flags — educational suggestions only, never definitive tax advice.
+
+**Target features:**
+- New "Optimize My Income" nav item with a dedicated guided interview flow (one high-value question at a time → optimization report)
+- Document intake reusing the v2.0 Tax Document Vault + two-pass AI extraction — new doc types: check stubs, employer offer letters, 401k/retirement/benefits/stock screenshots, insurance & mortgage statements
+- Cross-source review engine over uploaded docs + linked emails + bank/transaction data
+- Rules-first optimization engine (deterministic 2026 tax brackets, 401k/IRA contribution limits, filing-status thresholds, standard-vs-itemized) with Claude generating interview questions and plain-English explanations
+- Red-flag detectors — filing-status mismatch, deduction probes (guard dogs, work electronics/drones, motorsport business), Traditional-vs-Roth 401k optimization
+- Ongoing red-flag questions surfaced in the existing AI Questions feed as fresh data arrives
+- Optimization report covering deductions / taxes / filings / 401k contributions
+
+**Key context:** Educational suggestions ONLY — every output framed "review with a licensed tax professional," strong disclaimers, never asserts filing decisions. Reuse existing infrastructure (Tax Document Vault, two-pass extraction, BankStatementParserService, AI/TransactionCategorizerService pattern, linked email + bank data). Additive/forward-only migrations, no destructive DB ops, no changes to existing API responses/models/component interfaces, full backwards-compat with v1.0/v2.0.
 
 ## Requirements
 
@@ -42,6 +57,16 @@ v2.0 shipped 2026-03-31. No active milestone — ready for v2.1 planning.
 
 ### Active
 
+**v2.1 Optimize My Income (current milestone):**
+- [ ] "Optimize My Income" nav item + dedicated guided interview flow
+- [ ] Financial document intake (check stubs, offer letters, 401k/benefits/stock screenshots, insurance, mortgage) via the Tax Document Vault
+- [ ] Cross-source review engine (uploaded docs + linked emails + bank/transaction data)
+- [ ] Rules-first optimization engine (tax brackets, contribution limits, filing-status thresholds, standard-vs-itemized)
+- [ ] Red-flag detectors (filing-status mismatch, deduction probes, Traditional-vs-Roth 401k)
+- [ ] Ongoing optimization questions in the existing AI Questions feed
+- [ ] Optimization report (deductions / taxes / filings / 401k), educational framing with disclaimers
+
+**Carried forward (not in v2.1 scope unless pulled in):**
 - [ ] Dual sign-off workflow for tax year completion (taxpayer + accountant attestation)
 - [ ] Tax worksheets with auto-populated fields from AI extraction data
 - [ ] Document sharing packages with time-limited signed URLs
@@ -108,5 +133,22 @@ v2.0 shipped 2026-03-31. No active milestone — ready for v2.1 planning.
 | On-demand intelligence with 4-hour cache | No background jobs for intelligence — cached analysis on vault page load | ✓ Good |
 | $600 IRS threshold for missing document detection | Filters noise — only flags when income exceeds reporting threshold | ✓ Good |
 
+## Evolution
+
+This document evolves at phase transitions and milestone boundaries.
+
+**After each phase transition** (via `/gsd-transition`):
+1. Requirements invalidated? → Move to Out of Scope with reason
+2. Requirements validated? → Move to Validated with phase reference
+3. New requirements emerged? → Add to Active
+4. Decisions to log? → Add to Key Decisions
+5. "What This Is" still accurate? → Update if drifted
+
+**After each milestone** (via `/gsd-complete-milestone`):
+1. Full review of all sections
+2. Core Value check — still the right priority?
+3. Audit Out of Scope — reasons still valid?
+4. Update Context with current state
+
 ---
-*Last updated: 2026-03-31 after v2.0 milestone completion*
+*Last updated: 2026-07-01 after starting milestone v2.1 Optimize My Income*
