@@ -1,236 +1,269 @@
-# Feature Landscape
+# Feature Research
 
-**Domain:** Tax Document Vault, AI Document Extraction, Accountant Portal & Collaboration
-**Researched:** 2026-03-30
-**Overall confidence:** HIGH (cross-referenced TaxDome, SmartVault, Canopy, Intuit, Microsoft Document Intelligence, IRS documentation)
+**Domain:** Personal Tax/Income-Optimization + Smart Financial Interview (v2.1 Optimize My Income)
+**Researched:** 2026-07-01
+**Confidence:** MEDIUM (cross-referenced Keeper Tax, TurboTax UX analysis, Betterment/Blooom retirement tools, Instead.com, Facet Wealth, IRS documentation, fintech compliance literature)
 
-## Table Stakes
+---
 
-Features users expect. Missing = product feels incomplete or untrustworthy.
+## Feature Landscape
 
-### Document Vault Core
+### Table Stakes (Users Expect These)
 
-| Feature | Why Expected | Complexity | Dependencies | Notes |
-|---------|--------------|------------|--------------|-------|
-| Multi-file upload (PDF, images, CSV) | Every tax product supports drag-and-drop upload of common formats | Low | Existing `StatementUpload` pattern | PDF and JPEG/PNG minimum. HEIC nice-to-have. Max 20MB per file. |
-| Document type classification | Users don't want to manually tag every W-2 vs 1099 | Medium | AI extraction pipeline | Two-pass: classify first, extract second. Use Claude to identify form type from first page. |
-| Tax year organization | Tax documents are inherently year-scoped | Low | Existing tax year filter in `TaxController` | Default to current tax year. Allow viewing prior years. |
-| Document status tracking | Users need to know if upload succeeded, is processing, or failed | Low | Queue system (Redis already configured) | States: `uploaded`, `classifying`, `extracting`, `ready`, `failed`, `needs_review` |
-| Secure file storage with encryption-at-rest | Tax documents contain SSN, income data -- users won't trust a vault without security signals | Medium | Laravel filesystem, S3 encryption | AES-256 for local storage, S3 SSE for cloud. File paths never exposed to client. |
-| Signed URL document access | Direct file paths are a security vulnerability. Every serious document platform uses time-limited access. | Low | Laravel `temporaryUrl()` for S3, custom for local | 15-minute expiry default. Force download headers to prevent hotlinking. |
-| Document preview (PDF/image viewer) | Users need to verify what they uploaded without downloading | Medium | Frontend PDF.js or `<iframe>` embed | In-browser preview via signed URL. No server-side rendering needed. |
-| Document deletion with soft-delete | Users must be able to remove documents, but audit trail requires retention | Low | Laravel `SoftDeletes` trait | Soft-delete only. Physical file deletion after 90-day retention period. |
-| Per-document audit log entries | Regulatory requirement. Every access, view, download, share must be logged. | Medium | New `DocumentAuditLog` model (append-only) | Insert-only table. No `updated_at`. Record: who, what, when, IP, user agent. |
-| Basic search and filtering | Users with 20+ documents need to find specific ones | Low | Database queries on type, year, status | Filter by: tax year, document type, status. Text search on original filename. |
+Features users assume exist. Missing these = product feels incomplete or untrustworthy.
 
-### AI Document Extraction
+| Feature | Why Expected | Complexity | Notes |
+|---------|--------------|------------|-------|
+| Document intake for new doc types | Users need to upload pay stubs, offer letters, 401k statements, insurance/mortgage docs — extends existing Vault pattern | LOW | Reuses `TaxDocumentExtractorService` + two-pass classify→extract. New `TaxDocumentCategory` enum values for: `pay_stub`, `offer_letter`, `retirement_statement`, `benefits_summary`, `stock_statement`, `insurance_statement`, `mortgage_statement`. |
+| Cross-source data assembly before interview | Tool must read what it already knows (bank data, emails, prior docs) before asking questions | MEDIUM | Feeds the interview engine: pull from `Transaction`, `Subscription`, `EmailConnection/ParsedEmail`, existing vault docs, `UserFinancialProfile`. Prevents asking what can be inferred. |
+| Guided interview — one question at a time | TurboTax, Keeper Tax, Cleo all established this as the standard; multi-question forms cause drop-off | MEDIUM | Each question rendered as its own card/screen. Conditional logic: skip questions answered by documents or bank data. Reuse `AIQuestion` pattern from existing categorization flow. |
+| Filing status educational check | Most common source of tax mistakes; users expect any tax tool to surface this | MEDIUM | Compare what financial profile says vs what pay stub shows (W-4 box 3). Surface discrepancy as red flag. Educational framing only: "your pay stub suggests [X] — discuss with a tax professional." |
+| Tax withholding check | Over/under withheld is a top-3 user pain point; every tax tool addresses this | MEDIUM | Compare federal withholding on pay stub to estimated tax liability using 2026 brackets. Flag if withholding gap is >$500. Suggest W-4 adjustment review (not assertion). |
+| Standard vs itemized deduction comparison | Users need to know which is bigger before deciding anything else | LOW | Rules-first: pull standard deduction for filing status from deterministic 2026 tables. Sum known itemizable items from bank + docs (mortgage interest from 1098, charitable from transactions). Show both numbers side by side. |
+| 401k/retirement contribution check | "Am I leaving employer match on the table?" is the highest-ROI question for salaried users | MEDIUM | Extract contribution rate from pay stub or retirement statement. Compare against employer match threshold (from offer letter or user answer). Flag uncaptured match as dollar value. |
+| Optimization report with ranked action items | Users expect output — a concrete list of things to review, ranked by estimated impact | MEDIUM | Report sections: Filing Status, Withholding, Deductions, Retirement, Income Classification. Each item: description, estimated dollar range, confidence, "review with a tax professional" disclaimer. |
+| "Educational only" disclaimer on every output | Without this, product creates liability. Users trained by TurboTax/H&R Block expect disclaimers. | LOW | Static disclaimer block on report + tooltips on individual suggestions. Cannot be dismissed globally — must appear adjacent to each suggestion. "This is educational information, not tax advice. Review with a licensed tax professional before making changes." |
+| Progress indicator during interview | Users need to see how many questions remain; opaque interviews cause abandonment | LOW | Show step count (e.g., "3 of 8 questions") and a topic breadcrumb (Filing → Retirement → Deductions). Allow going back to revise answers. |
+| Ability to skip questions | Some users won't have certain documents or situations; forcing answers produces bad data | LOW | Each question must have "Not applicable" or "Skip for now" option. Skipped questions reduce confidence of associated report sections. |
+| Report persistence and refresh | Users return to check their report; a one-time-only report feels fragile | LOW | Persist `OptimizationSession` model. Allow "Refresh report" when new docs are uploaded or bank data changes. Show "last analyzed" timestamp. |
 
-| Feature | Why Expected | Complexity | Dependencies | Notes |
-|---------|--------------|------------|--------------|-------|
-| W-2 field extraction | Most common tax form. Every AI tax tool handles this. | Medium | Claude API, document classification | Key fields: employer EIN, wages (Box 1), federal tax withheld (Box 2), state wages, SS wages. |
-| 1099 family extraction (1099-MISC, 1099-NEC, 1099-INT, 1099-DIV, 1099-B, 1099-R, 1099-G, 1099-K, 1099-SSA) | Freelancers and investors receive many 1099 variants | High | Claude API | Each subtype has different fields. 1099-NEC (freelance) and 1099-INT (interest) are highest priority. |
-| 1098 extraction (mortgage interest, student loan interest) | Common itemized deductions | Medium | Claude API | Key fields: mortgage interest paid, points, property tax, loan origination. |
-| Extraction confidence scoring | Users and accountants need to know if AI got it right | Medium | Mirrors existing AI categorization confidence system | Reuse confidence threshold pattern from `config/spendifiai.php`. High confidence = auto-accept, low = flag for review. |
-| Human review workflow for low-confidence extractions | AI will make mistakes. Users must be able to correct. | Medium | Frontend form + backend update endpoint | Show extracted fields side-by-side with document preview. Editable fields with "confirm" action. |
-| Extracted data summary view | Users want to see totals (total W-2 income, total 1099 income, total deductions) without opening each document | Low | Aggregation queries on extracted data | Dashboard widget or dedicated summary page. Group by form type. |
+### Differentiators (Competitive Advantage)
 
-### Accountant Portal
+Features that set SpendifiAI apart. These are not expected but create clear competitive edge.
 
-| Feature | Why Expected | Complexity | Dependencies | Notes |
-|---------|--------------|------------|--------------|-------|
-| Client list with document status overview | Accountants manage multiple clients. Need at-a-glance status. | Low | Existing `AccountantController.clients()` | Extend existing endpoint with document counts and completion percentage per client. |
-| View client's uploaded documents | Core reason accountants use the portal | Low | Existing `verifyAccountantClientRelationship()` | Reuse existing authorization pattern. Read-only access to client vault. |
-| Document request (ask client for missing docs) | Industry standard. TaxDome, SmartVault, Canopy all have this. | Medium | New `DocumentRequest` model | Accountant creates request specifying document type needed. Client sees notification/checklist. |
-| Comment/annotation on documents | Accountants need to flag issues without phone calls | Medium | New `DocumentComment` model with polymorphic thread | Threaded comments attached to specific documents. Both parties can comment. |
-| Client document completeness checklist | Accountants need to track which documents are still outstanding | Medium | Document request system + extraction data | Auto-detect some missing docs (e.g., has W-2 income but no W-2 uploaded). Manual checklist items too. |
+| Feature | Value Proposition | Complexity | Notes |
+|---------|-------------------|------------|-------|
+| Cross-source red-flag detector (filing status mismatch) | Pay stub says "Married Filing Separately" but user thinks they're filing jointly — caught before tax prep begins | HIGH | Compare W-4 box 3 on pay stub (extracted) vs `UserFinancialProfile.tax_filing_status`. Flag discrepancy. Surface as high-priority red flag. No comparable tool does this automatically from documents + profile. |
+| Deduction probe questions from transaction patterns | Electronics/drone purchases → "Used for work?" Pet food → "Guard/service animal?" Multiple UTV payments → "Motorsport business?" | HIGH | Rules engine scans `Transaction` records for merchant categories that have common deductible gray areas. For each matched pattern, generate a targeted interview question. Maps to existing `AIQuestion` feed infrastructure. |
+| Traditional vs Roth 401k optimization engine | Current bracket + expected retirement income → concrete educational recommendation on which 401k type maximizes lifetime take-home | MEDIUM | Rules-first: if taxable income is in 22%+ bracket and retirement is distant, Traditional wins; if in 10-12% bracket or early career, Roth wins. Use deterministic 2026 brackets. Claude explains the tradeoff in plain English. |
+| QBI deduction eligibility surface | 20% deduction on net business income is one of the most under-utilized freelancer deductions — most don't know it exists | MEDIUM | Rules-first: if has Schedule C income (1099-NEC in vault or bank deposits flagged as business) AND taxable income under threshold ($197,300 single / $394,600 MFJ for 2025), surface QBI opportunity. |
+| Employer match gap calculator | Show the exact dollar amount of "free money" left on table if contribution rate is below match threshold | LOW | Requires: current contribution % (from pay stub or user answer) + employer match % (from offer letter extraction or user answer). `$annual_salary × (match_threshold_% − current_contribution_%)` = gap. High-impact, low-effort calculation. |
+| Interview uses what it already knows | Unlike TurboTax which asks everything from scratch, SpendifiAI skips questions it can answer from bank/email/vault data | HIGH | Pre-populate interview context engine: scan transactions for side-business income, check vault for W-2/1099 already uploaded, check email for subscription patterns. Only ask what's genuinely unknown. Makes interview feel intelligent, not generic. |
+| Ongoing red-flag questions in existing AI Questions feed | Optimization is not a one-time event — new transactions trigger new opportunities | MEDIUM | When new transactions arrive that match deduction probe patterns, create an `AIQuestion` of type `optimization_probe` routed to the Questions feed. Reuses existing infrastructure entirely. |
+| Document-to-bank anomaly cross-check | "Your W-2 shows $85K wages but bank deposits total $92K — verify before filing" | HIGH | Extends existing `TaxDocumentIntelligenceService` cross-document anomaly detection. Adds comparison: sum of bank deposits by income category vs sum of reported income from W-2/1099s in vault. Surface as report finding, not error. |
+| Offer letter benefit gap analysis | Compares current pay stub deductions to offer letter benefits to flag unclaimed benefits (HSA, FSA, commuter) | HIGH | Requires: offer letter extraction (new doc type) + pay stub extraction. Compare benefits available vs actually enrolled in. Educational framing: "your offer letter shows HSA eligibility — are you enrolled?" |
 
-### Dual Sign-off Workflow
+### Anti-Features (Deliberately NOT Building)
 
-| Feature | Why Expected | Complexity | Dependencies | Notes |
-|---------|--------------|------------|--------------|-------|
-| Tax year status lifecycle | Both parties need to understand where things stand | Low | New `TaxYearStatus` model or column on user | States: `gathering`, `in_review`, `taxpayer_signed`, `accountant_signed`, `filed`, `amended` |
-| Taxpayer sign-off ("I confirm these documents are complete") | Legal accountability. Client attests completeness. | Low | Status transition + audit log | Simple confirmation action. Records timestamp, IP. Not an e-signature -- just an attestation. |
-| Accountant sign-off ("I have reviewed and approved") | Professional attestation. Common in TaxDome, CCH Axcess. | Low | Status transition + audit log | Only available after taxpayer has signed. Records timestamp, IP, accountant license info if available. |
-| Sign-off notification to other party | Each party needs to know when the other has signed | Low | Existing notification/email system | Email notification on each sign-off event. |
+Features that seem good but create legal/ethical/technical problems. These are explicitly out of scope.
 
-### Document Sharing
+| Feature | Why Requested | Why Problematic | Alternative |
+|---------|---------------|-----------------|-------------|
+| Asserting the "correct" filing status | Users want to be told what to do, not just what to consider | Telling a user "you should file jointly" is tax advice requiring a CPA/EA/JD. SpendifiAI has no such license. IRS audit liability shifts to the platform. | Surface the discrepancy and estimated difference ("filing jointly could reduce your liability by ~$X based on these numbers — review with a tax professional"). Present both scenarios. Never assert which to choose. |
+| Calculating actual net tax owed / refund amount | Users want to know their refund | This is tax preparation (requires PTIN for paid preparers). Calculating an actual refund figure creates expectation that could expose the platform to liability if wrong. | Show effective vs marginal rate and withholding gap (educational). Do not compute Form 1040 lines. |
+| Investment allocation or portfolio advice | 401k optimization naturally leads users to ask "what should I invest in?" | Investment advice on specific asset allocations requires RIA registration with SEC or FINRA. SpendifiAI is not registered. | Recommend contribution level only. "Consider maximizing contributions and reviewing allocation with a financial advisor." |
+| Guaranteeing dollar savings amounts | Users want certainty; "you'll save $X" is compelling | Guarantees create direct liability if the user's actual tax outcome differs. Amounts depend on factors the app cannot fully know. | Frame all estimates as ranges with explicit uncertainty: "based on the information provided, this deduction could be worth $200–$800 — actual impact depends on your full tax picture." |
+| Auto-filing or tax return generation | The logical next step after optimization feels natural | Requires PTIN (Preparer Tax Identification Number) for paid preparation. Also out of scope per PROJECT.md. | Export findings to a downloadable PDF report the user can share with their accountant. Integrate with existing tax export infrastructure. |
+| Legal advice on gray-area deductions | "Is my guard dog deductible?" — users want a yes/no | Definitive rulings on gray-area deductions (guard dog, mixed-use vehicle, home office shared with family) vary by situation and could be wrong, causing IRS penalties the user attributes to the app. | Surface the rule ("a guard/service animal used primarily for business may qualify") and the relevant IRS publication, then probe with a question. Never assert deductibility. |
+| Global "dismiss all disclaimers" toggle | Power users find disclaimers annoying | Eliminates the legal protection the disclaimers provide. A user who dismissed disclaimers and then acts on advice in a harmful way creates greater liability than one who saw disclaimers repeatedly. | Reduce visual noise with collapsible disclaimer details (click "What does this mean?"), but the high-level "review with a tax professional" must always be visible adjacent to each suggestion. |
+| Full SSN/TIN extraction and storage | Pay stubs and W-2s contain full SSNs; the AI will see them | Catastrophic PII liability. A breach of stored SSNs would be a regulatory and reputational disaster. Already explicitly prohibited in PROJECT.md. | Strip SSNs before storing extracted data. Store only last 4 digits. Log that stripping occurred. Display as "***-**-1234". |
+| Personalized score ("Your Optimization Score: 62/100") | Makes results gamified and easy to share | A single score encourages over-trust and gaming. Users would chase the score rather than acting on the actual findings. Score thresholds would need calibration that's inherently arbitrary. | Surface individual findings with priority (High/Medium/Low impact). Let the user see the full picture, not a reduction. |
+| State tax optimization | Federal optimization is complex enough; state rules vary dramatically | 50-state tax rules are an entire separate domain. Supporting all states would require maintaining a large, frequently-changing rules library that's out of scope for v2.1. | Focus exclusively on federal tax optimization in v2.1. Add state-specific rules only after federal system is validated. Note to user: "state tax rules vary — consult a local tax professional." |
+| Retirement distribution / withdrawal advice | "When should I take from my 401k?" is a natural question | Withdrawal timing and sequence is investment/retirement advice requiring fiduciary responsibility. Not in SpendifiAI's scope. | Surface contribution optimization only. Out-of-scope questions should be deflected: "retirement distribution strategy is a great question for a financial advisor." |
+| Competitive comparison ("You're leaving 40% more than average users") | Seems motivating | Social comparison in financial contexts is manipulative and may not be legally permissible under FTC guidance. Comparisons also require a large user data pool SpendifiAI does not yet have. | Personal impact framing only: "at your current salary, the uncaptured employer match is $X/year." Absolute numbers, not relative comparisons. |
 
-| Feature | Why Expected | Complexity | Dependencies | Notes |
-|---------|--------------|------------|--------------|-------|
-| Share document package with accountant | Primary sharing use case. Accountant already has access via portal, but external sharing is also needed. | Medium | New `DocumentSharePackage` model | Bundle of documents as a single shareable unit. Time-limited signed URL. |
-| Time-limited access links | Security requirement for tax documents | Low | Signed URL generation | Default 72-hour expiry. Configurable per package. Single-use or multi-use option. |
-| Download all as ZIP | Accountants need to pull everything at once for their workflow | Medium | ZipArchive PHP extension | Generate ZIP on demand via queue job. Return signed URL to completed ZIP. |
-
-## Differentiators
-
-Features that set SpendifiAI apart from TaxDome/SmartVault. Not expected, but high value.
-
-| Feature | Value Proposition | Complexity | Dependencies | Notes |
-|---------|-------------------|------------|--------------|-------|
-| AI missing document detection | Automatically detect what's missing based on transaction data. If user has interest income from bank transactions, flag that a 1099-INT should exist. | High | Transaction data + document type cross-reference | This is the killer feature. No competitor does this well. Cross-reference Plaid transaction categories with expected document types. |
-| Auto-populate tax worksheets from extracted data | Extracted W-2 fields flow directly into tax worksheet lines. No manual data entry. | High | Extraction pipeline + worksheet models | Requires mapping extracted fields to IRS form line numbers. Schedule C, Schedule A, Form 1040 lines. |
-| Cross-document validation (anomaly detection) | Flag when W-2 wages don't match bank deposit totals, or 1099 amounts seem inconsistent with transaction history | High | Extraction data + transaction aggregation | Surface discrepancies as warnings, not blockers. "Your W-2 shows $85K wages but bank deposits total $92K -- verify." |
-| Transaction-to-document linking | Link a specific 1099 to the transactions it covers. Link a receipt document to a specific transaction. | Medium | Existing transaction + new document models | Useful for audit preparation. "Show me the 1099-NEC and all associated freelance deposits." |
-| Accountant firm branding (logo, colors on invite emails) | Makes the accountant look professional when onboarding clients | Low | Firm profile model + email template customization | Store firm logo, primary color. Apply to invite emails and client-facing portal header. |
-| Tax software export from extracted data (TurboTax TXF, H&R Block) | Users can take extracted data directly into filing software | High | Extraction data + TXF/export format specs | TXF format is documented but finicky. Would need per-software export templates. Defer unless specifically requested. |
-| Bulk document upload with auto-classification | Upload 15 PDFs at once and AI sorts them all | Medium | Queue-based classification pipeline | Process in parallel via queue jobs. Show progress indicator. Group results by detected type. |
-| Year-over-year document comparison | "You uploaded 3 W-2s last year but only 1 this year -- did you change jobs?" | Low | Prior year document data | Simple count comparison. Low effort, high value for completeness checking. |
-
-## Anti-Features
-
-Features to explicitly NOT build. These add risk, complexity, or liability without proportional value.
-
-| Anti-Feature | Why Avoid | What to Do Instead |
-|--------------|-----------|-------------------|
-| Full SSN/TIN storage | Massive PII liability. Breach would be catastrophic. | Store last 4 digits only from extracted documents. Display "***-**-1234" format. Explicitly strip full SSN from stored extraction data. |
-| E-signature (legally binding) | Requires compliance with ESIGN Act, UETA. Complex legal framework. TaxDome spent years on this. | Use simple attestation ("I confirm") with audit log. Not a legal e-signature. Recommend DocuSign/HelloSign integration later if needed. |
-| Direct IRS e-filing | Requires IRS e-file provider certification (EFIN). Massive compliance burden. | Export to TurboTax/TaxAct format. Let users file through certified software. |
-| OCR for handwritten documents | Unreliable accuracy. Most tax documents are typed/printed. | Support digital PDFs and scanned typed documents only. Reject or warn on handwritten content. |
-| Real-time collaborative document editing | Not a Google Docs competitor. Accountants don't edit tax source documents. | Comments/annotations are sufficient. Documents are immutable after upload (versioning via re-upload). |
-| Custom form template builder | Accountants don't want to define extraction schemas. They want it to work. | Support the 25 most common IRS form types. Add new types via code updates, not user config. |
-| Document retention/archival automation | Complex regulatory landscape varies by state and document type | Soft-delete with 90-day retention. Let users manage their own cleanup. Don't auto-delete anything. |
-| Multi-tenant firm management (multiple offices, departments) | Premature complexity for v2. Current accountant model is individual. | Single accountant per firm for now. Firm = one user with company_name. Multi-user firms can come in v3. |
-| Payment processing for accountant services | Billing/monetization explicitly deferred per PROJECT.md | Free for now. No Stripe, no invoicing, no payment collection. |
+---
 
 ## Feature Dependencies
 
 ```
-Upload & Storage
-  -> Document Classification (requires uploaded file)
-    -> Field Extraction (requires classification result)
-      -> Tax Worksheet Auto-population (requires extracted fields)
-      -> Cross-document Validation (requires multiple extraction results)
-      -> Missing Document Detection (requires extraction + transaction data)
+Document Intake (new doc types: pay stub, offer letter, retirement stmt)
+  └──requires──> Existing TaxDocumentExtractorService (already built in v2.0)
+     └──requires──> Two-pass classify→extract pipeline (already built in v2.0)
 
-Accountant-Client Relationship (ALREADY BUILT)
-  -> Document Request System (requires active relationship)
-  -> Document Sharing Packages (requires active relationship)
-  -> Dual Sign-off Workflow (requires active relationship)
-  -> Document Comments/Annotations (requires active relationship + uploaded documents)
+Cross-Source Context Engine
+  └──requires──> Document Intake (new types)
+  └──requires──> Transaction data (already in DB)
+  └──requires──> UserFinancialProfile (already built)
+  └──requires──> ParsedEmail/Order data (already built)
+  └──feeds──> Interview Engine (nothing to ask if already known from data)
 
-Audit Trail
-  -> Runs parallel to everything. Every document action creates a log entry.
-  -> Must be built FIRST or concurrently with document upload.
+Interview Engine (AIQuestion-pattern)
+  └──requires──> Cross-Source Context Engine (to skip known answers)
+  └──requires──> Existing AIQuestion infrastructure (type + status enums)
+  └──produces──> OptimizationSession answers
 
-Super Admin Storage Config
-  -> Must be built before or with document upload (determines where files go)
-  -> Toggle between local filesystem and S3
+Rules-First Optimization Engine
+  └──requires──> 2026 deterministic tax tables (brackets, limits, thresholds)
+  └──requires──> OptimizationSession answers + Cross-Source Context
+  └──feeds──> Optimization Report
+
+Optimization Report
+  └──requires──> Rules-First Engine output
+  └──requires──> Claude AI (plain-English explanations per finding)
+  └──displays──> Action items ranked by estimated impact
+
+Ongoing Red-Flag Questions (AI Questions feed integration)
+  └──requires──> Existing AIQuestion + TransactionCategorized event pipeline
+  └──requires──> Deduction probe rules (from Rules-First Engine)
+  └──feeds INTO──> Existing Questions page (no new page needed)
+
+Filing Status Red-Flag Detector
+  └──requires──> Pay stub extraction (W-4 box 3 or withholding amounts)
+  └──requires──> UserFinancialProfile.tax_filing_status
+  └──feeds──> Optimization Report (high-priority finding)
+
+Employer Match Gap Calculator
+  └──requires──> Pay stub extraction (contribution % or contribution amount)
+  └──optionally──> Offer letter extraction (match % and threshold)
+  └──fallback──> Interview question if not extractable
+  └──feeds──> Optimization Report (retirement section)
+
+Document-to-Bank Anomaly Cross-Check
+  └──requires──> W-2/1099 extraction (already built in v2.0)
+  └──requires──> Transaction income aggregation (existing DashboardController logic)
+  └──enhances──> Existing TaxDocumentIntelligenceService cross-document detection
+  └──feeds──> Optimization Report (income consistency section)
 ```
 
-## MVP Recommendation
+### Dependency Notes
 
-### Phase 1: Document Vault Foundation
-Prioritize:
-1. **Document upload with secure storage** (local + S3 toggle) -- foundation for everything
-2. **AI classification** (identify document type) -- gates extraction
-3. **AI field extraction** (W-2, 1099-NEC, 1099-INT, 1098 as first four types) -- core value
-4. **Audit trail** (append-only log) -- must exist from day one, retrofitting is painful
-5. **Super Admin storage config** -- needed for document upload to work
+- **Cross-Source Context Engine requires ALL data sources assembled first:** The interview should never ask about information visible in uploaded documents or bank transactions. Building this "known facts" layer is the highest-leverage architectural piece.
+- **Interview Engine reuses AIQuestion infrastructure:** The existing `AIQuestion` model with its `question_type`, `status`, `options` fields and the `/api/v1/questions` endpoint can be extended with a new `question_type` of `optimization_probe`. New UI overlay for the sequential interview flow, but the backend persistence pattern is identical.
+- **Optimization Report requires Rules-First Engine THEN Claude:** Rules determine what findings exist; Claude generates the plain-English explanation for each finding. Do not use Claude to determine whether a rule applies — that is deterministic and must be deterministic.
+- **Ongoing red-flag questions do NOT require a new page:** They flow into the existing AI Questions feed automatically when `CategorizePendingTransactions` or a new event fires, reusing the existing Questions page.
 
-### Phase 2: Accountant Collaboration
-Prioritize:
-1. **Accountant document view** (extend existing portal) -- lowest friction, high value
-2. **Document comments/annotations** -- enables remote collaboration
-3. **Document request system** -- industry standard workflow
-4. **Client completeness checklist** -- manual checklist first, auto-detection later
+---
 
-### Phase 3: Sign-off and Sharing
-Prioritize:
-1. **Dual sign-off workflow** -- depends on documents being uploaded and reviewed
-2. **Document sharing packages** with signed URLs -- external sharing
-3. **ZIP download** -- accountant convenience
+## MVP Definition
 
-### Defer to Post-MVP:
-- **Tax software export formats** (TurboTax TXF): Complex format specs, niche demand initially
-- **Cross-document validation**: High value but high complexity, needs solid extraction first
-- **Firm branding**: Nice-to-have, not blocking any workflow
-- **Year-over-year comparison**: Needs two years of data to be useful
-- **Remaining 21 form types** beyond the initial 4: Add incrementally based on user demand
+### Launch With (v2.1 core)
 
-## Supported Tax Form Types (Priority Order)
+Minimum viable feature set to deliver value and validate the concept.
 
-Based on IRS filing frequency and freelancer/small business relevance:
+- [x] New "Optimize My Income" nav item and dedicated page/flow entry point
+- [x] Document intake for 4 new doc types: pay stub, offer letter, 401k/retirement statement, benefits summary — via existing Vault
+- [x] Cross-Source Context Engine (assemble known facts before asking questions)
+- [x] Guided interview flow: one question at a time, conditional logic, skip/back capability
+- [x] Filing status check (profile vs extracted pay stub — red flag if mismatch)
+- [x] Tax withholding check (withholding gap against 2026 brackets)
+- [x] Standard vs itemized comparison (from known deductibles)
+- [x] 401k contribution check: employer match gap calculator
+- [x] Traditional vs Roth educational recommendation (rules-first, plain-English Claude explanation)
+- [x] QBI deduction eligibility surface (for self-employed users)
+- [x] Deduction probe questions for top 5 transaction patterns (home office, vehicle/gas, electronics, pet food, meals/entertainment)
+- [x] Optimization report with ranked action items, confidence levels, and disclaimers
+- [x] Ongoing red-flag questions in existing AI Questions feed
 
-### Tier 1 -- Build First (4 forms)
-| Form | Description | Why Priority |
-|------|-------------|--------------|
-| W-2 | Wages and Tax Statement | Most common. Everyone with a job has one. |
-| 1099-NEC | Nonemployee Compensation | Core audience is freelancers. |
-| 1099-INT | Interest Income | Common for anyone with a savings account. |
-| 1098 | Mortgage Interest Statement | Common itemized deduction. |
+### Add After Validation (v2.1.x)
 
-### Tier 2 -- Build Next (8 forms)
-| Form | Description | Why Priority |
-|------|-------------|--------------|
-| 1099-MISC | Miscellaneous Income | Rental income, royalties. |
-| 1099-DIV | Dividends and Distributions | Investors. |
-| 1099-B | Proceeds from Broker Transactions | Stock sales. |
-| 1099-R | Distributions from Pensions/IRAs | Retirement distributions. |
-| 1099-G | Government Payments | Unemployment, state tax refunds. |
-| 1099-K | Payment Card and Third Party Transactions | Etsy, eBay, PayPal sellers. |
-| 1098-E | Student Loan Interest Statement | Common deduction for younger users. |
-| 1098-T | Tuition Statement | Education credits. |
+- [ ] Offer letter benefit gap analysis — requires offer letter extraction to be validated first; add when extraction confidence is high enough
+- [ ] Document-to-bank income anomaly cross-check — extends existing `TaxDocumentIntelligenceService`; valuable but not blocking
+- [ ] Insurance statement extraction (additional doc type) — useful for HSA/FSA analysis
+- [ ] Mortgage statement extraction for itemized deduction pre-population
 
-### Tier 3 -- Build on Demand (13 forms)
-| Form | Description |
-|------|-------------|
-| 1099-S | Proceeds from Real Estate Transactions |
-| 1099-SA | HSA Distributions |
-| 1099-Q | Payments from Qualified Education Programs |
-| 1099-C | Cancellation of Debt |
-| 1099-A | Acquisition or Abandonment of Secured Property |
-| W-2G | Gambling Winnings |
-| 1095-A | Health Insurance Marketplace Statement |
-| 1095-C | Employer-Provided Health Insurance |
-| SSA-1099 | Social Security Benefit Statement |
-| K-1 (1065) | Partner's Share of Income |
-| K-1 (1120-S) | Shareholder's Share of Income |
-| 5498 | IRA Contribution Information |
-| 5498-SA | HSA/MSA Contribution Information |
+### Future Consideration (v2.2+)
+
+- [ ] Expanded deduction probe library (beyond top 5 transaction patterns)
+- [ ] Multi-year optimization comparison ("your 401k gap grew by $X vs last year")
+- [ ] State-specific optimization (requires maintaining per-state rules)
+- [ ] Accountant portal integration: accountant can see optimization report alongside client's vault
+
+---
+
+## Feature Prioritization Matrix
+
+| Feature | User Value | Implementation Cost | Priority |
+|---------|------------|---------------------|----------|
+| Document intake (pay stub, offer letter, 401k) | HIGH | LOW (reuses Vault) | P1 |
+| Cross-Source Context Engine | HIGH | MEDIUM | P1 |
+| Guided interview — one Q at a time | HIGH | MEDIUM | P1 |
+| Filing status mismatch red flag | HIGH | MEDIUM | P1 |
+| 401k employer match gap calculator | HIGH | LOW | P1 |
+| Traditional vs Roth educational recommendation | HIGH | LOW (rules-first + Claude) | P1 |
+| Optimization report with disclaimers | HIGH | MEDIUM | P1 |
+| Standard vs itemized comparison | MEDIUM | LOW | P1 |
+| Tax withholding check | MEDIUM | LOW | P1 |
+| QBI deduction eligibility surface | MEDIUM | LOW | P1 |
+| Deduction probe questions (top 5 patterns) | HIGH | MEDIUM | P1 |
+| Ongoing red-flag questions in AI feed | MEDIUM | LOW (reuses AIQuestion) | P1 |
+| Document-to-bank income anomaly check | HIGH | HIGH (aggregation complexity) | P2 |
+| Offer letter benefit gap analysis | HIGH | HIGH (new extraction schema) | P2 |
+| Expanded deduction probe library | MEDIUM | MEDIUM | P3 |
+| Multi-year optimization comparison | LOW | MEDIUM | P3 |
+| State-specific tax optimization | HIGH | VERY HIGH (50-state rules) | P3 |
+
+**Priority key:**
+- P1: Must have for v2.1 launch
+- P2: Add after core validated
+- P3: Future milestone
+
+---
+
+## Competitor Feature Analysis
+
+| Feature | Keeper Tax | TurboTax | Instead.com | SpendifiAI Approach |
+|---------|------------|----------|-------------|---------------------|
+| Transaction-based deduction detection | Yes — tap-to-confirm on bank scan | Manual entry only | No (advisor-focused) | Yes — transaction pattern → probe question |
+| Document extraction | No | Limited OCR | Yes — 1040s, paystubs, K-1s | Yes — full two-pass AI extraction (v2.0 Vault) |
+| Cross-source (docs + bank + email) | Partial (bank only) | No | Yes (advisor reads all) | Yes — unique differentiator |
+| Filing status educational check | No | Yes — interview flow | Yes | Yes — automated from pay stub + profile |
+| 401k contribution optimization | No | Partial | Yes | Yes — match gap + Traditional vs Roth |
+| Interview format | Tap-to-confirm | Progressive form | Advisor conversation | One question at a time, conditional logic |
+| Educational disclaimers | Minimal | Prominent | N/A (advisor is fiduciary) | Prominent, adjacent to every finding |
+| Ongoing optimization (between tax seasons) | Year-round expense tracking | Annual only | Advisor-driven | Yes — ongoing red-flag questions in AI feed |
+| Cost to user | $16/month | $0–$219/year | $1,800+/year advisor fee | Included in SpendifiAI (no separate charge) |
+
+---
+
+## Educational-Only Boundary (Liability Framework)
+
+This table defines the hard line between what SpendifiAI can say vs what requires a licensed professional.
+
+| SpendifiAI CAN say (educational) | SpendifiAI CANNOT say (advice) |
+|-----------------------------------|-------------------------------|
+| "Your pay stub shows withholding of $X; for your income level the 2026 standard withholding would be approximately $Y" | "You are under-withheld and will owe $Z at filing" |
+| "Married filing jointly generally results in a lower combined tax than married filing separately for most couples" | "You should file jointly" |
+| "A home office used exclusively and regularly for business may qualify as a deductible expense" | "Your home office qualifies; you can deduct $X" |
+| "Your employer matches up to 4% — contributing 4% would maximize free money; you are currently at 2%" | "Increase your contribution to 4%" |
+| "Traditional 401k contributions reduce taxable income now; Roth contributions are tax-free in retirement. At your current marginal rate, consider discussing Traditional with your advisor." | "You should use Traditional 401k" |
+| "Your pet food purchases are not typically deductible, but if your pet is a certified guard or service animal used for business, a portion may be deductible — discuss with your tax professional" | "Your dog is deductible" |
+| "Based on these numbers, you may qualify for the QBI deduction — review this with your tax professional" | "You qualify for the QBI deduction" |
+
+**Rule:** Use "may," "could," "consider," "discuss with," "typically," and "based on information provided." Never use "will," "should," "you qualify," "you owe," or any definitive assertion.
+
+---
 
 ## Existing SpendifiAI Assets to Leverage
 
-| Existing Asset | How It Helps New Features |
-|----------------|--------------------------|
-| `AccountantClient` model + controller | Relationship system is built. Document sharing/viewing authorization is ready. |
-| `AccountantActivityLog` model | Pattern for audit logging exists. Extend for document-specific actions. |
-| `ImpersonationController` | Accountant can already "view as client." Document vault should respect this. |
-| `StatementUpload` model | Upload pattern exists (file_path, status tracking). Similar schema for tax documents. |
-| `TaxController` + `TaxExportService` | Tax summary/export is built. Extracted document data feeds into this. |
-| `TaxDeduction` + `UserTaxDeduction` models | Deduction tracking exists. Document extraction can auto-create deductions. |
-| AI confidence thresholds in `config/spendifiai.php` | Reuse same confidence pattern for extraction quality scoring. |
-| `PlaidStatement` model | Another upload pattern. Validates the file storage approach. |
-| Redis queue infrastructure | Already configured for background jobs. Extraction jobs will use this. |
-| User `user_type` enum with `Accountant` value | Role system exists. No new role needed. |
+| Existing Asset | How It Helps v2.1 |
+|----------------|-------------------|
+| `TaxDocumentExtractorService` + two-pass pipeline | Extend with new doc types (pay stub, offer letter, retirement stmt) — classification patterns + extraction schemas |
+| `TaxDocumentIntelligenceService` | Extend cross-document anomaly detection to include bank deposit vs W-2/1099 comparison |
+| `AIQuestion` model + `/api/v1/questions` endpoint | Reuse for optimization probe questions; add `optimization_probe` to `QuestionType` enum |
+| `UserFinancialProfile` | Provides filing status, employment type, housing status — cross-referenced against extracted docs |
+| `IncomeDetectorService` | Already classifies primary vs extra income from bank data — feeds cross-source context engine |
+| `TransactionCategorizerService` patterns | Merchant pattern matching logic for deduction probe detection |
+| `TransactionCategorized` event + listeners | Hook for triggering ongoing red-flag question generation from new transactions |
+| `SavingsAnalyzerService` pattern | Template for "gather data → send to Claude → structured output" service pattern |
+| `DashboardCacheService` invalidation patterns | Optimization report cache should invalidate when new docs uploaded or new transactions arrive |
+| `TaxController` + `TaxExportService` | Optimization report can export via existing export infrastructure |
+| Redis queue infrastructure | Background job for running cross-source analysis when report is first generated or refreshed |
+| Existing AI Questions page | No new page needed for ongoing red-flag questions — they surface here automatically |
 
-## Security Considerations for Tax Documents
-
-| Concern | Approach | Notes |
-|---------|----------|-------|
-| Encryption at rest | AES-256 local, S3 SSE-S3 or SSE-KMS for cloud | Laravel `Storage::put()` with encrypted disk config |
-| Encryption in transit | HTTPS enforced (already in place) | Signed URLs also use HTTPS |
-| Access control | Policy-based authorization per document | Owner OR linked accountant with active relationship |
-| PII minimization | Strip full SSN from stored extraction data | Store last 4 only. Log that stripping occurred. |
-| Audit trail immutability | Append-only table, no UPDATE/DELETE permissions | Application-level enforcement. Consider DB-level `REVOKE UPDATE, DELETE` on audit table. |
-| File type validation | Server-side MIME type checking, not just extension | Reject executables. Allow: PDF, JPEG, PNG, HEIC, TIFF. |
-| File size limits | 20MB per file, 100MB per upload batch | Prevents abuse. Most tax documents are under 5MB. |
-| Signed URL expiry | 15-minute default for viewing, 72-hour for sharing packages | Short for casual access, longer for intentional sharing. |
-| Rate limiting on upload | 50 uploads per hour per user | Prevents bulk abuse. |
-| Virus/malware scanning | ClamAV scan before processing | Queue-based scan on upload. Quarantine if suspicious. Optional for v2 MVP, recommended for production. |
+---
 
 ## Sources
 
-- [SmartVault - Document Management & Secure File Sharing](https://www.smartvault.com/)
-- [TaxDome - Practice Management Software](https://taxdome.com)
-- [TaxDome Workflow Management](https://taxdome.com/workflow)
-- [TaxDome E-Signature](https://taxdome.com/e-signature)
-- [Canopy - Accounting Client Portal](https://www.getcanopy.com/accounting-client-portal)
-- [Microsoft Document Intelligence - US Tax Documents](https://learn.microsoft.com/en-us/azure/ai-services/document-intelligence/prebuilt/tax-document?view=doc-intel-4.0.0)
-- [OCRTax.com - OCR for Tax Documents](https://www.ocrtax.com/)
-- [Parseur - AI Tax Parsing](https://parseur.com/use-case/automate-tax-season)
-- [AWS Presigned URLs for Secure File Sharing](https://aws.amazon.com/blogs/security/how-to-securely-transfer-files-with-presigned-urls/)
-- [HubiFi - Immutable Audit Trails Guide](https://www.hubifi.com/blog/immutable-audit-log-basics)
-- [IRS - What to Do When W-2 or 1099 Is Missing](https://www.irs.gov/newsroom/what-to-do-when-a-w-2-or-form-1099-is-missing-or-incorrect)
-- [Future Firm - Client Portals for Accountants](https://futurefirm.co/client-portals-for-accountants/)
-- [Assembly - Client Portals for Accountants 2025](https://assembly.com/blog/client-portal-for-accountants)
-- [Wolters Kluwer - Best Tax Software for Preparers](https://www.wolterskluwer.com/en/expert-insights/best-tax-software-for-preparers-an-expert-guide-to-choosing-the-right-solution)
+- [Keeper Tax — Write-Off Detection](https://www.keepertax.com/feature/write-off-detection)
+- [Keeper Tax Review — FinanceBuzz](https://financebuzz.com/keeper-tax-review)
+- [Ask an AI Accountant, Version 2.0 — Keeper Tax](https://www.keepertax.com/ask-an-ai-accountant-2-0)
+- [How TurboTax Turns a Dreadful UX Into a Delightful One — Appcues](https://www.appcues.com/blog/how-turbotax-makes-a-dreadful-user-experience-a-delightful-one)
+- [Designing Onboarding Questionnaire for a Finance App — Medium](https://medium.com/@harshiknayak/designing-onboarding-questionnaire-for-a-personal-finance-strategy-app-ux-case-study-0dcbfeb6b2bc)
+- [Top 10 Fintech UX Design Practices 2026 — Onething Design](https://www.onething.design/post/top-10-fintech-ux-design-practices-2026)
+- [Betterment — Traditional and Roth 401(k)s](https://www.betterment.com/employees/resources/traditional-and-roth-401ks)
+- [Blooom Review 2025 — Millennial Money Man](https://millennialmoneyman.com/blooom-review/)
+- [Instead AI Review 2026 — Uncle Kam](https://unclekam.com/tax-pro-tools/ai-tax-tools/instead-ai-review/)
+- [Altruist Hazel AI Tax Planning](https://altruist.com/news/hazel-ai-tax-planning/)
+- [Facet Tax Planning](https://facet.com/tax-planning/)
+- [Fintech Regulation Guide — Innreg](https://www.innreg.com/blog/fintech-regulation-guide-for-startups)
+- [Tax Compliance in FinTech — RegTech Analyst](https://regtechanalyst.com/tax-compliance-in-fintech-balancing-user-experience-and-regulatory-requirements/)
+- [What Are Tax Pros Asking AI Chatbots? — Intuit Tax Pro Center](https://accountants.intuit.com/taxprocenter/practice-management/what-are-tax-pros-asking-ai-chatbots-during-tax-season/)
+- [Risks of Using AI for Tax Preparation — davidovcpa.com](https://www.davidovcpa.com/uncategorized/risks-of-using-ai-for-tax-preparation-what-taxpayers-must-know/)
+- [IRS — Self-Employed Retirement Plan Contribution Deduction](https://www.irs.gov/retirement-plans/self-employed-individuals-calculating-your-own-retirement-plan-contribution-and-deduction)
+- [A Freelancer's Guide to Taxes — TurboTax](https://turbotax.intuit.com/tax-tips/self-employment-taxes/a-freelancers-guide-to-taxes/L6ACNfKVW)
+
+---
+
+*Feature research for: Optimize My Income (v2.1) — Personal Tax/Income Optimization + Smart Financial Interview*
+*Researched: 2026-07-01*

@@ -1,1001 +1,1046 @@
 # Architecture Patterns
 
-**Domain:** Tax Document Vault, AI Extraction Pipeline, Accountant Portal, Dual Sign-off, Audit Log, Super Admin Storage
-**Researched:** 2026-03-30
-**Confidence:** HIGH (analysis of existing codebase patterns, no external dependencies to verify)
-
-## Existing Architecture Snapshot
-
-Before describing new components, here is what exists and how new features attach.
-
-**Current state (32 models, 20 API controllers, 14 services, 11 enums):**
-
-| Layer | Count | Key Examples |
-|-------|-------|-------------|
-| Models | 32 | User (with UserType enum, `clients()`/`accountants()` BelongsToMany), AccountantClient, AccountantActivityLog, Transaction, BankAccount, BankConnection, StatementUpload |
-| API Controllers | 20 | AccountantController (7 methods), AccountantTaxController (3 methods), TaxController, StatementUploadController |
-| Services | 14 | AI/TransactionCategorizerService (confidence thresholds), TaxExportService, PlaidService, BankStatementParserService |
-| Enums | 11 | UserType (Personal/Accountant), ReviewStatus, ExpenseType, ConnectionStatus |
-| Middleware | 11 | EnsureAccountant, EnsureAdmin, EnsureBankConnected, EnsureProfileComplete |
-| Policies | 9 | TransactionPolicy, BankAccountPolicy, AIQuestionPolicy |
-| Jobs | 10 | CategorizePendingTransactions, ParseBankStatement, SyncBankTransactions |
-| API Resources | 10 | TransactionResource, BankAccountResource, SubscriptionResource |
-
-**Key architectural patterns already established:**
-- Thin controllers calling service layer for business logic
-- `auth:sanctum` middleware on all authenticated routes
-- Named middleware aliases (`admin`, `accountant`) in `bootstrap/app.php`
-- Accountant-client relationship via `accountant_clients` pivot table
-- `verifyAccountantClientRelationship()` helper pattern for access checks
-- `AccountantActivityLog` model with `$timestamps = false`, manual `created_at`
-- Config-driven AI thresholds in `config/spendifiai.php`
-- Local + S3 filesystem disks already configured in `config/filesystems.php`
-- Form Request validation classes (20 existing)
-- API Resource classes for response formatting
+**Domain:** Optimize My Income — v2.1 feature layer over SpendifiAI (Laravel 12 + React 19 + Inertia 2)
+**Researched:** 2026-07-01
+**Confidence:** HIGH (direct codebase analysis; all patterns verified against existing models, services, enums, jobs)
 
 ---
 
-## Recommended Architecture
+## Existing Architecture Snapshot (v2.0 baseline)
 
-### High-Level Component Map
+Confirmed by directory inspection. The baseline this milestone integrates WITH:
 
-```
-EXISTING (modify)                     NEW (create)
-============================          ============================
-User model                            TaxDocument model
-  + taxDocuments()                     TaxDocumentVersion model
-  + taxWorksheets()                    TaxDocumentAnnotation model
-  + signOffs()                         TaxWorksheet model
-                                       TaxWorksheetField model
-AccountantClient model                 TaxYearSignOff model
-  + (no changes)                       DocumentSharePackage model
-                                       DocumentShareItem model (pivot)
-AccountantController                   DocumentRequest model
-  + (no changes)                       DocumentAuditLog model
-                                       StorageSetting model
-AccountantTaxController
-  + extend with doc/worksheet routes   AccountantFirm model
+| Layer | Count | Key v2.0 Additions |
+|-------|-------|-------------------|
+| Models | 40+ | TaxDocument, TaxVaultAuditLog, DocumentAnnotation, DocumentRequest, AccountingFirm, Household, Dependent, CharitableOrganization |
+| Services | 15+ | TaxVaultStorageService, TaxVaultAuditService, AI/TaxDocumentExtractorService, AI/TaxDocumentIntelligenceService |
+| Jobs | 13 | ExtractTaxDocument, SplitMultiDocumentPdf, MigrateStorageJob (all new in v2.0) |
+| Enums | 14 | DocumentStatus, TaxDocumentCategory (25 cases), DocumentRequestStatus, UserType |
+| Events | 5 | BankConnected, TransactionCategorized, TransactionsImported, UserAnsweredQuestion, OnboardingComplete |
 
-config/spendifiai.php                  DocumentStorageService
-  + document_vault section             TaxDocumentClassifierService
-  + extraction thresholds              TaxDocumentExtractorService
-                                       DocumentAuditService
-config/filesystems.php                 TaxWorksheetService
-  + tax-documents disk                 DocumentShareService
-                                       SignOffService
-bootstrap/app.php
-  + (no changes needed)
+**Key v2.0 facts that drive v2.1 design:**
 
-routes/api.php                         TaxDocumentController
-  + vault route group                  TaxWorksheetController
-  + share route group                  DocumentShareController
-                                       SignOffController
-                                       AdminStorageController
-
-                                       ClassifyTaxDocument (Job)
-                                       ExtractTaxDocument (Job)
-                                       GenerateSharePackage (Job)
-
-                                       TaxDocumentPolicy
-                                       TaxWorksheetPolicy
-                                       DocumentSharePolicy
-                                       SignOffPolicy
-
-                                       DocumentStatus (Enum)
-                                       DocumentType (Enum)
-                                       SignOffStatus (Enum)
-                                       AuditAction (Enum)
-                                       SharePackageStatus (Enum)
-
-                                       TaxDocumentResource
-                                       TaxWorksheetResource
-                                       DocumentShareResource
-```
-
-### Component Boundaries
-
-| Component | Responsibility | Communicates With |
-|-----------|---------------|-------------------|
-| **DocumentStorageService** | File storage abstraction (local/S3 toggle), signed URL generation, file encryption at rest | TaxDocumentController, DocumentShareService, AdminStorageController |
-| **TaxDocumentClassifierService** | Two-pass AI: classify document type from first page, confidence scoring | ClassifyTaxDocument job, TaxDocumentExtractorService |
-| **TaxDocumentExtractorService** | Extract structured fields from classified documents (25 form types), generate extraction JSON | ExtractTaxDocument job, TaxWorksheetService |
-| **TaxWorksheetService** | Auto-populate worksheet fields from extraction data, cross-document validation, anomaly flagging | TaxWorksheetController, TaxDocumentExtractorService |
-| **DocumentAuditService** | Immutable audit log writes (no update/delete), query audit trail | All controllers touching documents, middleware |
-| **DocumentShareService** | Generate share packages with signed URLs, time-limited access, revocation | DocumentShareController, AccountantController |
-| **SignOffService** | Dual sign-off workflow state machine (draft -> taxpayer_signed -> accountant_signed -> filed) | SignOffController, TaxWorksheetController |
+- `TaxDocument.extracted_data` is `encrypted:array` — the full extraction JSON lives there, ready to read
+- `TaxDocumentCategory` already has W2, 1099-NEC, 1099-INT, 1098 Mortgage, 1099-R, 5498-SA, 5498, PropertyTax, CharitableDonation — NEW doc types (check stubs, 401k statements, offer letters) need to be added as new enum cases
+- `UserFinancialProfile` already has `has_hsa`, `has_fsa`, `has_ira`, `ira_type`, `has_home_office`, `has_rental_property`, `tax_filing_status`, `spouse_income (encrypted)` — far richer than CLAUDE.md shows; optimization engine can read these directly
+- `TaxDocumentIntelligenceService` runs on-demand with 4-hour cache — pattern to follow for optimization profile
+- `ExtractTaxDocument` job already exists and handles the classify→extract pipeline
+- `UserAnsweredQuestion` event fires for every AIQuestion answer — the hook for bridging optimization findings into the existing AI Questions feed
+- `QuestionType` enum has 4 cases (`Category`, `BusinessPersonal`, `Split`, `Confirm`) — adding `Optimization` is additive
 
 ---
 
-## New Models (11 tables)
+## System Overview
+
+```
+╔══════════════════════════════════════════════════════════════════════╗
+║                     DATA SOURCES (existing)                          ║
+║  TaxDocument.extracted_data │ Transaction records │ ParsedEmail/Order ║
+║  UserFinancialProfile       │ Subscription        │ IncomeDetector    ║
+╚══════════════╤══════════════╧═══════════════╤══════════════╤═════════╝
+               │ reads (no writes)            │              │
+               ▼                              │              │
+╔══════════════════════════════╗              │              │
+║  IncomeOptimizerData         ║◄─────────────┘              │
+║  AssemblerService            ║◄────────────────────────────┘
+║  (builds snapshot)           ║
+╚══════════════╤═══════════════╝
+               │ writes
+               ▼
+╔══════════════════════════════╗
+║  IncomeOptimizationProfile   ║  (new model — materialized snapshot)
+║  (cached per user+year)      ║
+╚══════════════╤═══════════════╝
+               │ reads
+       ┌───────┼───────────────┐
+       ▼       ▼               ▼
+╔══════════╗ ╔══════════════╗ ╔══════════════════════╗
+║ TaxRules ║ ║ RedFlagDetec ║ ║ CrossSourceReview    ║
+║ Engine   ║ ║ torService   ║ ║ Service              ║
+║ (pure    ║ ║ (deterministic║ ║ (doc vs bank vs email║
+║ math)    ║ ║ triggers)    ║ ║ discrepancy scanner) ║
+╚══════════╝ ╚══════╤═══════╝ ╚══════════╤═══════════╝
+                    │ creates              │ creates
+                    └──────────┬───────────┘
+                               ▼
+                   ╔═══════════════════════╗
+                   ║  OptimizationFinding  ║  (new model — persisted findings)
+                   ║  (per user+year)      ║
+                   ╚═══════════╤═══════════╝
+                               │
+             ┌─────────────────┼──────────────────────┐
+             ▼                 ▼                       ▼
+   ╔══════════════════╗ ╔═════════════════╗ ╔═════════════════════╗
+   ║ SurfaceOptimiza  ║ ║ InterviewOrches ║ ║ OptimizationReport  ║
+   ║ tionQuestions    ║ ║ tratorService   ║ ║ GeneratorService    ║
+   ║ (Job → AIQuestion║ ║ (state machine) ║ ║ (Claude for prose)  ║
+   ║  existing model) ║ ╚═════════╤═══════╝ ╚═════════╤═══════════╝
+   ╚══════════════════╝           │                   │
+                                  ▼                   ▼
+                       ╔══════════════════╗ ╔══════════════════╗
+                       ║ OptimizationQues ║ ║ OptimizationRepo ║
+                       ║ tion (new model) ║ ║ rt   (new model) ║
+                       ╚══════════════════╝ ╚══════════════════╝
+```
+
+---
+
+## Component Boundaries
+
+| Component | Responsibility | Communicates With | Uses Claude? |
+|-----------|---------------|-------------------|--------------|
+| **IncomeOptimizerDataAssemblerService** | Reads all sources, builds materialized snapshot into IncomeOptimizationProfile | TaxDocument, Transaction, UserFinancialProfile, Subscription, ParsedEmail | No |
+| **TaxRulesEngineService** | 2026 tax brackets, contribution limits, standard vs itemized math, SE deduction, QBI — pure PHP | IncomeOptimizationProfile, OptimizationReportGeneratorService | No |
+| **RedFlagDetectorService** | Deterministic pattern triggers (filing status, deduction probes, Roth vs Traditional) | IncomeOptimizationProfile, TaxRulesEngineService | No (detection); Yes (description generation only) |
+| **CrossSourceReviewService** | Compares doc extractions vs bank deposits vs email orders for discrepancies and opportunities | TaxDocument, Transaction, Order | No (detection); Yes (explanation generation) |
+| **InterviewOrchestratorService** | Session state machine: prioritize findings → generate questions → record answers → advance | OptimizationFinding, InterviewSession, OptimizationQuestion | Yes (question wording and follow-ups) |
+| **OptimizationReportGeneratorService** | Assembles 4-section report; TaxRulesEngine provides all numbers; Claude writes narratives | TaxRulesEngineService, OptimizationFinding, InterviewSession | Yes (narratives only) |
+| **SurfaceOptimizationQuestions (Job)** | Bridges high-priority red flags into existing AIQuestion feed | AIQuestion (existing model), QuestionType::Optimization (new enum case) | No |
+| **BuildIncomeOptimizationProfile (Job)** | Orchestrates assembler + detectors; fires OptimizationProfileBuilt event | All services above except Interview and Report | Minimal (finding descriptions) |
+| **GenerateOptimizationReport (Job)** | Triggers report generation after session completion | OptimizationReportGeneratorService | Yes |
+
+---
+
+## New Models (6 tables)
 
 ### Model Relationship Map
 
 ```
 User (existing)
- |-- hasMany --> TaxDocument
- |                |-- hasMany --> TaxDocumentVersion
- |                |-- hasMany --> TaxDocumentAnnotation
- |                |-- belongsToMany --> DocumentSharePackage (via document_share_items)
- |
- |-- hasMany --> TaxWorksheet
- |                |-- hasMany --> TaxWorksheetField
- |                |-- hasOne --> TaxYearSignOff
- |
- |-- hasMany --> DocumentRequest (as recipient)
- |-- hasMany --> DocumentRequest (as requester, via accountant)
- |
- |-- hasOne --> AccountantFirm (accountant users only)
+ |-- hasOne  --> IncomeOptimizationProfile  (per user+year, one active)
+ |-- hasMany --> OptimizationFinding        (many per user+year)
+ |-- hasMany --> InterviewSession           (one active at a time)
+ |               |-- hasMany --> OptimizationQuestion
+ |-- hasOne  --> OptimizationReport         (per user+year)
 
-AccountantFirm (new)
- |-- belongsTo --> User (accountant)
-
-TaxDocument (new)
+OptimizationFinding
  |-- belongsTo --> User
- |-- hasMany --> TaxDocumentVersion
- |-- hasMany --> TaxDocumentAnnotation
- |-- hasMany --> DocumentAuditLog
- |-- belongsToMany --> DocumentSharePackage
+ |-- belongsTo --> InterviewSession (nullable — pre-session findings also exist)
+ |-- has: finding_type, category, estimated_impact, source, is_red_flag
 
-TaxDocumentVersion (new)
- |-- belongsTo --> TaxDocument
- |-- metadata: extraction_data (JSON), ai_confidence, storage_path
-
-TaxDocumentAnnotation (new)
- |-- belongsTo --> TaxDocument
- |-- belongsTo --> User (author)
- |-- threaded via parent_id self-reference
-
-TaxWorksheet (new)
+InterviewSession
  |-- belongsTo --> User
- |-- hasMany --> TaxWorksheetField
- |-- hasOne --> TaxYearSignOff
- |-- scoped by tax_year
+ |-- hasMany   --> OptimizationQuestion
+ |-- hasOne    --> OptimizationReport
 
-TaxWorksheetField (new)
- |-- belongsTo --> TaxWorksheet
- |-- belongsTo --> TaxDocument (source, nullable)
- |-- stores: field_name, extracted_value, user_override, confidence
+OptimizationQuestion
+ |-- belongsTo --> InterviewSession
+ |-- belongsTo --> OptimizationFinding (nullable — question may relate to a finding)
 
-TaxYearSignOff (new)
- |-- belongsTo --> TaxWorksheet
- |-- belongsTo --> User (taxpayer)
- |-- belongsTo --> User (accountant, nullable)
- |-- status: SignOffStatus enum
+OptimizationReport
+ |-- belongsTo --> User
+ |-- belongsTo --> InterviewSession
 
-DocumentSharePackage (new)
- |-- belongsTo --> User (sharer)
- |-- belongsTo --> User (recipient, nullable for link-based)
- |-- belongsToMany --> TaxDocument (via document_share_items)
- |-- has: access_token (hashed), expires_at, download_count
-
-DocumentRequest (new)
- |-- belongsTo --> User (requester, accountant)
- |-- belongsTo --> User (recipient, client)
- |-- belongsTo --> TaxDocument (fulfilled_by, nullable)
-
-DocumentAuditLog (new, immutable)
- |-- belongsTo --> User (actor)
- |-- polymorphic: auditable (TaxDocument, TaxWorksheet, DocumentSharePackage, etc.)
- |-- NO update/delete methods (override in model)
-
-StorageSetting (new)
- |-- singleton-like: one row per setting key
- |-- Super Admin only
+IncomeOptimizationProfile
+ |-- belongsTo --> User
+ |-- (no relationships outward — pure snapshot cache)
 ```
 
-### How New Tables Relate to Existing 32 Models
+### Detailed Model Specs
 
-| Existing Model | New Relationship | Type |
-|----------------|-----------------|------|
-| **User** | `taxDocuments()` | HasMany |
-| **User** | `taxWorksheets()` | HasMany |
-| **User** | `signOffs()` | HasMany (via TaxYearSignOff) |
-| **User** | `documentRequests()` | HasMany |
-| **User** | `receivedDocumentRequests()` | HasMany |
-| **User** | `accountantFirm()` | HasOne (accountant users only) |
-| **AccountantClient** | No changes | Pivot remains as-is |
-| **AccountantActivityLog** | No changes | Existing activity log for accountant actions stays separate from DocumentAuditLog |
-| **Transaction** | No changes | Tax deduction data feeds into worksheets via TaxWorksheetService, not direct relationship |
+#### IncomeOptimizationProfile
 
-**Design decision:** Keep `AccountantActivityLog` and `DocumentAuditLog` as separate tables. The existing activity log tracks accountant CRM actions (view client, download tax summary). The new audit log tracks document-specific compliance events (upload, view, download, share, sign). Different retention policies, different query patterns, different compliance requirements.
-
----
-
-## New Controllers (5)
-
-Following existing pattern: thin controllers, Form Request validation, Policy authorization, service delegation.
-
-### TaxDocumentController
+Materialized financial snapshot. Rebuilt by `BuildIncomeOptimizationProfile` job. Treated as a cache — destroyed and recreated on refresh, not updated in place.
 
 ```
-POST   /api/v1/vault/documents              upload (multipart)
-GET    /api/v1/vault/documents              index (paginated, filterable by year/type/status)
-GET    /api/v1/vault/documents/{doc}        show (metadata + versions)
-GET    /api/v1/vault/documents/{doc}/view   view (signed URL redirect)
-DELETE /api/v1/vault/documents/{doc}        destroy (soft delete, audit logged)
-POST   /api/v1/vault/documents/{doc}/classify    re-classify
-GET    /api/v1/vault/documents/{doc}/annotations  annotations
-POST   /api/v1/vault/documents/{doc}/annotations  createAnnotation
+id, user_id, tax_year
+-- Income signals (all encrypted TEXT columns)
+w2_wages_cents            encrypted TEXT  -- from TaxDocument W-2 extractions, summed
+self_employment_income_cents encrypted TEXT
+interest_income_cents     encrypted TEXT  -- 1099-INT
+dividend_income_cents     encrypted TEXT  -- 1099-DIV
+retirement_distributions_cents encrypted TEXT -- 1099-R
+bank_deposit_total_cents  encrypted TEXT  -- from Transaction records, income-classified
+-- Deduction signals
+mortgage_interest_cents   encrypted TEXT  -- from 1098 extraction
+property_tax_cents        encrypted TEXT
+student_loan_interest_cents encrypted TEXT -- 1098-E
+charitable_contributions_cents encrypted TEXT
+-- Retirement signals
+traditional_401k_ytd_cents encrypted TEXT -- from retirement doc extractions
+roth_401k_ytd_cents       encrypted TEXT
+ira_ytd_cents             encrypted TEXT
+hsa_ytd_cents             encrypted TEXT
+-- Computed flags (non-sensitive, plain integers/booleans)
+filing_status             varchar(20)     -- from UserFinancialProfile
+has_home_office           boolean
+has_self_employment       boolean
+estimated_age             integer nullable -- derived if DOB available
+-- Metadata
+data_sources              jsonb           -- which TaxDocuments/date-ranges contributed
+doc_count                 integer
+profile_hash              varchar(64)     -- SHA-256 of inputs; detect staleness
+built_at                  timestamp
 ```
 
-Middleware: `auth:sanctum`, `throttle:120,1`
-Policy: `TaxDocumentPolicy` (owner or linked accountant via AccountantClient)
+Migration rule: all money fields are encrypted TEXT (matching existing convention). Non-sensitive computed fields are plain columns. No `updated_at` — always create new row.
 
-### TaxWorksheetController
-
-```
-GET    /api/v1/vault/worksheets                    index (by tax year)
-GET    /api/v1/vault/worksheets/{year}             show (auto-create if missing)
-POST   /api/v1/vault/worksheets/{year}/populate    populate from extractions
-PATCH  /api/v1/vault/worksheets/{year}/fields      updateFields (user overrides)
-GET    /api/v1/vault/worksheets/{year}/anomalies   anomalies (cross-doc validation)
-```
-
-Middleware: `auth:sanctum`, `throttle:120,1`
-Policy: `TaxWorksheetPolicy` (owner or linked accountant)
-
-### DocumentShareController
+#### OptimizationFinding
 
 ```
-POST   /api/v1/vault/shares                  create package
-GET    /api/v1/vault/shares                  index (list my packages)
-DELETE /api/v1/vault/shares/{package}        revoke
-GET    /api/v1/vault/shares/{token}/access   public access (no auth, token-validated)
+id, user_id, tax_year
+finding_key               varchar(100)    -- unique slug: 'roth_vs_traditional', 'guard_dog_deduction'
+finding_type              OptimizationFindingType enum
+category                  OptimizationFindingCategory enum -- taxes/retirement/deductions/filings
+title                     varchar(255)
+description               text            -- Claude-generated, educational
+estimated_annual_impact_cents integer     -- deterministic math result (nullable if unknown)
+confidence                varchar(10)     -- high/medium/low (from TaxRulesEngineService)
+is_red_flag               boolean         -- true = surfaced in AI Questions feed
+action_items              jsonb           -- array of {text, url_label, url} objects
+supporting_data           jsonb           -- what data triggered this (sanitized, no raw PII)
+disclaimer                text
+source                    varchar(30)     -- 'rules_engine' / 'red_flag_detector' / 'cross_source'
+status                    OptimizationFindingStatus enum
+interview_session_id      bigint nullable FK
+acknowledged_at           timestamp nullable
+dismissed_at              timestamp nullable
+timestamps                (standard created_at/updated_at)
 ```
 
-The public access endpoint uses the hashed token for lookup, validates expiry, increments download count, returns signed URL. No `auth:sanctum` on this route.
+Unique constraint: `(user_id, tax_year, finding_key)` — prevents duplicate findings. Use `updateOrCreate` on upsert.
 
-### SignOffController
-
-```
-GET    /api/v1/vault/signoff/{year}          status
-POST   /api/v1/vault/signoff/{year}/sign     sign (taxpayer or accountant based on user_type)
-POST   /api/v1/vault/signoff/{year}/revoke   revoke own signature
-```
-
-Middleware: `auth:sanctum`
-Policy: `SignOffPolicy` (taxpayer owns worksheet, or linked accountant)
-
-### AdminStorageController
+#### InterviewSession
 
 ```
-GET    /api/admin/storage/settings           current config
-PATCH  /api/admin/storage/settings           update (local/s3 toggle, bucket config)
-POST   /api/admin/storage/test               test S3 connectivity
-GET    /api/admin/storage/stats              usage statistics
+id, user_id, tax_year
+status                    InterviewSessionStatus enum
+current_question_index    integer default 0
+findings_addressed        jsonb   -- array of finding_key strings covered so far
+questions_count           integer -- total questions planned
+completed_at              timestamp nullable
+report_generated_at       timestamp nullable
+timestamps
 ```
 
-Middleware: `auth:sanctum`, `admin`
-Placed under existing `Route::prefix('admin')->middleware('admin')` group.
+One active session per user per tax year. Enforce with unique partial index: `WHERE status IN ('draft','active')`.
 
----
+#### OptimizationQuestion
 
-## New Services (7)
-
-### DocumentStorageService
-
-**Integration point:** Wraps Laravel's filesystem. Reads `StorageSetting` model to determine active disk at runtime (not `.env`). Falls back to `config/filesystems.php` defaults.
-
-```php
-class DocumentStorageService
-{
-    public function store(UploadedFile $file, int $userId, int $taxYear): string;
-    public function generateSignedUrl(string $path, int $expiryMinutes = 15): string;
-    public function delete(string $path): bool;
-    public function getActiveDisk(): string; // reads StorageSetting
-    public function migrateToS3(string $localPath): string; // for admin migration
-}
+```
+id, interview_session_id, user_id
+finding_key               varchar(100) nullable -- which finding triggered this question
+question_order            integer
+question_type             OptimizationQuestionType enum
+question_text             text            -- Claude-generated
+help_text                 text nullable   -- plain-English context Claude adds
+options                   jsonb nullable  -- for multiple_choice type
+answer                    text nullable
+answered_at               timestamp nullable
+skipped                   boolean default false
+source                    varchar(30)     -- 'rules_engine' / 'claude' / 'manual_seed'
+timestamps
 ```
 
-**Storage path convention:** `tax-documents/{user_id}/{tax_year}/{uuid}.{ext}`
+#### OptimizationReport
 
-**Signed URL strategy:**
-- Local disk: Use Laravel's `URL::temporarySignedRoute()` with a dedicated download route
-- S3 disk: Use S3 pre-signed URLs via `Storage::temporaryUrl()`
-- Both return time-limited, tamper-proof URLs
-- Default expiry: 15 minutes (configurable in `config/spendifiai.php`)
-
-### TaxDocumentClassifierService
-
-**Integration point:** Follows same pattern as `TransactionCategorizerService` -- calls Anthropic Claude API, uses confidence thresholds from `config/spendifiai.php`.
-
-```php
-class TaxDocumentClassifierService
-{
-    // Mirrors existing confidence pattern
-    const CONFIDENCE_AUTO = 0.85;    // Auto-classify
-    const CONFIDENCE_REVIEW = 0.60;  // Classify but flag
-    const CONFIDENCE_MANUAL = 0.40;  // Suggest options, ask user
-
-    public function classify(string $filePath, string $mimeType): ClassificationResult;
-}
 ```
-
-**Two-pass pipeline:** Classification runs first. If confidence >= 0.60, extraction job is queued automatically. If < 0.40, document is flagged for manual classification before extraction can proceed.
-
-### TaxDocumentExtractorService
-
-```php
-class TaxDocumentExtractorService
-{
-    public function extract(TaxDocument $document, DocumentType $type): ExtractionResult;
-    public function getSupportedFields(DocumentType $type): array; // 25 form types
-}
+id, user_id, tax_year, interview_session_id
+status                    OptimizationReportStatus enum -- generating/ready/stale
+summary_text              text encrypted  -- Claude executive summary
+deductions_section        encrypted:array -- structured JSON
+taxes_section             encrypted:array
+retirement_section        encrypted:array
+filings_section           encrypted:array
+total_estimated_impact_cents integer nullable
+disclaimer_text           text
+expires_at                timestamp       -- stale after 30 days or new doc upload
+generated_at              timestamp nullable
+timestamps
 ```
-
-Returns structured JSON with field-level confidence scores. Each field maps to a potential `TaxWorksheetField`.
-
-### TaxWorksheetService
-
-```php
-class TaxWorksheetService
-{
-    public function populateFromExtractions(User $user, int $taxYear): TaxWorksheet;
-    public function detectAnomalies(TaxWorksheet $worksheet): array;
-    public function detectMissingDocuments(User $user, int $taxYear): array;
-}
-```
-
-**Cross-document validation:** Compares W-2 totals against pay stubs, 1099 totals against bank deposits, etc. Flags discrepancies as anomalies.
-
-### DocumentAuditService
-
-```php
-class DocumentAuditService
-{
-    public function log(
-        User $actor,
-        Model $auditable,  // polymorphic
-        AuditAction $action,
-        array $metadata = [],
-        ?string $ipAddress = null
-    ): DocumentAuditLog;
-
-    public function getTrail(Model $auditable): Collection;
-    public function getUserActivity(User $user, ?Carbon $since = null): Collection;
-}
-```
-
-**Immutable enforcement:** The `DocumentAuditLog` model overrides `update()` and `delete()` to throw exceptions. No soft deletes. The migration should omit `updated_at` column (only `created_at`).
-
-### DocumentShareService
-
-```php
-class DocumentShareService
-{
-    public function createPackage(User $sharer, array $documentIds, ?User $recipient, Carbon $expiresAt): DocumentSharePackage;
-    public function revokePackage(DocumentSharePackage $package): void;
-    public function accessPackage(string $token): DocumentSharePackage; // validates token + expiry
-}
-```
-
-### SignOffService
-
-```php
-class SignOffService
-{
-    // State machine: draft -> taxpayer_signed -> fully_signed -> filed
-    public function sign(TaxYearSignOff $signOff, User $signer): void;
-    public function revoke(TaxYearSignOff $signOff, User $signer): void;
-    public function getStatus(User $user, int $taxYear): TaxYearSignOff;
-    public function canSign(TaxYearSignOff $signOff, User $signer): bool;
-}
-```
-
-**Sign-off rules:**
-1. Taxpayer signs first (attests all documents uploaded, worksheet reviewed)
-2. Accountant signs second (attests review complete)
-3. Either party can revoke their own signature (resets to previous state)
-4. Both signatures = status `fully_signed`
-5. `filed` is a manual final status set by accountant after actual filing
 
 ---
 
 ## New Enums (5)
 
-Following existing pattern: backed string enums with `label()` method.
+All follow existing backed-string pattern with `label()` method.
 
 ```php
-enum DocumentStatus: string {
-    case Pending = 'pending';         // Uploaded, not yet classified
-    case Classifying = 'classifying'; // AI classification in progress
-    case Classified = 'classified';   // Type determined, awaiting extraction
-    case Extracting = 'extracting';   // AI extraction in progress
-    case Extracted = 'extracted';     // Fields extracted successfully
-    case ReviewNeeded = 'review_needed'; // Low confidence, needs human review
-    case Failed = 'failed';          // Processing failed
-}
-
-enum DocumentType: string {
-    case W2 = 'w2';
-    case Form1099Misc = '1099_misc';
-    case Form1099Nec = '1099_nec';
-    case Form1099Int = '1099_int';
-    case Form1099Div = '1099_div';
-    case Form1099B = '1099_b';
-    case Form1099R = '1099_r';
-    case Form1098 = '1098';
-    case Form1098T = '1098_t';
-    case ScheduleC = 'schedule_c';
-    case ScheduleK1 = 'schedule_k1';
-    case Form1040 = '1040';
-    // ... up to 25 types
+enum OptimizationFindingType: string {
+    case FilingStatusOptimization = 'filing_status_optimization';
+    case MissedHomeOfficeDeduction = 'missed_home_office_deduction';
+    case MissedGuardDogDeduction = 'missed_guard_dog_deduction';
+    case MissedWorkElectronicsDeduction = 'missed_work_electronics_deduction';
+    case RetirementContributionGap = 'retirement_contribution_gap';
+    case TraditionalVsRothOptimization = 'traditional_vs_roth_optimization';
+    case HsaOpportunity = 'hsa_opportunity';
+    case IncomeDiscrepancy = 'income_discrepancy';
+    case SelfEmploymentDeductionMissed = 'se_deduction_missed';
+    case QbiDeductionEligible = 'qbi_deduction_eligible';
+    case DeductibleSubscription = 'deductible_subscription';
+    case CharitableContributionDeduction = 'charitable_contribution_deduction';
     case Other = 'other';
 }
 
-enum SignOffStatus: string {
+enum OptimizationFindingCategory: string {
+    case Taxes = 'taxes';           // Tax bracket / SE tax / QBI
+    case Retirement = 'retirement'; // 401k / IRA / Roth
+    case Deductions = 'deductions'; // Home office / electronics / charitable
+    case Filings = 'filings';       // Filing status / overlooked forms
+}
+
+enum OptimizationFindingStatus: string {
+    case New = 'new';
+    case Acknowledged = 'acknowledged';
+    case Dismissed = 'dismissed';
+    case Implemented = 'implemented';
+}
+
+enum InterviewSessionStatus: string {
     case Draft = 'draft';
-    case TaxpayerSigned = 'taxpayer_signed';
-    case FullySigned = 'fully_signed';
-    case Filed = 'filed';
-}
-
-enum AuditAction: string {
-    case Upload = 'upload';
-    case View = 'view';
-    case Download = 'download';
-    case Classify = 'classify';
-    case Extract = 'extract';
-    case Annotate = 'annotate';
-    case Share = 'share';
-    case RevokeShare = 'revoke_share';
-    case Sign = 'sign';
-    case RevokeSign = 'revoke_sign';
-    case Delete = 'delete';
-    case RequestDocument = 'request_document';
-    case FulfillRequest = 'fulfill_request';
-    case OverrideField = 'override_field';
-}
-
-enum SharePackageStatus: string {
     case Active = 'active';
-    case Expired = 'expired';
-    case Revoked = 'revoked';
+    case Completed = 'completed';
+    case Abandoned = 'abandoned';
+}
+
+enum OptimizationQuestionType: string {
+    case YesNo = 'yes_no';
+    case MultipleChoice = 'multiple_choice';
+    case Amount = 'amount';         // Numeric entry
+    case Informational = 'informational'; // No answer; displays a finding
+}
+
+enum OptimizationReportStatus: string {
+    case Generating = 'generating';
+    case Ready = 'ready';
+    case Stale = 'stale';
 }
 ```
 
----
-
-## New Jobs (3)
-
-Following existing pattern: `ShouldQueue`, `tries = 3`, `timeout = 180`.
-
-### ClassifyTaxDocument
-
-```
-Trigger:  Dispatched by TaxDocumentController::upload()
-Input:    TaxDocument ID
-Process:  1. Read file from storage
-          2. Call TaxDocumentClassifierService::classify()
-          3. Update TaxDocument status + document_type
-          4. If confidence >= 0.60, dispatch ExtractTaxDocument
-          5. If confidence < 0.40, set status to review_needed
-          6. Log via DocumentAuditService
-Queue:    'document-processing' (new queue name)
-```
-
-### ExtractTaxDocument
-
-```
-Trigger:  Dispatched by ClassifyTaxDocument (or manual re-extract)
-Input:    TaxDocument ID, DocumentType
-Process:  1. Call TaxDocumentExtractorService::extract()
-          2. Create TaxDocumentVersion with extraction_data JSON
-          3. Update TaxDocument status to 'extracted'
-          4. Log via DocumentAuditService
-Queue:    'document-processing'
-```
-
-### GenerateSharePackage
-
-```
-Trigger:  Dispatched by DocumentShareController::create()
-Input:    DocumentSharePackage ID
-Process:  1. Generate access token (hashed)
-          2. Create signed URLs for each document
-          3. Set package status to active
-          4. Send notification email to recipient (if specified)
-Queue:    'default'
-```
-
----
-
-## New Policies (4)
-
-### TaxDocumentPolicy
+**Existing enum addition (additive only):**
 
 ```php
-// view/update/delete: owner OR linked accountant with active relationship
-public function view(User $user, TaxDocument $document): bool
+// app/Enums/QuestionType.php — ADD one case:
+case Optimization = 'optimization';
+
+// app/Enums/TaxDocumentCategory.php — ADD new doc type cases:
+case CheckStub = 'check_stub';
+case OfferLetter = 'offer_letter';
+case RetirementStatement = 'retirement_statement';
+case BenefitsStatement = 'benefits_statement';
+case StockStatement = 'stock_statement';
+case InsuranceStatement = 'insurance_statement';
+// (1098 Mortgage already exists; no addition needed)
+```
+
+---
+
+## New Services (6)
+
+### 1. IncomeOptimizerDataAssemblerService
+
+**Location:** `app/Services/IncomeOptimizerDataAssemblerService.php`
+**Uses Claude:** No
+**Purpose:** Reads all existing data sources and materializes an `IncomeOptimizationProfile`.
+
+```php
+class IncomeOptimizerDataAssemblerService
 {
-    if ($document->user_id === $user->id) return true;
-
-    // Accountant access via existing AccountantClient relationship
-    return $user->isAccountant() && AccountantClient::where('accountant_id', $user->id)
-        ->where('client_id', $document->user_id)
-        ->where('status', 'active')
-        ->exists();
+    public function buildProfile(User $user, int $taxYear): IncomeOptimizationProfile;
+    public function isStale(IncomeOptimizationProfile $profile): bool; // compare profile_hash
+    private function sumW2Wages(User $user, int $taxYear): int;        // from TaxDocument extractions
+    private function sumBankDeposits(User $user, int $taxYear): int;   // from Transaction records (income-classified)
+    private function sumRetirementContributions(User $user, int $taxYear): array; // from retirement docs
+    private function extractMortgageInterest(User $user, int $taxYear): int; // from 1098 extractions
+    private function computeProfileHash(array $inputs): string;
 }
 ```
 
-This reuses the same access check pattern as `AccountantController::verifyAccountantClientRelationship()` but encapsulates it in policy for consistency.
+Reading `TaxDocument.extracted_data` (already `encrypted:array`): group by category, sum target fields per document type. No Claude needed — the extraction already ran via the existing `ExtractTaxDocument` job pipeline.
 
-### TaxWorksheetPolicy, DocumentSharePolicy, SignOffPolicy
+Reading Transactions: use existing `IncomeDetectorService` to separate primary vs extra income. Sum deposits for the tax year.
 
-All follow the same owner-or-linked-accountant pattern.
+### 2. TaxRulesEngineService
 
----
-
-## Modified Existing Components
-
-### User Model (modify)
-
-Add 6 new relationships:
+**Location:** `app/Services/TaxRulesEngineService.php`
+**Uses Claude:** Never
+**Purpose:** All deterministic 2026 tax math. Single source of truth for tax logic. Config-driven limits so values can be updated without code changes.
 
 ```php
-public function taxDocuments(): HasMany { return $this->hasMany(TaxDocument::class); }
-public function taxWorksheets(): HasMany { return $this->hasMany(TaxWorksheet::class); }
-public function signOffs(): HasMany { return $this->hasMany(TaxYearSignOff::class, 'taxpayer_id'); }
-public function documentRequests(): HasMany { return $this->hasMany(DocumentRequest::class, 'recipient_id'); }
-public function sentDocumentRequests(): HasMany { return $this->hasMany(DocumentRequest::class, 'requester_id'); }
-public function accountantFirm(): HasOne { return $this->hasOne(AccountantFirm::class); }
+class TaxRulesEngineService
+{
+    // Rate lookups
+    public function effectiveTaxRate(int $agiCents, string $filingStatus): float;
+    public function marginalRate(int $agiCents, string $filingStatus): float;
+
+    // Deduction comparison
+    public function standardDeductionCents(string $filingStatus, ?int $age = null): int;
+    public function compareStandardVsItemized(int $itemizedTotal, string $filingStatus): array;
+    // returns: ['recommendation' => 'standard'|'itemized', 'difference_cents' => int, 'confidence' => string]
+
+    // Retirement limits (2026 IRS limits from config)
+    public function remaining401kRoom(int $ytdContributionCents, ?int $age = null): int;
+    public function remainingIraRoom(int $ytdContributionCents, ?int $age = null): int;
+    public function remainingHsaRoom(int $ytdContributionCents, string $coverageType): int;
+
+    // Roth eligibility
+    public function rothIraEligible(int $magiCents, string $filingStatus): bool;
+    public function rothPhaseOutRemaining(int $magiCents, string $filingStatus): int;
+
+    // SE-specific
+    public function selfEmploymentTaxDeductionCents(int $netSelfEmploymentCents): int;
+    public function qbiDeductionCents(int $qualifiedBusinessIncomeCents, int $taxableIncomeCents): int;
+
+    // Impact projections
+    public function taxSavingsFromDeductionCents(int $deductionCents, int $agiCents, string $filingStatus): int;
+}
 ```
 
-### config/spendifiai.php (modify)
-
-Add new config sections:
+All tax bracket tables and limits live in `config/spendifiai.php` under a new `tax_rules` key:
 
 ```php
-'document_vault' => [
-    'max_file_size_mb' => 25,
-    'allowed_types' => ['pdf', 'jpg', 'jpeg', 'png', 'tiff'],
-    'signed_url_expiry_minutes' => 15,
-    'share_max_expiry_days' => 30,
-    'storage_disk' => env('DOCUMENT_STORAGE_DISK', 'local'), // fallback, overridden by StorageSetting
-],
-
-'extraction' => [
-    'model' => env('ANTHROPIC_MODEL', 'claude-sonnet-4-20250514'),
-    'confidence_thresholds' => [
-        'auto_classify' => 0.85,
-        'flag_review' => 0.60,
-        'manual_required' => 0.40,
+'tax_rules' => [
+    'tax_year' => 2026,
+    '401k_limit_cents' => 2350000,           // $23,500
+    '401k_catchup_cents' => 750000,          // +$7,500 if age >= 50
+    'ira_limit_cents' => 700000,             // $7,000
+    'ira_catchup_cents' => 100000,           // +$1,000 if age >= 50
+    'hsa_individual_cents' => 430000,        // $4,300 (estimate; verify 2026 IRS announcement)
+    'hsa_family_cents' => 860000,            // $8,600
+    'standard_deduction' => [
+        'single' => 1500000,                 // $15,000 (2026 estimate, inflation-adjusted from 2025 $14,600)
+        'married_filing_jointly' => 3000000,
+        'head_of_household' => 2250000,
+        'married_filing_separately' => 1500000,
     ],
-    'max_pages' => 50,
-    'batch_size' => 5, // concurrent extraction jobs
+    'brackets' => [ /* ... 2026 bracket arrays by filing status */ ],
 ],
 ```
 
-### config/filesystems.php (modify)
+**Why no Claude here:** Tax math is deterministic. Claude is expensive, slow, and can hallucinate dollar thresholds. This is pure PHP arithmetic. The rules engine is the "always-right" layer; Claude only writes the human-readable story around it.
 
-Add dedicated tax documents disk:
+### 3. RedFlagDetectorService
+
+**Location:** `app/Services/RedFlagDetectorService.php`
+**Uses Claude:** Only to generate `description` and `action_items` for detected flags (not for detection logic)
+**Purpose:** Named detector methods, each returning a `RedFlag` DTO or null.
 
 ```php
-'tax-documents' => [
-    'driver' => env('DOCUMENT_STORAGE_DISK', 'local'),
-    'root' => storage_path('app/private/tax-documents'), // local driver
-    // S3 config inherited when driver is 's3'
-],
+class RedFlagDetectorService
+{
+    /**
+     * Run all detectors. Returns array of OptimizationFinding data to persist.
+     */
+    public function detectAll(IncomeOptimizationProfile $profile, User $user): array;
+
+    // Individual detectors — each is deterministic
+    private function detectFilingStatusMismatch(IncomeOptimizationProfile $profile): ?RedFlag;
+    private function detectMissedHomeOfficeDeduction(IncomeOptimizationProfile $profile, UserFinancialProfile $ufp): ?RedFlag;
+    private function detectGuardDogDeduction(IncomeOptimizationProfile $profile, User $user): ?RedFlag;
+    private function detectWorkElectronicsDeduction(IncomeOptimizationProfile $profile, User $user): ?RedFlag;
+    private function detectTraditionalVsRothOptimization(IncomeOptimizationProfile $profile, UserFinancialProfile $ufp): ?RedFlag;
+    private function detectRetirementContributionGap(IncomeOptimizationProfile $profile): ?RedFlag;
+    private function detectHsaOpportunity(IncomeOptimizationProfile $profile, UserFinancialProfile $ufp): ?RedFlag;
+    private function detectQbiEligibility(IncomeOptimizationProfile $profile): ?RedFlag;
+    private function detectSEDeductionMissed(IncomeOptimizationProfile $profile): ?RedFlag;
+
+    // Called per detected flag to generate human-readable content
+    private function generateFindingContent(RedFlag $flag, IncomeOptimizationProfile $profile): array;
+    // ^ calls Claude once per detected flag; not per scan
+}
 ```
 
-### routes/api.php (modify)
+**Detection logic examples (deterministic):**
 
-Add new route groups within existing authenticated block:
+- `detectGuardDogDeduction`: scan Transaction records for pet-related merchants (vet, PetSmart, Chewy) AND check `has_home_office OR has_rental_property OR employment_type = 'self_employed'`. If both true → red flag.
+- `detectTraditionalVsRothOptimization`: if `traditional_401k_ytd > 0 AND marginalRate(agi) > 0.22 AND rothIraEligible(agi)` → flag opportunity to compare. If `marginalRate < 0.12 AND traditional_401k_ytd > 0` → flag "Roth may be better at your bracket."
+- `detectRetirementContributionGap`: `remaining401kRoom(ytd_contributions) > 0 AND (annual_income_cents / 12 * remaining_months_in_year) > 500_00` → flag with gap amount.
 
-```php
-// Inside Route::middleware(['auth:sanctum']) -> Route::prefix('v1')
-Route::prefix('vault')->group(function () {
-    // TaxDocumentController routes
-    // TaxWorksheetController routes
-    // DocumentShareController routes
-    // SignOffController routes
-});
-
-// Public share access (no auth)
-Route::get('/vault/shares/{token}/access', [DocumentShareController::class, 'publicAccess']);
-
-// Inside Route::prefix('admin')->middleware('admin')
-Route::prefix('storage')->group(function () {
-    // AdminStorageController routes
-});
+**Claude call (after detection only):** A single prompt per detected flag generates `description` (2-3 sentences, educational framing) and `action_items` array. Example prompt structure:
+```
+"Write a brief, friendly explanation for a taxpayer about the following potential tax optimization.
+Finding: {flag.title}
+Key numbers: {flag.estimated_impact}
+Always end with: 'Review this with a licensed tax professional before making any changes.'
+Format: {description: string, action_items: string[]}"
 ```
 
-### Accountant routes (extend existing)
+### 4. CrossSourceReviewService
 
-Add document-related endpoints under existing accountant-only route group:
+**Location:** `app/Services/CrossSourceReviewService.php`
+**Uses Claude:** Only for plain-English explanation of detected gaps (same pattern as RedFlagDetectorService)
+**Purpose:** Reads extracted doc data, bank deposits, and email/order data; surfaces discrepancies and opportunities.
 
 ```php
-// Inside existing accountant-only group
-Route::get('/clients/{client}/documents', [TaxDocumentController::class, 'clientDocuments']);
-Route::get('/clients/{client}/worksheets/{year}', [TaxWorksheetController::class, 'clientWorksheet']);
-Route::post('/clients/{client}/document-requests', [DocumentRequestController::class, 'create']);
-Route::get('/clients/{client}/document-requests', [DocumentRequestController::class, 'index']);
+class CrossSourceReviewService
+{
+    public function review(IncomeOptimizationProfile $profile, User $user, int $taxYear): array;
+
+    private function compareW2VsDeposits(IncomeOptimizationProfile $profile): ?IncomeDiscrepancy;
+    // Compare profile.w2_wages_cents vs profile.bank_deposit_total_cents (within 15% tolerance)
+
+    private function compare1099VsDeposits(IncomeOptimizationProfile $profile): ?IncomeDiscrepancy;
+    // Compare self_employment_income (from 1099-NEC/K/MISC) vs bank deposits from self-employment sources
+
+    private function findDeductibleSubscriptions(User $user, int $taxYear): array;
+    // Scan Subscription records with business-related merchants (Adobe, AWS, GitHub, Zoom, Notion)
+    // Cross-reference with UserFinancialProfile.employment_type = 'self_employed'
+
+    private function findUnclaimedBusinessExpenses(User $user, int $taxYear): array;
+    // Look for transaction categories that are often deductible when self-employed
+    // (professional services, software, office supplies) not yet claimed as deductions
+
+    private function findMortgageDeductionOpportunity(IncomeOptimizationProfile $profile, UserFinancialProfile $ufp): ?array;
+    // If mortgage_interest_cents > 0 AND user may benefit from itemizing
+}
+```
+
+### 5. InterviewOrchestratorService
+
+**Location:** `app/Services/InterviewOrchestratorService.php`
+**Uses Claude:** Yes — generates question_text and help_text for each question
+**Purpose:** State machine managing the guided interview session.
+
+```php
+class InterviewOrchestratorService
+{
+    public function startSession(User $user, int $taxYear): InterviewSession;
+    public function getNextQuestion(InterviewSession $session): ?OptimizationQuestion;
+    public function recordAnswer(OptimizationQuestion $question, string $answer): void;
+    public function skipQuestion(OptimizationQuestion $question): void;
+    public function completeSession(InterviewSession $session): void;
+    public function planQuestions(InterviewSession $session, Collection $findings): void;
+
+    private function prioritizeFindings(Collection $findings): Collection;
+    // Sort by: is_red_flag DESC, estimated_annual_impact_cents DESC, confidence DESC
+
+    private function generateQuestionForFinding(OptimizationFinding $finding, InterviewSession $session): OptimizationQuestion;
+    // Calls Claude with finding context to generate conversational question_text + help_text
+
+    private function shouldSkipFinding(OptimizationFinding $finding, UserFinancialProfile $ufp): bool;
+    // De-duplicates: skip if UserFinancialProfile already has the answer
+    // (e.g., skip "Do you have an HSA?" if has_hsa = true already stored)
+}
+```
+
+**Session state transitions:**
+```
+draft → active (on startSession)
+active → completed (on completeSession, fires InterviewSessionCompleted event)
+active → abandoned (after 30 days without activity, via scheduled task)
+```
+
+**De-duplication with AI Questions feed:** Before generating an interview question, check if an `AIQuestion` with `question_type = Optimization` and matching `finding_key` already exists and is pending. If so, link to it instead of creating a duplicate.
+
+### 6. OptimizationReportGeneratorService
+
+**Location:** `app/Services/AI/OptimizationReportGeneratorService.php`
+**Uses Claude:** Yes — generates executive summary and section narratives
+**Purpose:** Assembles the 4-section report after interview completion.
+
+```php
+class OptimizationReportGeneratorService
+{
+    public function generate(InterviewSession $session): OptimizationReport;
+    public function refresh(OptimizationReport $report): OptimizationReport;
+
+    private function buildDeductionsSection(User $user, int $taxYear, Collection $findings, IncomeOptimizationProfile $profile): array;
+    // Uses TaxRulesEngineService for all dollar amounts
+    // Returns structured JSON: [{title, estimated_savings_cents, explanation, action_items, disclaimer}]
+
+    private function buildTaxesSection(...): array;
+    private function buildRetirementSection(...): array;
+    private function buildFilingsSection(...): array;
+
+    private function generateExecutiveSummary(array $sections, IncomeOptimizationProfile $profile): string;
+    // Single Claude call for the summary; all numbers already computed deterministically
+}
+```
+
+**Claude prompt discipline for report:** Pass all computed numbers (from TaxRulesEngineService) as structured context. Claude writes prose only. Example:
+
+```
+Context: {
+  filing_status: "single",
+  estimated_agi: "$68,000",
+  marginal_rate: "22%",
+  traditional_401k_room: "$15,200 remaining",
+  retirement_findings: [{...}],
+  deduction_findings: [{...}]
+}
+Task: Write a 3-sentence executive summary of the top optimization opportunities.
+Include total estimated annual impact of $X. End with the standard disclaimer.
 ```
 
 ---
 
-## Data Flow: Upload to Sign-off
+## New API Controller
 
-### Complete Pipeline
+**Location:** `app/Http/Controllers/Api/IncomeOptimizerController.php`
 
 ```
-1. UPLOAD
-   User uploads PDF/image via TaxDocumentController::upload()
-   |
-   +--> DocumentStorageService::store() -- saves file to active disk
-   +--> TaxDocument created (status: pending)
-   +--> DocumentAuditService::log(Upload)
-   +--> ClassifyTaxDocument::dispatch()
+GET  /api/v1/optimize                       status + findings summary (cached)
+GET  /api/v1/optimize/findings              list findings for current tax year
+POST /api/v1/optimize/analyze               trigger BuildIncomeOptimizationProfile (rate: 5/min)
 
-2. CLASSIFY (async, job queue)
-   ClassifyTaxDocument job runs
-   |
-   +--> TaxDocumentClassifierService::classify()
-   |     |
-   |     +--> Sends first page to Claude API
-   |     +--> Returns: DocumentType + confidence score
-   |
-   +--> confidence >= 0.60?
-   |     YES --> TaxDocument.status = 'classified', dispatch ExtractTaxDocument
-   |     NO  --> confidence >= 0.40?
-   |             YES --> TaxDocument.status = 'review_needed' (suggest type, user confirms)
-   |             NO  --> TaxDocument.status = 'review_needed' (no suggestion)
-   |
-   +--> DocumentAuditService::log(Classify)
+GET  /api/v1/optimize/interview             get current/latest session
+POST /api/v1/optimize/interview/start       start new session
+GET  /api/v1/optimize/interview/{session}/question  get next question
+POST /api/v1/optimize/interview/{session}/answer    record answer
+POST /api/v1/optimize/interview/{session}/skip      skip question
+POST /api/v1/optimize/interview/{session}/complete  mark complete → fires event
 
-3. EXTRACT (async, job queue)
-   ExtractTaxDocument job runs
-   |
-   +--> TaxDocumentExtractorService::extract()
-   |     |
-   |     +--> Sends full document + type-specific extraction prompt to Claude API
-   |     +--> Returns: structured fields with per-field confidence scores
-   |
-   +--> TaxDocumentVersion created (extraction_data JSON)
-   +--> TaxDocument.status = 'extracted'
-   +--> DocumentAuditService::log(Extract)
+GET  /api/v1/optimize/report/{year?}        get optimization report (current year default)
+POST /api/v1/optimize/findings/{finding}/dismiss
+POST /api/v1/optimize/findings/{finding}/acknowledge
+```
 
-4. WORKSHEET POPULATION (on-demand or auto)
-   TaxWorksheetController::populate() or auto-triggered after extraction
-   |
-   +--> TaxWorksheetService::populateFromExtractions()
-   |     |
-   |     +--> Finds all extracted TaxDocuments for user + tax year
-   |     +--> Maps extraction fields to TaxWorksheetFields
-   |     +--> Links each field to source TaxDocument
-   |     +--> Flags conflicts (e.g., two W-2s with same employer)
-   |
-   +--> TaxWorksheet created/updated with TaxWorksheetFields
-   +--> Anomaly detection runs automatically
+**Middleware:** `auth:sanctum` + `bank.connected` (bank data needed for cross-source review). Rate limit `POST /analyze` at 5/min to match existing sensitive-action pattern.
 
-5. REVIEW + ANNOTATION
-   Taxpayer and/or accountant review worksheet
-   |
-   +--> View fields, override extracted values if needed
-   +--> Add annotations on specific documents
-   +--> Accountant requests missing documents (DocumentRequest)
-   +--> All actions audit-logged
+**Policy:** `OptimizationPolicy` — `user_id === auth()->id()` check. No accountant access (personal optimization data).
 
-6. SIGN-OFF (dual)
-   SignOffController::sign()
-   |
-   +--> Taxpayer signs first
-   |     +--> TaxYearSignOff.status = 'taxpayer_signed'
-   |     +--> DocumentAuditService::log(Sign, {role: 'taxpayer'})
-   |
-   +--> Accountant signs second
-   |     +--> TaxYearSignOff.status = 'fully_signed'
-   |     +--> DocumentAuditService::log(Sign, {role: 'accountant'})
-   |
-   +--> Either party can revoke own signature (resets state)
+---
 
-7. SHARE (parallel to review)
-   DocumentShareController::create()
-   |
-   +--> DocumentShareService::createPackage()
-   +--> Generates hashed access token
-   +--> Sets expiry (max 30 days)
-   +--> Optional email notification
-   +--> Public access via token (no auth required)
+## New Jobs (2)
+
+### BuildIncomeOptimizationProfile
+
+```
+Location:  app/Jobs/BuildIncomeOptimizationProfile.php
+Trigger:   IncomeOptimizerController::analyze() (manual)
+           Listener: TransactionCategorized (after bank sync)
+           Listener: TaxDocumentExtracted (after vault extraction)
+Input:     user_id, tax_year
+Process:   1. IncomeOptimizerDataAssemblerService::buildProfile()
+           2. RedFlagDetectorService::detectAll()
+           3. CrossSourceReviewService::review()
+           4. Upsert OptimizationFindings (updateOrCreate by user_id+tax_year+finding_key)
+           5. fire OptimizationProfileBuilt event
+Queue:     'optimization' (new queue name)
+$tries=3, $timeout=180
+```
+
+No Claude calls during detection. Claude called only for descriptions of detected findings (bounded cost: only fires for findings that trigger).
+
+### GenerateOptimizationReport
+
+```
+Location:  app/Jobs/GenerateOptimizationReport.php
+Trigger:   InterviewSessionCompleted event listener
+Input:     interview_session_id
+Process:   1. OptimizationReportGeneratorService::generate()
+           2. Update OptimizationReport status to 'ready'
+           3. fire OptimizationReportReady event
+Queue:     'optimization'
+$tries=3, $timeout=300 (Claude calls for narratives)
 ```
 
 ---
 
-## Frontend Integration
-
-### New Inertia Pages
+## New Events (3)
 
 ```
-resources/js/Pages/
-  Tax/
-    Vault.tsx            -- Document vault listing with upload
-    VaultDocument.tsx    -- Single document view + annotations
-    Worksheet.tsx        -- Tax worksheet with editable fields
-    SignOff.tsx          -- Sign-off status + action buttons
-    Share.tsx            -- Share package management
+app/Events/OptimizationProfileBuilt.php
+  payload: user_id, tax_year, findings_count, red_flag_count
+  listeners:
+    - SurfaceHighPriorityRedFlags (creates AIQuestion records for is_red_flag=true findings)
+    - NotifyOptimizationReady (if findings_count > 0 and user has no active session)
 
-  Accountant/
-    ClientDocuments.tsx  -- View client's vault
-    ClientWorksheet.tsx  -- View/annotate client's worksheet
-    DocumentRequests.tsx -- Manage document requests
-    Firm.tsx             -- Firm profile/settings
+app/Events/InterviewSessionCompleted.php
+  payload: interview_session_id, user_id
+  listeners:
+    - DispatchReportGeneration (dispatches GenerateOptimizationReport job)
 
-  Admin/
-    Storage.tsx          -- Storage configuration
-```
-
-### New TypeScript Interfaces
-
-Add to `resources/js/types/spendifiai.d.ts`:
-
-```typescript
-interface TaxDocument {
-    id: number;
-    user_id: number;
-    tax_year: number;
-    document_type: string | null;
-    status: 'pending' | 'classifying' | 'classified' | 'extracting' | 'extracted' | 'review_needed' | 'failed';
-    original_filename: string;
-    file_size: number;
-    mime_type: string;
-    ai_confidence: number | null;
-    created_at: string;
-    updated_at: string;
-    versions?: TaxDocumentVersion[];
-    annotations?: TaxDocumentAnnotation[];
-}
-
-interface TaxWorksheet {
-    id: number;
-    user_id: number;
-    tax_year: number;
-    fields: TaxWorksheetField[];
-    sign_off?: TaxYearSignOff;
-    anomalies?: WorksheetAnomaly[];
-}
-
-interface TaxYearSignOff {
-    id: number;
-    status: 'draft' | 'taxpayer_signed' | 'fully_signed' | 'filed';
-    taxpayer_signed_at: string | null;
-    accountant_signed_at: string | null;
-}
-
-interface DocumentSharePackage {
-    id: number;
-    access_url: string;
-    expires_at: string;
-    status: 'active' | 'expired' | 'revoked';
-    document_count: number;
-    download_count: number;
-}
+app/Events/OptimizationReportReady.php
+  payload: user_id, report_id
+  listeners:
+    - NotifyReportReady (database notification; no email for now)
 ```
 
 ---
 
-## Patterns to Follow
+## New Listeners (3)
 
-### Pattern 1: Audit-Wrapped Controller Actions
+```
+app/Listeners/SurfaceHighPriorityRedFlags.php
+  - Fired by: OptimizationProfileBuilt
+  - Creates AIQuestion records (existing model) for all findings where is_red_flag=true
+  - Uses QuestionType::Optimization (new enum case, additive)
+  - Sets question text from OptimizationFinding.title + a short prompt
+  - Idempotent: checks for existing pending AIQuestion with same finding_key before creating
 
-Every controller method that touches tax documents wraps with audit logging. Use a trait rather than repeating in each method.
+app/Listeners/DispatchReportGeneration.php
+  - Fired by: InterviewSessionCompleted
+  - Dispatches GenerateOptimizationReport job
 
-```php
-trait AuditsDocumentActions
-{
-    protected function auditAction(
-        Request $request,
-        Model $auditable,
-        AuditAction $action,
-        array $metadata = []
-    ): void {
-        app(DocumentAuditService::class)->log(
-            actor: $request->user(),
-            auditable: $auditable,
-            action: $action,
-            metadata: $metadata,
-            ipAddress: $request->ip(),
-        );
-    }
-}
+app/Listeners/NotifyOptimizationReady.php
+  - Fired by: OptimizationProfileBuilt
+  - Creates database notification record if new high-impact findings detected
 ```
 
-### Pattern 2: Accountant Access via Policy (not inline checks)
+**Bridge to existing AI Questions feed (CRITICAL for backwards compatibility):**
 
-The existing `AccountantController` uses an inline `verifyAccountantClientRelationship()` method. New code should use Laravel Policies instead, which is the pattern already established for other models (9 existing policies).
+`SurfaceHighPriorityRedFlags` creates standard `AIQuestion` records using the EXISTING model. The existing `AIQuestionController::answer()` handles them unchanged — the `UserAnsweredQuestion` event fires as normal. A NEW listener `UpdateOptimizationFromAnswer` (to be added to `UserAnsweredQuestion`) reads the `question_type = 'optimization'` case and updates the corresponding `OptimizationFinding.status` to `acknowledged`. No changes to existing handler logic.
 
+---
+
+## Modified Existing Components (minimal, additive only)
+
+### Existing enum additions (2 files, additive cases only)
+
+**`app/Enums/QuestionType.php`** — add `case Optimization = 'optimization';`
+**`app/Enums/TaxDocumentCategory.php`** — add 5-6 new doc type cases (check stub, offer letter, retirement statement, benefits statement, stock statement, insurance statement)
+
+### Existing event listener registration
+
+**`app/Providers/EventServiceProvider.php`** (or `bootstrap/app.php` listener registration) — add 3 new listeners to new events + add `UpdateOptimizationFromAnswer` to existing `UserAnsweredQuestion` event. No changes to existing listeners.
+
+### Existing `TaxDocumentExtractorService`
+
+**No changes.** The extractor already handles doc types via `TaxDocumentCategory` enum. When new enum cases are added, add corresponding extraction prompt configurations in `config/spendifiai.php` under `extraction.prompts`. The service reads from config, not from hardcoded arrays.
+
+### Existing scheduled tasks
+
+Add to `routes/console.php`:
 ```php
-// In TaxDocumentPolicy
-public function view(User $user, TaxDocument $document): bool
-{
-    return $document->user_id === $user->id
-        || ($user->isAccountant() && $this->isLinkedAccountant($user, $document->user_id));
-}
+// Daily — mark abandoned sessions (inactive > 30 days)
+Schedule::job(new AbandonStaleInterviewSessions)->dailyAt('05:00');
 
-private function isLinkedAccountant(User $accountant, int $clientId): bool
-{
-    return AccountantClient::where('accountant_id', $accountant->id)
-        ->where('client_id', $clientId)
-        ->active()
-        ->exists();
-}
+// Weekly — refresh stale optimization profiles (built > 7 days ago)
+Schedule::job(new RefreshStaleOptimizationProfiles)->weeklyOn(1, '05:30');
 ```
 
-### Pattern 3: Config-Driven Thresholds
+---
 
-Follow existing `config/spendifiai.php` pattern. All AI thresholds readable from config, not hardcoded in services.
+## Data Flow: Docs + Bank + Email → Report
 
-```php
-// In TaxDocumentClassifierService constructor
-$this->autoClassifyThreshold = config('spendifiai.extraction.confidence_thresholds.auto_classify', 0.85);
+```
+TRIGGER: User clicks "Analyze" or new doc extracted or bank sync completes
+    ↓
+BuildIncomeOptimizationProfile Job
+    ↓
+    ├── IncomeOptimizerDataAssemblerService
+    │     ├── reads TaxDocument.extracted_data (WHERE user_id AND tax_year AND status='extracted')
+    │     ├── reads Transaction (income-classified, WHERE date BETWEEN tax_year start/end)
+    │     ├── reads UserFinancialProfile (filing_status, has_home_office, employment_type, etc.)
+    │     ├── reads Subscription (active, business-purpose accounts)
+    │     └── writes IncomeOptimizationProfile (upsert by user_id+tax_year)
+    │
+    ├── RedFlagDetectorService.detectAll(profile)
+    │     ├── each detector: pure PHP boolean logic → RedFlag DTO or null
+    │     ├── for each detected flag: one Claude call → description + action_items
+    │     └── upsert OptimizationFinding records (is_red_flag=true)
+    │
+    └── CrossSourceReviewService.review(profile)
+          ├── compareW2VsDeposits() → IncomeDiscrepancy or null
+          ├── findDeductibleSubscriptions() → array
+          ├── findUnclaimedBusinessExpenses() → array
+          └── upsert OptimizationFinding records (is_red_flag=false)
+
+    ↓
+OptimizationProfileBuilt event fires
+    ↓
+    ├── SurfaceHighPriorityRedFlags listener
+    │     └── Creates AIQuestion records for is_red_flag=true findings
+    │           (existing model, new QuestionType::Optimization case)
+    │
+    └── NotifyOptimizationReady listener → database notification
+
+INTERVIEW FLOW (user-initiated):
+    ↓
+POST /api/v1/optimize/interview/start
+    ↓
+    InterviewOrchestratorService.startSession()
+        ↓ loads all OptimizationFindings for user+year
+        ↓ prioritizes by impact + is_red_flag
+        ↓ filters: skip if UserFinancialProfile already has the answer
+        ↓ generates OptimizationQuestion records (Claude per question for wording)
+        ↓ returns first question
+
+    GET /api/v1/optimize/interview/{session}/question → one question at a time
+    POST /api/v1/optimize/interview/{session}/answer  → record, advance index
+    (repeat until questions_count reached or user completes)
+
+POST /api/v1/optimize/interview/{session}/complete
+    ↓
+    InterviewSessionCompleted event fires
+    ↓
+    DispatchReportGeneration listener → GenerateOptimizationReport job
+    ↓
+    OptimizationReportGeneratorService.generate(session)
+        ↓ TaxRulesEngineService → all dollar amounts (no Claude)
+        ↓ assembles 4 sections from OptimizationFindings + interview answers
+        ↓ ONE Claude call → executive summary prose
+        ↓ ONE Claude call per section → section narrative (max 4 calls)
+        ↓ writes OptimizationReport
+
+    OptimizationReportReady event fires → database notification
 ```
 
-### Pattern 4: Job Chaining for Pipeline
+---
 
-Use Laravel job chaining for the classify-then-extract pipeline:
+## Deterministic Math vs Claude — Explicit Boundary
 
-```php
-// In TaxDocumentController::upload()
-ClassifyTaxDocument::dispatch($document->id)
-    ->onQueue('document-processing');
+| Task | Where it lives | Why |
+|------|----------------|-----|
+| Calculate effective/marginal tax rate | `TaxRulesEngineService` | Deterministic; Claude can hallucinate dollar thresholds |
+| Compare standard vs itemized deduction | `TaxRulesEngineService` | Arithmetic; must be correct |
+| Remaining 401k/IRA contribution room | `TaxRulesEngineService` | IRS limits are fixed; PHP is cheaper and faster |
+| Detect filing status mismatch | `RedFlagDetectorService` | Boolean logic on profile fields |
+| Detect guard dog / work electronics | `RedFlagDetectorService` | Merchant pattern + profile flag matching |
+| Detect Roth vs Traditional opportunity | `RedFlagDetectorService` + `TaxRulesEngineService` | Rate comparison is math |
+| Compare W-2 wages vs bank deposits | `CrossSourceReviewService` | Arithmetic comparison with tolerance |
+| Estimate tax savings from deduction | `TaxRulesEngineService` | `deduction * marginal_rate` |
+| Write finding description + action items | Claude (via RedFlagDetectorService) | Natural language, context-aware explanation |
+| Write interview question text + help text | Claude (via InterviewOrchestratorService) | Conversational, personalized wording |
+| Write report section narratives | Claude (via OptimizationReportGeneratorService) | Synthesis prose; numbers pre-computed |
+| Write executive summary | Claude (via OptimizationReportGeneratorService) | Synthesis prose; numbers pre-computed |
 
-// In ClassifyTaxDocument::handle(), conditionally:
-if ($confidence >= $this->reviewThreshold) {
-    ExtractTaxDocument::dispatch($document->id, $classifiedType)
-        ->onQueue('document-processing');
-}
+**Maximum Claude calls per full optimization cycle (one user, one year):**
+- Finding descriptions: 1 call per detected finding (typically 3-8 findings) = ~5 calls
+- Interview questions: 1 call per question generated (typically 5-12 questions) = ~8 calls
+- Report generation: 1 summary + 4 section narratives = 5 calls
+- Total: ~18 Claude calls per complete cycle (bounded, not per-request)
+
+---
+
+## New Files — Complete List
+
+### New Models (6)
 ```
+app/Models/IncomeOptimizationProfile.php
+app/Models/OptimizationFinding.php
+app/Models/InterviewSession.php
+app/Models/OptimizationQuestion.php
+app/Models/OptimizationReport.php
+```
+(5 models; IncomeOptimizationProfile is a single-model cache, so 5 total new model files)
+
+### New Enums (6)
+```
+app/Enums/OptimizationFindingType.php
+app/Enums/OptimizationFindingCategory.php
+app/Enums/OptimizationFindingStatus.php
+app/Enums/InterviewSessionStatus.php
+app/Enums/OptimizationQuestionType.php
+app/Enums/OptimizationReportStatus.php
+```
+
+### New Services (6)
+```
+app/Services/IncomeOptimizerDataAssemblerService.php
+app/Services/TaxRulesEngineService.php
+app/Services/RedFlagDetectorService.php
+app/Services/CrossSourceReviewService.php
+app/Services/InterviewOrchestratorService.php
+app/Services/AI/OptimizationReportGeneratorService.php
+```
+
+### New Jobs (4)
+```
+app/Jobs/BuildIncomeOptimizationProfile.php
+app/Jobs/GenerateOptimizationReport.php
+app/Jobs/AbandonStaleInterviewSessions.php
+app/Jobs/RefreshStaleOptimizationProfiles.php
+```
+
+### New Events (3)
+```
+app/Events/OptimizationProfileBuilt.php
+app/Events/InterviewSessionCompleted.php
+app/Events/OptimizationReportReady.php
+```
+
+### New Listeners (4)
+```
+app/Listeners/SurfaceHighPriorityRedFlags.php
+app/Listeners/DispatchReportGeneration.php
+app/Listeners/NotifyOptimizationReady.php
+app/Listeners/UpdateOptimizationFromAnswer.php
+```
+
+### New Controllers (1)
+```
+app/Http/Controllers/Api/IncomeOptimizerController.php
+```
+
+### New Policies (1)
+```
+app/Policies/OptimizationPolicy.php
+```
+
+### New Form Requests (4)
+```
+app/Http/Requests/StartInterviewSessionRequest.php
+app/Http/Requests/AnswerOptimizationQuestionRequest.php
+app/Http/Requests/DismissOptimizationFindingRequest.php
+app/Http/Requests/TriggerOptimizationAnalysisRequest.php
+```
+
+### New Migrations (5, in dependency order)
+```
+database/migrations/XXXX_create_income_optimization_profiles_table.php
+database/migrations/XXXX_create_optimization_findings_table.php
+database/migrations/XXXX_create_interview_sessions_table.php
+database/migrations/XXXX_create_optimization_questions_table.php
+database/migrations/XXXX_create_optimization_reports_table.php
+```
+
+### New Frontend
+```
+resources/js/Pages/OptimizeIncome.tsx          (main page, 3 steps)
+resources/js/Components/SpendifiAI/OptimizationFindingCard.tsx
+resources/js/Components/SpendifiAI/InterviewQuestionCard.tsx
+resources/js/Components/SpendifiAI/OptimizationReportSection.tsx
+resources/js/Components/SpendifiAI/OptimizationProgressBar.tsx
+resources/js/Components/SpendifiAI/OptimizationDisclaimer.tsx
+```
+
+### Modified Existing Files (minimal)
+```
+app/Enums/QuestionType.php              ADD: case Optimization = 'optimization'
+app/Enums/TaxDocumentCategory.php       ADD: 6 new doc type cases
+routes/api.php                          ADD: /api/v1/optimize route group
+routes/console.php                      ADD: 2 new scheduled jobs
+config/spendifiai.php                   ADD: tax_rules section
+bootstrap/app.php (or EventServiceProvider)  ADD: event→listener mappings
+resources/js/Layouts/AuthenticatedLayout.tsx  ADD: "Optimize My Income" nav item
+resources/js/types/spendifiai.d.ts      ADD: new TypeScript interfaces
+```
+
+---
+
+## Suggested Build Order (dependency-ordered)
+
+### Phase 1: Foundation — Data Assembly + Rules Engine
+
+Build first because everything else depends on these.
+
+1. `TaxRulesEngineService` (pure PHP, no dependencies, no DB)
+2. `IncomeOptimizationProfile` model + migration
+3. `OptimizationFinding` model + migration + enums (FindingType, FindingCategory, FindingStatus)
+4. `IncomeOptimizerDataAssemblerService` (reads existing models, writes profile)
+5. `BuildIncomeOptimizationProfile` job (no Claude yet — just data assembly)
+6. Config additions to `spendifiai.php` (tax_rules section)
+7. Tests: TaxRulesEngineService unit tests (pure math, no Claude needed in tests)
+
+**Gate:** Profile builds correctly from existing data before adding detectors.
+
+### Phase 2: Detection — Red Flags + Cross-Source
+
+Depends on Phase 1 (profile exists).
+
+1. `RedFlagDetectorService` (deterministic detectors only; Claude calls stubbed)
+2. `CrossSourceReviewService` (deterministic comparison)
+3. Wire detectors into `BuildIncomeOptimizationProfile` job
+4. `OptimizationProfileBuilt` event + `SurfaceHighPriorityRedFlags` listener
+5. `UpdateOptimizationFromAnswer` listener (added to existing `UserAnsweredQuestion` event)
+6. Add `QuestionType::Optimization` enum case
+7. `OptimizationPolicy` + `IncomeOptimizerController` (GET /optimize, GET /optimize/findings, POST /optimize/analyze)
+8. Frontend: basic OptimizeIncome page Step 1 (findings list, static)
+9. Tests: red-flag detectors (mock TransactionCategorizerService pattern for Claude)
+
+**Gate:** Findings generate correctly, surface in AI Questions feed, no existing AI Questions tests break.
+
+### Phase 3: Interview State Machine
+
+Depends on Phase 2 (findings exist to interview about).
+
+1. `InterviewSession` model + migration + `InterviewSessionStatus` enum
+2. `OptimizationQuestion` model + migration + `OptimizationQuestionType` enum
+3. `InterviewOrchestratorService` (Claude integration for question wording)
+4. `InterviewSessionCompleted` event + `DispatchReportGeneration` listener (stub only)
+5. Controller methods: start, get-question, answer, skip, complete
+6. Frontend: OptimizeIncome page Step 2 (interview flow, one question card at a time)
+7. Tests: session state machine logic (mock Claude)
+
+**Gate:** Complete interview flow from start to complete works end-to-end.
+
+### Phase 4: Report Generation
+
+Depends on Phase 3 (completed session exists).
+
+1. `OptimizationReport` model + migration + `OptimizationReportStatus` enum
+2. `OptimizationReportGeneratorService` (Claude integration for narratives)
+3. `GenerateOptimizationReport` job
+4. `OptimizationReportReady` event + `NotifyReportReady` listener
+5. Controller method: GET /optimize/report/{year}
+6. Frontend: OptimizeIncome page Step 3 (4-section report, collapsible, with disclaimer)
+7. Stale-report logic: mark report stale on new doc upload or new transaction sync
+8. Tests: report structure, disclaimer present, estimated impact calculations
+
+**Gate:** Report generates with correct numbers from TaxRulesEngineService. Claude narratives are present. All existing 225 tests still pass.
+
+### Phase 5: Polish + New Doc Types
+
+1. Add new `TaxDocumentCategory` enum cases (check stub, offer letter, retirement statement, etc.)
+2. Add extraction prompt configurations for new doc types
+3. Wire new doc types into `IncomeOptimizerDataAssemblerService` (retirement contributions from retirement_statement)
+4. Navigation: add "Optimize My Income" to `AuthenticatedLayout` nav
+5. Scheduled tasks: abandon stale sessions, refresh stale profiles
+6. End-to-end test: new doc upload → profile rebuild → report stale → user refreshes → report updated
 
 ---
 
 ## Anti-Patterns to Avoid
 
-### Anti-Pattern 1: Storing Files Without Abstraction
-**What:** Calling `Storage::disk('local')` or `Storage::disk('s3')` directly in controllers.
-**Why bad:** The Super Admin storage toggle means the active disk changes at runtime. Direct calls bypass the toggle.
-**Instead:** Always go through `DocumentStorageService`, which reads the active disk from `StorageSetting`.
+### Anti-Pattern 1: Claude for Tax Math
 
-### Anti-Pattern 2: Mutable Audit Log
-**What:** Using standard Eloquent `update()` or `delete()` on `DocumentAuditLog`.
-**Why bad:** Compliance requirement: audit trail must be immutable.
-**Instead:** Override `update()`, `delete()`, `forceDelete()` in the model to throw `\RuntimeException`.
+**What people do:** Ask Claude "what is this user's effective tax rate?" and use the response.
+**Why wrong:** Claude can hallucinate dollar thresholds, bracket boundaries, and limit amounts. A mistake here gives users incorrect financial guidance.
+**Do this instead:** `TaxRulesEngineService` for all numbers. Claude writes prose around pre-computed numbers only.
 
-### Anti-Pattern 3: Inline Accountant Access Checks
-**What:** Repeating `AccountantClient::where(...)` checks in every controller method.
-**Why bad:** Duplicated logic, easy to miss edge cases (revoked status, etc.).
-**Instead:** Encapsulate in Policy classes and use `$this->authorize()` in controllers.
+### Anti-Pattern 2: Modifying Existing AIQuestion Handling
 
-### Anti-Pattern 4: Exposing File Paths in API Responses
-**What:** Returning `storage_path` or S3 keys in JSON responses.
-**Why bad:** Leaks internal storage structure. All file access must go through signed URLs.
-**Instead:** Return only signed URLs via `DocumentStorageService::generateSignedUrl()`. Add `storage_path` to model `$hidden`.
+**What people do:** Add optimization logic to the existing `AIQuestionController::answer()` or `UpdateTransactionCategory` listener.
+**Why wrong:** Breaks the existing question flow. Violates backwards compatibility.
+**Do this instead:** Add `UpdateOptimizationFromAnswer` as a new listener on the existing `UserAnsweredQuestion` event. The existing handler stays unchanged.
 
-### Anti-Pattern 5: Single Audit Log for Everything
-**What:** Merging `AccountantActivityLog` and `DocumentAuditLog` into one table.
-**Why bad:** Different compliance requirements, different query patterns, different retention policies. The existing activity log is accountant-CRM focused; the new one is document-compliance focused.
-**Instead:** Keep them separate. Both are append-only, but serve different purposes.
+### Anti-Pattern 3: Rebuilding the Profile on Every Request
+
+**What people do:** Call `IncomeOptimizerDataAssemblerService::buildProfile()` on each GET /optimize.
+**Why wrong:** Reads dozens of encrypted records and runs AI detection — expensive.
+**Do this instead:** `IncomeOptimizationProfile` is the cache. Build via job, check `profile_hash` for staleness, return cached data on reads.
+
+### Anti-Pattern 4: One Giant "OptimizationService"
+
+**What people do:** Put detection, interview, and report generation in one service class.
+**Why wrong:** The detection logic (deterministic, no Claude) and interview logic (Claude-heavy, user-paced) and report logic (Claude batch) have completely different execution contexts, costs, and failure modes.
+**Do this instead:** Four distinct services with clear single responsibilities, coordinated by the job layer.
+
+### Anti-Pattern 5: Storing Computed Tax Amounts as Plain Integers Without Encryption
+
+**What people do:** Store `w2_wages_cents` as plain `integer` column.
+**Why wrong:** Income amounts are highly sensitive PII. Existing encrypted-TEXT convention exists for exactly this.
+**Do this instead:** All income/deduction amounts in `IncomeOptimizationProfile` as `encrypted TEXT`. Match the pattern in `UserFinancialProfile.monthly_income`.
 
 ---
 
 ## Scalability Considerations
 
-| Concern | At 100 users | At 10K users | At 1M users |
-|---------|--------------|--------------|-------------|
-| Document storage | Local disk (dev/staging) | S3 with lifecycle policies | S3 + CloudFront CDN for signed URLs |
-| Audit log volume | Single table, no partitioning | Partition by month via PostgreSQL partitioning | Archive to cold storage (S3/Glacier) after 2 years |
-| AI extraction queue | Single worker | 3-5 workers on `document-processing` queue | Dedicated queue workers, rate limiting to manage API costs |
-| Signed URL generation | On-demand, no caching | On-demand, 15-min expiry handles load | Pre-warm for share packages |
-| Search/filtering | Simple WHERE clauses | Add indexes on (user_id, tax_year, document_type, status) | Full-text search on extraction data via PostgreSQL tsvector |
+| Concern | At 1K users | At 100K users |
+|---------|------------|---------------|
+| Profile rebuild cost | Job queue handles it | Dedicated 'optimization' queue workers; rate-limit triggered rebuilds (same user can't re-trigger within 5 min) |
+| Claude call volume | ~18 calls/complete cycle = fine | Cache finding descriptions by (finding_key + profile_hash); same finding for same financial situation reuses cached text |
+| Interview session storage | Single table fine | Partition by created_at year if > 1M rows |
+| Report storage (encrypted JSON) | Single table fine | Report sections can be S3 objects if they grow large; store S3 key in report row |
 
 ---
 
-## Migration Strategy
+## Integration Points
 
-### Migration Order (respects foreign key dependencies)
-
-```
-1. create_accountant_firms_table
-   - References: users(id)
-   - No other new table depends on this
-
-2. create_storage_settings_table
-   - No foreign keys to other new tables
-   - Standalone admin config table
-
-3. create_tax_documents_table
-   - References: users(id)
-   - Many tables depend on this
-
-4. create_tax_document_versions_table
-   - References: tax_documents(id)
-
-5. create_tax_document_annotations_table
-   - References: tax_documents(id), users(id)
-   - Self-referential parent_id
-
-6. create_tax_worksheets_table
-   - References: users(id)
-
-7. create_tax_worksheet_fields_table
-   - References: tax_worksheets(id), tax_documents(id) nullable
-
-8. create_tax_year_sign_offs_table
-   - References: tax_worksheets(id), users(id) x2
-
-9. create_document_share_packages_table
-   - References: users(id) x2
-
-10. create_document_share_items_table (pivot)
-    - References: document_share_packages(id), tax_documents(id)
-
-11. create_document_requests_table
-    - References: users(id) x2, tax_documents(id) nullable
-
-12. create_document_audit_logs_table
-    - Polymorphic (auditable_type, auditable_id)
-    - References: users(id)
-    - No updated_at column
-```
-
----
-
-## Suggested Build Order
-
-Based on dependency analysis:
-
-### Phase 1: Foundation (Storage + Vault + Audit)
-1. `StorageSetting` model + migration + `AdminStorageController`
-2. `DocumentStorageService` (abstraction over local/S3)
-3. `DocumentAuditLog` model + migration + `DocumentAuditService`
-4. `TaxDocument` + `TaxDocumentVersion` models + migrations
-5. `TaxDocumentController` (upload, list, view, delete)
-6. `TaxDocumentPolicy`
-7. Frontend: `Tax/Vault.tsx`, `Admin/Storage.tsx`
-
-**Rationale:** Everything else depends on documents existing and being storable/auditable.
-
-### Phase 2: AI Pipeline (Classify + Extract)
-1. `DocumentType` + `DocumentStatus` enums
-2. `TaxDocumentClassifierService`
-3. `TaxDocumentExtractorService`
-4. `ClassifyTaxDocument` + `ExtractTaxDocument` jobs
-5. Config additions to `spendifiai.php`
-6. Frontend: classification status indicators, manual classification UI
-
-**Rationale:** Extraction feeds worksheets. Must work before worksheets can be populated.
-
-### Phase 3: Worksheets + Annotations
-1. `TaxWorksheet` + `TaxWorksheetField` models + migrations
-2. `TaxDocumentAnnotation` model + migration
-3. `TaxWorksheetService` (population, anomaly detection)
-4. `TaxWorksheetController`
-5. Frontend: `Tax/Worksheet.tsx`, `Tax/VaultDocument.tsx` (annotations)
-
-**Rationale:** Worksheets depend on extraction data. Annotations are review support.
-
-### Phase 4: Accountant Portal Extensions
-1. `AccountantFirm` model + migration
-2. `DocumentRequest` model + migration
-3. Accountant document/worksheet routes
-4. Frontend: `Accountant/ClientDocuments.tsx`, `Accountant/ClientWorksheet.tsx`, `Accountant/Firm.tsx`
-
-**Rationale:** Accountant features overlay on existing vault + worksheets.
-
-### Phase 5: Sign-off + Sharing
-1. `TaxYearSignOff` model + migration
-2. `DocumentSharePackage` + pivot models + migrations
-3. `SignOffService` + `DocumentShareService`
-4. `SignOffController` + `DocumentShareController`
-5. Frontend: `Tax/SignOff.tsx`, `Tax/Share.tsx`
-
-**Rationale:** Sign-off and sharing are the culmination features. They require documents, worksheets, and accountant relationships to all be in place.
+| Existing System | How v2.1 Reads It | Notes |
+|-----------------|------------------|-------|
+| `TaxDocument.extracted_data` | `IncomeOptimizerDataAssemblerService` reads directly (already `encrypted:array`) | No change to TaxDocument; read-only |
+| `UserFinancialProfile` | Assembler + all detectors read directly | Already has HSA, home office, employment type, filing status |
+| `Transaction` + `IncomeDetectorService` | Assembler calls `IncomeDetectorService::classify()` for deposit totals | Re-uses existing classification, no duplicate logic |
+| `Subscription` | `CrossSourceReviewService` scans for deductible business subscriptions | Read-only; no Subscription model changes |
+| `AIQuestion` model | `SurfaceHighPriorityRedFlags` creates new AIQuestion records | Additive only; new `QuestionType::Optimization` case |
+| `UserAnsweredQuestion` event | New `UpdateOptimizationFromAnswer` listener added | Additive; no changes to existing listeners |
+| `ExtractTaxDocument` job | No change; triggers `BuildIncomeOptimizationProfile` via event | Add `OptimizationProfileBuilt` dispatch after extraction |
 
 ---
 
 ## Sources
 
-- Direct codebase analysis of `/var/www/html/ledgeriq/` (32 models, 20 controllers, 14 services, 11 enums, 11 middleware, 9 policies, 10 jobs)
-- Existing patterns from `AccountantController`, `AccountantTaxController`, `TransactionCategorizerService`
-- Laravel 12 filesystem configuration at `config/filesystems.php`
-- Existing route structure at `routes/api.php`
-- Existing middleware registration at `bootstrap/app.php`
-- Project requirements from `.planning/PROJECT.md`
+- Direct codebase inspection: `app/Models/`, `app/Services/AI/`, `app/Enums/`, `app/Jobs/`, `app/Events/` (2026-07-01)
+- `app/Models/TaxDocument.php` — confirmed `extracted_data` as `encrypted:array`, `TaxDocumentCategory` enum
+- `app/Models/UserFinancialProfile.php` — confirmed rich existing fields (HSA, IRA, home office, spouse income)
+- `app/Enums/QuestionType.php` — confirmed 4 existing cases; `Optimization` is additive
+- `.planning/PROJECT.md` — v2.1 requirements and constraints
+- Prior milestone ARCHITECTURE.md (v2.0, 2026-03-30) — house style patterns followed
+
+---
+
+*Architecture research for: Optimize My Income (v2.1 milestone)*
+*Researched: 2026-07-01*

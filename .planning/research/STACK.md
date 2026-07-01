@@ -1,196 +1,470 @@
-# Technology Stack: Tax Document Vault & Accountant Portal
+# Stack Research: Optimize My Income (v2.1)
 
-**Project:** SpendifiAI v2.0
-**Researched:** 2026-03-30
-**Scope:** NEW packages/libraries only. Existing stack (Laravel 12, React 19, Inertia 2, PostgreSQL, Redis, Sanctum, Fortify, Pest, Claude API) is validated and not re-evaluated.
+**Domain:** Personal finance — US tax optimization, retirement math, income document extraction
+**Project:** SpendifiAI (subsequent milestone — additive to existing Laravel 12 + React 19 stack)
+**Researched:** 2026-07-01
+**Scope:** NEW additions only. Existing stack (Laravel 12, React 19, Inertia 2, TypeScript, Tailwind v4, PostgreSQL 15+, Redis 7+, Sanctum, Pest, Claude Sonnet API, smalot/pdfparser, react-pdf, league/flysystem-aws-s3-v3, barryvdh/laravel-dompdf, phpoffice/phpspreadsheet) is validated and NOT re-evaluated.
+**Confidence:** MEDIUM (tax constants verified from IRS and multiple authoritative sources; stack decisions are HIGH — pure PHP needs no new packages)
+
+---
+
+## Executive Verdict
+
+**Zero new Composer packages. Zero new npm packages.**
+
+All three pillars of Optimize My Income (rules engine, document extraction, interview/report) are implemented as new PHP service classes + config data + Blade/React pages using the existing stack. The existing Claude API integration, two-pass document extraction pipeline, PDF libraries, and reporting infrastructure cover every requirement.
+
+---
 
 ## Recommended Stack Additions
 
-### Document Storage (S3 + Local)
+### 1. `config/tax-rules.php` — Versioned Tax Constants (new file, no package)
 
-| Technology | Version | Purpose | Why |
-|------------|---------|---------|-----|
-| league/flysystem-aws-s3-v3 | ^3.0 | S3 filesystem adapter | Required by Laravel's Storage facade for S3 disk. Not currently installed. Laravel 12 already has the s3 disk configured in `config/filesystems.php` with env vars -- just needs the adapter package installed. |
+**Why config, not DB:** Tax constants (brackets, deductions, contribution limits) are read-only, change once per year with a code deploy, have no user-specific rows, require no FK relationships, and need testable overrides via `Config::set()` in Pest tests. A DB seed table adds a round-trip, a migration, and a model for zero benefit. A PHP config file is version-controlled, zero-latency, and directly injectable into services.
 
-**Signed URLs:** Laravel 12's `Storage::temporaryUrl()` works natively for S3 disks. For local disk, use `URL::temporarySignedRoute()` to generate time-limited download URLs via a controller route. No additional package needed.
+**Pattern:** Top-level key is the tax year (integer). Reference as `config('tax-rules.2026.brackets.single')`. Add a new year block each November when IRS Rev. Proc. is published.
 
-**Super Admin disk toggle:** Store the active disk name (`local` or `s3`) in a `system_settings` table or `config/spendifiai.php`. Resolve at runtime via `Storage::disk(config('spendifiai.document_storage.disk'))`. The Flysystem abstraction makes local and S3 interchangeable -- same API, different backend.
+**2026 constants to seed into this file (all verified against IRS Rev. Proc. 2025-32 and IRS.gov announcements):**
 
-**Installation:**
-```bash
-composer require league/flysystem-aws-s3-v3:"^3.0" --with-all-dependencies
+```php
+// config/tax-rules.php
+return [
+    2026 => [
+
+        // Federal income tax brackets — IRS Rev. Proc. 2025-32
+        'brackets' => [
+            'single' => [
+                ['rate' => 0.10, 'from' => 0,       'to' => 12_400],
+                ['rate' => 0.12, 'from' => 12_400,   'to' => 50_400],
+                ['rate' => 0.22, 'from' => 50_400,   'to' => 105_700],
+                ['rate' => 0.24, 'from' => 105_700,  'to' => 201_775],
+                ['rate' => 0.32, 'from' => 201_775,  'to' => 256_225],
+                ['rate' => 0.35, 'from' => 256_225,  'to' => 640_600],
+                ['rate' => 0.37, 'from' => 640_600,  'to' => null],
+            ],
+            'married_joint' => [
+                ['rate' => 0.10, 'from' => 0,       'to' => 24_800],
+                ['rate' => 0.12, 'from' => 24_800,   'to' => 100_800],
+                ['rate' => 0.22, 'from' => 100_800,  'to' => 211_400],
+                ['rate' => 0.24, 'from' => 211_400,  'to' => 403_550],
+                ['rate' => 0.32, 'from' => 403_550,  'to' => 512_450],
+                ['rate' => 0.35, 'from' => 512_450,  'to' => 768_700],
+                ['rate' => 0.37, 'from' => 768_700,  'to' => null],
+            ],
+            'married_separate' => [
+                ['rate' => 0.10, 'from' => 0,       'to' => 12_400],
+                ['rate' => 0.12, 'from' => 12_400,   'to' => 50_400],
+                ['rate' => 0.22, 'from' => 50_400,   'to' => 105_700],
+                ['rate' => 0.24, 'from' => 105_700,  'to' => 201_775],
+                ['rate' => 0.32, 'from' => 201_775,  'to' => 256_225],
+                ['rate' => 0.35, 'from' => 256_225,  'to' => 384_350],
+                ['rate' => 0.37, 'from' => 384_350,  'to' => null],
+            ],
+            'head_of_household' => [
+                ['rate' => 0.10, 'from' => 0,       'to' => 17_700],
+                ['rate' => 0.12, 'from' => 17_700,   'to' => 67_450],
+                ['rate' => 0.22, 'from' => 67_450,   'to' => 105_700],
+                ['rate' => 0.24, 'from' => 105_700,  'to' => 201_775],
+                ['rate' => 0.32, 'from' => 201_775,  'to' => 256_200],
+                ['rate' => 0.35, 'from' => 256_200,  'to' => 640_600],
+                ['rate' => 0.37, 'from' => 640_600,  'to' => null],
+            ],
+        ],
+
+        // Standard deductions
+        'standard_deduction' => [
+            'single'           => 16_100,
+            'married_joint'    => 32_200,
+            'married_separate' => 16_100,
+            'head_of_household'=> 24_150,
+        ],
+
+        // Additional standard deduction for age 65+ (per qualifying person)
+        'standard_deduction_senior_additional' => [
+            'single'           => 2_050,
+            'married_joint'    => 1_650,   // per qualifying spouse
+            'married_separate' => 1_650,
+            'head_of_household'=> 2_050,
+        ],
+
+        // New OBBBA senior deduction (age 65+) — phases out 6% above threshold
+        'senior_bonus_deduction' => [
+            'amount'              => 6_000,  // per qualifying taxpayer
+            'phaseout_single'     => 75_000,
+            'phaseout_joint'      => 150_000,
+            'phaseout_rate'       => 0.06,
+        ],
+
+        // 401(k) / employer plan limits — IRS Notice 2025-67
+        '401k' => [
+            'employee_deferral'       => 24_500,
+            'catchup_50_plus'         => 8_000,   // total: 32,500
+            'catchup_60_63'           => 11_250,  // replaces 50+ catchup for ages 60-63, total: 35,750
+            'highly_compensated_threshold' => 160_000,
+            // 2026 rule: if earned >= $150k FICA wages in 2025 from same employer,
+            // catch-up contributions MUST be Roth (SECURE 2.0 §603)
+            'mandatory_roth_catchup_threshold' => 150_000,
+        ],
+
+        // IRA limits
+        'ira' => [
+            'annual_limit'      => 7_500,
+            'catchup_50_plus'   => 1_100,  // new in 2026, was $1,000 for years
+            // Roth IRA contribution phase-out (MAGI)
+            'roth_phaseout' => [
+                'single'            => ['from' => 153_000, 'to' => 168_000],
+                'married_joint'     => ['from' => 242_000, 'to' => 252_000],
+                'married_separate'  => ['from' => 0,       'to' => 10_000],
+                'head_of_household' => ['from' => 153_000, 'to' => 168_000],
+            ],
+            // Traditional IRA deduction phase-out when covered by workplace plan
+            'traditional_deduction_phaseout_covered' => [
+                'single'                    => ['from' => 81_000,  'to' => 91_000],
+                'married_joint'             => ['from' => 129_000, 'to' => 149_000],
+                'married_separate'          => ['from' => 0,       'to' => 10_000],
+                'head_of_household'         => ['from' => 81_000,  'to' => 91_000],
+            ],
+            // Traditional IRA deduction phase-out when NOT covered, but SPOUSE is
+            'traditional_deduction_phaseout_spouse_covered' => [
+                'married_joint' => ['from' => 242_000, 'to' => 252_000],
+            ],
+        ],
+
+        // HSA limits — IRS Rev. Proc. 2026 (Notice 2026-05)
+        'hsa' => [
+            'self_only'        => 4_400,
+            'family'           => 8_750,
+            'catchup_55_plus'  => 1_000,
+            // HDHP requirements
+            'hdhp_min_deductible_self'   => 1_700,
+            'hdhp_min_deductible_family' => 3_400,
+            'hdhp_max_oop_self'          => 8_500,
+            'hdhp_max_oop_family'        => 17_000,
+        ],
+
+        // FICA / Self-Employment Tax
+        'fica' => [
+            'ss_wage_base'          => 184_500,   // up from $176,100 in 2025
+            'ss_rate_employee'      => 0.062,
+            'ss_rate_employer'      => 0.062,
+            'medicare_rate_employee'=> 0.0145,
+            'medicare_rate_employer'=> 0.0145,
+            'seca_rate'             => 0.153,      // 12.4% SS + 2.9% Medicare, unchanged
+            'seca_deductible_pct'   => 0.5,        // self-employed deduct half of SE tax from AGI
+            // Additional Medicare surtax (Net Investment Income Tax not included here — separate)
+            'additional_medicare_surtax_rate'     => 0.009,
+            'additional_medicare_surtax_single'   => 200_000,
+            'additional_medicare_surtax_joint'    => 250_000,
+        ],
+
+        // Net Investment Income Tax (NIIT)
+        'niit' => [
+            'rate'            => 0.038,
+            'threshold_single'=> 200_000,
+            'threshold_joint' => 250_000,
+        ],
+
+        // Long-term capital gains rates
+        'ltcg' => [
+            'single' => [
+                ['rate' => 0.00, 'from' => 0,       'to' => 48_350],
+                ['rate' => 0.15, 'from' => 48_350,  'to' => 533_400],
+                ['rate' => 0.20, 'from' => 533_400, 'to' => null],
+            ],
+            'married_joint' => [
+                ['rate' => 0.00, 'from' => 0,       'to' => 96_700],
+                ['rate' => 0.15, 'from' => 96_700,  'to' => 600_050],
+                ['rate' => 0.20, 'from' => 600_050, 'to' => null],
+            ],
+        ],
+
+        // Roth optimization decision thresholds (for rules engine logic)
+        'roth_optimization' => [
+            'prefer_roth_at_or_below_bracket' => 0.12,   // <=12% → Roth is clearly better
+            'prefer_traditional_at_or_above'  => 0.32,   // >=32% → Traditional is clearly better
+            // 22-24% bracket = split strategy or context-dependent
+        ],
+    ],
+];
 ```
 
-**Confidence:** HIGH -- verified against [Laravel 12.x filesystem docs](https://laravel.com/docs/12.x/filesystem) and existing `config/filesystems.php`.
+**Confidence:** HIGH — Brackets and standard deductions from IRS Rev. Proc. 2025-32 (Nov 2025), confirmed by plaintaxcalc.com and taxfoundation.org. Contribution limits from IRS Notice 2025-67 and IRS.gov announcement. SS wage base from SSA.gov/IRS. HSA limits from IRS Notice 2026-05.
 
-### PDF Text Extraction (Backend)
+**Update cadence:** Each November when IRS publishes annual inflation adjustments, add a new year block. Keep prior years for historical comparison. Cap at rolling 3 years to avoid config bloat.
 
-| Technology | Version | Purpose | Why |
-|------------|---------|---------|-----|
-| smalot/pdfparser | ^2.12 | Pure PHP PDF text extraction | Zero external binary dependencies. The project already has `spatie/pdf-to-text` (^1.54) but it requires `poppler-utils` / `pdftotext` binary which is NOT installed in the dev environment (per MEMORY.md). smalot/pdfparser is pure PHP -- works everywhere without system packages. |
+---
 
-**Role in extraction pipeline:** Text preprocessing before Claude AI. For text-layer PDFs (most digital tax forms), extracting raw text first and sending it to Claude as text is significantly cheaper and faster than sending base64 PDF images via the vision API. The existing `BankStatementParserService` sends full base64 PDFs to Claude -- that works but costs more. For 25+ form types at scale, text-first is the better default.
+### 2. `TaxRulesEngineService` — Deterministic Calculation Service (new PHP class, no package)
 
-**Fallback strategy:** If smalot/pdfparser extracts no meaningful text (scanned/image PDF), fall back to base64 PDF via Claude vision API -- same pattern as existing `BankStatementParserService::callClaudeWithPdf()`.
+**File:** `app/Services/TaxRulesEngineService.php`
 
-**Why not rely on spatie/pdf-to-text:** Already in `composer.json` at ^1.54, but requires `poppler-utils` system binary. Can coexist -- use smalot as primary (no deps), spatie as optional enhanced extractor when `pdftotext` is available on the server.
+**Why no package:** US income tax calculation is bracket iteration + conditional checks. Every PHP "rules engine" package (Ruler, RulerZ, etc.) adds pattern-matching overhead designed for dynamic rule injection — a category mismatch for static annual constants. The Ruler package (bobthecow/ruler) is also abandoned. Plain typed PHP 8.3 is cleaner, faster, and requires no learning curve.
 
-**Installation:**
-```bash
-composer require smalot/pdfparser:"^2.12"
+**Methods to implement:**
+
+| Method | Input | Output | Purpose |
+|--------|-------|--------|---------|
+| `computeTax(float $income, string $filing, int $year)` | Taxable income, filing status, year | `float` | Federal income tax (iterates brackets) |
+| `marginalRate(float $income, string $filing, int $year)` | Same | `float` | Top marginal rate for optimization flags |
+| `effectiveRate(float $income, string $filing, int $year)` | Same | `float` | Effective rate = tax / income |
+| `standardDeduction(string $filing, int $year, array $opts)` | Filing status, year, options (age 65+, count) | `float` | Standard deduction with senior addition |
+| `retirementContributionHeadroom(array $profile)` | User profile (age, income, employer plan, contributions) | `array` | Remaining 401k / IRA / HSA capacity |
+| `rothVsTraditionalRecommendation(float $marginalRate, array $opts)` | Current rate, retirement assumptions | `string` | 'roth' / 'traditional' / 'split' / 'roth_required' |
+| `rothEligibility(float $magi, string $filing, int $year)` | MAGI, status, year | `array` | Full / partial / ineligible + prorated limit |
+| `traditionalIraDeductibility(float $magi, string $filing, bool $hasPlan, int $year)` | MAGI, status, coverage flag, year | `array` | Full / partial / none + prorated deduction |
+| `selfEmploymentTax(float $netEarnings, int $year)` | Net SE earnings, year | `array` | SE tax owed, deductible portion |
+| `ficaWithholding(float $wages, int $year)` | W-2 wages, year | `array` | Employee SS + Medicare owed |
+| `estimatedTaxSavings(array $scenarios)` | Before/after scenarios | `array` | Delta in tax owed for optimization suggestions |
+
+**Pattern from existing codebase:** Follow the same service pattern as `SavingsAnalyzerService` — injected via constructor, reads config, returns typed arrays. No DB calls in the rules engine itself.
+
+**Confidence:** HIGH — this is a well-understood implementation pattern for the stack.
+
+---
+
+### 3. Document Extraction Extensions — No New Libraries
+
+**New document types for v2.1 intake:**
+
+| Document Type | Format | Extraction Method | Notes |
+|---------------|--------|-------------------|-------|
+| Pay stub (digital) | PDF | `smalot/pdfparser` text → Claude JSON extraction | Already handled by two-pass pipeline |
+| Pay stub (photo/scan) | PNG/JPEG | Claude vision API (base64 image) | Same as existing `callClaudeWithPdf()` but image media type |
+| Employer offer letter | PDF | `smalot/pdfparser` text → Claude JSON extraction | Rich text extraction, look for salary/bonus/benefits/equity fields |
+| 401k/retirement statement | PDF | `smalot/pdfparser` text → Claude | Balance, YTD contribution, employer match, allocation |
+| Benefits summary screenshot | PNG/JPEG | Claude vision API | Insurance type, HSA eligibility, HDHP status, FSA limits |
+| Stock plan (RSU/ESPP) | PDF | `smalot/pdfparser` text → Claude | Vesting schedule, grant price, FMV, tax withholding |
+| Insurance statement | PDF | `smalot/pdfparser` text → Claude | Premium, deductible, plan type for HSA eligibility check |
+| Mortgage statement | PDF | `smalot/pdfparser` text → Claude | Principal, interest (for Schedule A probe), balance, rate |
+
+**Integration point:** Extend `TaxDocumentExtractorService` (existing v2.0 service). Add new `TaxDocumentCategory` enum cases for the new types. Add new prompt templates in `app/Services/AI/prompts/` following the existing two-pass classify→extract pattern.
+
+**Image handling for screenshots (pay stubs, benefits, retirement account pages):**
+- Claude Sonnet accepts base64 PNG/JPEG up to 5MB natively
+- Optimal resolution: resize to 1568px on longest edge before base64 encoding — IRS on Anthropic docs
+- Use `getimagesize()` (built-in PHP) to check dimensions; simple integer scaling via `imagescale()` (GD, always available in PHP 8.3) if needed — no `intervention/image` package required
+- Send as `image/jpeg` or `image/png` media type in the Claude messages API, same API client already in use
+- JSON schema via `tool_use` to enforce structured output with per-field confidence scores
+
+**New Claude prompt schemas for v2.1 types (to add to two-pass pipeline):**
+
+```php
+// Pay stub extraction schema (tool_use)
+[
+    'gross_pay'          => ['type' => 'number', 'confidence' => 'float 0-1'],
+    'net_pay'            => ['type' => 'number', 'confidence' => 'float 0-1'],
+    'ytd_gross'          => ['type' => 'number', 'confidence' => 'float 0-1'],
+    'pay_period'         => ['type' => 'string', 'enum' => ['weekly','biweekly','semimonthly','monthly']],
+    'federal_withholding'=> ['type' => 'number'],
+    'state_withholding'  => ['type' => 'number'],
+    'ss_withheld'        => ['type' => 'number'],
+    'medicare_withheld'  => ['type' => 'number'],
+    'retirement_401k'    => ['type' => 'number'],  // YTD 401k contributions
+    'employer_match'     => ['type' => 'number'],
+    'hsa_deduction'      => ['type' => 'number'],
+    'pay_date'           => ['type' => 'string', 'format' => 'date'],
+]
+
+// Offer letter schema
+[
+    'base_salary'        => ['type' => 'number'],
+    'salary_period'      => ['type' => 'string', 'enum' => ['annual','monthly','hourly']],
+    'signing_bonus'      => ['type' => 'number', 'nullable' => true],
+    'annual_bonus_target_pct' => ['type' => 'number', 'nullable' => true],
+    'rsu_shares'         => ['type' => 'number', 'nullable' => true],
+    'espp_eligible'      => ['type' => 'boolean'],
+    '401k_match_pct'     => ['type' => 'number', 'nullable' => true],
+    '401k_match_cap_pct' => ['type' => 'number', 'nullable' => true],
+    'hsa_employer_contribution' => ['type' => 'number', 'nullable' => true],
+    'start_date'         => ['type' => 'string', 'format' => 'date', 'nullable' => true],
+]
 ```
 
-**Confidence:** HIGH -- [smalot/pdfparser v2.12.4](https://packagist.org/packages/smalot/pdfparser) released 2026-03-10, actively maintained, PHP 7.1+ compatible.
+**Confidence:** HIGH — Claude Sonnet vision API is the existing AI integration; image extraction extends the existing pattern with no new library dependencies.
 
-### PDF Viewing (Frontend)
+---
 
-| Technology | Version | Purpose | Why |
-|------------|---------|---------|-----|
-| react-pdf | ^10.0 | In-browser PDF rendering | Most popular React PDF viewer (1040+ npm dependents). v10 supports React 19, uses pdf.js under the hood. Renders PDF pages as canvas/SVG with text selection, zoom, and page navigation. MIT licensed. |
+### 4. Guided Interview — Custom State Machine (no package)
 
-**Why react-pdf over alternatives:**
-- `@react-pdf-viewer/core` -- abandoned since 2023, no updates in 3 years
-- `@pdf-viewer/react` -- smaller community, less battle-tested
-- Syncfusion / commercial options -- unnecessary license cost for this use case
+**File:** `app/Services/OptimizationInterviewService.php`
 
-**Integration with signed URLs:** Pass the signed URL directly as the `file` prop to `<Document>`. Works with both S3 presigned URLs and Laravel signed route URLs.
+**Why no package:** Guided financial interviews are 15-30 conditional questions in a linear + branching flow. Packages like `spatie/laravel-model-states` are designed for multi-step parallel state graphs with event dispatch — overkill for a questionnaire. A custom service + DB table is ~200 lines and fully type-safe.
 
-**Worker setup note:** pdf.js requires a web worker. Configure it in the component module where `<Document>` is rendered:
-```typescript
-import { pdfjs } from 'react-pdf';
-pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
+**New DB migration (additive):** `optimization_interviews` table
+
+```php
+Schema::create('optimization_interviews', function (Blueprint $table) {
+    $table->id();
+    $table->foreignId('user_id')->constrained()->cascadeOnDelete();
+    $table->string('status')->default('in_progress'); // in_progress | completed | abandoned
+    $table->string('current_step')->default('start');
+    $table->jsonb('answers')->default('{}');
+    $table->jsonb('flags')->default('[]');  // red flags found during interview
+    $table->jsonb('metadata')->default('{}');
+    $table->timestamp('completed_at')->nullable();
+    $table->timestamps();
+    $table->index(['user_id', 'status']);
+});
 ```
 
-**Installation:**
-```bash
-npm install react-pdf@^10.0
+**Interview question bank stored in:** `app/Services/OptimizationInterviewService.php` as a private array. Questions are conditionally surfaced based on prior answers + data already available (from linked bank, uploaded docs, existing profile). Questions Claude can generate should NOT be hardcoded — pass context to Claude for dynamic question text generation while the routing logic stays deterministic in PHP.
+
+**Question routing logic (deterministic PHP):**
+1. Check what data is already known from existing sources (bank, subscriptions, tax docs, profile)
+2. Skip any question where confidence is >0.85 from existing data
+3. Surface only genuinely unknown high-value questions
+
+---
+
+### 5. Optimization Report — No New Libraries
+
+**Generation:** `barryvdh/laravel-dompdf` (already installed at ^3.1) generates the PDF report. New Blade template at `resources/views/reports/optimization-report.blade.php`.
+
+**Report sections (from rules engine output):**
+1. Income snapshot (pay stub data + bank-derived income)
+2. Estimated federal tax (effective + marginal rate, compared to current withholding)
+3. 401k optimization (contribution headroom, Roth vs Traditional recommendation, employer match gap)
+4. IRA eligibility (Roth or Traditional or backdoor, contribution headroom)
+5. HSA opportunity (if on HDHP or could be, annual tax savings estimate)
+6. Deduction probe (standard vs estimated itemized, categories where itemizing might win)
+7. Red flags (filing status mismatch, unclaimed credits, over/under-withholding)
+8. Next steps (prioritized, educational, "discuss with your tax professional" framing on every item)
+
+**Disclaimer block (required on all report outputs):**
+```
+This report is for educational purposes only and does not constitute tax, legal, or financial advice.
+All figures are estimates based on information you provided. Consult a licensed tax professional before
+making any decisions regarding your tax filing, retirement contributions, or financial planning.
 ```
 
-**Confidence:** HIGH -- [react-pdf v10.4.1](https://www.npmjs.com/package/react-pdf) verified on npm, React 19 peer dep confirmed.
+**Frontend:** New Inertia page `resources/js/Pages/OptimizeMyIncome.tsx` using existing shadcn/ui components, existing `useApi` / `useApiPost` hooks. Wizard step state lives in React `useState` (not Zustand, Redux, or other state lib — existing codebase has no global state manager and interview state is persisted server-side).
 
-## No New Packages Needed For
+**Confidence:** HIGH — reuses existing infrastructure entirely.
 
-These capabilities use existing stack or custom implementations:
-
-| Capability | How It's Handled | Existing Asset |
-|------------|-----------------|----------------|
-| **AI Document Extraction** | Claude API with new prompts. Two-pass pipeline (classify then extract). Same API pattern as `BankStatementParserService::callClaudeWithPdf()`. | Anthropic Claude API (already integrated) |
-| **Accountant Invite Emails** | New Mailable classes extending existing pattern. | `AccountantInviteMail`, `TaxPackageMail` (already exist), SendGrid mailer configured |
-| **Immutable Audit Log** | Custom `AuditTrail` model -- insert-only, no update/delete. PostgreSQL `BEFORE UPDATE OR DELETE` trigger enforces immutability at DB level. | PostgreSQL triggers, `AccountantActivityLog` model (similar pattern exists) |
-| **Queue Jobs** | New jobs follow existing `ShouldQueue` pattern on Redis. | Redis queue driver, `CategorizePendingTransactions` job pattern |
-| **Dual Sign-Off Workflow** | Custom state machine via enum + model method transitions. 4 states, 3 transitions -- too simple for a package. | `UserType` enum, Policy authorization pattern |
-| **Accountant Middleware** | Extend existing `EnsureAccountant` pattern. Add `EnsureAccountantOwnsClient`. | `EnsureAccountant` middleware exists |
-| **User Types** | `UserType` enum already has `Personal` and `Accountant`. No changes needed. | `app/Enums/UserType.php` |
-| **Activity Logging** | Extend existing `AccountantActivityLog` model for document-specific actions. | `AccountantActivityLog` model exists |
-| **File Upload Validation** | Laravel's built-in `UploadedFile` + Form Request rules (`mimes:pdf,jpg,png`, `max:30720`). | Standard Laravel, 20 Form Request classes exist |
-| **Signed Invite URLs** | Laravel's `URL::temporarySignedRoute()` for tamper-proof, time-limited invite links. | Core framework feature |
-| **PDF Generation** | Generate tax worksheets from extracted data. | `barryvdh/laravel-dompdf` ^3.1 (installed) |
-| **Excel/Spreadsheet Export** | Tax software export formats. | `phpoffice/phpspreadsheet` ^5.4 (installed) |
-| **Document Comments** | Polymorphic `comments` table with `commentable_type`/`commentable_id`. Standard Eloquent pattern. | Standard Laravel polymorphic relationships |
+---
 
 ## Complete New Dependencies
 
 ### Backend (Composer)
 
 ```bash
-composer require league/flysystem-aws-s3-v3:"^3.0" --with-all-dependencies
-composer require smalot/pdfparser:"^2.12"
+# NONE — zero new packages required
 ```
 
 ### Frontend (npm)
 
 ```bash
-npm install react-pdf@^10.0
+# NONE — zero new packages required
 ```
 
-**Total: 3 packages** (2 Composer, 1 npm). That is all.
+**Total: 0 new packages.**
+
+---
 
 ## Alternatives Considered
 
 | Category | Recommended | Alternative | Why Not |
 |----------|-------------|-------------|---------|
-| S3 adapter | league/flysystem-aws-s3-v3 | Direct AWS SDK (aws/aws-sdk-php) | Flysystem integrates with Laravel Storage facade. Direct SDK bypasses the abstraction that enables the local/S3 toggle. |
-| PDF extraction | smalot/pdfparser + Claude AI | spatie/pdf-to-text only | spatie requires pdftotext binary (not in dev env). smalot is pure PHP. Primary extraction is Claude AI anyway -- text extraction is preprocessing. |
-| PDF extraction | smalot/pdfparser + Claude AI | AWS Textract | Adds AWS dependency, per-page cost, and latency. Claude already handles PDFs natively via vision API and is already integrated. |
-| PDF viewer | react-pdf v10 | @react-pdf-viewer/core | Abandoned since 2023. No updates in 3 years. |
-| PDF viewer | react-pdf v10 | @pdf-viewer/react | Smaller community, less TypeScript support, fewer battle-tested deployments. |
-| Audit logging | Custom insert-only model | owen-it/laravel-auditing v14 | Model-diff tracker (tracks old/new attribute values). Document vault needs action-level logging (viewed, downloaded, shared). Wrong abstraction. |
-| Audit logging | Custom insert-only model | spatie/laravel-activitylog | Closer fit (logs arbitrary activities) but carries model-change tracking overhead. Custom solution is ~50 lines, type-safe, and exactly fits the immutable insert-only requirement. |
-| State machine | Custom enum + transitions | spatie/laravel-model-states | 4-state linear workflow (draft -> taxpayer_signed -> accountant_signed -> filed) does not justify a package dependency. Packages shine for branching/parallel states. |
-| File upload | Laravel built-in | chunked upload libraries (Resumable.js, Filepond) | Tax documents are inherently small (<10MB). Chunked upload adds complexity for no benefit. |
-| Permissions | Laravel Policies (existing) | spatie/laravel-permission | Existing Policy authorization covers user/accountant/admin role checks. Adding Spatie permissions creates a parallel auth system. |
+| Tax constants storage | `config/tax-rules.php` (PHP config file, keyed by year) | DB seed table (`tax_rules`) | DB adds migration + model + query for constants that never change at runtime. Config is version-controlled, zero-latency, overridable in tests via `Config::set()`. |
+| Tax constants storage | `config/tax-rules.php` | Hardcoded in `TaxRulesEngineService` | Hardcoded constants are not testable, not visible to non-PHP teammates, and require service changes each November. |
+| Rules engine | Custom PHP service class | `bobthecow/ruler` | Ruler is abandoned (last commit 2017). Pattern-matching rules engines are designed for dynamic rule injection, not static annual constants. |
+| Rules engine | Custom PHP service class | `miBadger/Ruler`, `RulerZ` | Same mismatch: these solve dynamic rule evaluation for varying inputs. US tax brackets are 7 thresholds that change once per year. |
+| Image extraction | Claude vision API (existing) | `intervention/image` + OCR | intervention/image is for manipulation, not extraction. The existing Claude vision integration achieves >90% accuracy on structured pay stubs. No OCR library needed. |
+| Image extraction | Claude vision API (existing) | AWS Textract | Adds AWS SDK dependency, per-page cost, and a new provider. Claude already handles the full extraction → JSON pipeline. |
+| Interview state | DB table + custom service | `spatie/laravel-model-states` | Adds a package dependency for 15-30 linear steps. The package shines for branching parallel workflows with async transitions. Overkill here. |
+| Interview state | DB table + custom service | React `useState` only (client-side) | Interview must survive page refresh and allow resume. Server-side persistence is required. |
+| Report generation | `barryvdh/laravel-dompdf` (existing) | Weasyprint / Puppeteer PDF | Both require system binaries. dompdf is pure PHP, already installed, already used for tax export in v1.0. |
+| Traditional vs Roth logic | Rule-based PHP (deterministic) | Ask Claude to decide | Claude is used for plain-English explanation and dynamic question generation, not for the binary Roth/Traditional decision — that must be deterministic, auditable, and based on verified 2026 thresholds. |
 
-## What NOT to Add
+---
 
-| Package | Why Skip |
-|---------|----------|
-| intervention/image | Not doing image manipulation. PDFs rendered client-side by react-pdf. |
-| spatie/laravel-media-library | Over-abstraction. Direct `Storage::disk()` calls are simpler for single-purpose document storage. |
-| laravel/scout | No full-text search on documents required. PostgreSQL `tsvector` handles future needs natively. |
-| livewire/livewire | Project uses Inertia.js exclusively. Mixing Livewire creates two competing paradigms. |
-| spatie/laravel-permission | Existing Policy pattern handles authorization. Adding a role/permission package duplicates existing patterns. |
-| any WebSocket package | Real-time not required (per project constraints). Polling and page refresh are sufficient. |
+## What NOT to Use
 
-## New Enums Needed
+| Do NOT Add | Why | Use Instead |
+|------------|-----|-------------|
+| Any third-party tax filing SaaS (Intuit, TaxJar, Column Tax API) | Would leak PII to external parties, create vendor dependency for core logic, and is out of scope per PROJECT.md | `TaxRulesEngineService` with `config/tax-rules.php` constants |
+| Non-Anthropic AI (OpenAI, Gemini, etc.) | Explicitly prohibited by project constraints; all AI services are built against Anthropic API | Claude Sonnet (existing) |
+| `intervention/image` | Not doing image manipulation. PHP 8.3 GD functions (`imagescale`, `getimagesize`) handle pre-Claude resize in <5 lines | Built-in GD |
+| `spatie/laravel-media-library` | Over-abstraction over `Storage::disk()`. The Tax Document Vault already implements direct Storage calls. Adding media-library creates a parallel file management system. | Existing `Storage::disk()` pattern from v2.0 |
+| `spatie/laravel-money` or `brick/money` | Financial amounts are already stored as `decimal:2` in the existing codebase. All UI uses `Number()` wrapper. Adding a Money type would require changing existing model casts. | Existing decimal cast + `Number()` in TS |
+| `moneyphp/money` | Same reason as above |  |
+| Any state machine package (`spatie/laravel-model-states`, `winzou/state-machine`) | 15-30 linear questions do not justify a package. Custom service is 200 lines and fully typed. | Custom `OptimizationInterviewService` |
+| `Livewire` for interview wizard | Project uses Inertia.js exclusively. Mixing Livewire creates competing paradigms. | Inertia + React `useState` (with server-side persistence) |
+| Zustand, Redux, Jotai for interview state | Global state managers are not in the existing codebase. Interview state is persisted server-side; client only needs `useState` for the current step. | React `useState` |
+| `react-hook-form` for interview inputs | Single-question-at-a-time interview flow does not need a form library. Controlled `<input>` with `useApiPost` covers it. | Existing `useApiPost` hook |
+| Any WebSocket / real-time package | Not required per project constraints. Interview progress persists in DB; page polling on step transitions is sufficient. | DB persistence + Inertia page transitions |
+| `laravel/scout` / Meilisearch | No document full-text search requirement for v2.1. | PostgreSQL `ILIKE` for existing merchant/category search |
 
-| Enum | Cases | Purpose |
-|------|-------|---------|
-| TaxFormType | W2, W2G, Form1099MISC, Form1099NEC, Form1099INT, Form1099DIV, Form1099B, Form1099R, Form1099G, Form1099SA, Form1099K, Form1098, Form1098E, Form1098T, ScheduleC, ScheduleD, ScheduleE, ScheduleSE, Form1040, Form1040ES, Form8829, Form4562, FormK1, CharitableReceipt, Other | 25 supported tax form types for AI classification |
-| DocumentStatus | Uploaded, Classifying, Classified, Extracting, Extracted, ReviewNeeded, Verified, Error | Document processing pipeline states |
-| SignOffStatus | Pending, TaxpayerSigned, AccountantSigned, BothSigned, Rejected | Dual sign-off workflow states |
-| SharePackageStatus | Draft, Shared, Expired, Revoked | Document sharing package lifecycle |
-
-## New Mail Classes Needed
-
-| Class | Purpose | Trigger |
-|-------|---------|---------|
-| DocumentRequestMail | Accountant requests missing documents from client | Accountant action in portal |
-| SignOffRequestMail | Notify other party that sign-off is needed | First party completes sign-off |
-| SignOffCompleteMail | Both parties notified of completed dual sign-off | Second party completes sign-off |
-| DocumentSharedMail | Accountant notified of new shared document package | Taxpayer creates share package |
-
-Existing mail classes (`AccountantInviteMail`, `TaxPackageMail`, `SyncDigestMail`) provide the template pattern.
-
-## Config Additions (config/spendifiai.php)
-
-```php
-'document_storage' => [
-    'disk' => env('DOCUMENT_STORAGE_DISK', 'local'),
-    'max_file_size_mb' => 30,
-    'allowed_mimes' => ['application/pdf', 'image/jpeg', 'image/png'],
-    'signed_url_expiry_minutes' => 30,
-    'upload_url_expiry_minutes' => 5,
-],
-
-'tax_extraction' => [
-    'classify_confidence_threshold' => 0.85,
-    'extract_confidence_threshold' => 0.70,
-    'max_extraction_retries' => 2,
-    'supported_form_count' => 25,
-],
-```
+---
 
 ## Integration Points with Existing Stack
 
-| Existing Component | How New Features Integrate |
-|-------------------|---------------------------|
-| Claude API (Sonnet) | New `DocumentExtractionService` follows `BankStatementParserService` pattern. Same API client, new form-specific prompt templates. Two-pass: classify then extract. |
-| BankStatementParserService | Reference implementation for PDF-to-Claude pipeline. `callClaudeWithPdf()` method is the pattern to follow. |
-| Laravel Sanctum | API routes for document CRUD use existing `auth:sanctum` middleware. Accountant portal uses same token auth. |
-| Fortify + Socialite | Accountant registration reuses existing auth flow. Firm association added as post-registration step. |
-| Redis queues | `ClassifyDocumentJob` and `ExtractDocumentJob` follow `CategorizePendingTransactions` pattern. |
-| PostgreSQL | New tables use JSONB for extraction data and audit metadata. Encrypted columns use TEXT type per existing convention. |
-| Tailwind CSS v4 (sw-* tokens) | All new pages use existing design system. No new CSS framework or tokens needed. |
-| Pest PHP 3 | Test document upload, extraction pipeline, sign-off state transitions, audit trail immutability. |
-| AccountantActivityLog | Extend or reference for document-specific audit actions. |
-| EnsureAccountant middleware | Pattern for new `EnsureAccountantOwnsClient` middleware. |
+| Existing Component | v2.1 Integration |
+|-------------------|------------------|
+| `TaxDocumentExtractorService` | Add new `TaxDocumentCategory` enum cases (PayStub, OfferLetter, Retirement401k, BenefitsSummary, StockPlan, InsuranceStatement). Add new two-pass prompt templates for each type. |
+| `BankStatementParserService::callClaudeWithPdf()` | Reference pattern for image extraction: base64-encode the image, set correct `media_type`, pass to `messages` array. Copy this pattern for image-format pay stubs. |
+| `TransactionCategorizerService` | Reference pattern for batch AI with per-item confidence scores and retry logic. |
+| `AIQuestion` model + `AIQuestionController` | Ongoing red-flag questions (filing status mismatch, deduction probes) surface through the existing AI Questions feed — same model, same controller, new question_type cases. |
+| `UserFinancialProfile` | Primary source of filing status, employment type, monthly income, home office flag. `OptimizationInterviewService` reads this first and skips questions already answered. |
+| `IncomeDetectorService` | Provides primary vs extra income classification — cross-reference with pay stub extraction to validate accuracy. |
+| `config/spendifiai.php` | Add `optimize_my_income.disclaimer_text` and `optimize_my_income.tax_year` (defaults to current year). |
+| `barryvdh/laravel-dompdf` | Render optimization report PDF with new Blade template. |
+| `DashboardCacheService` | Invalidate on interview completion — optimization scores may affect dashboard widgets. |
+| `ExpenseCategory` model | Map mortgage interest, medical, charitable transaction categories to potential itemized deduction probes. |
+| `HandleInertiaRequests` | Share `hasOptimizationInterview` flag (bool, whether user has a completed interview) for nav badge. |
+| `EnsureBankConnected` middleware | Apply to optimization routes — bank data is required for cross-source analysis. |
+| Tailwind `sw-*` design tokens | All new pages use existing tokens. No new CSS. |
+| Pest PHP 3 | Test rules engine (bracket math, edge cases at bracket boundaries), contribution limit calculations, interview routing logic, Claude extraction schemas. |
+
+---
+
+## New Enums Needed
+
+| Enum | Cases | File |
+|------|-------|------|
+| `InterviewStatus` | `InProgress`, `Completed`, `Abandoned` | `app/Enums/InterviewStatus.php` |
+| `FilingStatus` (or extend `UserFinancialProfile` existing) | `Single`, `MarriedFilingJointly`, `MarriedFilingSeparately`, `HeadOfHousehold` | Check if already exists on `UserFinancialProfile` — if not, add here |
+| `OptimizationFlag` | `FilingStatusMismatch`, `UnderutilizedRetirement`, `OverWithheld`, `UnderWithheld`, `RothEligible`, `BackdoorRothCandidate`, `HsaOpportunity`, `ItemizationBenefit`, `SelfEmploymentDeduction`, `PotentialCredits` | `app/Enums/OptimizationFlag.php` |
+
+---
+
+## Config Additions (`config/spendifiai.php`)
+
+```php
+'optimize_my_income' => [
+    'tax_year'       => 2026,
+    'disclaimer'     => 'This analysis is for educational purposes only and does not constitute tax, legal, or financial advice. Consult a licensed tax professional before making any decisions.',
+    'interview_expiry_days' => 90,  // interviews older than this are abandoned
+    'max_active_interviews' => 1,   // user can only have one active interview at a time
+],
+```
+
+---
+
+## Version Compatibility
+
+| Package | Compatible With | Notes |
+|---------|-----------------|-------|
+| `config/tax-rules.php` (new) | Laravel 12, PHP 8.3 | Config file — no compatibility concerns |
+| `TaxRulesEngineService` (new) | PHP 8.3, existing services | Pure PHP — no version constraints |
+| GD (built-in, image resize) | PHP 8.3 standard | Always available in PHP 8.3. Check `extension_loaded('gd')` in service. |
+| `optimization_interviews` table | PostgreSQL 15+, JSONB supported | JSONB column is native PostgreSQL feature, already used for other tables |
+
+---
 
 ## Sources
 
-- [Laravel 12.x Filesystem Documentation](https://laravel.com/docs/12.x/filesystem) -- S3 configuration, temporaryUrl(), disk abstraction
-- [league/flysystem-aws-s3-v3 on Packagist](https://packagist.org/packages/league/flysystem-aws-s3-v3) -- v3.x line, Laravel 12 compatible
-- [smalot/pdfparser on Packagist](https://packagist.org/packages/smalot/pdfparser) -- v2.12.4 (released 2026-03-10), pure PHP
-- [smalot/pdfparser GitHub](https://github.com/smalot/pdfparser) -- release history and PHP compatibility
-- [react-pdf on npm](https://www.npmjs.com/package/react-pdf) -- v10.4.1, React 19 compatible, MIT licensed
-- [Best React PDF Viewer Libraries 2025](https://blog.react-pdf.dev/top-6-pdf-viewers-for-reactjs-developers-in-2025) -- comparison of options
-- [spatie/pdf-to-text on Packagist](https://packagist.org/packages/spatie/pdf-to-text) -- v1.55.0, requires poppler-utils (evaluated, kept as optional)
+- [IRS Rev. Proc. 2025-32 (2026 tax inflation adjustments)](https://www.irs.gov/newsroom/irs-releases-tax-inflation-adjustments-for-tax-year-2026-including-amendments-from-the-one-big-beautiful-bill) — brackets, standard deductions, LTCG thresholds. Confidence: HIGH.
+- [IRS Notice 2025-67 (2026 retirement contribution limits)](https://www.irs.gov/newsroom/401k-limit-increases-to-24500-for-2026-ira-limit-increases-to-7500) — 401k, IRA, catchup limits. Confidence: HIGH.
+- [PlainTaxCalc.com (IRS Rev. Proc. 2025-32 implementation)](https://plaintaxcalc.com/federal/) — exact bracket thresholds by filing status cross-checked. Confidence: MEDIUM (third party implementing official IRS data).
+- [IRS — FICA/Social Security wage base 2026](https://www.irs.gov/taxtopics/tc751) — 15.3% SECA, $184,500 SS wage base. Confidence: HIGH.
+- [IRS Notice 2026-05 (HSA limits 2026)](https://www.irs.gov/pub/irs-drop/n-26-05.pdf) — self-only $4,400, family $8,750. Confidence: HIGH.
+- [IRS — Roth IRA income limits 2026](https://www.irs.gov/newsroom/401k-limit-increases-to-24500-for-2026-ira-limit-increases-to-7500) — phase-out ranges. Confidence: HIGH.
+- [Anthropic Claude Vision Docs](https://docs.anthropic.com/en/docs/build-with-claude/vision) — image size limits, base64 encoding, structured extraction best practices. Confidence: HIGH.
+- [Bogleheads — Traditional vs Roth](https://www.bogleheads.org/wiki/Traditional_versus_Roth) — decision logic, bracket comparison rules. Confidence: MEDIUM (community wiki, consistent with IRS rules).
+- [IRS — Roth IRA comparison chart](https://www.irs.gov/retirement-plans/roth-comparison-chart) — eligibility rules. Confidence: HIGH.
+
+---
+
+*Stack research for: SpendifiAI v2.1 Optimize My Income*
+*Researched: 2026-07-01*

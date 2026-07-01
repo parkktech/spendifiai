@@ -1,184 +1,303 @@
-# Project Research Summary
+# Research Summary: SpendifiAI v2.1 "Optimize My Income"
 
-**Project:** SpendifiAI v2.0 — Tax Document Vault & Accountant Portal
-**Domain:** Tax document management, AI extraction, accountant-client collaboration
-**Researched:** 2026-03-30
-**Confidence:** HIGH
+**Project:** SpendifiAI v2.1 Milestone — Optimize My Income (Tax/Income Optimization + Smart Financial Interview)
+**Domain:** Personal tax optimization + financial education — subsequent milestone built on live Laravel 12 + React 19 stack
+**Researched:** 2026-07-01
+**Confidence:** HIGH (stack and architecture verified against codebase; features cross-referenced with fintech UX research; pitfalls sourced from regulatory guidance and documented fintech failures)
+
+---
 
 ## Executive Summary
 
-SpendifiAI v2.0 adds a Tax Document Vault and Accountant Collaboration Portal on top of an already-mature finance platform (32 models, 14 services, 10 jobs). The new feature set follows a well-trodden pattern in tax practice management software (TaxDome, SmartVault, Canopy), which means the feature requirements and risks are well-understood. The existing codebase provides strong foundations: an accountant-client relationship system, a PDF-to-Claude AI pipeline (`BankStatementParserService`), Redis queue infrastructure, and a confidence-threshold pattern in `config/spendifiai.php` — all of which the new features extend rather than replace. The build is primarily additive: 11 new models, 5 new controllers, 6 new services, and 3 new packages.
+**Optimize My Income** is an educational tax-optimization and smart-interview feature for SpendifiAI's existing personal-finance app. Experts build this by: **(1) never letting Claude compute tax dollars** — all IRS math lives in a deterministic `TaxRulesEngineService` read from a year-versioned config file, **(2) using Claude only to generate plain-English explanations of pre-computed findings**, and **(3) maintaining an absolute educational-only liability boundary** via consistent modal framing ("may," "could," "consider"), persistent disclaimers, and explicit non-assertion of financial decisions (e.g., "file as Head of Household"). The recommended approach is zero new packages, fully additive architecture (6 new services, 5 new models, no existing code rewrites), and a dependency-ordered 5-phase build: (1) rules engine + data assembly, (2) red-flag detection + cross-source review, (3) interview state machine, (4) report generation, (5) polish + new document types.
 
-The recommended approach is a three-phase build. Phase 1 establishes the secure document vault with AI classification and extraction (the foundation everything else depends on). Phase 2 adds accountant collaboration tools (document requests, comments, client completeness view). Phase 3 delivers the dual sign-off workflow and document sharing. This ordering is dictated by hard dependencies: extraction must exist before worksheets, accountant access must be proven secure before sign-off workflows can be built on top of it, and the audit trail must be in place from day one — retrofitting it is painful and audit gaps are a compliance liability.
+The research converges on a critical risk: Claude will hallucinate IRS limits (contribution limits, standard deduction amounts, tax brackets) if asked directly. IRS figures change annually via inflation adjustments. The entire feature rests on a single-source-of-truth `config/tax-rules.php` keyed by tax year. Every math operation reads from this file, never from Claude. This constraint is load-bearing: a mistake in tax math gives users incorrect guidance, creates liability, and may expose the platform to regulatory scrutiny. All 12 critical pitfalls converge on the same theme: **deterministic, auditable, divorced-from-Claude boundaries at every layer**.
 
-The biggest risks are security, not engineering complexity. Tax documents contain SSN, EIN, and income data. The critical pitfalls are: authorization boundary failures (accountants accessing wrong clients), PII leakage through AI extraction results stored as plain JSON, signed URL token replay, and immutable audit log bypass via standard Eloquent. All four are preventable with established patterns but require intentional implementation from the start. The single most important architectural decision is to build `TaxDocumentPolicy` with full delegated-access logic (owner OR active-relationship accountant) before any document endpoint is exposed.
+**Immediate action:** Before any planning starts, confirm the constants file structure and rules engine pattern with the tech lead. The entire roadmap depends on this foundation being locked down correctly.
+
+---
 
 ## Key Findings
 
 ### Recommended Stack
 
-Only 3 new packages are needed. The existing stack handles everything else. `league/flysystem-aws-s3-v3` is required for S3 support via Laravel's Storage facade. `smalot/pdfparser` provides pure-PHP PDF text extraction without system binary dependencies (solving the `poppler-utils` problem documented in project memory). `react-pdf@^10` (React 19 compatible) provides in-browser PDF preview via signed URLs.
+**Zero new Composer packages. Zero new npm packages.** All three pillars (rules engine, document extraction, interview/report) are implemented as new PHP service classes and config data using the existing Laravel 12, Inertia 2, and Claude Sonnet API stack.
 
-**Core technology additions:**
-- `league/flysystem-aws-s3-v3 ^3.0`: S3 filesystem adapter — required by Laravel Storage for S3 disk, enables local/S3 toggle via config
-- `smalot/pdfparser ^2.12`: Pure PHP PDF text extraction — no binary dependencies, preprocesses PDFs before sending to Claude (cheaper than vision API)
-- `react-pdf ^10.0`: In-browser PDF rendering — React 19 compatible, passes signed URLs as file prop, requires pdf.js worker setup
+**Core technologies (new additions only):**
 
-All AI extraction uses the existing Claude API integration. All file upload validation uses existing Laravel Form Request patterns. All auth uses existing Sanctum + Policy patterns. `barryvdh/laravel-dompdf` and `phpoffice/phpspreadsheet` are already installed for export formats.
+- **`config/tax-rules.php`** — Versioned tax constants (year-keyed) storing 2026 IRS brackets, standard deductions, contribution limits, SE tax rates, Roth phase-outs, HSA limits. Replaces all hardcoded dollar figures. Updated each November.
+  
+- **`TaxRulesEngineService`** — Pure PHP deterministic calculation. Reads config, computes: effective/marginal tax rates, standard vs itemized comparison, remaining 401(k)/IRA/HSA room, Roth eligibility, SE tax, QBI deduction. **Zero Claude calls.** Single source of truth.
+
+- **6 new services** — IncomeOptimizerDataAssemblerService (snapshot), RedFlagDetectorService (patterns), CrossSourceReviewService (discrepancies), InterviewOrchestratorService (state machine), OptimizationReportGeneratorService (narratives).
+
+- **5 new models** — IncomeOptimizationProfile (cache), OptimizationFinding (findings), InterviewSession (state), OptimizationQuestion (questions), OptimizationReport (report).
+
+- **New document types** — Extend existing TaxDocumentExtractorService with CheckStub, OfferLetter, RetirementStatement, BenefitsStatement, StockStatement, InsuranceStatement. Reuse two-pass classify→extract. Images via Claude vision (base64, no new library).
+
+- **Existing infrastructure reused** — AIQuestion model + feed (new QuestionType::Optimization case, additive), UserFinancialProfile, IncomeDetectorService, TransactionCategorizerService, TaxDocumentExtractorService, DashboardCacheService.
+
+**Why no packages:** US tax calculation is 7-level bracket iteration + conditionals. Third-party "rules engines" (Ruler, RulerZ) are designed for dynamic rule injection — mismatch for static annual constants. Ruler is abandoned. Plain PHP 8.3 is faster, cheaper, cleaner.
+
+---
 
 ### Expected Features
 
-**Must have (table stakes):**
-- Secure multi-file upload (PDF, JPG, PNG) with server-side MIME validation and signed URL access
-- AI document classification (identify form type from first page) and field extraction (W-2, 1099-NEC, 1099-INT, 1098 as first four)
-- Extraction confidence scoring reusing the existing `config/spendifiai.php` threshold pattern
-- Human review workflow for low-confidence extractions (side-by-side document + extracted fields)
-- Append-only document audit log (every view, download, share, sign recorded)
-- Document status tracking through upload/classifying/extracting/ready/failed states
-- Accountant view of client documents via existing portal (extend `AccountantTaxController`)
-- Document request system (accountant requests missing docs from client)
-- Dual sign-off workflow (taxpayer attests completeness, accountant attests review)
-- Document sharing packages with time-limited signed URLs
+**Must have (v2.1 launch):**
+- Document intake for 4 new types (pay stub, offer letter, 401(k), benefits summary)
+- Cross-Source Context Engine (assemble facts before asking)
+- Guided one-question-at-a-time interview with skip/back
+- Filing status red-flag detection (surface mismatch, not assertion)
+- Tax withholding check (gap >$500 flags)
+- Standard vs itemized comparison
+- 401(k) employer match gap calculator
+- Traditional vs Roth educational recommendation (deterministic logic, Claude narrates)
+- QBI deduction eligibility surface
+- Deduction probe questions (home office, vehicle, electronics, pet, meals — prerequisites required)
+- Optimization report with disclaimers (persistent, not dismissable globally)
+- Ongoing red-flag questions in AI feed (bridges into existing infrastructure)
 
-**Should have (differentiators):**
-- AI missing document detection (cross-reference transaction categories with expected document types)
-- Tax worksheet auto-population from extraction data (extracted W-2 fields flow into form lines)
-- Cross-document anomaly detection (W-2 wages vs. bank deposit totals)
-- Transaction-to-document linking (1099 linked to associated freelance deposits)
-- Year-over-year document comparison (document count changes)
+**Should have (post-validation):**
+- Cross-source income anomaly (W-2 vs deposits)
+- Offer letter benefit gap analysis
+- Deductible subscription detection
 
-**Defer to post-MVP:**
-- Tax software export formats (TurboTax TXF) — complex format specs, niche demand initially
-- Firm branding on invite emails — nice-to-have, not blocking any workflow
-- Remaining 21 form types beyond the initial 4 — add incrementally per user demand
-- Multi-user firm management — single accountant per firm is sufficient for v2
+**Explicitly out of scope (anti-features):**
+- Asserting filing status ("you should file jointly")
+- Computing actual refund amount (would be tax prep)
+- Investment allocation advice (requires RIA registration)
+- Guaranteeing dollar savings (use ranges + uncertainty)
+- Auto-filing or tax return generation (PTIN required)
+- Gray-area deduction assertions ("your dog IS deductible")
+- State tax optimization (federal only for v2.1)
+- Global "dismiss all disclaimers" toggle
 
-**Explicit anti-features (do not build):**
-- Full SSN/TIN storage — store last 4 only, strip from extracted data
-- Legal e-signature (ESIGN Act compliance) — use simple attestation with audit log instead
-- Direct IRS e-filing — requires EFIN certification, export to TurboTax instead
-- Real-time collaborative document editing — comments/annotations are sufficient
+---
 
 ### Architecture Approach
 
-New features follow all existing patterns: thin controllers delegating to service classes, Form Request validation, Policy authorization, Redis-backed queue jobs, and config-driven thresholds. Six new services are added to the `app/Services/` layer. Eleven new models are introduced. The key architectural choices are: `TaxDocumentVersion` for versioning without re-upload, `DocumentAuditLog` as a separate immutable table from the existing `AccountantActivityLog` (different retention policies, different compliance requirements), and the `StorageSetting` model for runtime-configurable S3 credentials (must never be returned to the frontend).
+**Deterministic math (PHP) upstream; Claude (narratives) downstream.** Five services, five models, additive only.
 
 **Major components:**
-1. `DocumentStorageService` — file storage abstraction (local/S3 toggle), signed URL generation, encryption at rest
-2. `TaxDocumentClassifierService` / `TaxDocumentExtractorService` — two-pass AI pipeline, Claude API with smalot preprocessing, confidence scoring per field
-3. `TaxWorksheetService` — auto-populate worksheet fields from extraction data, cross-document validation, anomaly flagging
-4. `DocumentAuditService` — immutable audit log writes with hash chain for tamper detection
-5. `DocumentShareService` — share packages with short-expiry signed URLs, revocation, download tracking
-6. `SignOffService` — dual sign-off state machine with `DB::transaction() + lockForUpdate()` to prevent race conditions
+1. **TaxRulesEngineService** — Pure PHP. All IRS figures from config. Never calls Claude. Single source of truth.
+2. **RedFlagDetectorService** — 9 named detectors (all deterministic Boolean logic). Claude called only for descriptions of flags (bounded: 3-8 findings typical).
+3. **InterviewOrchestratorService** — State machine. Claude for question wording only (~1 call per question, 5-12 typical).
+4. **OptimizationReportGeneratorService** — Assembles 4-section report. TaxRulesEngineService computes numbers. Claude for narratives (5 calls max per report).
+5. **IncomeOptimizerDataAssemblerService** — Cache-like snapshot from existing encrypted records. No Claude.
+6. **CrossSourceReviewService** — Compares documents vs bank vs email. Deterministic logic; Claude for explanations only.
 
-**5 new controllers:** `TaxDocumentController`, `TaxWorksheetController`, `DocumentShareController`, `SignOffController`, `AdminStorageController`
+**New models:** IncomeOptimizationProfile (snapshot), OptimizationFinding (findings), InterviewSession (state), OptimizationQuestion (questions), OptimizationReport (report).
 
-**4 new policies:** `TaxDocumentPolicy` (critical — owner OR active-relationship accountant), `TaxWorksheetPolicy`, `DocumentSharePolicy`, `SignOffPolicy`
+**Total Claude calls per cycle:** ~18 (5 for descriptions, 8 for interview, 5 for report). Bounded.
 
-### Critical Pitfalls
+**Integration (minimal, backward-compatible):**
+- Add QuestionType::Optimization enum case
+- Add UpdateOptimizationFromAnswer listener to UserAnsweredQuestion event
+- Guard UpdateTransactionCategory listener to skip optimization questions
+- DashboardCacheService invalidation on document extraction
 
-1. **Authorization boundary failure** — Never use `|| $user->isAccountant()` in policies. `TaxDocumentPolicy` must check the full chain: owner OR (accountant + active `AccountantClient` relationship with document owner). Extract `canAccessClient(User $accountant, User $client): bool` and use it everywhere. Write explicit cross-accountant access tests.
+---
 
-2. **PII leakage through AI extraction** — Store extracted data using `encrypted:array` cast (never plain JSON). Create a `SanitizedExtractionResource` that masks SSN to `***-**-1234` by default. Add regex-based PII redaction to log formatter. Never log raw Claude API responses.
+### Critical Pitfalls (Top 5)
 
-3. **Signed URL token replay** — 5-15 minute expiry for direct downloads, 1-hour maximum for sharing packages. Bind signed URLs to the session by including `user_id` as a signed parameter. Generate S3 pre-signed URLs server-side on demand, never cache in API responses.
+1. **Claude hallucinating IRS limits** → All figures from `config/tax-rules.php`, never from Claude. Inject constants into Claude's system prompt for explanations only. Test asserts exact match to config.
 
-4. **Immutable audit log bypass** — Override `delete()`, `update()`, `save()` on `DocumentAuditLog` to throw exceptions. Add PostgreSQL rules (`CREATE RULE audit_no_update`) as database-level enforcement. Implement hash chain (each entry stores `sha256(prev_hash + entry_data)`) for tamper detection.
+2. **Crossing educational/advice line** → Enforce modal framing ("may," "could," "consider"). Ban "you should," "you must," "you qualify." Every card shows inline disclaimer. Hard-code framing into system prompts before user-facing work.
 
-5. **Dual sign-off race condition** — Use `DB::transaction()` with `lockForUpdate()` on the sign-off record. Model as explicit state machine. Store sign-offs as separate rows with `UNIQUE(tax_year_id, user_role)` constraint. Final "filed" transition happens via background job, not the HTTP request.
+3. **Prompt injection via documents** → Never include raw extracted text in system prompt. Use `<document_content>` delimiters. Require structured JSON output schema. Validate against schema. Strip PDF metadata.
 
-6. **Missing tenant scoping** — Always query through relationships (`$request->user()->taxDocuments()->findOrFail($id)`), never `TaxDocument::find($id)`. Consider a global scope on `TaxDocument`. Policy is a second line of defense, not the first.
+4. **Aggressive/incorrect deductions trigger audits** → Every probe gates on prerequisites verified from real data. Never suggest deductions requiring uncertain preconditions. Maintain hard block list (guard dog, mixed-use vehicle, home entertainment). Flag audit-high-risk categories.
+
+5. **Filing status misdetection** → NEVER determine or recommend filing status. Read only stated filing status from UserFinancialProfile. If null, block optimization. Interview asks what the user expects; takes answer at face value. Surface mismatches educationally only.
+
+**Full 12-pitfall list:** See PITFALLS.md. Includes: PII exposure, pro-rata Roth trap, state tax scope creep, breaking AI feed, cache invalidation, migration safety, interview fatigue.
+
+---
 
 ## Implications for Roadmap
 
-Based on research, suggested phase structure:
+**5-phase dependency-ordered build:**
 
-### Phase 1: Document Vault Foundation
-**Rationale:** Everything else depends on this. Classification gates extraction. Extraction gates worksheets. Audit trail must exist from day one — retrofitting creates compliance gaps. Super Admin storage config must be set before any file is stored.
-**Delivers:** Secure file upload and storage (local + S3 toggle), AI document classification and field extraction (4 Tier 1 forms: W-2, 1099-NEC, 1099-INT, 1098), document status tracking, extraction review UI, append-only audit trail, Super Admin storage configuration
-**Features addressed:** Document vault core (all table stakes), Tier 1 AI extraction forms
-**Pitfalls to avoid:** #1 (authorization), #2 (PII leakage), #4 (audit log immutability), #6 (S3 credentials), #10 (tenant scoping), #12 (file upload validation)
-**New packages needed:** `league/flysystem-aws-s3-v3`, `smalot/pdfparser`, `react-pdf`
+### Phase 1: Foundation — Rules Engine + Data Assembly
 
-### Phase 2: Accountant Collaboration
-**Rationale:** Accountant-client relationship already exists. This phase extends it to documents. Must come after Phase 1 so accountants have documents to collaborate on. Authorization pattern established in Phase 1 is the foundation.
-**Delivers:** Accountant view of client documents with document status overview, threaded document comments/annotations (accountant-only visibility by default), document request system (accountant requests missing docs), client completeness checklist
-**Features addressed:** All Accountant Portal table stakes
-**Pitfalls to avoid:** #1 (cross-client access), #9 (impersonation audit gaps), #11 (cross-client comment leakage)
-**Architecture:** Extend existing `AccountantTaxController`; add `DocumentRequest` and `TaxDocumentAnnotation` models
+**Rationale:** Everything depends on this. Tax constants locked before Claude integration. Rules engine deterministic and tested in isolation.
 
-### Phase 3: Sign-off, Sharing, and Worksheets
-**Rationale:** Sign-off requires documents to exist and accountant collaboration to be in place. Worksheets require extraction data from Phase 1. Sharing requires documents and (optionally) sign-off status. These features complete the taxpayer → accountant → filed workflow.
-**Delivers:** Dual sign-off workflow (taxpayer attestation + accountant approval with DB-locked state machine), document sharing packages with time-limited signed URLs, ZIP download for accountants, tax worksheet auto-population from extracted data
-**Features addressed:** Dual sign-off workflow (all), document sharing (all), worksheet auto-population (differentiator)
-**Pitfalls to avoid:** #3 (signed URL replay), #5 (sign-off race condition), #13 (timezone confusion in sign-off timestamps), #16 (sharing package expiry without notification)
+**Delivers:**
+- config/tax-rules.php with 2026 IRS brackets, deductions, limits (verified vs IRS.gov)
+- TaxRulesEngineService (pure PHP, zero Claude)
+- IncomeOptimizationProfile model + migration
+- IncomeOptimizerDataAssemblerService
+- BuildIncomeOptimizationProfile job (data assembly only)
+- Pest tests for rules engine (math correct at boundaries, headroom matches limits exactly)
 
-### Phase 4: Intelligence Layer (Post-MVP)
-**Rationale:** Requires solid extraction data from multiple documents across multiple users to be meaningful. Cross-document validation needs multiple extraction results. Missing document detection needs transaction data cross-referencing. This phase is high-value but depends on extraction accuracy being proven first.
-**Delivers:** AI missing document detection (transaction → expected document cross-reference), cross-document anomaly detection (W-2 vs. bank deposits), transaction-to-document linking, year-over-year comparison, Tier 2 form support (8 additional forms)
-**Features addressed:** All differentiators
-**Pitfalls to avoid:** #8 (AI hallucination as ground truth)
+**Addresses:** Standard vs itemized, 401(k)/IRA/HSA headroom, Traditional vs Roth logic, QBI thresholds, SE deduction
+
+**Avoids:** Claude hallucinating limits, filing status misdetection, aggressive deductions
+
+**Gate:** Profile builds correctly; all math tested; no existing tests broken
+
+---
+
+### Phase 2: Detection — Red Flags + Cross-Source + Interview Machine
+
+**Rationale:** Foundation exists. Detectors run cheaply. Interview state machine transforms findings into questions.
+
+**Delivers:**
+- RedFlagDetectorService (9 detectors, all deterministic)
+- CrossSourceReviewService (W-2 vs deposits, deductible subscriptions)
+- OptimizationFinding model + enums
+- InterviewSession + InterviewSessionStatus enum
+- OptimizationQuestion + OptimizationQuestionType enum
+- InterviewOrchestratorService (state machine, Claude for wording)
+- IncomeOptimizerController + endpoints
+- QuestionType::Optimization enum case
+- SurfaceHighPriorityRedFlags listener (creates AIQuestion for red-flag findings)
+- UpdateOptimizationFromAnswer listener (bridge to existing event)
+- Guard logic on UpdateTransactionCategory listener
+- Frontend: OptimizeIncome page Step 1 (findings list), Step 2 skeleton (interview)
+- Pest tests: detectors, state machine, guards, no regressions
+
+**Addresses:** Filing status flag, retirement gap, Traditional vs Roth probe, deduction probes, ongoing red-flag questions
+
+**Avoids:** Aggressive deductions, pro-rata Roth trap, breaking AI feed
+
+**Gate:** Complete interview flow works; findings surface in AI feed; existing categorization tests pass
+
+---
+
+### Phase 3: Report Generation
+
+**Rationale:** Completed sessions exist. Report runs as background job.
+
+**Delivers:**
+- OptimizationReport model + OptimizationReportStatus enum
+- OptimizationReportGeneratorService (TaxRulesEngineService for numbers, Claude for narratives only)
+- GenerateOptimizationReport job (background, triggered by event)
+- OptimizationReportReady event + listener
+- Controller: GET /optimize/report/{year}
+- Stale logic (mark stale on document upload or sync)
+- Frontend: OptimizeIncome Step 3 (4-section report, collapsible, persistent disclaimers)
+- Blade template for PDF export
+- Pest tests: structure correct, disclaimers render, numbers from TaxRulesEngineService, existing tests pass, stale mechanism works
+
+**Addresses:** Optimization report with ranked items, disclaimers, actions, export
+
+**Avoids:** Crossing advice line, state tax scope creep, cache invalidation
+
+**Gate:** Report generates with correct TaxRulesEngineService numbers; Claude narratives present; 225+ existing tests pass; cache works
+
+---
+
+### Phase 4: Polish + New Document Types
+
+**Rationale:** Core complete. Extend to new doc types. Add navigation.
+
+**Delivers:**
+- New TaxDocumentCategory enum cases
+- Extraction prompt configs for each type
+- IncomeOptimizerDataAssemblerService extended for new types
+- "Optimize My Income" nav item with badge
+- Scheduled tasks: AbandonStaleInterviewSessions, RefreshStaleOptimizationProfiles
+- End-to-end test: doc upload → profile rebuild → report stale → refresh → update
+- Frontend polish: progress bar, tooltips, last-analyzed timestamp, re-answer capability
+
+**Addresses:** New document intake, ongoing freshness, interview edit
+
+**Avoids:** PII exposure, migration lock safety
+
+**Gate:** New docs extract correctly; report updates; no performance regression
+
+---
+
+### Phase 5: Validation + Hardening
+
+**Rationale:** Feature complete. Audit, test, harden.
+
+**Delivers:**
+- Security audit: prompt injection penetration test, SSN masking verification, error tracking scrubbing
+- Legal review: framing check, no assertions, disclaimers everywhere
+- User testing: interview fatigue (5-question cap), pre-population, mobile experience
+- Documentation: support onboarding, educational vs advice boundary, dispute handling
+- Monitoring: finding accuracy, completion rate, clarity feedback
+
+**Addresses:** Production-ready feature
+
+---
 
 ### Phase Ordering Rationale
 
-- Audit trail must be parallel to Phase 1, not deferred — retrofitting creates gaps in immutable log and cannot be reconstructed retroactively
-- Accountant access (Phase 2) builds on the `TaxDocumentPolicy` established in Phase 1 — the policy must be correct before accountants can access anything
-- Sign-off (Phase 3) has a hard dependency on both documents existing AND accountant review happening — it cannot precede Phase 2
-- Worksheets (Phase 3) have a hard dependency on extraction data — extraction must be proven reliable before auto-population is trusted
-- Differentiators (Phase 4) are pure enhancements — no other feature depends on them
+1. **Rules Engine first:** Everything depends on correct tax math.
+2. **Detection next:** Builds on foundation. Detectors cheap; interview state belongs here.
+3. **Report generation:** Requires completed sessions. Assembly is simple once findings/answers exist.
+4. **Polish:** New doc types extend Phase 2 logic. Navigation late. Maintenance tasks operational.
+5. **Validation:** Security/legal review on complete feature, not in isolation.
+
+---
 
 ### Research Flags
 
-Phases likely needing deeper research during planning:
-- **Phase 1 (AI Extraction):** Per-field confidence scoring is not established in the codebase. The existing pattern uses document-level confidence. Needs design for how field-level confidence is stored, surfaced, and acted on.
-- **Phase 3 (ZIP generation):** `ZipArchive` with S3-backed files requires streaming from S3 into the ZIP. Pattern not established in codebase — may need composer research on memory-efficient streaming approach.
-- **Phase 4 (Missing document detection):** Mapping Plaid transaction categories to expected tax form types requires a lookup table design that does not currently exist. Needs schema design work.
+**Phases needing deeper research during planning:**
+- **Phase 2 (Detectors):** Finalize each detector's prerequisite gates via legal review before coding.
+- **Phase 2 (Interview Fatigue):** User test to validate 5-question initial cap drives engagement.
+- **Phase 3 (Report Clarity):** Get 2-3 accountants to review section structure and ordering.
 
-Phases with standard patterns (research-phase likely not needed):
-- **Phase 1 (File upload + storage):** Established Laravel Storage pattern. S3 disk configuration already exists in `config/filesystems.php`. Well-documented.
-- **Phase 2 (Document comments):** Polymorphic comments with `parent_id` threading is a well-documented Laravel pattern.
-- **Phase 3 (Signed URL sharing):** Laravel `URL::temporarySignedRoute()` is well-documented. Pattern exists in the research.
+**Phases with standard patterns (skip research):**
+- **Phase 1 (Rules Engine):** Config-driven constants and bracket math are well-established.
+- **Phase 4 (Document Extraction):** Two-pass classify→extract already exists in v2.0; extending is mechanical.
+- **Phase 5 (Hardening):** Security patterns documented; no research needed, only execution.
+
+---
 
 ## Confidence Assessment
 
 | Area | Confidence | Notes |
 |------|------------|-------|
-| Stack | HIGH | All 3 package recommendations verified against official sources and existing codebase. Existing stack compatibility confirmed. |
-| Features | HIGH | Cross-referenced TaxDome, SmartVault, Canopy, Intuit, IRS documentation. Table stakes are well-established in the domain. |
-| Architecture | HIGH | Based on direct analysis of the existing codebase (32 models, 14 services). All patterns are extensions of verified existing code. |
-| Pitfalls | HIGH | Security pitfalls backed by multiple sources including NIST PII guidelines, IRS privacy protections, and codebase-specific analysis. |
+| Stack | **HIGH** | All tech verified against codebase. Zero new packages confirmed. Design straightforward. |
+| Features | **HIGH** | Cross-referenced against Keeper Tax, TurboTax, fintech research. Dependencies clear. Anti-features well-defined. |
+| Architecture | **HIGH** | Direct codebase inspection confirms existing models, services, enums, jobs, events. New components follow house patterns. |
+| Pitfalls | **HIGH** | Sourced from IRS OPR guidance, Bloomberg Tax, Snyk, fintech case studies, project safety rules. Each has documented real-world failures. |
 
-**Overall confidence:** HIGH
+**Overall confidence: HIGH**
 
 ### Gaps to Address
 
-- **Per-field confidence storage schema:** How extraction confidence is stored per field (not per document) needs design before Phase 1 planning. One approach: `confidence` column on `TaxWorksheetField` model. Another: `confidence_scores` JSONB column on `TaxDocumentVersion`. Decide during Phase 1 planning.
-- **APP_KEY rotation plan:** The project now uses `encrypted` casts on more fields (extraction data, S3 credentials). A rotation runbook should be documented before Phase 3 ships encrypted extraction data to production (Pitfall #15).
-- **ClamAV availability:** File upload validation research recommends ClamAV scanning. Whether this binary is available on the production server is unknown. Treat as optional for MVP, required for production hardening.
-- **Tier 2 form prioritization:** 8 Tier 2 forms are defined (1099-MISC, 1099-DIV, 1099-B, 1099-R, 1099-G, 1099-K, 1098-E, 1098-T). Prioritization within Tier 2 should be driven by user signup data once Tier 1 is live.
+1. **Exact deduction probe prerequisites:** Research identifies examples but not specific transaction patterns/profile flags per probe. Recommend: Phase 1 planning should define gate for each of 5 initial probes.
+
+2. **Interview question templates:** Research specifies boundary but not exact phrasing. Recommend: Phase 2 planning should draft 5 templates; tax professional review.
+
+3. **Report section priority:** Research suggests 4 sections but not ordering/emphasis. Recommend: Phase 3 planning should consult accountants on actionability.
+
+4. **State tax education scope:** Research limits to federal but not how to educate on state limitations (e.g., California TCJA non-conformity). Recommend: Phase 5 planning draft state-specific disclaimers.
+
+---
 
 ## Sources
 
 ### Primary (HIGH confidence)
-- [Laravel 12.x Filesystem Docs](https://laravel.com/docs/12.x/filesystem) — S3 configuration, `temporaryUrl()`, disk abstraction
-- [smalot/pdfparser v2.12.4 on Packagist](https://packagist.org/packages/smalot/pdfparser) — version and compatibility verification
-- [react-pdf v10.4.1 on npm](https://www.npmjs.com/package/react-pdf) — React 19 peer dependency confirmed
-- [Microsoft Document Intelligence - US Tax Documents](https://learn.microsoft.com/en-us/azure/ai-services/document-intelligence/prebuilt/tax-document) — form type coverage and field definitions
-- [IRS Form documentation](https://www.irs.gov) — W-2, 1099 family, 1098 family field specifications
-- Existing SpendifiAI codebase analysis — 32 models, 14 services, all existing patterns
+
+- **IRS Rev. Proc. 2025-32** — 2026 brackets, deductions, LTCG thresholds
+- **IRS Notice 2025-67** — 2026 retirement limits
+- **IRS Notice 2026-05** — 2026 HSA limits
+- **Anthropic Claude Vision Docs** — Image extraction best practices
+- **SSA.gov / IRS Topic 751** — 2026 FICA, wage base
 
 ### Secondary (MEDIUM confidence)
-- [TaxDome feature documentation](https://taxdome.com) — table stakes validation, sign-off workflow patterns
-- [SmartVault documentation](https://www.smartvault.com) — document vault baseline feature expectations
-- [Canopy accounting portal](https://www.getcanopy.com) — client portal collaboration patterns
-- [NIST SP 800-122 PII Protection Guidelines](https://nvlpubs.nist.gov/nistpubs/legacy/sp/nistspecialpublication800-122.pdf) — SSN/EIN handling requirements
-- [HubiFi Immutable Audit Trail Guide](https://www.hubifi.com/blog/immutable-audit-log-basics) — audit log design patterns
-- [AWS S3 Pre-signed URLs for PHP](https://docs.aws.amazon.com/sdk-for-php/v3/developer-guide/s3-presigned-url.html) — signed URL security patterns
 
-### Tertiary (LOW confidence — validate during implementation)
-- [AI Tax Accuracy Benchmarks](https://www.filed.com/measuring-ai-tax-accuracy-filed-vs-chatgpt-claude-gemini) — extraction accuracy expectations; validate with actual Claude Sonnet prompts during Phase 1
-- ClamAV production availability — unknown, requires server environment check
+- **Bloomberg Tax — AI Hallucinations in Tax**
+- **Snyk — Prompt Injection via Invisible PDF Text**
+- **Journal of Accountancy — AI & Circular 230 Standards**
+- **Keeper Tax, TurboTax, Instead.com UX research**
+
+### Tertiary (PROJECT docs)
+
+- **CLAUDE.md** — Safety rules, tech stack, patterns
+- **PROJECT.md** — v2.1 scope, constraints
+- **Codebase inspection (2026-07-01)** — Models, Services, Enums, Jobs, Events
 
 ---
-*Research completed: 2026-03-30*
-*Ready for roadmap: yes*
+
+*Research completed: 2026-07-01*
+*Confidence: HIGH*
+*Ready for requirements definition: yes*
+
+**Next step:** Roadmapper uses this summary + phases to structure ROADMAP.md. Phase 1 planning: (1) finalize config/tax-rules.php structure, (2) lock TaxRulesEngineService API contracts, (3) define deduction probe prerequisites, (4) schedule security/legal review for Phase 5.
