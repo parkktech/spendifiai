@@ -1,0 +1,121 @@
+# Requirements: SpendifiAI — v2.1 Optimize My Income
+
+**Defined:** 2026-07-01
+**Core Value:** Help users find every legal edge to maximize take-home income and savings — reviewing all their financial documents + linked email/bank data and interviewing them with only high-value questions and red flags — as **educational suggestions only**, never definitive tax advice.
+
+## v2.1 Requirements
+
+Requirements for this milestone. Each maps to a roadmap phase. All outputs are educational; deterministic math is computed by the rules engine, and Claude is used only to narrate/word findings.
+
+### Tax Rules Engine (TAX)
+
+- [ ] **TAX-01**: System stores all 2026 IRS constants (brackets, standard deduction, 401k/IRA/HSA limits, SE tax, Roth phase-outs, QBI thresholds) in a year-versioned `config/tax-rules.php` — the single source of truth
+- [ ] **TAX-02**: `TaxRulesEngineService` computes marginal + effective federal tax rate from taxable income and filing status, reading only from config (zero Claude calls)
+- [ ] **TAX-03**: Engine computes standard-vs-itemized comparison and reports which is larger
+- [ ] **TAX-04**: Engine computes remaining 401(k), IRA, and HSA contribution headroom against annual limits (incl. age-based catch-up)
+- [ ] **TAX-05**: Engine produces a deterministic Traditional-vs-Roth recommendation band (≤12% → Roth lean, ≥32% → Traditional lean, middle → split), including the SECURE 2.0 mandatory-Roth-catch-up flag for high earners
+- [ ] **TAX-06**: Engine surfaces QBI deduction eligibility and self-employment-tax deduction where applicable
+- [ ] **TAX-07**: Rules-engine math is covered by Pest tests asserting exact matches to config values at bracket boundaries
+
+### Cross-Source Context Engine (CTX)
+
+- [ ] **CTX-01**: `IncomeOptimizerDataAssemblerService` assembles a per-user financial snapshot from existing sources (UserFinancialProfile, transactions, income detection, vault-extracted documents) with no Claude calls
+- [ ] **CTX-02**: The snapshot is persisted in a new `IncomeOptimizationProfile` cache model and rebuilt via a background job
+- [ ] **CTX-03**: `CrossSourceReviewService` compares documents vs bank deposits vs email data and flags discrepancies deterministically (Claude only explains a detected discrepancy)
+- [ ] **CTX-04**: The interview and detectors skip anything already answerable from the snapshot ("know what you know before asking")
+
+### Red-Flag Detection (FLAG)
+
+- [ ] **FLAG-01**: `RedFlagDetectorService` runs deterministic detectors and produces `OptimizationFinding` records (Claude only writes each flag's description)
+- [ ] **FLAG-02**: Filing-status mismatch detector surfaces (never asserts) a possible mismatch between stated status and document/expected status
+- [ ] **FLAG-03**: Tax-withholding detector flags an estimated withholding gap greater than $500
+- [ ] **FLAG-04**: 401(k) employer-match-gap detector flags unclaimed employer match from pay-stub data
+- [ ] **FLAG-05**: Deduction-probe detectors (home office, vehicle, electronics, pet, meals) fire ONLY when their data prerequisites are verified from real user data
+- [ ] **FLAG-06**: Every finding carries a severity/priority so high-value items can be surfaced first
+
+### Guided Interview (INT)
+
+- [ ] **INT-01**: `InterviewOrchestratorService` runs a persisted `InterviewSession` state machine (Claude used only to word each question)
+- [ ] **INT-02**: The interview presents one high-value question at a time with skip and back navigation
+- [ ] **INT-03**: The interview asks only high-signal questions/red flags — it does not re-ask anything derivable from the snapshot, and caps the initial pass to a small number of questions
+- [ ] **INT-04**: Deduction/eligibility probes are gated behind explicit prerequisite answers (e.g. backdoor-Roth probe gated behind an IRA-balance question to respect the pro-rata rule)
+- [ ] **INT-05**: A user can resume an in-progress interview and re-answer a prior question
+
+### AI Questions Feed Integration (FEED)
+
+- [ ] **FEED-01**: A new additive `QuestionType::Optimization` enum case is added without changing existing question behavior
+- [ ] **FEED-02**: A `SurfaceHighPriorityRedFlags` listener creates standard `AIQuestion` records for high-priority findings so they appear in the existing AI Questions feed
+- [ ] **FEED-03**: An `UpdateOptimizationFromAnswer` listener on the existing `UserAnsweredQuestion` event feeds answers back into the optimization profile
+- [ ] **FEED-04**: The existing `UpdateTransactionCategory` listener is guarded to ignore optimization questions, so transaction-categorization behavior and tests are unaffected
+
+### Optimization Report (RPT)
+
+- [ ] **RPT-01**: `OptimizationReportGeneratorService` assembles a ranked, sectioned report (deductions / taxes / filings / 401k) where all numbers come from `TaxRulesEngineService` and Claude writes only the narrative prose
+- [ ] **RPT-02**: The report is generated by a background job and stored in a new `OptimizationReport` model, and marked stale on new document upload or bank sync
+- [ ] **RPT-03**: The report renders persistent, non-globally-dismissable educational disclaimers on every section
+- [ ] **RPT-04**: The report is exportable (PDF via the existing dompdf pipeline)
+
+### Document Intake (DOC)
+
+- [ ] **DOC-01**: New document types (check/pay stub, employer offer letter, 401(k)/retirement statement, benefits statement, stock statement, insurance statement) are added as `TaxDocumentCategory` cases reusing the v2.0 Vault two-pass extraction pipeline
+- [ ] **DOC-02**: Image-based uploads (screenshots) are extracted via the existing Claude vision pattern (base64, no new library)
+- [ ] **DOC-03**: New document extraction feeds the optimization snapshot and marks the report stale
+
+### Feature Surface & UX (UI)
+
+- [ ] **UI-01**: An "Optimize My Income" nav item is added to AuthenticatedLayout (with a badge for pending red-flag questions)
+- [ ] **UI-02**: A dedicated Optimize My Income page presents the flow: findings → guided interview → optimization report
+- [ ] **UI-03**: Every user-facing optimization surface uses educational modal framing ("may," "could," "consider") and shows an inline disclaimer
+
+### Safety & Liability Boundary (SAFE)
+
+- [ ] **SAFE-01**: All Claude system prompts hard-code educational framing and ban assertive language ("you should," "you must," "you qualify," filing-status assertions)
+- [ ] **SAFE-02**: Uploaded-document content is passed to Claude only inside `<document_content>` delimiters with a structured JSON output schema and output validation (prompt-injection defense)
+- [ ] **SAFE-03**: Claude never computes tax dollar amounts — a test asserts all report/finding numbers originate from `TaxRulesEngineService`/config
+- [ ] **SAFE-04**: Sensitive PII from stubs/offer letters (SSN, wages) follows existing encryption + SSN-last-4 rules; document access stays within the existing audit trail
+- [ ] **SAFE-05**: A security + legal hardening pass (prompt-injection penetration test, disclaimer/framing review, SSN-masking audit) is completed before the milestone is considered done
+
+## Future Requirements
+
+Deferred beyond v2.1. Tracked but not in this roadmap.
+
+### Post-Validation Enhancements
+
+- **CTX-05**: Cross-source income anomaly detection (W-2 wages vs deposits) beyond the basic discrepancy scan
+- **DOC-04**: Offer-letter benefit-gap analysis (variable-format extraction with its own confidence threshold)
+- **FLAG-07**: Deductible-subscription detection surfaced as optimization findings
+- **STATE-01**: State-level tax optimization and state-specific educational guidance (California TCJA non-conformity, etc.)
+
+## Out of Scope
+
+Explicitly excluded to hold the educational-only boundary and control scope. Documented to prevent scope creep.
+
+| Feature | Reason |
+|---------|--------|
+| Asserting a filing status ("you should file jointly") | Crosses education → advice; regulatory liability (IRS OPR Alert 2026-19) |
+| Computing an actual refund/liability amount | Would constitute tax preparation (PTIN territory) |
+| Auto-filing or tax-return generation | Requires PTIN; out of product scope |
+| Investment allocation / securities advice | Requires RIA registration |
+| Guaranteeing specific dollar savings | Use ranges + uncertainty framing; guarantees create liability |
+| Gray-area deduction assertions ("your dog IS deductible") | Audit risk for users; maintain a hard block list, surface as questions only |
+| State tax optimization (v2.1) | Federal-only for this milestone; deferred to STATE-01 |
+| Global "dismiss all disclaimers" toggle | Disclaimers must remain persistent for liability protection |
+| Non-Anthropic AI providers | Whole platform is built on Claude; no new provider |
+| New Composer/npm packages for the rules engine | Plain PHP bracket math is faster/cleaner; third-party rule engines mismatch static annual constants |
+
+## Traceability
+
+Populated during roadmap creation (roadmapper maps each requirement to exactly one phase).
+
+| Requirement | Phase | Status |
+|-------------|-------|--------|
+| (filled by roadmapper) | | |
+
+**Coverage:**
+- v2.1 requirements: 33 total
+- Mapped to phases: (pending roadmap)
+- Unmapped: (pending roadmap)
+
+---
+*Requirements defined: 2026-07-01*
+*Last updated: 2026-07-01 after milestone v2.1 initiation*
