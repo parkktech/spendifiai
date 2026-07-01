@@ -105,17 +105,63 @@ Explicitly excluded to hold the educational-only boundary and control scope. Doc
 
 ## Traceability
 
-Populated during roadmap creation (roadmapper maps each requirement to exactly one phase).
+Each requirement maps to exactly one phase. Phases continue the global numbering from v2.0 (Phases 10-13).
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| (filled by roadmapper) | | |
+| TAX-01 | Phase 10 | Pending |
+| TAX-02 | Phase 10 | Pending |
+| TAX-03 | Phase 10 | Pending |
+| TAX-04 | Phase 10 | Pending |
+| TAX-05 | Phase 10 | Pending |
+| TAX-06 | Phase 10 | Pending |
+| TAX-07 | Phase 10 | Pending |
+| CTX-01 | Phase 10 | Pending |
+| CTX-02 | Phase 10 | Pending |
+| CTX-03 | Phase 10 | Pending |
+| CTX-04 | Phase 10 | Pending |
+| FLAG-01 | Phase 11 | Pending |
+| FLAG-02 | Phase 11 | Pending |
+| FLAG-03 | Phase 11 | Pending |
+| FLAG-04 | Phase 11 | Pending |
+| FLAG-05 | Phase 11 | Pending |
+| FLAG-06 | Phase 11 | Pending |
+| INT-01 | Phase 11 | Pending |
+| INT-02 | Phase 11 | Pending |
+| INT-03 | Phase 11 | Pending |
+| INT-04 | Phase 11 | Pending |
+| INT-05 | Phase 11 | Pending |
+| FEED-01 | Phase 11 | Pending |
+| FEED-02 | Phase 11 | Pending |
+| FEED-03 | Phase 11 | Pending |
+| FEED-04 | Phase 11 | Pending |
+| RPT-01 | Phase 12 | Pending |
+| RPT-02 | Phase 12 | Pending |
+| RPT-03 | Phase 12 | Pending |
+| RPT-04 | Phase 12 | Pending |
+| DOC-01 | Phase 12 | Pending |
+| DOC-02 | Phase 12 | Pending |
+| DOC-03 | Phase 12 | Pending |
+| UI-01 | Phase 12 | Pending |
+| UI-02 | Phase 12 | Pending |
+| UI-03 | Phase 12 | Pending |
+| SAFE-01 | Phase 13 | Pending |
+| SAFE-02 | Phase 13 | Pending |
+| SAFE-03 | Phase 13 | Pending |
+| SAFE-04 | Phase 13 | Pending |
+| SAFE-05 | Phase 13 | Pending |
 
 **Coverage:**
-- v2.1 requirements: 33 total
-- Mapped to phases: (pending roadmap)
-- Unmapped: (pending roadmap)
+- v2.1 requirements: 41 total (source header previously read "33" — stale count that stopped at DOC-03 before UI + SAFE were added)
+- Mapped to phases: 41 / 41 (100%)
+- Unmapped: 0
+
+**Per-phase counts:**
+- Phase 10 — Foundation (Tax Rules Engine & Cross-Source Snapshot): 11 (TAX ×7, CTX ×4)
+- Phase 11 — Detection, Interview & AI Feed Integration: 15 (FLAG ×6, INT ×5, FEED ×4)
+- Phase 12 — Report, Document Intake & Feature Surface: 10 (RPT ×4, DOC ×3, UI ×3)
+- Phase 13 — Safety, Validation & Hardening: 5 (SAFE ×5)
 
 ---
 *Requirements defined: 2026-07-01*
-*Last updated: 2026-07-01 after milestone v2.1 initiation*
+*Last updated: 2026-07-01 after roadmap creation (traceability mapped to Phases 10-13)*

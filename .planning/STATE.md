@@ -3,10 +3,10 @@ gsd_state_version: 1.0
 milestone: v2.1
 milestone_name: Optimize My Income
 status: planning
-last_updated: "2026-07-01T22:59:19.586Z"
+last_updated: "2026-07-01T23:30:00.000Z"
 last_activity: 2026-07-01
 progress:
-  total_phases: 0
+  total_phases: 4
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
@@ -17,17 +17,32 @@ progress:
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-03-31)
+See: .planning/PROJECT.md (updated 2026-07-01)
 
 **Core value:** AI-powered personal finance platform bridging taxpayers and their accountants
-**Current focus:** v2.0 complete — planning next milestone
+**Current focus:** v2.1 Optimize My Income — roadmap created (Phases 10-13), ready to plan Phase 10
 
 ## Current Position
 
-Phase: Not started (defining requirements)
+Phase: 10 — Foundation: Tax Rules Engine & Cross-Source Snapshot (Not started)
 Plan: —
-Status: Defining requirements
-Last activity: 2026-07-01 — Milestone v2.1 started
+Status: Roadmap approved — ready to plan Phase 10
+Last activity: 2026-07-01 — Roadmap created for v2.1 (4 phases, 41 requirements mapped, 100% coverage)
+
+## v2.1 Roadmap Summary
+
+Continuing global phase numbering from v2.0 (ended Phase 9). Granularity: coarse.
+
+| Phase | Goal | Requirements |
+|-------|------|--------------|
+| 10 — Foundation: Tax Rules Engine & Cross-Source Snapshot | Deterministic 2026 tax math + per-user snapshot, zero Claude in numbers | TAX ×7, CTX ×4 (11) |
+| 11 — Detection, Guided Interview & AI Feed Integration | Deterministic red flags surfaced via resumable interview + existing AI feed | FLAG ×6, INT ×5, FEED ×4 (15) |
+| 12 — Report, Document Intake & Feature Surface | Exportable educational report + new doc types + Optimize My Income surface | RPT ×4, DOC ×3, UI ×3 (10) |
+| 13 — Safety, Validation & Hardening | Certify the educational-only liability boundary on the complete feature | SAFE ×5 (5) |
+
+**Hard dependencies:** TaxRulesEngineService + config/tax-rules.php + snapshot (P10) before detectors/interview (P11); report generation (P12) requires completed interview sessions; validation/hardening (P13) last on the complete feature.
+
+**UI phases:** 11, 12 (frontend surfaces — consider /gsd-ui-phase before executing).
 
 ## Performance Metrics
 
@@ -42,25 +57,9 @@ Last activity: 2026-07-01 — Milestone v2.1 started
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 1-5 (v1.0) | 15 | 1.3h | 5m |
-| 6-01 | 1 | 3m | 3m |
-| 6-9 (v2.0) | 1 | 3m | 3m |
+| 6-9 (v2.0) | 16 | ~50m | ~3m |
 
 *Updated after each plan completion*
-| Phase 06 P02 | 3min | 2 tasks | 11 files |
-| Phase 06 P03 | 4min | 3 tasks | 9 files |
-| Phase 06 P04 | 2min | 2 tasks | 3 files |
-| Phase 06 P05 | 3min | 2 tasks | 2 files |
-| Phase 07 P01 | 4min | 2 tasks | 8 files |
-| Phase 07 P02 | 2min | 2 tasks | 6 files |
-| Phase 07 P03 | 2min | 2 tasks | 2 files |
-| Phase 08 P01 | 3min | 2 tasks | 10 files |
-| Phase 08 P03 | 3min | 2 tasks | 7 files |
-| Phase 08 P02 | 3min | 2 tasks | 16 files |
-| Phase 08 P05 | 4min | 2 tasks | 2 files |
-| Phase 08 P04 | 4min | 2 tasks | 7 files |
-| Phase 09 P01 | 4min | 2 tasks | 7 files |
-| Phase 09 P02 | 6min | 2 tasks | 4 files |
-| Phase 09 P03 | 9min | 1 task | 55 files |
 
 ## Accumulated Context
 
@@ -69,38 +68,12 @@ Last activity: 2026-07-01 — Milestone v2.1 started
 Decisions are logged in PROJECT.md Key Decisions table.
 Recent decisions affecting current work:
 
-- [v1.0]: All v1.0 decisions carry forward (see PROJECT.md Key Decisions table)
-- [v2.0]: Audit trail built alongside vault in Phase 6, not deferred
-- [v2.0]: Extend existing accountant infrastructure, not rebuild
-- [v2.0]: Two-pass AI pipeline: classify first, extract only if confident
-- [v2.0]: Local-first storage with Super Admin S3 toggle
-- [v2.0]: Dual sign-off and worksheets deferred to v2.1
-- [v2.0]: Signed URLs for all document access -- no direct file paths
-- [06-01]: Used isAdmin() boolean for Super Admin check (not user_type enum)
-- [06-01]: Defense-in-depth: PostgreSQL RULE + app-level RuntimeException for audit immutability
-- [Phase 06]: Used isAdmin() for admin checks in vault controllers (consistent with 06-01)
-- [Phase 06]: S3 credentials stored encrypted in cache with no expiry for runtime-safe config
-- [06-03]: Used Archive icon for vault nav (distinguishes from Tax FileText)
-- [06-03]: FileDropZone made configurable via optional props for backward compatibility
-- [06-03]: Multiple card expansions allowed simultaneously for usability
-- [Phase 06]: Return raw enum value as category with separate category_label for display
-- [Phase 07]: Two-pass AI pipeline: classify first, extract only if confidence >= 0.70 gate
-- [Phase 07]: SSN defense-in-depth: prompt instructs last-4 only plus sanitizeExtraction strips post-response
-- [Phase 07]: Pass documentId as Inertia prop, fetch via useApi (consistent with Index pattern)
-- [Phase 07]: Used direct TaxDocument::create() with helper for test data (no factory exists)
-- [08-01]: Auto-generate invite_token via Str::random(64) in booted() creating callback
-- [08-01]: Eager-load author on DocumentAnnotation via $with for display context
-- [Phase 08]: Firm invite token exposed via makeVisible() only on store response
-- [Phase 08]: FirmInviteMail uses firm primary_color for branded accent styling
-- [08-03]: class_exists() guards for mail classes from parallel Plan 02 execution
-- [08-03]: Annotation notifications to "other party" (accountant->client, client->all linked accountants)
-- [Phase 08]: Invite page test uses DB lookup instead of HTTP GET due to Blade view cache permission constraint in test env
-- [Phase 08]: AnnotationThread uses apiPrefix prop for dual-context (client/accountant) annotation endpoints
-- [Phase 09]: Replicated IncomeDetectorService maps with dividend distinction for intelligence
-- [09-03]: Replace PostgreSQL RULES with TRIGGERS for audit log immutability (rules block FK SET NULL)
-- [09-03]: nullOnDelete FKs on audit logs to preserve trail after user/document deletion
-- [Phase 09]: Used useMemo for intelligence alert mapping in Vault UI
-- [Phase 09]: Linked transactions as summary line, not full list
+- [v2.1]: All IRS math lives in deterministic TaxRulesEngineService reading year-versioned config/tax-rules.php — Claude never computes dollar amounts
+- [v2.1]: Zero new Composer/npm packages — plain PHP bracket math; additive architecture only (new services/models/enums, no rewrites)
+- [v2.1]: Educational-only liability boundary — modal framing, persistent non-dismissable disclaimers, no filing-status/refund assertions
+- [v2.1]: Reuse v2.0 Tax Document Vault + two-pass extraction, AIQuestion feed, DashboardCacheService — additive integration (QuestionType::Optimization, guarded UpdateTransactionCategory listener)
+- [v2.1]: SAFE category grouped into a final hardening phase (P13); constraints still honored while building P10-12, formally audited/pen-tested at the end
+- [v2.0]: All v2.0 decisions carry forward (see PROJECT.md Key Decisions table)
 
 ### Pending Todos
 
@@ -108,11 +81,13 @@ None yet.
 
 ### Blockers/Concerns
 
-- Per-field confidence storage schema needs design decision in Phase 7 planning
-- APP_KEY rotation runbook needed before production with encrypted extraction data
+- Phase 10 planning: lock config/tax-rules.php structure and TaxRulesEngineService API contracts before Claude integration (per research: load-bearing foundation)
+- Phase 11 planning: finalize each deduction probe's prerequisite gates via legal review before coding; validate 5-question initial cap
+- Phase 12 planning: confirm report section ordering/emphasis with 2-3 accountants
+- Carried from v2.0: APP_KEY rotation runbook needed before production with encrypted extraction data
 
 ## Session Continuity
 
-Last session: 2026-03-31T04:18:27Z
-Stopped at: Completed 09-03-PLAN.md (v2.0 MILESTONE COMPLETE)
-Resume file: None
+Last session: 2026-07-01 — Roadmap created for v2.1 Optimize My Income
+Stopped at: ROADMAP.md written, REQUIREMENTS.md traceability filled (41/41 mapped)
+Resume file: None — next action is `/gsd-plan-phase 10`
