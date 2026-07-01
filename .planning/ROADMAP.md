@@ -125,7 +125,10 @@ Plans:
   3. A user's financial snapshot is assembled from existing sources (UserFinancialProfile, transactions, income detection, vault-extracted documents), persisted in a new `IncomeOptimizationProfile` cache model, and rebuilt via a background job.
   4. Cross-source discrepancies between documents, bank deposits, and email data are detected deterministically, and downstream consumers can tell what is already answerable from the snapshot.
   5. All existing v1.0/v2.0 tests continue to pass with no changes to existing API responses, models, or component interfaces.
-**Plans**: TBD
+**Plans**: 3 plans
+- [ ] 10-01-PLAN.md — Tax rules engine: config/tax-rules.php + TaxRulesEngineService + Pest boundary/no-Claude tests (TAX-01–07)
+- [ ] 10-02-PLAN.md — IncomeOptimizationProfile model/migration + IncomeOptimizerDataAssemblerService + feature tests (CTX-01, CTX-02, CTX-04)
+- [ ] 10-03-PLAN.md — CrossSourceReviewService + OptimizationFinding + BuildIncomeOptimizationProfile job/event + tests (CTX-03, CTX-04)
 
 ### Phase 11: Red-Flag Detection, Guided Interview & AI Feed Integration
 **Goal**: Red-flag findings are detected deterministically from verified data and surfaced to the user through a resumable, one-high-value-question-at-a-time interview and the existing AI Questions feed — with Claude used only to word questions and describe flags.
