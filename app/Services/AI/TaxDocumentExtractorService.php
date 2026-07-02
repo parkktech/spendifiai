@@ -21,7 +21,7 @@ class TaxDocumentExtractorService
     const CLASSIFICATION_GATE = 0.70;
 
     const W2_FIELDS = [
-        'employer_name', 'employer_ein', 'employee_name', 'ssn_last4',
+        'employer_name', 'employer_ein', 'employee_name', 'employee_address', 'ssn_last4',
         'wages', 'federal_tax_withheld', 'social_security_wages',
         'social_security_tax', 'medicare_wages', 'medicare_tax',
         'state', 'state_wages', 'state_tax_withheld',
@@ -101,12 +101,14 @@ class TaxDocumentExtractorService
     // ── DOC-01 financial schemas (Phase 12) ──────────────────────────────────
 
     const PAY_STUB_FIELDS = [
-        'employer_name', 'employer_ein', 'employee_name', 'ssn_last4',
+        'employer_name', 'employer_ein', 'employee_name', 'employee_address', 'ssn_last4',
         'pay_period_start', 'pay_period_end', 'pay_date', 'gross_pay',
         'federal_tax_withheld', 'state_tax_withheld', 'fica_withheld',
         'medicare_withheld', 'hsa_deduction', 'traditional_401k_deduction',
         'roth_401k_deduction', 'fsa_deduction', 'health_insurance_premium',
         'dental_vision_premium', 'ytd_gross', 'ytd_federal_tax', 'tax_year',
+        // Stage-C identity-plane fields (14-11 additive — same single extraction call, zero added AI cost)
+        'w4_filing_status', 'w4_dependents_claimed',
     ];
 
     // ── DOC-07 benefits guide schema (Phase 12) ───────────────────────────────

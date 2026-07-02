@@ -3,6 +3,7 @@
 namespace App\Services\Detectors;
 
 use App\Models\IncomeOptimizationProfile;
+use App\Models\User;
 use App\Models\UserFinancialProfile;
 use App\Models\UserTaxFact;
 use App\Services\RedFlagDetectorService;
@@ -16,7 +17,7 @@ use App\Services\RedFlagDetectorService;
  * ONLY through user confirmation (D3/D4 gate). This class NEVER writes to
  * UserFinancialProfile directly.
  *
- * THREE PLANES (D13, LOCKED):
+ * THREE PLANES (D13, LOCKED) + TWO ADDITIVE PLANES (14-11, Stage C):
  *
  * Plane 1 — Filing status vs W-4/withholding evidence:
  *   Dir A: profile.tax_filing_status vs snapshot.filing_status (mismatch)
@@ -30,6 +31,12 @@ use App\Services\RedFlagDetectorService;
  *   Dir A: profile.has_rental_property=false but income.rental_income_detected fact present
  *   Dir B: profile.has_student_loans=false but payment.student_loan_detected fact present
  *   Dir C: profile.has_childcare_expenses=false but payment.childcare_detected fact present
+ *
+ * Plane 4 — Name conformance (14-11 / Stage C identity plane):
+ *   Dir A: user.name vs identity.employee_name extracted from paystub/W-2 (soft mismatch)
+ *
+ * Plane 5 — Dependents conformance (14-11 / Stage C identity plane):
+ *   Dir A: family.dependents_count fact vs w4.dependents_claimed fact (numeric gap)
  *
  * MANDATORY FRAMING (D13 verbatim):
  *   "Your paystub appears to show X while your profile says Y —
@@ -220,6 +227,78 @@ class ProfileConformanceDetector
             }
         }
 
+        // ── Plane 4: Name Conformance (14-11 / Stage C) ──────────────────────
+        // Compare user.name to identity.employee_name from document extraction.
+        // Soft match — only emits when clearly different; names are normalized
+        // (lowercase, trim, spaces collapsed) before comparison.
+        $employeeNameFact = UserTaxFact::currentFact($userId, 'identity.employee_name', null, $taxYear)
+            ?? UserTaxFact::currentFact($userId, 'identity.employee_name');
+
+        if ($employeeNameFact) {
+            $user = User::find($userId);
+            $profileName = $this->normalizeName((string) ($user?->name ?? ''));
+            $documentName = $this->normalizeName((string) $employeeNameFact->value);
+
+            if ($profileName !== '' && $documentName !== '' && $profileName !== $documentName) {
+                $key = $service->registerFinding(
+                    userId: $userId,
+                    taxYear: $taxYear,
+                    findingKey: 'conformance_name',
+                    findingType: 'conformance',
+                    band: 'conditional',
+                    treatment: 'Your document appears to show a name that differs from your account profile. '
+                        .'If your legal name differs from the name on your account, this may affect your ability '
+                        .'to match documents to your tax return. '
+                        .'Want to update your profile or confirm which name applies?',
+                    legalBasis: 'IRS taxpayer identification — name matching requirements',
+                    ruleId: 'conformance_name',
+                    electionFacts: $electionFacts,
+                );
+                if ($key !== null) {
+                    $emitted[] = $key;
+                }
+            }
+        }
+
+        // ── Plane 5: Dependents Conformance (14-11 / Stage C) ────────────────
+        // Compare family.dependents_count fact (from interview/profile) vs
+        // w4.dependents_claimed fact (from paystub W-4 evidence).
+        // This is the "update your dependents from 0 to 3" directive feed.
+        $familyDepsFact = UserTaxFact::currentFact($userId, 'family.dependents_count', null, $taxYear)
+            ?? UserTaxFact::currentFact($userId, 'family.dependents_count');
+
+        $w4DepsFact = UserTaxFact::currentFact($userId, 'w4.dependents_claimed', null, $taxYear)
+            ?? UserTaxFact::currentFact($userId, 'w4.dependents_claimed');
+
+        if ($familyDepsFact !== null && $w4DepsFact !== null) {
+            $familyDeps = (int) $familyDepsFact->value;
+            $w4Deps = (int) $w4DepsFact->value;
+
+            if ($familyDeps !== $w4Deps) {
+                $key = $service->registerFinding(
+                    userId: $userId,
+                    taxYear: $taxYear,
+                    findingKey: 'conformance_dependents',
+                    findingType: 'conformance',
+                    band: 'conditional',
+                    // D13 framing: evidence-led, never assertive
+                    treatment: 'Your W-4 on file appears to show '.$w4Deps.' dependents claimed, '
+                        .'while your profile indicates '.$familyDeps.'. '
+                        .'A mismatch here may affect your withholding accuracy. '
+                        .'Want to confirm which reflects your current situation, '
+                        .'or tell us more about your household? '
+                        .'A tax professional can help determine the right number for your circumstances.',
+                    legalBasis: 'IRS Form W-4 dependents section; IRC §151 (dependency exemptions); '
+                        .'IRS Publication 501 (Dependents, Standard Deduction, and Filing Information)',
+                    ruleId: 'conformance_dependents',
+                    electionFacts: $electionFacts,
+                );
+                if ($key !== null) {
+                    $emitted[] = $key;
+                }
+            }
+        }
+
         return $emitted;
     }
 
@@ -228,5 +307,18 @@ class ProfileConformanceDetector
     private function normalizeStatus(string $status): string
     {
         return strtolower(str_replace([' ', '-'], '_', trim($status)));
+    }
+
+    /**
+     * Normalize a person name for soft comparison.
+     * Lowercases, collapses whitespace, strips punctuation.
+     */
+    private function normalizeName(string $name): string
+    {
+        $name = strtolower(trim($name));
+        $name = preg_replace('/[^a-z\s]/', '', $name) ?? $name;
+        $name = preg_replace('/\s+/', ' ', $name) ?? $name;
+
+        return trim($name);
     }
 }

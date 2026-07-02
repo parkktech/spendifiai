@@ -43,6 +43,35 @@ class PaystubFactExtractorService
      * @var array<string, array{fact_key: string, label: string, volatility: string, money: bool}>
      */
     protected const PAYSTUB_FACT_MAP = [
+        // ── Stage-C identity-plane fields (14-11 additive — D4 gate applies) ──────────
+        // employee_name already present in PAY_STUB_FIELDS; proposes identity.employee_name fact
+        // for the name-conformance plane in ProfileConformanceDetector.
+        'employee_name' => [
+            'fact_key' => 'identity.employee_name',
+            'label' => 'Employee legal name (paystub)',
+            'volatility' => 'stable',
+            'money' => false,
+        ],
+        'employee_address' => [
+            'fact_key' => 'identity.employee_address',
+            'label' => 'Employee address (paystub)',
+            'volatility' => 'annual',
+            'money' => false,
+        ],
+        // W-4 evidence extracted directly from the paystub — feeds Plane 1 (filing status)
+        // and the new Plane 5 (dependents) conformance planes without any added AI call.
+        'w4_filing_status' => [
+            'fact_key' => 'w4.filing_status',
+            'label' => 'W-4 filing status (paystub evidence)',
+            'volatility' => 'annual',
+            'money' => false,
+        ],
+        'w4_dependents_claimed' => [
+            'fact_key' => 'w4.dependents_claimed',
+            'label' => 'W-4 dependents claimed (paystub evidence)',
+            'volatility' => 'annual',
+            'money' => false,
+        ],
         'traditional_401k_deduction' => [
             'fact_key' => 'retirement.traditional_401k_ytd_cents',
             'label' => 'Traditional 401(k) contribution (paystub)',

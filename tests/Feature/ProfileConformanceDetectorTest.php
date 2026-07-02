@@ -28,8 +28,6 @@
  *     - No HTTP calls
  */
 
-use App\Models\BankAccount;
-use App\Models\BankConnection;
 use App\Models\IncomeOptimizationProfile;
 use App\Models\OptimizationFinding;
 use App\Models\Transaction;
@@ -353,6 +351,186 @@ it('ProfileConformanceDetector never writes to UserFinancialProfile directly', f
 it('ProfileConformanceDetector makes no HTTP calls', function () {
     $this->detector->run($this->user->id, $this->taxYear, $this->service, []);
     expect(true)->toBeTrue();
+});
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Plane 4: Name conformance (14-11 / Stage C identity plane)
+// ──────────────────────────────────────────────────────────────────────────────
+
+it('Plane 4: emits conformance_name when document employee_name differs from user profile name', function () {
+    // User's account name is "Jason Ratz"
+    $this->user->forceFill(['name' => 'Jason Ratz'])->save();
+
+    // Use interview_answer (or detector) to simulate a confirmed identity.employee_name fact.
+    // The conformance detector reads confirmed current facts; the source type is tested separately.
+    UserTaxFact::recordFact(
+        userId: $this->user->id,
+        factKey: 'identity.employee_name',
+        value: 'Jason R. Smith',
+        sourceType: 'interview_answer',  // simulate confirmed name from paystub extraction
+        taxYear: $this->taxYear,
+    );
+
+    $result = $this->detector->run($this->user->id, $this->taxYear, $this->service, []);
+    expect($result)->toContain('conformance_name');
+});
+
+it('Plane 4: stays silent when employee_name matches user profile name (case-insensitive)', function () {
+    $this->user->forceFill(['name' => 'Jason Ratz'])->save();
+
+    UserTaxFact::recordFact(
+        userId: $this->user->id,
+        factKey: 'identity.employee_name',
+        value: 'JASON RATZ',
+        sourceType: 'interview_answer',
+        taxYear: $this->taxYear,
+    );
+
+    $result = $this->detector->run($this->user->id, $this->taxYear, $this->service, []);
+    expect($result)->not->toContain('conformance_name');
+});
+
+it('Plane 4: stays silent when no employee_name fact exists', function () {
+    $result = $this->detector->run($this->user->id, $this->taxYear, $this->service, []);
+    expect($result)->not->toContain('conformance_name');
+});
+
+it('Plane 4: name finding uses educational framing — no assertive phrases', function () {
+    $this->user->forceFill(['name' => 'Jason Ratz'])->save();
+
+    UserTaxFact::recordFact(
+        userId: $this->user->id,
+        factKey: 'identity.employee_name',
+        value: 'Jason R. Smith',
+        sourceType: 'interview_answer',
+        taxYear: $this->taxYear,
+    );
+
+    $this->detector->run($this->user->id, $this->taxYear, $this->service, []);
+
+    $finding = OptimizationFinding::where('user_id', $this->user->id)
+        ->where('finding_key', 'conformance_name')
+        ->first();
+
+    expect($finding)->not->toBeNull();
+    $treatment = strtolower($finding->treatment);
+    expect($treatment)->not->toContain('your name is wrong');
+    expect($treatment)->not->toContain('you must update');
+    expect($treatment)->toContain('appears to show');
+});
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Plane 5: Dependents conformance (14-11 / Stage C identity plane)
+// ──────────────────────────────────────────────────────────────────────────────
+
+it('Plane 5: emits conformance_dependents when family.dependents_count and w4.dependents_claimed differ', function () {
+    // Interview says 3 dependents; W-4 on file shows 0 (the owner's "update from 0 to 3" case)
+    UserTaxFact::recordFact(
+        userId: $this->user->id,
+        factKey: 'family.dependents_count',
+        value: '3',
+        sourceType: 'interview_answer',
+        taxYear: $this->taxYear,
+    );
+    // W-4 dependents from paystub: use detector source to simulate confirmed fact
+    UserTaxFact::recordFact(
+        userId: $this->user->id,
+        factKey: 'w4.dependents_claimed',
+        value: '0',
+        sourceType: 'detector',
+        taxYear: $this->taxYear,
+    );
+
+    $result = $this->detector->run($this->user->id, $this->taxYear, $this->service, []);
+    expect($result)->toContain('conformance_dependents');
+});
+
+it('Plane 5: stays silent when family.dependents_count matches w4.dependents_claimed', function () {
+    UserTaxFact::recordFact(
+        userId: $this->user->id,
+        factKey: 'family.dependents_count',
+        value: '2',
+        sourceType: 'interview_answer',
+        taxYear: $this->taxYear,
+    );
+    UserTaxFact::recordFact(
+        userId: $this->user->id,
+        factKey: 'w4.dependents_claimed',
+        value: '2',
+        sourceType: 'detector',
+        taxYear: $this->taxYear,
+    );
+
+    $result = $this->detector->run($this->user->id, $this->taxYear, $this->service, []);
+    expect($result)->not->toContain('conformance_dependents');
+});
+
+it('Plane 5: stays silent when only one of the two dependent facts exists', function () {
+    // Only family count — no W-4 evidence yet
+    UserTaxFact::recordFact(
+        userId: $this->user->id,
+        factKey: 'family.dependents_count',
+        value: '3',
+        sourceType: 'interview_answer',
+        taxYear: $this->taxYear,
+    );
+    UserTaxFact::where('user_id', $this->user->id)
+        ->where('fact_key', 'family.dependents_count')
+        ->update(['is_current' => true]);
+
+    $result = $this->detector->run($this->user->id, $this->taxYear, $this->service, []);
+    expect($result)->not->toContain('conformance_dependents');
+});
+
+it('Plane 5: dependents finding references both numbers in treatment', function () {
+    UserTaxFact::recordFact(
+        userId: $this->user->id,
+        factKey: 'family.dependents_count',
+        value: '3',
+        sourceType: 'interview_answer',
+        taxYear: $this->taxYear,
+    );
+    UserTaxFact::recordFact(
+        userId: $this->user->id,
+        factKey: 'w4.dependents_claimed',
+        value: '0',
+        sourceType: 'detector',
+        taxYear: $this->taxYear,
+    );
+
+    $this->detector->run($this->user->id, $this->taxYear, $this->service, []);
+
+    $finding = OptimizationFinding::where('user_id', $this->user->id)
+        ->where('finding_key', 'conformance_dependents')
+        ->first();
+
+    expect($finding)->not->toBeNull();
+    // Treatment should mention both numbers
+    expect($finding->treatment)->toContain('3');
+    expect($finding->treatment)->toContain('0');
+    // Educational framing
+    expect(strtolower($finding->treatment))->not->toContain('you must');
+    expect(strtolower($finding->treatment))->not->toContain('you are required');
+});
+
+// ──────────────────────────────────────────────────────────────────────────────
+// TaxDocumentExtractorService — PAY_STUB_FIELDS identity fields (14-11)
+// ──────────────────────────────────────────────────────────────────────────────
+
+it('PAY_STUB_FIELDS contains identity-plane fields added in 14-11', function () {
+    $fields = \App\Services\AI\TaxDocumentExtractorService::PAY_STUB_FIELDS;
+    expect($fields)->toContain('employee_address');
+    expect($fields)->toContain('w4_filing_status');
+    expect($fields)->toContain('w4_dependents_claimed');
+    // Already present — verify not accidentally removed
+    expect($fields)->toContain('employee_name');
+    expect($fields)->toContain('state_tax_withheld');
+});
+
+it('W2_FIELDS contains employee_address for W-2 name-plane sourcing', function () {
+    $fields = \App\Services\AI\TaxDocumentExtractorService::W2_FIELDS;
+    expect($fields)->toContain('employee_address');
+    expect($fields)->toContain('employee_name');
 });
 
 // ──────────────────────────────────────────────────────────────────────────────

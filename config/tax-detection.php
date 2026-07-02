@@ -495,6 +495,34 @@ return [
             'band' => 'conditional',
         ],
 
+        // ── 14-11 Stage-C identity-plane conformance rules ────────────────────
+
+        'conformance_name' => [
+            'rule_id' => 'conformance_name',
+            'authority' => 'IRS taxpayer name-control requirements; IRS Pub. 1346 (e-file standards)',
+            'effective_start' => '2025-01-01',
+            'effective_end' => null,
+            'phaseouts' => [],
+            'inflation_adjusted' => false,
+            'source_url' => 'https://www.irs.gov/e-file-providers/name-control-matrix',
+            'last_verified' => '2026-07-02',
+            'status' => 'verified',
+            'band' => 'conditional',
+        ],
+
+        'conformance_dependents' => [
+            'rule_id' => 'conformance_dependents',
+            'authority' => 'IRS Form W-4 instructions; IRC §151 (dependency exemptions); IRS Pub. 501',
+            'effective_start' => '2025-01-01',
+            'effective_end' => null,
+            'phaseouts' => [],
+            'inflation_adjusted' => false,
+            'source_url' => 'https://www.irs.gov/pub/irs-pdf/p501.pdf',
+            'last_verified' => '2026-07-02',
+            'status' => 'verified',
+            'band' => 'conditional',
+        ],
+
         // ── FLAG-10: Category Library Rules (Plan 11-07) ─────────────────────
 
         'category_vehicle' => [
