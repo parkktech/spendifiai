@@ -129,7 +129,7 @@ function UpcomingPaymentsCarousel({ bills }: { bills: RecurringBill[] }) {
 
   return (
     <div className="rounded-2xl border border-sw-border bg-sw-card p-6">
-      <div className="flex items-start justify-between mb-4">
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-4">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-violet-50 border border-violet-200 flex items-center justify-center">
             <CalendarDays size={20} className="text-violet-600" />
@@ -139,9 +139,9 @@ function UpcomingPaymentsCarousel({ bills }: { bills: RecurringBill[] }) {
             <p className="text-xs text-sw-muted mt-0.5">{upcoming.length} scheduled charges</p>
           </div>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center justify-between sm:justify-end gap-3 w-full sm:w-auto">
           {next7Total > 0 && (
-            <div className="text-right">
+            <div className="text-left sm:text-right">
               <div className="text-lg font-bold text-sw-text">{fmt.format(next7Total)}</div>
               <div className="text-[11px] text-sw-dim">next 7 days</div>
             </div>
@@ -224,7 +224,7 @@ function BudgetWaterfallSection({ waterfall, displayMode = 'dollars', pl = DEFAU
 
   return (
     <div className="rounded-2xl border border-sw-border bg-sw-card p-6">
-      <div className="flex items-start justify-between mb-5">
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 mb-5">
         <div className="flex items-center gap-3">
           <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${canSave ? 'bg-emerald-50 border border-emerald-200' : 'bg-red-50 border border-red-200'}`}>
             {canSave ? <PiggyBank size={20} className="text-emerald-600" /> : <ShieldAlert size={20} className="text-red-600" />}
@@ -234,7 +234,7 @@ function BudgetWaterfallSection({ waterfall, displayMode = 'dollars', pl = DEFAU
             <p className="text-xs text-sw-muted mt-0.5">{pl.waterfallSubtitle}</p>
           </div>
         </div>
-        <div className={`px-3 py-1.5 rounded-lg text-xs font-bold ${canSave ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-red-50 text-red-700 border border-red-200'}`}>
+        <div className={`self-start shrink-0 whitespace-nowrap px-3 py-1.5 rounded-lg text-xs font-bold ${canSave ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-red-50 text-red-700 border border-red-200'}`}>
           {canSave ? `Saving ${rate}%` : `${Math.abs(rate)}% over budget`}
         </div>
       </div>
@@ -351,7 +351,7 @@ function MonthlyBillsSection({ bills: allBills, totalMonthly, monthlyIncome, dis
 
   return (
     <div className="rounded-2xl border border-sw-border bg-sw-card p-6">
-      <div className="flex items-start justify-between mb-5">
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 mb-5">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-blue-50 border border-blue-200 flex items-center justify-center">
             <Receipt size={20} className="text-blue-600" />
@@ -361,7 +361,7 @@ function MonthlyBillsSection({ bills: allBills, totalMonthly, monthlyIncome, dis
             <p className="text-xs text-sw-muted mt-0.5">{bills.length} recurring charges found</p>
           </div>
         </div>
-        <div className="text-right">
+        <div className="text-left sm:text-right pl-[52px] sm:pl-0">
           <div className="text-lg font-bold text-sw-text">
             {showPct ? `${Math.round((totalMonthly / monthlyIncome!) * 100)}% of income` : `${fmt.format(totalMonthly)}/mo`}
           </div>
@@ -684,16 +684,16 @@ function ResolvedCardDisplay({ item, responded }: { item: ActionItem; responded:
           <h4 className={`text-sm font-medium text-sw-text ${responded.type === 'cancelled' ? 'line-through' : ''}`}>
             {item.title}
           </h4>
-          {responded.type === 'reduced' && responded.previousAmount && responded.newAmount !== undefined && (
-            <p className="text-[11px] text-sw-dim mt-0.5">
-              Reduced from {fmt.format(responded.previousAmount)} to {fmt.format(responded.newAmount)}/mo
-            </p>
-          )}
         </div>
         <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-semibold border ${config.badgeClass}`}>
           {config.badgeLabel}
         </span>
       </div>
+      {responded.type === 'reduced' && responded.previousAmount && responded.newAmount !== undefined && (
+        <p className="text-[11px] text-sw-dim mt-1.5">
+          Reduced from {fmt.format(responded.previousAmount)} to {fmt.format(responded.newAmount)}/mo
+        </p>
+      )}
     </div>
   );
 }
@@ -1239,7 +1239,7 @@ export default function Dashboard() {
 
           {/* SECTION D: Your Money Moves — Action Feed */}
           <div className="rounded-2xl border border-sw-border bg-sw-card p-6">
-            <div className="flex items-center justify-between mb-5">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-5">
               <div>
                 <h2 className="text-[15px] font-semibold text-sw-text">Where to Cut</h2>
                 {totalPotentialSavings > 0 ? (
@@ -1254,7 +1254,7 @@ export default function Dashboard() {
               <button
                 onClick={handleAnalyze}
                 disabled={analyzing}
-                className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-lg bg-sw-accent hover:bg-sw-accent-hover text-white text-xs font-semibold transition disabled:opacity-50"
+                className="self-start inline-flex items-center gap-2 px-3.5 py-1.5 rounded-lg bg-sw-accent hover:bg-sw-accent-hover text-white text-xs font-semibold transition disabled:opacity-50"
               >
                 {analyzing ? <Loader2 size={14} className="animate-spin" /> : <Zap size={14} />}
                 Analyze Spending
