@@ -14,6 +14,7 @@ use App\Models\CancellationProvider;
 use App\Models\Dependent;
 use App\Models\Household;
 use App\Models\InterviewSession;
+use App\Models\OptimizationChecklistItem;
 use App\Models\OrderItem;
 use App\Models\SavingsPlanAction;
 use App\Models\SavingsRecommendation;
@@ -28,6 +29,7 @@ use App\Policies\CancellationProviderPolicy;
 use App\Policies\DependentPolicy;
 use App\Policies\HouseholdPolicy;
 use App\Policies\InterviewSessionPolicy;
+use App\Policies\OptimizationChecklistItemPolicy;
 use App\Policies\OrderItemPolicy;
 use App\Policies\SavingsPlanActionPolicy;
 use App\Policies\SavingsRecommendationPolicy;
@@ -86,6 +88,9 @@ class AppServiceProvider extends ServiceProvider
         Route::model('interview', InterviewSession::class);
         // Phase 12-04: optimization finding binding (pro-review export)
         Route::model('finding', \App\Models\OptimizationFinding::class);
+        // Phase 14-08: checklist item binding (PATCH done-toggle) — named 'checklistItem' to
+        // avoid collision with 'item' → OrderItem binding registered above.
+        Route::model('checklistItem', OptimizationChecklistItem::class);
 
         // ── Middleware Aliases ──
         Route::aliasMiddleware('bank.connected', EnsureBankConnected::class);
@@ -110,6 +115,8 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(TaxProfileEntity::class, TaxProfileEntityPolicy::class);
         // Phase 11-04: interview session policy
         Gate::policy(InterviewSession::class, InterviewSessionPolicy::class);
+        // Phase 14-08: optimization checklist item policy
+        Gate::policy(OptimizationChecklistItem::class, OptimizationChecklistItemPolicy::class);
 
         // ── Phase 11: Red-Flag Detection ──
         Event::listen(
