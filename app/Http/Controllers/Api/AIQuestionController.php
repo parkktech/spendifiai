@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Enums\QuestionType;
 use App\Events\UserAnsweredQuestion;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\AnswerQuestionRequest;
@@ -29,9 +30,14 @@ class AIQuestionController extends Controller
     {
         $userIds = auth()->user()->householdUserIds();
 
-        // Clean up stale questions whose transactions were already resolved
+        // Clean up stale questions whose transactions were already resolved.
+        // FEED-04 / Pitfall 6: exclude optimization questions because they have
+        // no transaction (transaction_id = null). The whereHas clause would never
+        // match them, but the explicit exclusion makes the intent unambiguous and
+        // prevents future regressions if the query is modified.
         AIQuestion::whereIn('user_id', $userIds)
             ->where('status', 'pending')
+            ->where('question_type', '!=', QuestionType::Optimization->value)
             ->whereHas('transaction', function ($q) {
                 $q->whereIn('review_status', ['user_confirmed', 'auto_categorized']);
             })
@@ -59,9 +65,15 @@ class AIQuestionController extends Controller
 
         UserAnsweredQuestion::dispatch($question->fresh(), $request->user());
 
+        // FEED-04 / D7: optimization questions have no transaction; return null
+        // for the transaction field rather than crashing on ->fresh() of null.
+        $transaction = $question->transaction_id
+            ? new TransactionResource($question->transaction->fresh())
+            : null;
+
         return response()->json([
             'message' => 'Answer recorded',
-            'transaction' => new TransactionResource($question->transaction->fresh()),
+            'transaction' => $transaction,
         ]);
     }
 

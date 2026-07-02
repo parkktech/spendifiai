@@ -112,6 +112,18 @@ class AppServiceProvider extends ServiceProvider
             \App\Events\OptimizationProfileBuilt::class,
             \App\Listeners\NarrateOptimizationFindings::class,
         );
+        // Phase 11-04: AI-feed bridge (FEED-02 / D7)
+        // Surfaces high-band findings as AIQuestion(Optimization) rows in /api/v1/questions.
+        Event::listen(
+            \App\Events\OptimizationProfileBuilt::class,
+            \App\Listeners\SurfaceHighPriorityRedFlags::class,
+        );
+        // Phase 11-04: Answer through-write (FEED-03 / D7)
+        // Writes optimization answers to UserTaxFact; separate from UpdateTransactionCategory.
+        Event::listen(
+            \App\Events\UserAnsweredQuestion::class,
+            \App\Listeners\UpdateOptimizationFromAnswer::class,
+        );
 
         // ── Vite Prefetch (from Breeze starter kit) ──
         Vite::prefetch(concurrency: 3);

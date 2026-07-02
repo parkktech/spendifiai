@@ -321,6 +321,13 @@ PROMPT;
             return;
         }
 
+        // FEED-04 / D7: optimization questions have no transaction.
+        // Their answers are handled by UpdateOptimizationFromAnswer listener.
+        // Return early here to prevent any null-transaction crash.
+        if ($question->question_type === \App\Enums\QuestionType::Optimization) {
+            return;
+        }
+
         $transaction = $question->transaction;
 
         $questionType = $question->question_type instanceof \App\Enums\QuestionType

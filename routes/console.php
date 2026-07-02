@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\QuestionType;
 use App\Jobs\CategorizePendingTransactions;
 use App\Jobs\ProcessOrderEmails;
 use App\Jobs\RetryFailedEmails;
@@ -98,9 +99,12 @@ Schedule::call(function () {
 })->weeklyOn(1, '07:00')->name('weekly-savings-digest');
 
 // ── Expire old AI questions (daily) ──
+// FEED-04: optimization questions are excluded — they persist until answered/dismissed
+// or their InterviewSession completes. Only transaction-based questions expire by age.
 Schedule::call(function () {
     $expiry = config('spendifiai.sync.question_expiry_days', 7);
     AIQuestion::where('status', 'pending')
+        ->where('question_type', '!=', QuestionType::Optimization->value)
         ->where('created_at', '<', now()->subDays($expiry))
         ->update(['status' => 'expired']);
 })->dailyAt('03:00')->name('expire-ai-questions');
