@@ -372,7 +372,7 @@ function MonthlyBillsSection({ bills: allBills, totalMonthly, monthlyIncome, dis
       </div>
 
       {/* Essential vs Non-essential summary */}
-      <div className="grid grid-cols-2 gap-3 mb-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
         <div className="rounded-lg bg-slate-50 border border-slate-200 p-3">
           <div className="text-[11px] text-sw-muted font-medium uppercase tracking-wider mb-1">Essential</div>
           <div className="text-base font-bold text-sw-text">

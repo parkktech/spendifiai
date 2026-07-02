@@ -166,8 +166,8 @@ export default function TaxIndex() {
     >
       <Head title="Tax Center" />
 
-      {/* Stat cards */}
-      <div className="flex gap-4 mb-6 flex-wrap">
+      {/* Stat cards — responsive grid (1 col mobile → 2 col tablet → 4 col desktop) */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <StatCard
           title="Total Deductible"
           value={summary ? fmt.format(summary.total_deductible) : '$0.00'}

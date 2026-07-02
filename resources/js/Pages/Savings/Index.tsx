@@ -99,8 +99,8 @@ export default function SavingsIndex() {
     >
       <Head title="Savings" />
 
-      {/* Stat cards */}
-      <div className="flex gap-4 mb-6 flex-wrap">
+      {/* Stat cards — responsive grid (1 col mobile → 3 col desktop) */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
         <StatCard
           title="Potential Savings"
           value={`${fmt.format(totalPotential)}/mo`}
