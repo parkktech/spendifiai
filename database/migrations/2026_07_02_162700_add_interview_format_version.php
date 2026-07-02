@@ -19,7 +19,9 @@ return new class extends Migration
     {
         Schema::table('interview_sessions', function (Blueprint $table) {
             // D20: format version stamp; null = pre-D20 (treated as v0)
-            $table->unsignedTinyInteger('format_version')->nullable()->after('initial_cap');
+            if (! Schema::hasColumn('interview_sessions', 'format_version')) {
+                $table->unsignedTinyInteger('format_version')->nullable()->after('initial_cap');
+            }
         });
     }
 

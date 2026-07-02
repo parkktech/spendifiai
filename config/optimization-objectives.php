@@ -421,20 +421,21 @@ return [
             'label' => 'Pay frequency',
         ],
         'pay.gross_per_period_cents' => [
-            'question' => 'How much is your gross pay each paycheck, before taxes and deductions? '
-                .'(Or upload a pay stub and we’ll read it for you.)',
+            'question' => 'How much is your gross pay each paycheck, before taxes and deductions?',
             'answer_type' => 'money_dollars',
             'volatility' => 'annual', 'tax_year_scoped' => true,
             'label' => 'Gross pay per paycheck',
             'doc_affordance' => 'pay_stub',
+            'doc_source_label' => "I'm not sure — get this from my paystub",
         ],
         'pay.federal_withholding_per_period_cents' => [
             'question' => 'How much federal income tax is withheld from each paycheck? '
-                .'(Look for "Federal Income Tax" or "Fed W/H" on your pay stub — or upload a pay stub and we’ll read it for you.)',
+                .'(Look for "Federal Income Tax" or "Fed W/H" on your pay stub.)',
             'answer_type' => 'money_dollars',
             'volatility' => 'annual', 'tax_year_scoped' => true,
             'label' => 'Federal withholding per paycheck',
             'doc_affordance' => 'pay_stub',
+            'doc_source_label' => "I'm not sure — get this from my paystub",
         ],
         'w4.filing_status' => [
             'question' => 'What filing status does the W-4 you filed with your employer claim? '
@@ -473,6 +474,8 @@ return [
             'volatility' => 'stable',
             'label' => 'Qualifying children under 17',
             'prerequisite' => 'family.dependents_count',
+            // D20: only ask when dependents are known to exist
+            'when' => 'family.dependents_count > 0',
         ],
         'person.birth_year' => [
             'question' => 'What year were you born? We use this only to compute contribution limits and retirement timelines.',
@@ -513,6 +516,7 @@ return [
             'volatility' => 'annual', 'tax_year_scoped' => true,
             'label' => 'Traditional 401(k) YTD (stated)',
             'doc_affordance' => 'pay_stub',
+            'doc_source_label' => "I'm not sure — get this from my paystub",
         ],
         'retirement.roth_401k_ytd_cents' => [
             'question' => 'So far this year, roughly how much have you put into your Roth 401(k)? Enter 0 if none.',
@@ -520,6 +524,7 @@ return [
             'volatility' => 'annual', 'tax_year_scoped' => true,
             'label' => 'Roth 401(k) YTD (stated)',
             'doc_affordance' => 'pay_stub',
+            'doc_source_label' => "I'm not sure — get this from my paystub",
         ],
         'hsa.ytd_contribution_cents' => [
             'question' => 'So far this year, roughly how much have you contributed to your HSA? Enter 0 if none.',
@@ -527,6 +532,9 @@ return [
             'volatility' => 'annual', 'tax_year_scoped' => true,
             'label' => 'HSA YTD (stated)',
             'doc_affordance' => 'pay_stub',
+            'doc_source_label' => "I'm not sure — get this from my paystub",
+            // D20: HSA is only relevant for HDHP enrollees
+            'when' => 'health.hsa_eligible = yes',
         ],
         'benefits.fsa_ytd_cents' => [
             'question' => 'So far this year, roughly how much have you contributed to a Flexible Spending Account (FSA)? Enter 0 if none.',
@@ -588,11 +596,12 @@ return [
             'prerequisite' => 'employer.has_401k',
         ],
         'retirement.statement_balance_cents' => [
-            'question' => 'What is the current total balance of your retirement accounts? (A rough figure is fine — or upload a statement.)',
+            'question' => 'What is the current total balance of your retirement accounts? (A rough figure is fine.)',
             'answer_type' => 'money_dollars',
             'volatility' => 'annual', 'tax_year_scoped' => true,
             'label' => 'Retirement balance (stated)',
             'doc_affordance' => 'retirement_statement',
+            'doc_source_label' => "I'm not sure — get this from my retirement statement",
         ],
         'prior_year.federal_liability_cents' => [
             'question' => 'What was your total federal tax for last year? (Line labeled "total tax" on last year’s return.)',
@@ -617,6 +626,8 @@ return [
             'answer_type' => 'money_dollars',
             'volatility' => 'annual', 'tax_year_scoped' => true,
             'label' => 'Spouse annual income',
+            // D20: only ask when filing jointly
+            'when' => 'profile.filing_status = married_joint',
         ],
         'spouse.covered_by_retirement_plan' => [
             'question' => 'Is your spouse covered by a retirement plan at their work?',
@@ -627,6 +638,8 @@ return [
             ],
             'volatility' => 'stable',
             'label' => 'Spouse covered by retirement plan',
+            // D20: only ask when filing jointly
+            'when' => 'profile.filing_status = married_joint',
         ],
         'finance.is_cash_constrained' => [
             'question' => 'Would you describe your budget as tight right now — where keeping more take-home pay matters more than saving extra?',

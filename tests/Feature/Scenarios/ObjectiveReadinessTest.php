@@ -158,6 +158,8 @@ it('enqueueGaps front-inserts gap keys before existing queue keys', function () 
         'status' => 'in_progress',
         'queue' => ['existing_finding_key'],
         'asked' => [],
+        // D20: set current format_version so startOrResume() does NOT rebuild the queue
+        'format_version' => \App\Services\InterviewOrchestratorService::FORMAT_VERSION,
     ]);
 
     $result = readinessService()->enqueueGaps($user, 2026, 'take_home');
@@ -180,6 +182,8 @@ it('enqueueGaps keeps a battery question last', function () {
         'status' => 'in_progress',
         'queue' => ['some_finding', 'battery_marriage_check'],
         'asked' => [],
+        // D20: set current format_version so startOrResume() does NOT rebuild the queue
+        'format_version' => \App\Services\InterviewOrchestratorService::FORMAT_VERSION,
     ]);
 
     readinessService()->enqueueGaps($user, 2026, 'take_home');

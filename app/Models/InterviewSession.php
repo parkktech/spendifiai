@@ -48,6 +48,7 @@ class InterviewSession extends Model
         'skipped',
         'assertions',
         'initial_cap',
+        'format_version', // D20: schema version stamp
     ];
 
     /**

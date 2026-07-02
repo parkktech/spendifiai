@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Enums\QuestionStatus;
 use App\Enums\QuestionType;
 use App\Models\AIQuestion;
+use App\Models\DocumentRequest;
 use App\Models\InterviewSession;
 use App\Models\OptimizationFinding;
 use App\Models\UserTaxFact;
@@ -53,6 +54,75 @@ class InterviewOrchestratorService
     private const GATED_PROBES = [
         'ira.backdoor_roth_eligible' => 'ira.balance_range',
         // Add more gates here as interview content grows (wave 11b)
+    ];
+
+    /**
+     * D20 — format version stamp.
+     *
+     * Bump this constant to invalidate pre-D20 sessions on next startOrResume().
+     * The stale-queue self-heal rebuilds the queue with tier+eligibility ordering.
+     *
+     * Version history:
+     *   0 (null) — pre-D18, legacy queue order
+     *   1         — D18: escape hatch, pattern aggregation
+     *   2         — D20: eligibility predicates + tier ordering + format_version stamp
+     */
+    public const FORMAT_VERSION = 2;
+
+    /**
+     * D20 — question tier definitions (1 = highest priority, 4 = lowest).
+     *
+     * Tier 1: identity / reconciliation (filing status, birth year, dependents)
+     * Tier 2: big-dollar (retirement, HSA, 401k matching)
+     * Tier 3: income classification (W-4 on file, withholding, pay frequency)
+     * Tier 4: micro-probes (vehicle log, SaaS usage)
+     *
+     * These tiers annotate config question_templates and are evaluated in
+     * buildInitialQueue() to order questions tier-ASC then estimated_impact-DESC.
+     * Cap is applied AFTER sort (owner's complaint: "cap after sort").
+     *
+     * @var array<string, int>
+     */
+    private const FACT_TIER_MAP = [
+        // Tier 1 — identity / reconciliation
+        'profile.filing_status' => 1,
+        'person.birth_year' => 1,
+        'family.dependents_count' => 1,
+        'family.qualifying_children_under_17' => 1,
+        // Tier 2 — big-dollar
+        'employer.has_401k' => 2,
+        'employer.match_pct' => 2,
+        'employer.match_threshold_pct' => 2,
+        'employer.contribution_pct' => 2,
+        'retirement.traditional_401k_ytd_cents' => 2,
+        'retirement.roth_401k_ytd_cents' => 2,
+        'retirement.statement_balance_cents' => 2,
+        'health.hsa_eligible' => 2,
+        'hsa.coverage_type' => 2,
+        'hsa.ytd_contribution_cents' => 2,
+        'ira.traditional_ytd_contribution_cents' => 2,
+        'ira.roth_ytd_contribution_cents' => 2,
+        'benefits.fsa_ytd_cents' => 2,
+        // Tier 3 — income classification / withholding
+        'pay.frequency' => 3,
+        'pay.gross_per_period_cents' => 3,
+        'pay.federal_withholding_per_period_cents' => 3,
+        'income.annual_gross_cents' => 3,
+        'w4.filing_status' => 3,
+        'w4.dependents_claimed' => 3,
+        'w4.extra_withholding_per_period_cents' => 3,
+        'has_self_employment' => 3,
+        'profile.estimated_magi_cents' => 3,
+        'prior_year.federal_liability_cents' => 3,
+        'prior_year.agi_cents' => 3,
+        'finance.is_cash_constrained' => 3,
+        // Tier 4 — micro-probes
+        'vehicle.usage_log_status' => 4,
+        'bonus.expected_month' => 4,
+        'bonus.expected_amount_cents' => 4,
+        'retirement.target_age' => 4,
+        'spouse.annual_income_cents' => 4,
+        'spouse.covered_by_retirement_plan' => 4,
     ];
 
     /**
@@ -131,6 +201,21 @@ class InterviewOrchestratorService
         if ($session !== null) {
             $session->activate(); // idempotent: in_progress stays in_progress
 
+            // D20 format_version check: if the session was built with an older format,
+            // force a queue rebuild with the new tier+eligibility ordering.
+            // The session history (asked[], transcript) is preserved; only queue is rebuilt.
+            $sessionVersion = (int) ($session->format_version ?? 0);
+            if ($sessionVersion < self::FORMAT_VERSION) {
+                $session->update(['queue' => [], 'format_version' => self::FORMAT_VERSION]);
+                $session->refresh();
+                Log::info('InterviewOrchestratorService: format_version upgraded — queue cleared for rebuild', [
+                    'user_id' => $userId,
+                    'session_id' => $session->id,
+                    'old_version' => $sessionVersion,
+                    'new_version' => self::FORMAT_VERSION,
+                ]);
+            }
+
             // Stale-queue self-heal: rebuild queue if it is empty and new eligible
             // findings are available (covers sessions created during pipeline outage).
             if (empty($session->queue)) {
@@ -172,6 +257,7 @@ class InterviewOrchestratorService
             'queue' => $queue,
             'asked' => [],
             'initial_cap' => $initialCap,
+            'format_version' => self::FORMAT_VERSION, // D20: stamp current format
         ]);
 
         Log::info('InterviewOrchestratorService: session started', [
@@ -187,30 +273,21 @@ class InterviewOrchestratorService
     /**
      * Build the initial question queue from eligible OptimizationFindings (INT-03 / D5).
      *
-     * Queue order (diagnostic INT-04 priority):
-     *   1. High-band (auto) findings — highest confidence, suggested-confirm mode.
-     *   2. Conditional findings (non-battery) — the primary interview content; these
-     *      are findings that REQUIRE prerequisite answers to resolve (band='conditional',
-     *      finding_type != 'battery_question'). Prior queue only included auto+battery,
-     *      so 'conditional' findings never entered the interview — this is the root cause
-     *      of "No questions yet" on an all-conditional finding set.
-     *   3. Annual battery questions (finding_type='battery_question') — life-event
-     *      check-ins surfaced by LifeEventTriggerDetector. Always band='conditional' and
-     *      appended LAST. Excluded from SurfaceHighPriorityRedFlags (feed) intentionally.
+     * D20 ORDERING (owner decision — "cap after sort"):
+     *   Questions are sorted tier-then-estimated_impact BEFORE the cap is applied.
+     *   Tier 1 (identity/reconciliation) always surfaces first, then tier 2 (big-dollar),
+     *   then tier 3 (withholding), then tier 4 (micro-probes). Within each tier, findings
+     *   are ranked by estimated_impact (findings only; question-only keys sort to the end).
      *
-     * 'specialist' band stays OUT — belongs to the report's professional-review section.
+     * D20 ELIGIBILITY PREDICATES:
+     *   Templates with a `when` key are evaluated against known facts before queueing.
+     *   - Evaluable and FALSE → never appears in queue
+     *   - Evaluable and TRUE → queued normally
+     *   - Unevaluable (fact unknown) → queued (may ask to get the fact)
      *
-     * Gated probes (INT-04) are skipped in nextQuestion() via prerequisite check;
-     * they are still placed in the queue here so they surface once prerequisites are met.
-     *
-     * D18 QUESTION-QUALITY GATING (owner decision, binding):
-     *   - Rule 3: finding types with an aggregated pattern template (e.g.
-     *     deductible_saas) collapse into ONE synthetic 'pattern.{type}' key —
-     *     never per-item interrogation.
-     *   - Rule 4: findings WITHOUT a data-grounded question source (config
-     *     template, question-phrased narration, or — for auto/battery bands —
-     *     a treatment to show) are EXCLUDED from the interview queue. They
-     *     remain visible in the findings list as suggested-confirm items.
+     * D18 QUESTION-QUALITY GATING (owner decision, binding, preserved):
+     *   - Rule 3: pattern types collapse; untemplated findings are excluded.
+     *   - Rule 4: only data-grounded question sources enter the queue.
      *
      * @return string[] ordered fact_key / finding_key strings
      */
@@ -218,34 +295,27 @@ class InterviewOrchestratorService
     {
         $initialCap = (int) config('tax-detection.interview.initial_cap', 10);
 
-        // 1. High-band (auto) findings — ordered first. Data-grounded gate (D18):
-        //    the suggested-confirm UI renders the treatment as the data, so a
-        //    treatment (or question-phrased narration / template) is required.
+        // 1. Auto-band findings (suggested-confirm)
         $autoFindings = OptimizationFinding::forUser($userId)
             ->where('tax_year', $taxYear)
             ->where('band', 'auto')
             ->where('status', 'open')
-            ->take($initialCap)
-            ->get(['finding_key', 'finding_type', 'band', 'treatment', 'description'])
+            ->get(['finding_key', 'finding_type', 'band', 'treatment', 'description', 'estimated_value_cents'])
             ->filter(fn (OptimizationFinding $f) => $this->hasDataGroundedQuestion($f))
-            ->pluck('finding_key')
+            ->values()
             ->toArray();
 
-        // 2. Conditional findings (non-battery) — the interview's core purpose.
-        //    These need user answers to determine if they apply. 'specialist' band
-        //    is intentionally excluded (belongs to professional-review section only).
-        //    D18: pattern types collapse; untemplated findings are excluded.
+        // 2. Conditional findings (non-battery)
         $conditionalRows = OptimizationFinding::forUser($userId)
             ->where('tax_year', $taxYear)
             ->where('band', 'conditional')
             ->where('finding_type', '!=', 'battery_question')
             ->where('status', 'open')
-            ->get(['finding_key', 'finding_type', 'band', 'treatment', 'description']);
+            ->get(['finding_key', 'finding_type', 'band', 'treatment', 'description', 'estimated_value_cents']);
 
         $conditionalFindings = [];
         $patternKeys = [];
         foreach ($conditionalRows as $f) {
-            // D18 rule 3: aggregate — one question per PATTERN, never per item.
             if ($this->patterns->isPatternType($f->finding_type)) {
                 $patternKey = $this->patterns->patternKey($f->finding_type);
                 if (! in_array($patternKey, $patternKeys, true)
@@ -256,14 +326,10 @@ class InterviewOrchestratorService
                 continue;
             }
 
-            // D18 rule 4: conditional findings need a REAL question source —
-            // a config template, a dedicated dynamic template (exemplars 2/3),
-            // or question-phrased narration. Treatment prose alone is not
-            // interview-ready for the conditional band.
             if ($this->questionTemplate($f->finding_key) !== null
                 || $this->patterns->hasTemplate($f->finding_key)
                 || $this->isQuestionPhrased($f->description)) {
-                $conditionalFindings[] = $f->finding_key;
+                $conditionalFindings[] = $f->toArray();
 
                 continue;
             }
@@ -274,27 +340,220 @@ class InterviewOrchestratorService
                 'finding_type' => $f->finding_type,
             ]);
         }
-        $conditionalFindings = array_merge($patternKeys, $conditionalFindings);
 
-        // 3. Annual battery questions — appended after auto + conditional findings.
-        //    Battery questions are annual life-event check-ins (marriage, birth, job change,
-        //    inheritance, Medicare). They are lower priority than auto-band red flags.
-        //    Their treatment is authored check-in copy → same data-grounded gate as auto.
+        // 3. Battery questions
         $batteryFindings = OptimizationFinding::forUser($userId)
             ->where('tax_year', $taxYear)
             ->where('finding_type', 'battery_question')
             ->where('status', 'open')
-            ->get(['finding_key', 'finding_type', 'band', 'treatment', 'description'])
+            ->get(['finding_key', 'finding_type', 'band', 'treatment', 'description', 'estimated_value_cents'])
             ->filter(fn (OptimizationFinding $f) => $this->hasDataGroundedQuestion($f))
-            ->pluck('finding_key')
+            ->values()
             ->toArray();
 
-        // Merge order: auto → conditional → battery. Deduplicate to avoid double-asking.
-        $queue = array_values(array_unique(
-            array_merge($autoFindings, $conditionalFindings, $batteryFindings)
-        ));
+        // ── D20: Tier sort + eligibility filtering ────────────────────────────
+        // Build merged list of {finding_key, estimated_value_cents, tier} entries.
+        // Pattern keys and battery keys don't have an estimated_value so sort last.
 
-        return $queue;
+        $allEntries = [];
+
+        foreach ($autoFindings as $f) {
+            $key = $f['finding_key'];
+            if ($this->passesEligibilityPredicate($key, $userId)) {
+                $allEntries[] = [
+                    'key' => $key,
+                    'tier' => $this->tierFor($key),
+                    'impact' => (int) ($f['estimated_value_cents'] ?? 0),
+                    'group' => 0, // auto first
+                ];
+            }
+        }
+
+        foreach ($patternKeys as $key) {
+            if ($this->passesEligibilityPredicate($key, $userId)) {
+                $allEntries[] = ['key' => $key, 'tier' => $this->tierFor($key), 'impact' => 0, 'group' => 1];
+            }
+        }
+
+        foreach ($conditionalFindings as $f) {
+            $key = $f['finding_key'];
+            if ($this->passesEligibilityPredicate($key, $userId)) {
+                $allEntries[] = [
+                    'key' => $key,
+                    'tier' => $this->tierFor($key),
+                    'impact' => (int) ($f['estimated_value_cents'] ?? 0),
+                    'group' => 1,
+                ];
+            }
+        }
+
+        foreach ($batteryFindings as $f) {
+            $key = $f['finding_key'];
+            if ($this->passesEligibilityPredicate($key, $userId)) {
+                $allEntries[] = ['key' => $key, 'tier' => $this->tierFor($key), 'impact' => 0, 'group' => 2];
+            }
+        }
+
+        // Sort: group ASC → tier ASC → impact DESC (D20: cap applied AFTER sort)
+        usort($allEntries, function (array $a, array $b): int {
+            if ($a['group'] !== $b['group']) {
+                return $a['group'] <=> $b['group'];
+            }
+            if ($a['tier'] !== $b['tier']) {
+                return $a['tier'] <=> $b['tier'];
+            }
+
+            return $b['impact'] <=> $a['impact']; // higher impact first
+        });
+
+        // Extract keys and deduplicate
+        $sortedKeys = array_values(array_unique(array_column($allEntries, 'key')));
+
+        // D20: cap AFTER sort (owner's complaint mechanism preserved)
+        return array_slice($sortedKeys, 0, $initialCap);
+    }
+
+    /**
+     * D20 — Evaluate a template's `when` eligibility predicate against known facts.
+     *
+     * Returns true when:
+     *   - The template has no `when` field (unconditional — always eligible)
+     *   - The predicate references an unknown fact (unevaluable → may ask)
+     *   - The predicate evaluates to true
+     *
+     * Returns false when the predicate is evaluable AND false (e.g. Medicare
+     * question for a user known to be age 40).
+     *
+     * Predicate grammar (simple fact comparisons only):
+     *   "person.estimated_age >= 64"   — integer comparison
+     *   "person.estimated_age >= 50"
+     *   "person.estimated_age >= 65"
+     *   "family.dependents_count > 0"
+     *   "profile.filing_status = married_joint"
+     *
+     * Config templates encode `when` as a string predicate. Dynamic templates
+     * (FindingPatternQuestionService) are always unconditional.
+     */
+    private function passesEligibilityPredicate(string $factKey, int $userId): bool
+    {
+        $template = $this->questionTemplate($factKey);
+        if ($template === null) {
+            return true; // dynamic templates are unconditional
+        }
+
+        $when = $template['when'] ?? null;
+        if ($when === null || ! is_string($when)) {
+            return true; // no predicate = always eligible
+        }
+
+        return $this->evaluateWhenPredicate($when, $userId);
+    }
+
+    /**
+     * D20 — Evaluate a simple `when` predicate string against known facts.
+     *
+     * Supported operators: >=, >, <=, <, =, !=
+     * Fact side always on the LEFT (e.g. "person.estimated_age >= 64").
+     *
+     * Unevaluable (fact unknown) → returns true (may ask).
+     */
+    private function evaluateWhenPredicate(string $when, int $userId): bool
+    {
+        // Parse: "fact_key operator value"
+        if (! preg_match('/^([a-z_.]+)\s*(>=|<=|!=|>|<|=)\s*(.+)$/', trim($when), $m)) {
+            return true; // unparseable → don't filter
+        }
+
+        [, $factKey, $op, $rhs] = $m;
+        $rhs = trim($rhs);
+
+        // Resolve the fact from UserTaxFact or derive (e.g. estimated_age from birth_year)
+        $value = $this->resolvePredicateFact($factKey, $userId);
+
+        if ($value === null) {
+            return true; // unknown — may ask
+        }
+
+        // Numeric comparison
+        if (is_numeric($value) && is_numeric($rhs)) {
+            $lhs = (float) $value;
+            $rhsF = (float) $rhs;
+
+            return match ($op) {
+                '>=' => $lhs >= $rhsF,
+                '>' => $lhs > $rhsF,
+                '<=' => $lhs <= $rhsF,
+                '<' => $lhs < $rhsF,
+                '=' => abs($lhs - $rhsF) < PHP_FLOAT_EPSILON,
+                '!=' => abs($lhs - $rhsF) >= PHP_FLOAT_EPSILON,
+                default => true,
+            };
+        }
+
+        // String comparison
+        return match ($op) {
+            '=' => (string) $value === $rhs,
+            '!=' => (string) $value !== $rhs,
+            default => true,
+        };
+    }
+
+    /**
+     * D20 — Resolve a fact key for predicate evaluation.
+     *
+     * Supported built-in derivations:
+     *   person.estimated_age → derived from person.birth_year + current year
+     *
+     * Falls back to UserTaxFact for stored values.
+     *
+     * @return float|string|null null when the fact is unknown
+     */
+    private function resolvePredicateFact(string $factKey, int $userId): float|string|null
+    {
+        // Derived: person.estimated_age from birth_year
+        if ($factKey === 'person.estimated_age') {
+            $birthYearFact = UserTaxFact::currentFact($userId, 'person.birth_year');
+            if ($birthYearFact !== null && is_numeric($birthYearFact->value)) {
+                return (float) (now()->year - (int) $birthYearFact->value);
+            }
+
+            // Try the user's financial profile (if birth_year is stored there)
+            return null;
+        }
+
+        $fact = UserTaxFact::currentFact($userId, $factKey);
+        if ($fact === null) {
+            return null;
+        }
+
+        return is_numeric($fact->value) ? (float) $fact->value : (string) $fact->value;
+    }
+
+    /**
+     * D20 — Get the tier number for a fact_key (1 = highest priority, 4 = lowest).
+     *
+     * Fact-keys not in the tier map default to tier 3 (income classification).
+     * Finding-only keys (battery, pattern) that don't map to config templates default to 3.
+     */
+    private function tierFor(string $factKey): int
+    {
+        // Check FACT_TIER_MAP (config question_templates' fact keys)
+        if (isset(self::FACT_TIER_MAP[$factKey])) {
+            return self::FACT_TIER_MAP[$factKey];
+        }
+
+        // Config template tier override (future-proof: allow 'tier' key in template)
+        $template = $this->questionTemplate($factKey);
+        if ($template !== null && isset($template['tier'])) {
+            return (int) $template['tier'];
+        }
+
+        // Battery questions and pattern keys default to tier 4 (micro-probes)
+        if (str_starts_with($factKey, 'battery_') || str_starts_with($factKey, 'pattern.')) {
+            return 4;
+        }
+
+        return 3; // default: income classification tier
     }
 
     /**
@@ -573,6 +832,8 @@ class InterviewOrchestratorService
             'context' => $template['context'] ?? null,
             'objective_tags' => $this->objectiveTagsFor($factKey),
             'doc_affordance' => $template['doc_affordance'] ?? null,
+            // D20.3: label for the "get from document" choice (rendered as third option)
+            'doc_source_label' => $template['doc_source_label'] ?? null,
             'transaction_ids' => [],
         ];
 
@@ -770,6 +1031,176 @@ SYS;
         }
 
         return null;
+    }
+
+    /**
+     * D20.2 — Detect whether a free-text escape answer contains a QUESTION.
+     *
+     * Heuristic: ends in '?', OR contains known question-opener words.
+     * Returns true when the user is asking for information, not providing it.
+     */
+    public function isQuestion(string $text): bool
+    {
+        $text = trim($text);
+        if (str_ends_with($text, '?')) {
+            return true;
+        }
+
+        // Common question openers (case-insensitive, word-boundary anchored)
+        return (bool) preg_match(
+            '/\b(what|what\'s|how|why|when|where|who|is|are|can|could|should|do|does|don\'t|doesn\'t|isn\'t|aren\'t|will|would)\b/i',
+            $text
+        );
+    }
+
+    /**
+     * D20.2 — Answer a user's question from the escape hatch briefly (1-2 educational sentences).
+     *
+     * Called when the user's escape-hatch free text is a question ("what's Medicare?").
+     * Returns {educational_answer, interpreted_value} or null at budget cap.
+     *
+     * - educational_answer: 1-2 sentences (Haiku, D17-counted, educational framing)
+     * - interpreted_value: the best-guess answer to the ORIGINAL question after explanation
+     *
+     * The caller presents: answer text + "Got it — recording: {interpreted_value}. ✓ / ✗"
+     * The user must confirm or correct before recordAnswer() is called.
+     *
+     * @param  array<string, mixed>  $template  the question template
+     * @return array{educational_answer: string, interpreted_value: string}|null
+     */
+    public function answerHatchQuestion(array $template, string $userQuestion): ?array
+    {
+        if (! $this->checkAndIncrementBudget('wording')) {
+            return null;
+        }
+
+        $choices = (array) ($template['choices'] ?? []);
+        $choiceList = $choices
+            ? implode(', ', array_column($choices, 'label'))
+            : '(free-text answer)';
+
+        $system = <<<'SYS'
+You are an educational financial assistant. A user typed a question instead of an answer.
+Your job: (1) answer their question briefly in 1-2 educational sentences, then (2) state what
+their answer to the original question LIKELY is based on their question.
+
+RULES:
+- Educational, non-assertive: "may", "could", "generally" language
+- Never state specific dollar amounts
+- Never give advice: "worth discussing with a professional"
+- Brevity: 1-2 sentences max for the educational answer
+
+Return ONLY valid JSON (no markdown):
+{"educational_answer": "<1-2 educational sentences>", "interpreted_value": "<the user's likely answer>"}
+SYS;
+
+        $userPrompt = json_encode([
+            'original_question' => $template['question'] ?? '',
+            'available_choices' => $choiceList,
+            'user_question' => $userQuestion,
+        ], JSON_UNESCAPED_UNICODE);
+
+        try {
+            $model = config('services.anthropic.model_wording', config('services.anthropic.model'))
+                ?? 'claude-sonnet-4-6';
+
+            $response = Http::withHeaders([
+                'x-api-key' => config('services.anthropic.key'),
+                'anthropic-version' => '2023-06-01',
+                'content-type' => 'application/json',
+            ])->post('https://api.anthropic.com/v1/messages', [
+                'model' => $model,
+                'max_tokens' => 300,
+                'system' => $system,
+                'messages' => [['role' => 'user', 'content' => $userPrompt]],
+            ]);
+
+            if ($response->successful()) {
+                $raw = $response->json('content.0.text');
+                $raw = (string) preg_replace('/^```(?:json)?\s*/i', '', trim((string) $raw));
+                $raw = (string) preg_replace('/\s*```$/', '', $raw);
+                $data = json_decode($raw, true);
+
+                if (is_array($data)
+                    && isset($data['educational_answer'], $data['interpreted_value'])
+                    && is_string($data['educational_answer'])
+                    && is_string($data['interpreted_value'])) {
+                    return [
+                        'educational_answer' => trim($data['educational_answer']),
+                        'interpreted_value' => trim($data['interpreted_value']),
+                    ];
+                }
+            }
+        } catch (\Throwable $e) {
+            Log::warning('InterviewOrchestratorService: hatch-question answer failed', [
+                'error' => $e->getMessage(),
+            ]);
+        }
+
+        return null;
+    }
+
+    /**
+     * D20.3 — Check if an answer is the doc-source choice ("__doc_source__").
+     * When selected, files a DocumentRequest and returns doc_pending status.
+     *
+     * The question must not advance; it resolves when the document is extracted.
+     * The AIQuestion remains Pending (not Answered) with options.doc_pending = true.
+     *
+     * Returns true if the answer is the doc-source sentinel (handled here);
+     * false if it should be processed normally.
+     *
+     * @param  array<string, mixed>  $template
+     */
+    public const DOC_SOURCE_VALUE = '__doc_source__';
+
+    public function handleDocSourceAnswer(
+        InterviewSession $session,
+        AIQuestion $question,
+        array $template
+    ): bool {
+        $docAffordance = $template['doc_affordance'] ?? null;
+        if ($docAffordance === null) {
+            return false;
+        }
+
+        // File a self-initiated DocumentRequest (no firm/accountant — self-service)
+        // D20.3: accounting_firm_id and accountant_id are nullable since migration
+        // 2026_07_02_220000_make_document_request_fks_nullable.php
+        DocumentRequest::firstOrCreate(
+            [
+                'client_id' => $session->user_id,
+                'category' => $docAffordance,
+                'tax_year' => $session->tax_year,
+                'accounting_firm_id' => null,
+                'accountant_id' => null,
+            ],
+            [
+                'description' => 'Requested from interview: '.($template['label'] ?? $docAffordance),
+                'status' => \App\Enums\DocumentRequestStatus::Pending->value,
+            ]
+        );
+
+        // Mark question as doc_pending (not re-asked; question stays Pending)
+        $opts = (array) ($question->options ?? []);
+        $opts['doc_pending'] = true;
+        $opts['doc_category'] = $docAffordance;
+        $question->update(['options' => $opts]);
+
+        // Dequeue the fact_key (will re-appear once doc is extracted)
+        $factKey = $opts['fact_key'] ?? null;
+        if ($factKey) {
+            $session->dequeueKey($factKey);
+            $session->markAsked($factKey);
+        }
+
+        Log::info('InterviewOrchestratorService: doc-source answer filed', [
+            'session_id' => $session->id,
+            'fact_key' => $factKey,
+            'doc_affordance' => $docAffordance,
+        ]);
+
+        return true;
     }
 
     /**
