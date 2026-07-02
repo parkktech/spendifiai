@@ -233,6 +233,40 @@ it('user-derived merchant strings are json-encoded in payload', function () {
     });
 });
 
+// ── Prompt enforces 2-sentence / ~40-word brevity (Task 1 tightening) ────────
+
+it('system_prompt instructs max 2 sentences and ~40 words brevity', function () {
+    Http::fake([
+        'https://api.anthropic.com/*' => Http::response([
+            'content' => [['type' => 'text', 'text' => 'You may have retirement headroom. Consider discussing this with a tax professional.']],
+        ], 200),
+    ]);
+
+    $finding = OptimizationFinding::create([
+        'user_id' => $this->user->id,
+        'tax_year' => 2026,
+        'finding_key' => 'brevity_test',
+        'finding_type' => 'retirement_headroom',
+        'severity' => 'medium',
+        'status' => 'open',
+        'description' => null,
+    ]);
+
+    $service = app(NarrationService::class);
+    $service->narrateFinding($finding);
+
+    Http::assertSent(function ($request) {
+        $decoded = json_decode($request->body(), true);
+        $systemPrompt = strtolower($decoded['system'] ?? '');
+
+        // Must instruct exactly 2 sentences and ~40 words
+        expect($systemPrompt)->toContain('2 sentence')
+            ->and($systemPrompt)->toContain('40 word');
+
+        return true;
+    });
+});
+
 // ── NarrateOptimizationFindings listener ──────────────────────────────────────
 
 it('NarrateOptimizationFindings listener exists', function () {

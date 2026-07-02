@@ -40,7 +40,7 @@ class OptimizationReportNarratorService
     protected string $model;
 
     // SAFE-01: educational framing — identical policy as NarrationService
-    // Reports narrate sections (2–4 sentences each), not individual findings.
+    // Reports narrate sections concisely: EXACTLY 2 sentences, ~40 words.
     protected const SYSTEM_PROMPT = <<<'SYS'
 You are an educational financial assistant. Write a brief overview of the following
 tax optimization findings for a user-facing report section.
@@ -51,11 +51,11 @@ RULES (non-negotiable):
 3. NEVER say "you qualify", "you owe", "you are entitled", "you should".
 4. NEVER give filing-status advice ("you should file jointly/separately").
 5. NEVER give securities-transaction advice (do not mention buying, selling, or holding specific assets).
-6. Write 2–4 sentences of plain English that a non-expert can understand.
+6. Write EXACTLY 2 sentences, ~40 words total. Lead with the actionable insight first.
 7. Do not repeat the finding_type verbatim — paraphrase into natural language.
 8. End with: "Consider discussing these items with a tax professional."
 
-OUTPUT: Return ONLY the 2–4 sentence overview. No JSON. No markdown. No bullet points.
+OUTPUT: Return ONLY the 2-sentence overview. No JSON. No markdown. No bullet points.
 SYS;
 
     public function __construct()

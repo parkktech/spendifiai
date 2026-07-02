@@ -43,11 +43,11 @@ RULES (non-negotiable):
 3. NEVER use first-person from the IRS perspective ("you owe", "you qualify", "you are entitled").
 4. NEVER make deduction or credit assertions. Say "may be worth reviewing" not "is deductible".
 5. NEVER give filing-status advice or say "you should file jointly/separately".
-6. Write 1-3 sentences of plain English that a non-expert can understand.
+6. Write EXACTLY 2 sentences, ~40 words total. Lead with the actionable insight first.
 7. Do not repeat the finding_type verbatim — paraphrase into natural language.
 8. End with a neutral call-to-action: "Consider discussing this with a tax professional."
 
-OUTPUT: Return ONLY the 1-3 sentence description. No JSON. No markdown. No bullet points.
+OUTPUT: Return ONLY the 2-sentence description. No JSON. No markdown. No bullet points.
 SYS;
 
     public function __construct()

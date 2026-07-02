@@ -35,6 +35,8 @@ import {
   BarChart2,
   Brain,
   CheckCircle,
+  ChevronDown,
+  ChevronUp,
   Loader2,
 } from 'lucide-react';
 import Badge from '@/Components/SpendifiAI/Badge';
@@ -80,12 +82,28 @@ interface ReportResponse {
 
 type ViewMode = 'findings' | 'interview' | 'report';
 
+// ─── Narration truncation helper ─────────────────────────────────────────────
+
+/** Return the first sentence of `text`, clamped at `maxChars` chars with ellipsis. */
+function firstSentence(text: string, maxChars = 140): string {
+  // Try to break on sentence-ending punctuation
+  const sentenceEnd = text.search(/[.!?]\s/);
+  const clip = sentenceEnd !== -1 && sentenceEnd + 1 <= maxChars
+    ? text.slice(0, sentenceEnd + 1)   // keep the punctuation
+    : text.slice(0, maxChars);
+  return clip.length < text.length ? clip + '…' : clip;
+}
+
 // ─── Findings summary card ────────────────────────────────────────────────────
 
 function FindingSummaryCard({
   section,
+  expandedFindingId,
+  setExpandedFindingId,
 }: {
   section: ReportSection;
+  expandedFindingId: number | null;
+  setExpandedFindingId: (id: number | null) => void;
 }) {
   const highFindings = section.findings.filter((f) => f.severity === 'high');
   const medFindings = section.findings.filter((f) => f.severity === 'medium');
@@ -112,16 +130,40 @@ function FindingSummaryCard({
         </div>
       </div>
 
-      {/* Findings preview list */}
-      {section.findings.slice(0, 3).map((finding) => (
-        <div key={finding.finding_id} className="pl-3 border-l-2 border-sw-border">
-          {finding.description ? (
-            <p className="text-[12px] text-sw-text-secondary leading-relaxed">{finding.description}</p>
-          ) : (
-            <p className="text-[12px] text-sw-dim italic">Analysis in progress...</p>
-          )}
-        </div>
-      ))}
+      {/* Findings preview list — first sentence only; expand chevron for full narration */}
+      {section.findings.slice(0, 3).map((finding) => {
+        const isExpanded = expandedFindingId === finding.finding_id;
+        const desc = finding.description ?? null;
+        const truncated = desc ? firstSentence(desc) : null;
+        const needsExpand = desc !== null && truncated !== desc; // true when we clipped
+
+        return (
+          <div key={finding.finding_id} className="pl-3 border-l-2 border-sw-border">
+            {desc ? (
+              <>
+                <p className="text-[12px] text-sw-text-secondary leading-relaxed">
+                  {isExpanded ? desc : truncated}
+                </p>
+                {needsExpand && (
+                  <button
+                    onClick={() => setExpandedFindingId(isExpanded ? null : finding.finding_id)}
+                    className="mt-1 inline-flex items-center gap-1 text-[11px] font-medium text-sw-muted hover:text-sw-text transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sw-accent/50 rounded"
+                    aria-expanded={isExpanded}
+                  >
+                    {isExpanded ? (
+                      <>Show less <ChevronUp size={12} /></>
+                    ) : (
+                      <>Read more <ChevronDown size={12} /></>
+                    )}
+                  </button>
+                )}
+              </>
+            ) : (
+              <p className="text-[12px] text-sw-dim italic">Analysis in progress...</p>
+            )}
+          </div>
+        );
+      })}
       {section.findings.length > 3 && (
         <p className="text-[11px] text-sw-dim pl-3">
           + {section.findings.length - 3} more in the full report
@@ -183,6 +225,8 @@ export default function OptimizeIndex() {
   const currentYear = new Date().getFullYear();
   const [viewMode, setViewMode] = useState<ViewMode>('findings');
   const [regenerating, setRegenerating] = useState(false);
+  // Task 1: one-at-a-time expand for finding narrations (shared across all section cards)
+  const [expandedFindingId, setExpandedFindingId] = useState<number | null>(null);
 
   // Fetch the report (includes sections/findings)
   const {
@@ -341,7 +385,12 @@ export default function OptimizeIndex() {
                       return bHigh - aHigh;
                     })
                     .map((section) => (
-                      <FindingSummaryCard key={section.section_key} section={section} />
+                      <FindingSummaryCard
+                        key={section.section_key}
+                        section={section}
+                        expandedFindingId={expandedFindingId}
+                        setExpandedFindingId={setExpandedFindingId}
+                      />
                     ))}
                   {/* CTA to start interview */}
                   <div className="rounded-2xl border border-sw-accent/20 bg-sw-accent/5 p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
