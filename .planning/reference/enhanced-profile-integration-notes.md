@@ -134,6 +134,44 @@ Owner: "Let's lean in a little more on the design skill. We can be making better
 - **Method (binding)**: taste-skill v2 full procedure — Section 11.B audit → mode "Preserve brand, elevate premium" → Section 11.D modernisation levers in priority order; soft-skill (high-end-visual-design) standards as the concrete bar; ui-ux-pro-max queried for fintech-premium styles/palettes/typography; redesign-skill audit-first discipline. Blocking audits continue (preservation audit = URLs/nav/forms/anchors; brand-fidelity audit amended to the preserved list above).
 - **Rollout**: (a) DESIGN-ELEVATION-SPEC.md defines the lever set + token extensions first; (b) all NEW UI (scenarios/checklists) is born to that spec; (c) a dedicated elevation pass upgrades the core existing surfaces (app shell/nav, Dashboard, cards, Optimize flow) — staged, verified with npm build + audits per batch.
 
+## Decision 13 — Report staleness policy + the 2-4 week action-lag model (owner, 2026-07-02)
+
+Owner: "It can't be stale if it's run in the last month. Or unless a user made changes and confirmed they made changes and the system starts seeing the changes in their income, saving etc." + "From the time a user runs this, makes changes, and the changes start showing in their transactions, it takes a min of 2 weeks to a month."
+
+**Staleness policy (replaces flag-on-every-event):**
+1. **Freshness window: 30 days** (config `optimization-report.freshness_days`). Within it, routine data-churn events (bank syncs, categorization progress, profile rebuilds from scheduled jobs) do NOT stale the report.
+2. **Immediate-stale exceptions (user acted — they expect it reflected):** optimization interview answers, profile edits, fact confirm/supersede, document uploads by the user, scenario choice, checklist item state changes.
+3. **Material-change exception (the system "starts seeing changes"):** at generation the report stores `built_against` aggregates (income, savings rate, key metric fingerprints). Churn events within the window compare current profile aggregates vs `built_against` using config thresholds (e.g. income ±5%, savings ±10%, new high-severity finding keys) — material shift → stale even inside the window.
+4. **Rationale (owner's lag model):** user actions take 2-4 WEEKS to appear in transactions/paystubs. Early regeneration = burn without signal. The material-change detector is precisely tuned to catch when the actions LAND.
+5. **Connected loop (implement with Decision 9/10 unit):** BENEFIT VERIFICATION — when checklist items are marked done, watch the 2-4 week window for the projected change to materialize (new recurring transfer detected, take-home delta on next paystub/deposit pattern) and surface verified outcomes ("Your new $500 transfers are live — take-home rose ~$148/paycheck vs the ~$155 projected"). Reuses the existing SavingsLedger claimed→verified pattern. This is the retention loop: act → see it verified → trust → act again.
+
+## Decision 14 — Proactive change monitor + document-refresh prompts (owner, 2026-07-02)
+
+Owner: "We probably need to wire in a change monitor. To say we noticed your income went up from your employer — want to send us an updated check stub or screenshot of your check to make sure it's optimized."
+
+**Design (thin orchestration over existing plumbing — nearly everything exists):**
+1. **Detection sources (all shipped or in-flight):** D13's material-change comparison (built_against vs current aggregates — the D13 executor is building it now), life-event triggers from 11-07 (payroll-stop, new-mortgage, marketplace-premiums, escrow), IncomeDetectorService deposit-pattern shifts, CrossSourceReviewService discrepancies.
+2. **On detection → user-facing engagement:** create an OptimizationFinding (`finding_type=change_detected`, educational copy naming WHAT we noticed: "Your deposits from [employer] increased ~X% starting [month]") + an AIQuestion in the feed (badge count already wired) + a document request ("Upload an updated pay stub or a screenshot of your check so we can re-optimize with accurate numbers") that routes into the EXISTING in-flow upload (DOC-05) → extraction → confirm-gated proposals (D4) → re-optimization via the D13 user-action path.
+3. **Copy pattern (educational, specific, benefit-forward):** "We noticed [specific change]. Send an updated [doc] and we'll check whether your [withholding/401k/transfers] are still optimized — a raise often unlocks [X]." Never alarming, never assertive.
+4. **Cadence guard:** one change-prompt per detected change per freshness window (no nagging); dedupe against open requests; respects the 2-4 week lag model (a change must persist ≥2 pay cycles before prompting — filters one-off deposits/bonuses, config threshold).
+5. **Symmetry with the benefit-verification loop (D13.5):** same watcher infrastructure — one watches for EXPECTED changes (verify benefits), this watches for UNEXPECTED changes (prompt re-optimization). Build them as one ChangeMonitor service when the scenarios unit lands.
+
+Sequencing: fast-follow executor AFTER the D13 staleness executor lands (it consumes D13's comparison outputs); the watcher/verification halves unify in the scenarios+checklist implementation unit.
+
+## Decision 15 — Bonus optimization: pre-bonus election alerts (owner, 2026-07-02)
+
+Owner: "An alert prior to your bonus to flag it… to not send a portion to your 401k, or send more to your 401k, send none to your 401k to further optimize your bonus. I know last year a decent percentage of my bonus went into my 401k and I would have rather it not."
+
+**Product shape:**
+1. **Bonus prediction (the alert must land BEFORE payroll runs):** sources — prior-year transaction pattern (bonus deposit detected same period last year via IncomeDetectorService/history), user facts (interview: "annual bonus? which month?"), offer-letter extraction (bonus terms — doc type exists). Alert fires with LEAD TIME (config, ~3-4 weeks before expected date — users need time to change plan elections before the payroll cutoff).
+2. **Bonus scenario set (a D10 scenario domain):** Option A — max cash now (set bonus 401k deferral to 0%); Option B — max deferral (bracket management / catch up on the annual limit, esp. if behind on match/headroom); Option C — standing election. Computed outcomes per option: bonus take-home, tax withheld, 401k limit headroom effect, match interaction. All engine math; ACA-cliff guard applies (a big bonus + deferral choice can cross the cliff — the sequencing rule extends here).
+3. **Withholding education (owner's "flag it as tax except"):** bonuses are supplemental wages — NOT tax-exempt, but the WITHHOLDING method matters (flat 22% supplemental rate vs aggregate method; over/under-withholding vs actual bracket). Scenario copy educates on what the user's expected withholding does vs their real bracket and what to review with payroll. Educational framing only.
+4. **The checklist output:** "Before [date]: log into your 401(k) portal / contact HR and set your BONUS deferral election to X% [matching the option you chose]" + benefit line ("keeps ~$X of your bonus in cash now" / "adds ~$X toward your limit + saves ~$Y in current-year tax").
+5. **Plan-capability fact:** whether the user's plan allows a separate bonus election = an ask-once fact (benefits guide/SPD extraction or interview); if not allowed, the scenario degrades honestly ("your plan applies your standing 6% — to change it for the bonus you'd temporarily adjust your election, then revert — two checklist steps with dates").
+6. **Infrastructure:** extends ChangeMonitor (D14) with PREDICTIVE/CALENDAR watchers (expected-event schedule per user), not just change detection. First slice of the parked Year-End/Q4 calendar-engine concept.
+
+Sequencing: add as a scenario domain in SCENARIOS-SPEC (post-design addendum if the in-flight spec lacks it); implement with or immediately after the scenarios unit; predictive watcher rides the D14 ChangeMonitor build.
+
 ## Non-negotiables that still apply
 
 Educational-only framing on every mismatch surface; additive migrations only; no changes to existing `UserFinancialProfile` API responses or `EnhancedProfileSection` behavior (extend, don't alter); encrypted TEXT + `$hidden` for sensitive new fields; all dollar math in TaxRulesEngineService from config.
