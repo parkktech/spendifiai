@@ -103,6 +103,16 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(UserTaxFact::class, UserTaxFactPolicy::class);
         Gate::policy(TaxProfileEntity::class, TaxProfileEntityPolicy::class);
 
+        // ── Phase 11: Red-Flag Detection ──
+        Event::listen(
+            \App\Events\OptimizationProfileBuilt::class,
+            \App\Listeners\RunRedFlagDetectors::class,
+        );
+        Event::listen(
+            \App\Events\OptimizationProfileBuilt::class,
+            \App\Listeners\NarrateOptimizationFindings::class,
+        );
+
         // ── Vite Prefetch (from Breeze starter kit) ──
         Vite::prefetch(concurrency: 3);
 
