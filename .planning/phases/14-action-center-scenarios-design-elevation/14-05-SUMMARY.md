@@ -215,3 +215,89 @@ Audited all `config/optimization-objectives.php` question_templates: every entry
 - f648510 — feat: InterviewCard multi-select/choice rendering, escape hatch, context collapsible
 - e669894 — test: failing exemplar-4 tests (job-change confirmation shape)
 - 29036f1 — feat: confirmation shape for life-event battery + triggers, also_record, employer-switch evidence
+
+---
+
+## D19/D20 batch
+
+Owner-mandated upgrade batch: five cohesive improvements to the interview/narration seam.
+Implemented via TDD, atomic commits per upgrade, on `feature/v2.1-optimize-my-income`.
+
+### What changed
+
+#### D19 — Structured AI output contracts
+
+**NarrationService**: system prompt changed from "Return ONLY the 2-sentence description" to a
+JSON output contract requesting `{hook ≤120 chars, detail ≤2 sentences, action_cue ≤1 sentence}`.
+- `callClaudeStructured()`: parses JSON, strips markdown fences, validates field presence
+- `validateStructuredNarration()`: enforces per-field caps; hook capped at 120 chars, detail/action_cue counted by sentences
+- Single shorter-prompt retry on cap violation; template/omit fallback (never renders an oversized blob)
+- `narrateFinding()` returns the hook string for backward compat; also writes `narration_structured` JSONB column
+- Migration `2026_07_02_210000`: adds `narration_structured JSONB` to `optimization_findings` + `executive_summary_structured JSONB` to `optimization_reports` (idempotent with `Schema::hasColumn()` guard)
+
+**OptimizationReportNarratorService**: `narrateSection()` / `narrateExecutiveSummary()` return
+`array{summary, bullets}` (was `string|null`); `narrateSectionProse()` backward-compat accessor.
+`validateStructuredSection()`: summary ≤2 sentences, bullets ≤5 (truncated), each ≤15 words (truncated).
+
+**OptimizationReportGeneratorService**: stores `narrator_structured` + `narrator_prose` (backward compat) in section JSON; stores `exec_summary_structured` + `executive_summary` (compat).
+
+**Frontend**: `OptimizationReportView.tsx` and `Optimize/Index.tsx` prefer `narrator_structured`/`narration_structured` (field rendering: summary + bullet list), fall back to prose string with `line-clamp-3`.
+
+**Zero-Claude template paths preserved (D17 intact)**: `narrateSection()` for template narrations still writes only `description` — `narration_structured` stays null; renderers fall back gracefully.
+
+#### D20.1 — Eligibility predicates + tier ordering + format_version
+
+- `InterviewOrchestratorService::FORMAT_VERSION = 2`: `startOrResume()` detects sessions with `format_version` < FORMAT_VERSION → clears queue, bumps version (stale-queue rebuild trigger)
+- Session creation stamps `format_version => FORMAT_VERSION`
+- `FACT_TIER_MAP`: 30 fact keys assigned tiers 1-4 (1=identity/reconciliation, 2=big-dollar, 3=income-classification, 4=micro-probes)
+- `buildInitialQueue()`: sort group→tier→impact DESC; cap applied AFTER sort (owner's "cap after sort" complaint mechanism)
+- `passesEligibilityPredicate()` / `evaluateWhenPredicate()` / `resolvePredicateFact()`: template-level `when` predicates evaluated before queueing; unevaluable (fact unknown) → true (may ask); false → never queued
+- `config/optimization-objectives.php`: `when` predicates on `family.qualifying_children_under_17` (`dependents_count > 0`), `spouse.annual_income_cents` / `spouse.covered_by_retirement_plan` (`filing_status = married_joint`), `hsa.ytd_contribution_cents` (`hsa_eligible = yes`)
+- `doc_source_label` added to 6 paystub/retirement-statement templates (used by D20.3 UI)
+- Migration `2026_07_02_162700`: `format_version TINYINT NULL` on `interview_sessions` (idempotent)
+
+#### D20.2 — Conversational escape hatch question detection
+
+- `isQuestion(string $text): bool`: detects free text ending in `?` or containing common question-opener words (what, how, why, when, where, is, can, will, etc.)
+- `answerHatchQuestion(array $template, string $userQuestion): ?array`: calls Claude haiku-tier (`model_wording`, `wording` budget, counted); returns `{educational_answer, interpreted_value}` or null at cap
+- System prompt: 1-2 educational sentences, non-assertive ("may"/"could"), no dollar amounts, then state best-guess interpreted answer as a separate field
+- The calling controller presents the answer + interpreted value for one-tap ✓/✗ confirm before `recordAnswer()` is called — never silent interpret-and-advance
+
+#### D20.3 — "Get it from my documents" choice
+
+- `InterviewOrchestratorService::DOC_SOURCE_VALUE = '__doc_source__'`: sentinel for the doc-source choice
+- `handleDocSourceAnswer()`: files `DocumentRequest::firstOrCreate()` (self-initiated: `accounting_firm_id=null`, `accountant_id=null`); marks `AIQuestion.options.doc_pending=true` + `doc_category`; dequeues fact_key (question not re-asked until doc extracted)
+- `nextQuestion()` now includes `doc_source_label` in options (from config template `doc_source_label` key)
+- Migration `2026_07_02_220000`: makes `accounting_firm_id` and `accountant_id` nullable on `document_requests` (forward-only: relaxing NOT NULL never destroys existing rows)
+
+### Before / after — structured narration
+
+| | Before | After |
+|---|---|---|
+| NarrationService prompt | "Return ONLY the 2-sentence description. No JSON." | JSON contract: `{hook: ≤120 chars, detail: ≤2 sentences, action_cue: ≤1 sentence}` |
+| Narration response stored | `description` (full prose blob) | `description` = hook (backward compat) + `narration_structured` JSONB = `{hook, detail, action_cue}` |
+| Renderer (report view) | Prose string with `line-clamp-3` (truncated if oversized) | `hook` headline + expanded `detail` + `action_cue` call-to-action; fallback to prose + clamp |
+| Over-length response | Rendered full blob (violates D19 contract) | Retry with shorter prompt → template/omit fallback (never renders oversized blob) |
+
+### Test results (exact)
+
+- D19 narration tests: **9 passed (NarrationServiceTest + ClaudeBudgetTest + TemplateFirstNarrationTest)** — all fakes updated to return valid JSON `{hook, detail, action_cue}`
+- D20 tests: **19 new tests all passed** (`tests/Feature/D20InterviewIntelligenceTest.php`)
+- ObjectiveReadinessTest: `format_version` fix for 2 tests that used pre-D20 sessions (now stamp FORMAT_VERSION to prevent unexpected queue rebuild)
+- **Full suite**: `php artisan test --compact` → **990 passed, 1 failed, 1 risky (4595 assertions)**
+- The single failure is the **known pre-existing** `DashboardFinancialBlocksTest` — unchanged from prior sessions; this batch adds zero new failures
+- `vendor/bin/pint --dirty` → clean (operator/unary spacing in InterviewOrchestratorService)
+- `npm run build` → clean (TypeScript, no new errors)
+
+### Gates verified
+
+- D17 intact: template path tests assert `Http::assertNothingSent()`; only `answerHatchQuestion()` (hatch answer) and `narrateFinding()` (D19 structured) are new Claude calls, both wording/narration-tiered and counted
+- D18 intact: all D18 tests green; escape hatch, pattern aggregation, confirmation shape unchanged
+- SAFE-01: system prompts audited — no assertive phrases; banned-phrase test (`NarrationServiceTest::banned_phrases_absent`) still passes
+- SAFE-03: `estimated_value_cents` excluded from all payloads; `claude_never_receives_value_cents` test still passes
+
+### Commits
+
+- `550d7db` — feat(14-05): D19 structured AI output contract — {hook,detail,action_cue} / {summary,bullets}
+- `4b89960` — feat(14-05): D20 — interview eligibility predicates, escape hatch detection, doc-source choice
+- `4df2d96` — fix(14-05): D19/D20 migration idempotency + test D19 JSON contract compliance
