@@ -283,7 +283,7 @@ Each requirement maps to exactly one phase. Phases continue the global numbering
 | FLAG-24 | Phase 11 | Complete |
 | FLAG-25 | Phase 11 | Complete |
 | FLAG-26 | Phase 11 | Pending |
-| FLAG-27 | Phase 11 | Pending |
+| FLAG-27 | Phase 11 | Complete |
 | FLAG-28 | Phase 11 | Complete |
 | INT-06 | Phase 11 | Complete |
 | INT-07 | Phase 11 | Complete |

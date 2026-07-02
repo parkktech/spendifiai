@@ -765,20 +765,23 @@ All findings are VERIFIED against live files on `release/v2.0.0` by direct `Read
 
 ## Open Questions
 
-1. **ChangeMonitor `income_shift_detected_at` anchor**
+1. **ChangeMonitor `income_shift_detected_at` anchor** — (RESOLVED)
    - What we know: `OptimizationReport.stale_since` tracks when the report was last flagged stale
    - What's unclear: Using `stale_since` as the 2-cycle persistence anchor conflates "stale due to any reason" with "stale due to income shift." A separate income-shift timestamp may be needed.
    - Recommendation: Store the income shift detection time in `optimization_calendar_events.metadata` or add a lightweight `income_shifts` table. Planner resolves.
+   - **RESOLVED → 14-09 Task 1:** persistence anchors on a dedicated `optimization_calendar_events.metadata` detection timestamp + `OptimizationFinding.created_at` dedupe — NOT `report.stale_since`.
 
-2. **`hasCreditCards` Inertia prop vs endpoint-only**
+2. **`hasCreditCards` Inertia prop vs endpoint-only** — (RESOLVED)
    - What we know: No such prop or User method exists today
    - What's unclear: If future pages need credit-card state beyond Action Center, a shared Inertia prop is cleaner; but adding it costs a DB query on every page load
    - Recommendation: Endpoint-only for Phase 14. Revisit if more surfaces need it.
+   - **RESOLVED → 14-09 Task 3:** endpoint-only — the credit-card check is a `BankAccount type='credit'` query inside `ActionCenterController` (DRIFT-08); no shared Inertia prop added.
 
-3. **`optimization_checklist_items` scoped delete on re-choose**
+3. **`optimization_checklist_items` scoped delete on re-choose** — (RESOLVED)
    - What we know: §D.6 says "old rows deleted for that user+year+source_type" on re-choose
    - What's unclear: "rows this feature owns" scope — confirm that deleting `WHERE user_id=$id AND tax_year=$year AND source_type='scenario_choice'` is the intended scope
    - Recommendation: This is correct per spec. Document the scope in the policy class.
+   - **RESOLVED → checklist-materialization plan (14-07/14-08):** re-choose deletes exactly `WHERE user_id + tax_year + source_type='scenario_choice'` per §D.6; scope documented in the checklist controller/policy.
 
 ---
 
