@@ -12,6 +12,11 @@ return [
         'api_key' => env('ANTHROPIC_API_KEY'),
         'batch_size' => 10,
         'rate_limit_ms' => 500,
+        // Output token ceiling for Claude calls. Sonnet only bills for tokens
+        // actually generated, so a generous ceiling avoids mid-JSON truncation
+        // (stop_reason=max_tokens) on larger categorization batches without
+        // increasing cost. Config-driven so it can be tuned without a deploy.
+        'max_tokens' => (int) env('ANTHROPIC_MAX_TOKENS', 8000),
         'confidence_thresholds' => [
             'auto_accept' => 0.85,  // Auto-categorize silently
             'flag_review' => 0.60,  // Categorize but flag

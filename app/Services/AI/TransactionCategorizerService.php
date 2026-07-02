@@ -84,6 +84,35 @@ class TransactionCategorizerService
         $response = $this->callClaude($systemPrompt, json_encode($txData));
 
         if (isset($response['error'])) {
+            // RECOVERY: a single transaction whose content breaks JSON generation
+            // (a "poison item") fails the entire batch. Recursively split the batch
+            // in half to isolate it — the other transactions still get categorized.
+            // Bounded: recursion depth is at most log2(batch_size) and always stops
+            // at a single transaction (which we leave pending rather than loop). No
+            // new Claude call sites — this reuses categorizeBatch itself.
+            if ($transactions->count() > 1) {
+                Log::warning('Categorization batch failed — splitting in half to isolate poison item', [
+                    'user_id' => $userId,
+                    'batch_size' => $transactions->count(),
+                    'error' => $response['error'],
+                ]);
+
+                $merged = ['auto_categorized' => 0, 'needs_review' => 0, 'questions_generated' => 0];
+
+                foreach ($transactions->values()->split(2) as $half) {
+                    if ($half->isEmpty()) {
+                        continue;
+                    }
+
+                    $halfResult = $this->categorizeBatch($half, $userId);
+                    foreach ($merged as $key => $value) {
+                        $merged[$key] = $value + ($halfResult[$key] ?? 0);
+                    }
+                }
+
+                return $merged;
+            }
+
             Log::error('Transaction categorization failed', $response);
 
             return ['error' => $response['error'], 'processed' => 0];
@@ -234,7 +263,11 @@ For confidence < 0.60, you MUST provide a suggested_question and options.
 For Venmo/Zelle/CashApp, ALWAYS ask if personal or business.
 For Amazon/Costco/Target, ask about mixed categories if amount > $50.
 
-Respond ONLY with a JSON array. No markdown, no backticks.
+Keep "reasoning" to a terse phrase (under 12 words). Set "uncertain_about",
+"suggested_question", and "question_type" to null when confidence >= 0.60 — do not
+pad the response. This keeps the JSON compact so it is never truncated.
+
+Respond ONLY with a JSON array. No markdown, no backticks, no preamble.
 PROMPT;
     }
 
@@ -513,7 +546,7 @@ MSG;
                     'content-type' => 'application/json',
                 ])->timeout(150)->post('https://api.anthropic.com/v1/messages', [
                     'model' => $this->model,
-                    'max_tokens' => 4000,
+                    'max_tokens' => (int) config('spendifiai.ai.max_tokens', 8000),
                     'system' => $system,
                     'messages' => [['role' => 'user', 'content' => $userMessage]],
                 ]);
@@ -532,6 +565,12 @@ MSG;
                 $decoded = $this->parseJsonResponse($text);
 
                 if ($decoded === null) {
+                    // OBSERVABILITY: capture a bounded snippet of the raw response plus
+                    // the API's stop_reason and output token count. stop_reason='max_tokens'
+                    // is proof of truncation (JSON cut off mid-array). Without this we are
+                    // blind to WHY a batch failed to parse.
+                    $this->logParseFailure($text, $response->json());
+
                     if ($attempt < $maxRetries) {
                         sleep(2);
 
@@ -555,6 +594,34 @@ MSG;
         }
 
         return ['error' => 'Max retries exceeded'];
+    }
+
+    /**
+     * Log a bounded, diagnostic snapshot of a raw Claude response that failed to
+     * parse as JSON. Records the first 300 + last 300 chars, the total length, and
+     * the API's stop_reason + output token usage so we can distinguish truncation
+     * (stop_reason=max_tokens) from malformed/preamble output.
+     *
+     * @param  array<string, mixed>|null  $response  Full decoded API response body.
+     */
+    protected function logParseFailure(?string $text, ?array $response): void
+    {
+        $text = (string) $text;
+        $length = strlen($text);
+
+        // Bounded snippet: first 300 + last 300 chars. Full text is never logged
+        // (could be large and contain merchant PII beyond what's needed to diagnose).
+        $snippet = $length <= 600
+            ? $text
+            : substr($text, 0, 300).' …['.($length - 600).' chars omitted]… '.substr($text, -300);
+
+        Log::warning('AI JSON parse failure — raw response captured', [
+            'length' => $length,
+            'stop_reason' => $response['stop_reason'] ?? null,
+            'output_tokens' => $response['usage']['output_tokens'] ?? null,
+            'json_error' => json_last_error_msg(),
+            'snippet' => $snippet,
+        ]);
     }
 
     /**
