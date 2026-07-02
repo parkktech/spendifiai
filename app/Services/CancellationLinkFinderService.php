@@ -33,7 +33,7 @@ class CancellationLinkFinderService
                 'anthropic-version' => '2023-06-01',
                 'content-type' => 'application/json',
             ])->timeout(30)->post('https://api.anthropic.com/v1/messages', [
-                'model' => config('services.anthropic.model', 'claude-sonnet-4-20250514'),
+                'model' => config('services.anthropic.model', 'claude-sonnet-4-6'),
                 'max_tokens' => 500,
                 'messages' => [['role' => 'user', 'content' => $prompt]],
             ]);

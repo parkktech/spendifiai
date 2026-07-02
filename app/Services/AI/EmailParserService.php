@@ -14,7 +14,7 @@ class EmailParserService
     public function __construct()
     {
         $this->apiKey = config('services.anthropic.api_key');
-        $this->model = config('services.anthropic.model', 'claude-sonnet-4-20250514');
+        $this->model = config('services.anthropic.model', 'claude-sonnet-4-6');
     }
 
     /**

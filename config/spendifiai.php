@@ -8,7 +8,7 @@ return [
     |--------------------------------------------------------------------------
     */
     'ai' => [
-        'model' => env('ANTHROPIC_MODEL', 'claude-sonnet-4-20250514'),
+        'model' => env('ANTHROPIC_MODEL', 'claude-sonnet-4-6'),
         'api_key' => env('ANTHROPIC_API_KEY'),
         'batch_size' => 25,
         'rate_limit_ms' => 500,

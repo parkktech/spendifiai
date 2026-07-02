@@ -147,7 +147,7 @@ class TaxDocumentExtractorService
     public function __construct()
     {
         $this->apiKey = config('spendifiai.ai.api_key') ?? '';
-        $this->model = config('spendifiai.ai.model', 'claude-sonnet-4-20250514');
+        $this->model = config('spendifiai.ai.model', 'claude-sonnet-4-6');
     }
 
     /**

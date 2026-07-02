@@ -378,7 +378,7 @@ SYS;
 
         try {
             $anthropicKey = config('services.anthropic.key');
-            $model = config('services.anthropic.model', 'claude-sonnet-4-20250514');
+            $model = config('services.anthropic.model', 'claude-sonnet-4-6');
 
             $response = Http::withHeaders([
                 'x-api-key' => $anthropicKey,

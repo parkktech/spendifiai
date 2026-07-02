@@ -19,7 +19,7 @@ class AlternativeSuggestionService
     public function __construct()
     {
         $this->apiKey = config('services.anthropic.api_key') ?? '';
-        $this->model = config('services.anthropic.model', 'claude-sonnet-4-20250514');
+        $this->model = config('services.anthropic.model', 'claude-sonnet-4-6');
         $this->cacheDays = config('spendifiai.ai.alternatives.cache_days', 7);
         $this->maxPerItem = config('spendifiai.ai.alternatives.max_per_item', 4);
     }
