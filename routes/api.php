@@ -352,11 +352,18 @@ Route::middleware(['auth:sanctum'])->group(function () {
         // POST /api/v1/optimizer/report/{year}/regenerate               — explicit regeneration (rate-limited)
         // GET  /api/v1/optimizer/report/{year}/download                 — stream PDF
         // POST /api/v1/optimizer/report/finding/{finding}/pro-review-export — RPT-05 packet (blocked while docs missing)
-        Route::prefix('optimizer/report')->middleware('throttle:5,1')->group(function () {
-            Route::get('/{year}', [OptimizationReportController::class, 'show']);
-            Route::post('/{year}/regenerate', [OptimizationReportController::class, 'regenerate']);
-            Route::get('/{year}/download', [OptimizationReportController::class, 'download']);
-            Route::post('/finding/{finding}/pro-review-export', [OptimizationReportController::class, 'proReviewExport']);
+        //
+        // Throttle split (Task 3): GET show is a read-only poll (60/min);
+        // regenerate/download/pro-review-export are expensive/dispatching (5/min).
+        Route::prefix('optimizer/report')->group(function () {
+            Route::get('/{year}', [OptimizationReportController::class, 'show'])
+                ->middleware('throttle:60,1');
+            Route::post('/{year}/regenerate', [OptimizationReportController::class, 'regenerate'])
+                ->middleware('throttle:5,1');
+            Route::get('/{year}/download', [OptimizationReportController::class, 'download'])
+                ->middleware('throttle:5,1');
+            Route::post('/finding/{finding}/pro-review-export', [OptimizationReportController::class, 'proReviewExport'])
+                ->middleware('throttle:5,1');
         });
 
         // Email Connections

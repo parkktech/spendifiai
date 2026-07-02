@@ -23,7 +23,7 @@
  *   - soft-skill: 16px rhythm, shadow-sm depth, 1.6 leading for prose
  */
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, usePage } from '@inertiajs/react';
 import {
@@ -227,8 +227,11 @@ export default function OptimizeIndex() {
   const [regenerating, setRegenerating] = useState(false);
   // Task 1: one-at-a-time expand for finding narrations (shared across all section cards)
   const [expandedFindingId, setExpandedFindingId] = useState<number | null>(null);
+  // Task 3: 429 / rate-limit state — show cached data with gentle note
+  const [rateLimited, setRateLimited] = useState(false);
 
-  // Fetch the report (includes sections/findings)
+  // Fetch the report (includes sections/findings).
+  // Data is cached in React state — does NOT refetch on tab switches.
   const {
     data: reportResponse,
     loading: reportLoading,
@@ -243,16 +246,52 @@ export default function OptimizeIndex() {
   const highCount = allFindings.filter((f) => f.severity === 'high').length;
   const totalCount = allFindings.length;
 
+  // Task 3: Poll for ready status while report is generating (stop once ready).
+  // Polls every 8 seconds; stops automatically when status flips to 'ready'.
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  useEffect(() => {
+    const isGenerating = report?.status === 'generating' || (!report && !reportLoading && !reportError);
+
+    if (isGenerating && auth.hasBankConnected) {
+      // Start polling if not already running
+      if (!pollRef.current) {
+        pollRef.current = setInterval(() => {
+          refreshReport();
+        }, 8000);
+      }
+    } else {
+      // Report is ready (or errored) — stop polling
+      if (pollRef.current) {
+        clearInterval(pollRef.current);
+        pollRef.current = null;
+      }
+    }
+
+    return () => {
+      if (pollRef.current) {
+        clearInterval(pollRef.current);
+        pollRef.current = null;
+      }
+    };
+  }, [report?.status, reportLoading, reportError, auth.hasBankConnected, refreshReport]);
+
   const handleRegenerate = async () => {
     setRegenerating(true);
+    setRateLimited(false);
     try {
       await axios.post(`/api/v1/optimizer/report/${currentYear}/regenerate`);
-      // Poll refresh after a delay
+      // Polling loop (above) will pick up the ready state automatically
       setTimeout(() => {
         refreshReport();
         setRegenerating(false);
       }, 3000);
-    } catch {
+    } catch (err: unknown) {
+      const status = (err as { response?: { status?: number } })?.response?.status;
+      if (status === 429) {
+        // Rate-limited on regenerate — show cached data with gentle note
+        setRateLimited(true);
+      }
       setRegenerating(false);
     }
   };
@@ -304,6 +343,22 @@ export default function OptimizeIndex() {
         <StageIndicator current={viewMode} onSelect={setViewMode} />
       </div>
 
+      {/* Task 3: 429 / rate-limit gentle note (shows cached data, never hard error) */}
+      {rateLimited && (
+        <div className="mb-4 flex items-start gap-2 rounded-xl border border-sw-warning/30 bg-sw-warning/5 px-4 py-3">
+          <Info size={13} className="text-sw-warning shrink-0 mt-0.5" />
+          <p className="text-[12px] text-sw-text-secondary leading-relaxed">
+            Refreshing shortly — the data below may be a moment behind.
+            <button
+              onClick={() => { setRateLimited(false); refreshReport(); }}
+              className="ml-1.5 underline text-sw-accent hover:text-sw-accent-hover transition-colors"
+            >
+              Try now
+            </button>
+          </p>
+        </div>
+      )}
+
       {/* Summary stats (findings stage only) */}
       {viewMode === 'findings' && !reportLoading && report && totalCount > 0 && (
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-5">
@@ -345,8 +400,9 @@ export default function OptimizeIndex() {
             </div>
           )}
 
-          {/* Error */}
-          {reportError && (
+          {/* Error — but if we have cached data, show it instead of a hard error block.
+               429 specifically means rate-limited; show the gentle rate-limit note above. */}
+          {reportError && !report && (
             <div className="rounded-2xl border border-sw-danger/30 bg-sw-danger/5 p-6 text-center">
               <AlertTriangle size={22} className="mx-auto text-sw-danger mb-2" />
               <p className="text-sm text-sw-text">{reportError}</p>
@@ -364,8 +420,8 @@ export default function OptimizeIndex() {
             </div>
           )}
 
-          {/* Findings list */}
-          {!reportLoading && !reportError && report && report.status === 'ready' && (
+          {/* Findings list — show cached data even when there's a (non-fatal) error */}
+          {!reportLoading && report && report.status === 'ready' && (
             <>
               {report.sections.length === 0 ? (
                 <div className="rounded-2xl border border-sw-border bg-sw-card p-8 text-center">
