@@ -222,12 +222,12 @@ Plans:
 **UI hint**: yes
 > SCENARIOS-SPEC.md §I defines the 5-wave implementation breakdown (W1 config, W2 data substrate, W3 engine orchestration, W4 frontend, W5 hardening). DESIGN-ELEVATION-SPEC.md §5 defines the 3-wave elevation rollout (tokens+shell, core surfaces, feature surfaces). Both specs are implementation-ready; downstream agents MUST read them before planning.
 
-**Plans**: 4/10 plans executed
+**Plans**: 5/10 plans executed
 
 Plans:
 
 - [x] 14-01-PLAN.md — Scenario config foundations + D17 AI cost discipline (SCN-03)
-- [ ] 14-02-PLAN.md — TaxRulesEngineService SCN-01..07 pure methods + ACA invariant (SCN-04)
+- [x] 14-02-PLAN.md — TaxRulesEngineService SCN-01..07 pure methods + ACA invariant (SCN-04)
 - [x] 14-03-PLAN.md — ScenarioFactResolverService + ScenarioFactSet (SCN-02)
 - [x] 14-04-PLAN.md — Design Elevation Wave 1: 41 tokens + app shell (ELEV-01)
 - [x] 14-05-PLAN.md — ObjectiveReadinessService + interview additive + objectives API (SCN-01)
@@ -270,5 +270,5 @@ Phases execute in this order: 10 → 11 → 12 → 14 → 13 (Phase 13 SAFE hard
 | 10. Foundation — Tax Rules Engine & Cross-Source Snapshot | v2.1 | 3/3 | Complete   | 2026-07-02 |
 | 11. Red-Flag Detection, Guided Interview & AI Feed Integration | v2.1 | 8/8 | Complete   | 2026-07-02 |
 | 12. Optimization Report, Document Intake & Feature Surface | v2.1 | 5/5 | Complete   | 2026-07-02 |
-| 14. Action Center, Scenarios & Design Elevation | v2.1 | 4/10 | In Progress|  |
+| 14. Action Center, Scenarios & Design Elevation | v2.1 | 5/10 | In Progress|  |
 | 13. Safety, Validation & Hardening | v2.1 | 0/TBD | Not started | - |
