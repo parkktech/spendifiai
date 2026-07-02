@@ -44,28 +44,67 @@ class PaystubFactExtractorService
      */
     protected const PAYSTUB_FACT_MAP = [
         'traditional_401k_deduction' => [
-            'fact_key'   => 'retirement.traditional_401k_ytd_cents',
-            'label'      => 'Traditional 401(k) contribution (paystub)',
+            'fact_key' => 'retirement.traditional_401k_ytd_cents',
+            'label' => 'Traditional 401(k) contribution (paystub)',
             'volatility' => 'annual',
-            'money'      => true,
+            'money' => true,
         ],
         'roth_401k_deduction' => [
-            'fact_key'   => 'retirement.roth_401k_ytd_cents',
-            'label'      => 'Roth 401(k) contribution (paystub)',
+            'fact_key' => 'retirement.roth_401k_ytd_cents',
+            'label' => 'Roth 401(k) contribution (paystub)',
             'volatility' => 'annual',
-            'money'      => true,
+            'money' => true,
         ],
         'hsa_deduction' => [
-            'fact_key'   => 'retirement.hsa_ytd_cents',
-            'label'      => 'HSA payroll deduction (paystub)',
+            'fact_key' => 'retirement.hsa_ytd_cents',
+            'label' => 'HSA payroll deduction (paystub)',
             'volatility' => 'annual',
-            'money'      => true,
+            'money' => true,
         ],
         'fsa_deduction' => [
-            'fact_key'   => 'benefits.fsa_ytd_cents',
-            'label'      => 'FSA payroll deduction (paystub)',
+            'fact_key' => 'benefits.fsa_ytd_cents',
+            'label' => 'FSA payroll deduction (paystub)',
             'volatility' => 'annual',
-            'money'      => true,
+            'money' => true,
+        ],
+        // §A.5.4 additive per-period paystub maps (money, annual, tax_year-scoped).
+        // These feed take_home withholding/gross derivations; pay-frequency derivation
+        // stays in the RESOLVER (M7), NOT here.
+        'federal_tax_withheld' => [
+            'fact_key' => 'pay.federal_withholding_per_period_cents',
+            'label' => 'Federal income tax withheld per paycheck (paystub)',
+            'volatility' => 'annual',
+            'money' => true,
+        ],
+        'gross_pay' => [
+            'fact_key' => 'pay.gross_per_period_cents',
+            'label' => 'Gross pay per paycheck (paystub)',
+            'volatility' => 'annual',
+            'money' => true,
+        ],
+    ];
+
+    /**
+     * RETIREMENT_STATEMENT extracted field → UserTaxFact mapping (§A.5.4, NEW).
+     *
+     * `ytd_contributions` is a CROSS-CHECK fact only — statement contributions are
+     * ambiguous across account types and must NEVER be treated as the canonical
+     * 401(k) YTD. All writes remain proposals (source_type='document_extraction').
+     *
+     * @var array<string, array{fact_key: string, label: string, volatility: string, money: bool}>
+     */
+    protected const RETIREMENT_STATEMENT_FACT_MAP = [
+        'account_balance' => [
+            'fact_key' => 'retirement.statement_balance_cents',
+            'label' => 'Retirement account balance (statement)',
+            'volatility' => 'annual',
+            'money' => true,
+        ],
+        'ytd_contributions' => [
+            'fact_key' => 'retirement.statement_ytd_contributions_cents',
+            'label' => 'Retirement YTD contributions (statement — cross-check only)',
+            'volatility' => 'annual',
+            'money' => true,
         ],
     ];
 
@@ -79,108 +118,108 @@ class PaystubFactExtractorService
      */
     protected const BENEFITS_FACT_MAP = [
         'has_401k' => [
-            'fact_key'   => 'employer.has_401k',
-            'label'      => 'Employer has 401(k) plan',
+            'fact_key' => 'employer.has_401k',
+            'label' => 'Employer has 401(k) plan',
             'volatility' => 'stable',
-            'money'      => false,
+            'money' => false,
             'bool_field' => true,
         ],
         'employer_match_formula' => [
-            'fact_key'   => 'employer.match_formula',
-            'label'      => 'Employer match formula',
+            'fact_key' => 'employer.match_formula',
+            'label' => 'Employer match formula',
             'volatility' => 'stable',
-            'money'      => false,
+            'money' => false,
             'bool_field' => false,
         ],
         'after_tax_401k_available' => [
-            'fact_key'   => 'employer.after_tax_401k_available',
-            'label'      => 'After-tax 401(k) available (mega backdoor gate)',
+            'fact_key' => 'employer.after_tax_401k_available',
+            'label' => 'After-tax 401(k) available (mega backdoor gate)',
             'volatility' => 'stable',
-            'money'      => false,
+            'money' => false,
             'bool_field' => true,
         ],
         'in_plan_roth_conversion_available' => [
-            'fact_key'   => 'employer.in_plan_roth_conversion_available',
-            'label'      => 'In-plan Roth conversion available',
+            'fact_key' => 'employer.in_plan_roth_conversion_available',
+            'label' => 'In-plan Roth conversion available',
             'volatility' => 'stable',
-            'money'      => false,
+            'money' => false,
             'bool_field' => true,
         ],
         'hdhp_hsa_available' => [
-            'fact_key'   => 'employer.hdhp_hsa_available',
-            'label'      => 'HDHP/HSA plan available',
+            'fact_key' => 'employer.hdhp_hsa_available',
+            'label' => 'HDHP/HSA plan available',
             'volatility' => 'stable',
-            'money'      => false,
+            'money' => false,
             'bool_field' => true,
         ],
         'fsa_available' => [
-            'fact_key'   => 'employer.fsa_available',
-            'label'      => 'FSA available',
+            'fact_key' => 'employer.fsa_available',
+            'label' => 'FSA available',
             'volatility' => 'stable',
-            'money'      => false,
+            'money' => false,
             'bool_field' => true,
         ],
         'dependent_care_fsa_available' => [
-            'fact_key'   => 'employer.dependent_care_fsa_available',
-            'label'      => 'Dependent care FSA available',
+            'fact_key' => 'employer.dependent_care_fsa_available',
+            'label' => 'Dependent care FSA available',
             'volatility' => 'stable',
-            'money'      => false,
+            'money' => false,
             'bool_field' => true,
         ],
         'espp_available' => [
-            'fact_key'   => 'employer.espp_available',
-            'label'      => 'ESPP available',
+            'fact_key' => 'employer.espp_available',
+            'label' => 'ESPP available',
             'volatility' => 'stable',
-            'money'      => false,
+            'money' => false,
             'bool_field' => true,
         ],
         'espp_terms' => [
-            'fact_key'   => 'employer.espp_terms',
-            'label'      => 'ESPP terms',
+            'fact_key' => 'employer.espp_terms',
+            'label' => 'ESPP terms',
             'volatility' => 'stable',
-            'money'      => false,
+            'money' => false,
             'bool_field' => false,
         ],
         'nqdc_available' => [
-            'fact_key'   => 'employer.nqdc_available',
-            'label'      => 'Non-qualified deferred compensation available',
+            'fact_key' => 'employer.nqdc_available',
+            'label' => 'Non-qualified deferred compensation available',
             'volatility' => 'stable',
-            'money'      => false,
+            'money' => false,
             'bool_field' => true,
         ],
         'section_127_available' => [
-            'fact_key'   => 'employer.section_127_available',
-            'label'      => 'Section 127 education assistance available',
+            'fact_key' => 'employer.section_127_available',
+            'label' => 'Section 127 education assistance available',
             'volatility' => 'stable',
-            'money'      => false,
+            'money' => false,
             'bool_field' => true,
         ],
         'commuter_benefits_available' => [
-            'fact_key'   => 'employer.commuter_benefits_available',
-            'label'      => 'Commuter benefits available',
+            'fact_key' => 'employer.commuter_benefits_available',
+            'label' => 'Commuter benefits available',
             'volatility' => 'stable',
-            'money'      => false,
+            'money' => false,
             'bool_field' => true,
         ],
         'group_legal_available' => [
-            'fact_key'   => 'employer.group_legal_available',
-            'label'      => 'Group legal benefit available',
+            'fact_key' => 'employer.group_legal_available',
+            'label' => 'Group legal benefit available',
             'volatility' => 'stable',
-            'money'      => false,
+            'money' => false,
             'bool_field' => true,
         ],
         'trump_account_available' => [
-            'fact_key'   => 'employer.trump_account_available',
-            'label'      => 'Trump account available',
+            'fact_key' => 'employer.trump_account_available',
+            'label' => 'Trump account available',
             'volatility' => 'stable',
-            'money'      => false,
+            'money' => false,
             'bool_field' => true,
         ],
         'employer_trump_account_contribution' => [
-            'fact_key'   => 'employer.trump_account_employer_contribution',
-            'label'      => 'Employer Trump account contribution',
+            'fact_key' => 'employer.trump_account_employer_contribution',
+            'label' => 'Employer Trump account contribution',
             'volatility' => 'stable',
-            'money'      => false,
+            'money' => false,
             'bool_field' => false,
         ],
     ];
@@ -197,9 +236,10 @@ class PaystubFactExtractorService
     {
         // Select the correct field map for this document category
         $map = match ($document->category) {
-            TaxDocumentCategory::PayStub       => self::PAYSTUB_FACT_MAP,
+            TaxDocumentCategory::PayStub => self::PAYSTUB_FACT_MAP,
             TaxDocumentCategory::BenefitsGuide => self::BENEFITS_FACT_MAP,
-            default                            => [],
+            TaxDocumentCategory::RetirementStatement => self::RETIREMENT_STATEMENT_FACT_MAP,
+            default => [],
         };
 
         if (empty($map)) {
@@ -209,7 +249,7 @@ class PaystubFactExtractorService
         // PITFALL 2 (runtime shape): read via the nested-with-confidence path.
         // extracted_data is stored as { "fields": { ... }, "overall_confidence": 0.9 }
         $extractedData = $document->extracted_data ?? [];
-        $fields        = $extractedData['fields'] ?? [];
+        $fields = $extractedData['fields'] ?? [];
 
         $count = 0;
 
@@ -224,10 +264,10 @@ class PaystubFactExtractorService
             }
 
             if (is_array($fieldData)) {
-                $rawValue   = $fieldData['value'] ?? null;
+                $rawValue = $fieldData['value'] ?? null;
                 $confidence = (float) ($fieldData['confidence'] ?? 0.5);
             } else {
-                $rawValue   = $fieldData;
+                $rawValue = $fieldData;
                 $confidence = 0.5;   // No confidence available in flat shape
             }
 
@@ -236,10 +276,10 @@ class PaystubFactExtractorService
             }
 
             // Build the stored value and metadata
-            $isBool      = $factConfig['bool_field'] ?? false;
-            $isMoney     = $factConfig['money'] ?? false;
-            $metadata    = [
-                'confidence'  => $confidence,
+            $isBool = $factConfig['bool_field'] ?? false;
+            $isMoney = $factConfig['money'] ?? false;
+            $metadata = [
+                'confidence' => $confidence,
                 'document_id' => $document->id,
             ];
 
@@ -261,15 +301,15 @@ class PaystubFactExtractorService
             // recordFact() will set is_current=false and will NOT supersede
             // any existing user_edit / interview_answer / profile_field fact.
             UserTaxFact::recordFact(
-                userId:    $document->user_id,
-                factKey:   $factConfig['fact_key'],
-                value:     $storedValue,
+                userId: $document->user_id,
+                factKey: $factConfig['fact_key'],
+                value: $storedValue,
                 sourceType: 'document_extraction',
-                label:     $factConfig['label'],
+                label: $factConfig['label'],
                 volatility: $factConfig['volatility'],
-                taxYear:   $document->tax_year,
-                sourceId:  (string) $document->id,
-                metadata:  $metadata,
+                taxYear: $document->tax_year,
+                sourceId: (string) $document->id,
+                metadata: $metadata,
             );
 
             $count++;

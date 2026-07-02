@@ -8,6 +8,7 @@ use App\Models\IncomeOptimizationProfile;
 use App\Models\TaxDocument;
 use App\Models\Transaction;
 use App\Models\User;
+use App\Models\UserTaxFact;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 
@@ -46,10 +47,16 @@ class IncomeOptimizerDataAssemblerService
         // Build staleness hash from current inputs
         $profileHash = $this->computeProfileHash($user->id, $taxYear, $docIds);
 
+        // §A.6.4 additive backfill: estimated_age from the person.birth_year fact when
+        // present (taxYear − birth_year). No column/API change — code ignoring the
+        // column keeps ignoring it. Merged before the base payload so it only sets a
+        // value when a valid birth_year fact exists (otherwise the column is untouched).
+        $ageOverride = $this->estimatedAgeFromBirthYear($user->id, $taxYear);
+
         // Persist (upsert keyed on user_id + tax_year)
         $profile = IncomeOptimizationProfile::updateOrCreate(
             ['user_id' => $user->id, 'tax_year' => $taxYear],
-            array_merge($flags, $docData, [
+            array_merge($flags, $docData, $ageOverride, [
                 'bank_deposit_total' => $bankDepositCents > 0 ? (string) $bankDepositCents : null,
                 'data_sources' => [
                     'doc_ids' => $docIds,
@@ -65,6 +72,30 @@ class IncomeOptimizerDataAssemblerService
         );
 
         return $profile;
+    }
+
+    /**
+     * §A.6.4 — estimated_age = taxYear − person.birth_year (confirmed fact only).
+     * Returns ['estimated_age' => int] when a valid birth_year fact exists, else []
+     * (so updateOrCreate leaves the column untouched).
+     *
+     * @return array<string, int>
+     */
+    protected function estimatedAgeFromBirthYear(int $userId, int $taxYear): array
+    {
+        $fact = UserTaxFact::currentFact($userId, 'person.birth_year', null, $taxYear)
+            ?? UserTaxFact::currentFact($userId, 'person.birth_year');
+
+        if ($fact === null || ! ctype_digit((string) $fact->value)) {
+            return [];
+        }
+
+        $age = $taxYear - (int) $fact->value;
+        if ($age < 0 || $age > 120) {
+            return [];
+        }
+
+        return ['estimated_age' => $age];
     }
 
     /**
@@ -293,14 +324,14 @@ class IncomeOptimizerDataAssemblerService
                     }
                     break;
 
-                // [P12 DOC-03] PayStub arm — accumulates YTD deduction signals into profile.
-                //
-                // PLAN-CHECK FIX (per 12-RESEARCH.md Pitfall 2, lines 328-347):
-                // Use the DEFENSIVE NESTED-WITH-FALLBACK pattern, NOT the legacy flat access
-                // of the W2/1099 arms above. Runtime shape is:
-                //   extracted_data['fields']['field_name']['value'] (nested with confidence)
-                // but we fall back gracefully if a flat value is stored.
-                // DO NOT copy the legacy flat-access pattern ($data['wages']) into these new arms.
+                    // [P12 DOC-03] PayStub arm — accumulates YTD deduction signals into profile.
+                    //
+                    // PLAN-CHECK FIX (per 12-RESEARCH.md Pitfall 2, lines 328-347):
+                    // Use the DEFENSIVE NESTED-WITH-FALLBACK pattern, NOT the legacy flat access
+                    // of the W2/1099 arms above. Runtime shape is:
+                    //   extracted_data['fields']['field_name']['value'] (nested with confidence)
+                    // but we fall back gracefully if a flat value is stored.
+                    // DO NOT copy the legacy flat-access pattern ($data['wages']) into these new arms.
                 case TaxDocumentCategory::PayStub:
                     // Defensive nested-with-fallback read (Pitfall 2):
                     // Prefers $data['fields']['field_name']['value']; falls back to flat.
@@ -331,10 +362,10 @@ class IncomeOptimizerDataAssemblerService
                     }
                     break;
 
-                // [P12 DOC-07] BenefitsGuide arm — availability metadata only, no dollar accumulation.
-                // The guide informs the snapshot that certain plan types exist (HDHP, 401k, etc.)
-                // but does not contribute dollar totals. The D4 UserTaxFact proposals carry the
-                // per-field data — the assembler does not duplicate that into cent columns.
+                    // [P12 DOC-07] BenefitsGuide arm — availability metadata only, no dollar accumulation.
+                    // The guide informs the snapshot that certain plan types exist (HDHP, 401k, etc.)
+                    // but does not contribute dollar totals. The D4 UserTaxFact proposals carry the
+                    // per-field data — the assembler does not duplicate that into cent columns.
                 case TaxDocumentCategory::BenefitsGuide:
                     // Intentional no-op: BenefitsGuide facts flow via the UserTaxFact proposal path
                     // (ExtractProfileFacts → PaystubFactExtractorService → BENEFITS_FACT_MAP).

@@ -11,6 +11,7 @@ use App\Models\UserTaxFact;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\ValidationException;
 
 /**
  * Persisted one-question-at-a-time interview state machine (INT-01 / D5).
@@ -65,6 +66,31 @@ class InterviewOrchestratorService
         'specialist' => 0.30,  // full-module + pro routing
     ];
 
+    /**
+     * Merged prerequisite gate map (§A.4.3): config prerequisites ∪ GATED_PROBES.
+     * Built at construction; const entries win on collision. Consumed by
+     * isPrerequisiteUnsatisfied() instead of the bare const.
+     *
+     * @var array<string, string>
+     */
+    private array $gateMap;
+
+    /**
+     * §A.5.5 confirm sentinel: when a suggested-confirm question is answered with
+     * this exact value, recordAnswer() resolves the prefill pointer server-side and
+     * records the resolved value (user-confirmed provenance) instead of the literal.
+     */
+    private const CONFIRM_SENTINEL = 'confirm';
+
+    public function __construct(
+        private readonly ScenarioFactResolverService $resolver = new ScenarioFactResolverService,
+    ) {
+        // §A.4.3: merge config prerequisite pairs with the shipped const gate map.
+        // array_merge order → GATED_PROBES (const) wins on key collision.
+        $configPrereqs = (array) config('optimization-objectives.prerequisites', []);
+        $this->gateMap = array_merge($configPrereqs, self::GATED_PROBES);
+    }
+
     // ─── Session Lifecycle ────────────────────────────────────────────────────
 
     /**
@@ -97,9 +123,16 @@ class InterviewOrchestratorService
             // findings are available (covers sessions created during pipeline outage).
             if (empty($session->queue)) {
                 $newQueue = $this->buildInitialQueue($userId, $taxYear);
-                // Exclude keys already asked so we never re-ask answered questions
+                // DEFECT-2 fix: the rebuild MUST exclude asked ∪ skipped ∪ answered
+                // keys, otherwise a skipped finding-backed item is re-inserted at
+                // position 1 on every load (the reported "skip just refreshes" loop).
                 $asked = $session->asked ?? [];
-                $filteredQueue = array_values(array_diff($newQueue, $asked));
+                $skipped = $session->skipped ?? [];
+                $consumed = array_merge($asked, $skipped);
+                $filteredQueue = array_values(array_filter(
+                    array_diff($newQueue, $consumed),
+                    fn ($key) => ! $this->isAlreadyAnswered($key, $userId),
+                ));
 
                 if (! empty($filteredQueue)) {
                     $session->update(['queue' => $filteredQueue]);
@@ -234,7 +267,7 @@ class InterviewOrchestratorService
                 Log::info('InterviewOrchestratorService: prerequisite not met, skipping', [
                     'fact_key' => $factKey,
                     'user_id' => $session->user_id,
-                    'prerequisite' => self::GATED_PROBES[$factKey] ?? null,
+                    'prerequisite' => $this->gateMap[$factKey] ?? null,
                 ]);
 
                 continue;
@@ -274,7 +307,8 @@ class InterviewOrchestratorService
      */
     private function isPrerequisiteUnsatisfied(string $factKey, int $userId): bool
     {
-        $prerequisite = self::GATED_PROBES[$factKey] ?? null;
+        // §A.4.3: use the merged gate map (config prerequisites ∪ GATED_PROBES).
+        $prerequisite = $this->gateMap[$factKey] ?? null;
         if ($prerequisite === null) {
             return false; // no gate → allow
         }
@@ -347,6 +381,17 @@ class InterviewOrchestratorService
             return $existing; // already exists from SurfaceHighPriorityRedFlags
         }
 
+        // §A.3 / D17 — TEMPLATE-FIRST BRANCH (zero Claude, safe by construction).
+        // If the fact key has a deterministic template, build the AIQuestion from it
+        // and skip wordQuestion() entirely. This is the SCN-03 gap-question path and
+        // the fix for DEFECT 1 (objective gap questions become real, typed, answerable
+        // questions instead of finding narration).
+        $template = $this->questionTemplate($factKey);
+        if ($template !== null) {
+            return $this->createTemplateQuestion($session, $factKey, $template);
+        }
+
+        // ── Finding-driven questions: existing Claude wording path (untouched) ──
         // INT-07: determine confidence from band
         $band = $finding?->band ?? 'auto';
         $confidence = self::BAND_CONFIDENCE[$band] ?? 0.70;
@@ -374,6 +419,90 @@ class InterviewOrchestratorService
             'ai_best_guess' => $factKey,
             'status' => QuestionStatus::Pending->value,
         ]);
+    }
+
+    /**
+     * §A.3 / §A.5.5 — build an AIQuestion from a config question_template (zero Claude).
+     *
+     * The options JSON carries `answer_type`, `choices`, `objective_tags`, and (for
+     * known-but-unconfirmed values) a `prefill_source` POINTER only — NEVER a dollar
+     * value (AIQuestion.options is unencrypted JSON; SAFE-03 / T-14-05-01).
+     */
+    private function createTemplateQuestion(InterviewSession $session, string $factKey, array $template): AIQuestion
+    {
+        $userId = $session->user_id;
+        $taxYear = $session->tax_year;
+
+        // §A.5.5: is there a known-but-unconfirmed value? → suggested-confirm (band=auto).
+        $resolved = $this->resolver->resolve($session->user, $taxYear, $factKey);
+        $isSuggestedConfirm = $resolved !== null && ! ($resolved['confirmed'] ?? false);
+
+        $band = $isSuggestedConfirm ? 'auto' : 'conditional';
+        $confidence = self::BAND_CONFIDENCE[$band] ?? 0.70;
+
+        $options = [
+            'fact_key' => $factKey,
+            'template' => true,
+            'band' => $band,
+            'answer_type' => $template['answer_type'] ?? 'string',
+            'choices' => $template['choices'] ?? null,
+            'objective_tags' => $this->objectiveTagsFor($factKey),
+            'doc_affordance' => $template['doc_affordance'] ?? null,
+            'transaction_ids' => [],
+        ];
+
+        if ($isSuggestedConfirm) {
+            // Store the POINTER only (e.g. 'snapshot:12:filing_status'), never the value.
+            $options['prefill_source'] = $resolved['source_ref'] ?? null;
+        }
+
+        return AIQuestion::create([
+            'user_id' => $userId,
+            'transaction_id' => null,
+            'question' => $template['question'] ?? "Please confirm: {$factKey}",
+            'question_type' => QuestionType::Optimization->value,
+            'options' => $options,
+            'ai_confidence' => $confidence,
+            'ai_best_guess' => $factKey,
+            'status' => QuestionStatus::Pending->value,
+        ]);
+    }
+
+    /**
+     * Look up the deterministic template for a fact key (§A.3). Templates are keyed
+     * by dotted canonical keys — fetch the whole map and index by literal string
+     * (config() dot-notation would mis-traverse).
+     *
+     * @return array<string, mixed>|null
+     */
+    private function questionTemplate(string $factKey): ?array
+    {
+        $templates = (array) config('optimization-objectives.question_templates', []);
+
+        return isset($templates[$factKey]) ? (array) $templates[$factKey] : null;
+    }
+
+    /**
+     * All objective ids whose fact map contains this canonical key (§A.3 objective tags).
+     *
+     * @return string[]
+     */
+    private function objectiveTagsFor(string $factKey): array
+    {
+        $tags = [];
+        foreach ((array) config('optimization-objectives.objectives', []) as $objectiveId => $objective) {
+            if (! empty($objective['is_scenario_domain'])) {
+                continue;
+            }
+            foreach ((array) ($objective['facts'] ?? []) as $spec) {
+                if (($spec['canonical_key'] ?? null) === $factKey) {
+                    $tags[] = $objectiveId;
+                    break;
+                }
+            }
+        }
+
+        return $tags;
     }
 
     /**
@@ -424,8 +553,7 @@ SYS;
         // D17 budget cap (purpose 'wording'): at cap, skip the Claude wording call
         // gracefully and fall through to the deterministic fallback below (no HTTP).
         if (! $this->checkAndIncrementBudget('wording')) {
-            return $finding?->description
-                ?? "We noticed a potential tax optimization related to: {$factKey}. Would you like to review it?";
+            return $this->findingFallbackQuestion($factKey, $finding);
         }
 
         try {
@@ -461,9 +589,29 @@ SYS;
             ]);
         }
 
-        // Fallback: use the finding description or a generic question
-        return $finding?->description
-            ?? "We noticed a potential tax optimization related to: {$factKey}. Would you like to review it?";
+        // Fallback: a real answerable question — never raw finding narration.
+        return $this->findingFallbackQuestion($factKey, $finding);
+    }
+
+    /**
+     * DEFECT 1 fix — deterministic fallback question for a finding-driven item when
+     * Claude wording is unavailable (budget cap / error).
+     *
+     * A finding's `description` is NARRATION (e.g. "...Consider discussing this with a
+     * tax professional"), not an answerable question. Surfacing it verbatim is the
+     * reported "not asking a question" bug. We only reuse the description when it is
+     * already phrased as a question (ends with '?'); otherwise we emit a real,
+     * answerable question so the interview never presents advice with no way to respond.
+     */
+    private function findingFallbackQuestion(string $factKey, ?OptimizationFinding $finding): string
+    {
+        $description = $finding?->description !== null ? trim($finding->description) : null;
+
+        if ($description !== null && $description !== '' && str_ends_with($description, '?')) {
+            return $description;
+        }
+
+        return "We noticed something related to {$factKey} that may affect your taxes. Does this apply to you?";
     }
 
     /**
@@ -516,19 +664,50 @@ SYS;
         ?string $questionText = null,
         ?int $questionId = null
     ): UserTaxFact {
+        // §A.5.3 additive: when a template exists for this key, apply typed conversion
+        // and pull volatility/taxYear/label from the template. Non-template keys keep
+        // the EXACT current hardcoded behavior (DRIFT-02 additive guard).
+        $template = $this->questionTemplate($factKey);
+
+        $storedValue = $value;
+        $volatility = 'stable';
+        $taxYear = null;
+        $label = $questionText ?? "Answer to: {$factKey}";
+
+        if ($template !== null) {
+            if (strtolower(trim($value)) === self::CONFIRM_SENTINEL) {
+                // §A.5.5: resolve the prefill pointer server-side at answer time and
+                // record the resolved value (user-confirmed provenance). The value is
+                // never taken from client-supplied options.
+                $resolved = $this->resolver->resolve($session->user, $session->tax_year, $factKey);
+                if ($resolved === null || ($resolved['value'] ?? null) === null) {
+                    throw ValidationException::withMessages([
+                        'answer' => 'There is nothing to confirm for this question yet.',
+                    ]);
+                }
+                $storedValue = (string) $resolved['value'];
+            } else {
+                $storedValue = $this->convertTypedAnswer($template, $value);
+            }
+
+            $volatility = $template['volatility'] ?? 'stable';
+            $taxYear = ! empty($template['tax_year_scoped']) ? (int) $session->tax_year : null;
+            $label = $template['label'] ?? $label;
+        }
+
         // Write (or supersede) the durable fact — append-only with concurrency safety
         $fact = UserTaxFact::recordFact(
             userId: $session->user_id,
             factKey: $factKey,
-            value: $value,
+            value: $storedValue,
             sourceType: 'interview_answer',
-            label: $questionText ?? "Answer to: {$factKey}",
-            volatility: 'stable',
-            taxYear: null,
+            label: $label,
+            volatility: $volatility,
+            taxYear: $taxYear,
             sourceId: $questionId ? (string) $questionId : null,
         );
 
-        // Append to session transcript
+        // Append to session transcript (raw answer preserved; encrypted assertions).
         $session->appendTranscript([
             'fact_key' => $factKey,
             'question' => $questionText ?? "Interview question: {$factKey}",
@@ -542,5 +721,86 @@ SYS;
         $session->dequeueKey($factKey);
 
         return $fact;
+    }
+
+    /**
+     * §A.5.3 typed answer conversion driven by the template `answer_type`.
+     * 422s (ValidationException) on a type mismatch — the orchestrator is the typed
+     * validation boundary; AnswerOptimizationQuestionRequest stays string|max:500.
+     *
+     * @param  array<string, mixed>  $template
+     */
+    private function convertTypedAnswer(array $template, string $value): string
+    {
+        $type = $template['answer_type'] ?? 'string';
+        $trimmed = trim($value);
+
+        switch ($type) {
+            case 'money_dollars':
+                if (! is_numeric($trimmed) || (float) $trimmed < 0) {
+                    throw ValidationException::withMessages([
+                        'answer' => 'Please enter a dollar amount (e.g. 1500 or 1500.00).',
+                    ]);
+                }
+
+                // integer-cents-as-string (mirrors assembler dollarsToCents)
+                return (string) ((int) round((float) $trimmed * 100));
+
+            case 'integer':
+            case 'year':
+                if (! ctype_digit($trimmed)) {
+                    throw ValidationException::withMessages([
+                        'answer' => 'Please enter a whole number.',
+                    ]);
+                }
+                $n = (int) $trimmed;
+                if (isset($template['min']) && $n < (int) $template['min']) {
+                    throw ValidationException::withMessages([
+                        'answer' => 'That value is below the allowed minimum.',
+                    ]);
+                }
+                if (isset($template['max']) && $n > (int) $template['max']) {
+                    throw ValidationException::withMessages([
+                        'answer' => 'That value is above the allowed maximum.',
+                    ]);
+                }
+
+                return $trimmed;
+
+            case 'choice':
+                $choices = array_column((array) ($template['choices'] ?? []), 'value');
+                if (! in_array($trimmed, $choices, true)) {
+                    throw ValidationException::withMessages([
+                        'answer' => 'Please choose one of the provided options.',
+                    ]);
+                }
+
+                return $trimmed;
+
+            default:
+                return $trimmed;
+        }
+    }
+
+    /**
+     * DEFECT 2 — persist a SKIP for a finding-backed or template queue item.
+     *
+     * Skipping records the key in the session's durable `skipped[]` set and removes it
+     * from the queue, but does NOT write a fact or complete the session. The stale-queue
+     * self-heal (startOrResume) excludes skipped keys, so a skipped item never returns to
+     * position 1 on reload. 'Back' navigation (frontend-local history) can still revisit
+     * it without duplicating the queue entry.
+     */
+    public function skip(InterviewSession $session, string $factKey): void
+    {
+        $session->activate();
+        $session->markSkipped($factKey);
+        $session->dequeueKey($factKey);
+
+        Log::info('InterviewOrchestratorService: question skipped', [
+            'user_id' => $session->user_id,
+            'session_id' => $session->id,
+            'fact_key' => $factKey,
+        ]);
     }
 }

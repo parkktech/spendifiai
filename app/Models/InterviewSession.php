@@ -45,6 +45,7 @@ class InterviewSession extends Model
         'status',
         'queue',
         'asked',
+        'skipped',
         'assertions',
         'initial_cap',
     ];
@@ -71,6 +72,7 @@ class InterviewSession extends Model
         return [
             'queue' => 'array',
             'asked' => 'array',
+            'skipped' => 'array',
             'assertions' => 'encrypted',  // TEXT column (AES-256-GCM via Laravel)
         ];
     }
@@ -150,6 +152,20 @@ class InterviewSession extends Model
         if (! in_array($factKey, $asked, true)) {
             $asked[] = $factKey;
             $this->update(['asked' => $asked]);
+        }
+    }
+
+    /**
+     * Add a fact_key to the skipped[] array (DEFECT 2 — durable skip persistence).
+     * Deduplicates. Skipped keys are excluded from the stale-queue self-heal rebuild
+     * so a skipped item never returns to the head of the queue on reload.
+     */
+    public function markSkipped(string $factKey): void
+    {
+        $skipped = $this->skipped ?? [];
+        if (! in_array($factKey, $skipped, true)) {
+            $skipped[] = $factKey;
+            $this->update(['skipped' => $skipped]);
         }
     }
 
