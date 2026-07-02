@@ -8,6 +8,7 @@ use App\Models\AIQuestion;
 use App\Models\InterviewSession;
 use App\Models\OptimizationFinding;
 use App\Models\UserTaxFact;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
@@ -420,9 +421,19 @@ Rules:
 - Return ONLY the question text, no preamble
 SYS;
 
+        // D17 budget cap (purpose 'wording'): at cap, skip the Claude wording call
+        // gracefully and fall through to the deterministic fallback below (no HTTP).
+        if (! $this->checkAndIncrementBudget('wording')) {
+            return $finding?->description
+                ?? "We noticed a potential tax optimization related to: {$factKey}. Would you like to review it?";
+        }
+
         try {
             $anthropicKey = config('services.anthropic.key');
-            $model = config('services.anthropic.model', 'claude-sonnet-4-6');
+            // D17: question wording runs on the wording (Haiku) tier, falling back
+            // to the global model when the wording key is unset.
+            $model = config('services.anthropic.model_wording', config('services.anthropic.model'))
+                ?? 'claude-sonnet-4-6';
 
             $response = Http::withHeaders([
                 'x-api-key' => $anthropicKey,
@@ -453,6 +464,31 @@ SYS;
         // Fallback: use the finding description or a generic question
         return $finding?->description
             ?? "We noticed a potential tax optimization related to: {$factKey}. Would you like to review it?";
+    }
+
+    /**
+     * D17 per-purpose daily budget guard + call counter (Cache/Redis-backed).
+     *
+     * Reads `claude_calls_{purpose}_{date}`, skips at the configured cap
+     * (null => uncapped), otherwise increments the day-counter for the Admin
+     * ai-usage surface. Mirrors NarrationService.
+     */
+    private function checkAndIncrementBudget(string $purpose): bool
+    {
+        $date = now()->toDateString();
+        $key = "claude_calls_{$purpose}_{$date}";
+        $cap = config("services.anthropic.daily_budget_{$purpose}");
+        $cap = ($cap === null) ? PHP_INT_MAX : (int) $cap;
+
+        if ((int) Cache::get($key, 0) >= $cap) {
+            Log::info("Claude daily budget cap hit: {$purpose}", ['date' => $date, 'cap' => $cap]);
+
+            return false;
+        }
+
+        Cache::increment($key);
+
+        return true;
     }
 
     // ─── Answer Recording ─────────────────────────────────────────────────────

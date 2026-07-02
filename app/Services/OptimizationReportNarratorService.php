@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
@@ -61,7 +62,10 @@ SYS;
     public function __construct()
     {
         $this->apiKey = config('services.anthropic.api_key') ?? '';
-        $this->model = config('services.anthropic.model', 'claude-sonnet-4-6');
+        // D17: section narration runs on the narration (Haiku) tier, falling back
+        // to the global model when the narration key is unset.
+        $this->model = config('services.anthropic.model_narration', config('services.anthropic.model'))
+            ?? 'claude-sonnet-4-6';
     }
 
     /**
@@ -120,7 +124,7 @@ SYS;
     /**
      * Narrate an executive summary across all sections.
      *
-     * @param  array<int, array{title: string, finding_count: int}> $sectionSummaries
+     * @param  array<int, array{title: string, finding_count: int}>  $sectionSummaries
      */
     public function narrateExecutiveSummary(array $sectionSummaries): ?string
     {
@@ -156,6 +160,31 @@ SYS;
     // ── Private Helpers ───────────────────────────────────────────────────
 
     /**
+     * D17 per-purpose daily budget guard + call counter (Cache/Redis-backed).
+     *
+     * Mirrors NarrationService: reads `claude_calls_{purpose}_{date}`, skips at the
+     * configured cap (null => uncapped), otherwise increments the day-counter for
+     * the Admin ai-usage surface.
+     */
+    protected function checkAndIncrementBudget(string $purpose): bool
+    {
+        $date = now()->toDateString();
+        $key = "claude_calls_{$purpose}_{$date}";
+        $cap = config("services.anthropic.daily_budget_{$purpose}");
+        $cap = ($cap === null) ? PHP_INT_MAX : (int) $cap;
+
+        if ((int) Cache::get($key, 0) >= $cap) {
+            Log::info("Claude daily budget cap hit: {$purpose}", ['date' => $date, 'cap' => $cap]);
+
+            return false;
+        }
+
+        Cache::increment($key);
+
+        return true;
+    }
+
+    /**
      * Make a single-turn Claude API call.
      *
      * Uses the same Http::post() pattern as NarrationService for consistency.
@@ -163,6 +192,11 @@ SYS;
      */
     protected function callClaude(string $systemPrompt, string $userMessage): ?string
     {
+        // D17 budget cap: skip gracefully (log + null) with NO HTTP request at cap.
+        if (! $this->checkAndIncrementBudget('narration')) {
+            return null;
+        }
+
         $maxRetries = 2;
 
         for ($attempt = 0; $attempt <= $maxRetries; $attempt++) {

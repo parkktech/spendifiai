@@ -7,6 +7,7 @@ use App\Models\Order;
 use App\Models\Transaction;
 use App\Models\UserFinancialProfile;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
@@ -28,7 +29,11 @@ class TransactionCategorizerService
     public function __construct()
     {
         $this->apiKey = config('services.anthropic.api_key') ?? '';
-        $this->model = config('services.anthropic.model', 'claude-sonnet-4-6');
+        // D17.2: categorization — the biggest recurring-cost lever — runs on the
+        // categorization (Haiku) tier, falling back to the global model when unset.
+        // The existing CONFIDENCE_* routing is the safety net that makes this safe.
+        $this->model = config('services.anthropic.model_categorization', config('services.anthropic.model'))
+            ?? 'claude-sonnet-4-6';
     }
 
     /**
@@ -532,10 +537,46 @@ MSG;
     }
 
     /**
+     * D17 per-purpose daily budget guard + call counter (Cache/Redis-backed).
+     *
+     * Reads `claude_calls_{purpose}_{date}`, skips at the configured cap
+     * (null => uncapped = PHP_INT_MAX), otherwise increments the day-counter for
+     * the Admin ai-usage surface. For categorization the default is uncapped, so
+     * throughput is unchanged unless a cap is explicitly configured (D17.2).
+     */
+    protected function checkAndIncrementBudget(string $purpose): bool
+    {
+        $date = now()->toDateString();
+        $key = "claude_calls_{$purpose}_{$date}";
+        $cap = config("services.anthropic.daily_budget_{$purpose}");
+        $cap = ($cap === null) ? PHP_INT_MAX : (int) $cap;
+
+        if ((int) Cache::get($key, 0) >= $cap) {
+            Log::info("Claude daily budget cap hit: {$purpose}", ['date' => $date, 'cap' => $cap]);
+
+            return false;
+        }
+
+        Cache::increment($key);
+
+        return true;
+    }
+
+    /**
      * Call Claude API with retry logic.
      */
     protected function callClaude(string $system, string $userMessage): array
     {
+        // D17.2 per-purpose counter/guard (purpose 'categorization'). ALWAYS
+        // increment the day-counter for the Admin ai-usage surface; skip gracefully
+        // ONLY when daily_budget_categorization is explicitly configured. Default is
+        // null => uncapped (PHP_INT_MAX), so batch throughput is unchanged. This
+        // wrapper touches ONLY the counter/guard — the CONFIDENCE_* routing, batch
+        // loop, prompt, and response parsing are unchanged (D17.2 safety net).
+        if (! $this->checkAndIncrementBudget('categorization')) {
+            return ['error' => 'Daily categorization budget cap reached'];
+        }
+
         $maxRetries = 2;
 
         for ($attempt = 0; $attempt <= $maxRetries; $attempt++) {

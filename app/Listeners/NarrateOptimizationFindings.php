@@ -3,6 +3,7 @@
 namespace App\Listeners;
 
 use App\Events\OptimizationProfileBuilt;
+use App\Models\User;
 use App\Services\NarrationService;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Queue\InteractsWithQueue;
@@ -34,6 +35,19 @@ class NarrateOptimizationFindings implements ShouldQueue
 
     public function handle(OptimizationProfileBuilt $event): void
     {
+        // D17 activity gate (DRIFT-06): skip AI narration for inactive users on
+        // background/scheduled paths. Mirrors the commit 4e75c46 precedent.
+        $thresholdDays = config('spendifiai.sync.active_threshold_days', 28);
+        $user = User::find($event->userId);
+        if ($user && $user->last_active_at && $user->last_active_at->lt(now()->subDays($thresholdDays))) {
+            Log::info('NarrateOptimizationFindings: skipped inactive user', [
+                'user_id' => $event->userId,
+                'tax_year' => $event->taxYear,
+            ]);
+
+            return;
+        }
+
         Log::info('NarrateOptimizationFindings: starting narration', [
             'user_id' => $event->userId,
             'tax_year' => $event->taxYear,

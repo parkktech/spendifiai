@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\OptimizationFinding;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
@@ -53,7 +54,10 @@ SYS;
     public function __construct()
     {
         $this->apiKey = config('services.anthropic.api_key') ?? '';
-        $this->model = config('services.anthropic.model', 'claude-sonnet-4-6');
+        // D17: per-call-site model — narration runs on Haiku, falling back to the
+        // global model when the narration key is unset.
+        $this->model = config('services.anthropic.model_narration', config('services.anthropic.model'))
+            ?? 'claude-sonnet-4-6';
     }
 
     /**
@@ -69,6 +73,23 @@ SYS;
      */
     public function narrateFinding(OptimizationFinding $finding): ?string
     {
+        // D17 template-first (SCN-03): when the finding_type has a deterministic
+        // config template, render it via token substitution and return WITHOUT any
+        // Claude/HTTP call. Only bespoke finding_types fall through to Claude.
+        $templates = config('optimization-report.finding_narration_templates', []);
+        if (is_array($templates) && array_key_exists($finding->finding_type, $templates)) {
+            $description = $this->renderTemplate($templates[$finding->finding_type], $finding);
+            $finding->update(['description' => $description]);
+
+            return $description;
+        }
+
+        // D17 budget cap: bespoke narrations are budget-gated. At cap, skip
+        // gracefully (log + null) with NO HTTP request.
+        if (! $this->checkAndIncrementBudget('narration')) {
+            return null;
+        }
+
         // Build payload from NON-monetary fields only (T-11-03-03)
         // Prompt-injection safety: all user-derived content is json_encode()'d into
         // a structured object — never interpolated into the system prompt (T-11-03-02)
@@ -127,6 +148,52 @@ SYS;
     }
 
     // ── Private Helpers ───────────────────────────────────────────────────────
+
+    /**
+     * Render a deterministic finding-narration template (D17 template-first).
+     *
+     * Substitutes {value} (formatted estimated_value figure — from the finding row
+     * at render time, never a dollar literal in config) and {severity}. When the
+     * figure is absent the {value} token collapses to a neutral qualitative phrase.
+     */
+    protected function renderTemplate(string $template, OptimizationFinding $finding): string
+    {
+        $cents = $finding->estimated_value_cents;
+        $valueDisplay = ($cents !== null && (int) $cents > 0)
+            ? '$'.number_format(((int) $cents) / 100, 0)
+            : 'a meaningful amount';
+
+        return strtr($template, [
+            '{value}' => $valueDisplay,
+            '{severity}' => (string) ($finding->severity ?? 'medium'),
+        ]);
+    }
+
+    /**
+     * D17 per-purpose daily budget guard + call counter (Cache/Redis-backed).
+     *
+     * Reads the day-key `claude_calls_{purpose}_{date}`, compares it to the
+     * configured daily budget cap (null/absent => uncapped = PHP_INT_MAX). At the
+     * cap it logs and returns false (caller skips the call, no HTTP). Otherwise it
+     * increments the day-counter (for the Admin ai-usage surface) and returns true.
+     */
+    protected function checkAndIncrementBudget(string $purpose): bool
+    {
+        $date = now()->toDateString();
+        $key = "claude_calls_{$purpose}_{$date}";
+        $cap = config("services.anthropic.daily_budget_{$purpose}");
+        $cap = ($cap === null) ? PHP_INT_MAX : (int) $cap;
+
+        if ((int) Cache::get($key, 0) >= $cap) {
+            Log::info("Claude daily budget cap hit: {$purpose}", ['date' => $date, 'cap' => $cap]);
+
+            return false;
+        }
+
+        Cache::increment($key);
+
+        return true;
+    }
 
     /**
      * Make a single-turn Claude API call.

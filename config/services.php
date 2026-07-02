@@ -66,6 +66,23 @@ return [
     'anthropic' => [
         'api_key' => env('ANTHROPIC_API_KEY'),
         'model' => env('ANTHROPIC_MODEL', 'claude-sonnet-4-6'),
+
+        // D17 AI Cost Discipline — per-call-site model resolution (additive).
+        // Each Claude call site resolves its purpose-specific key first, falling
+        // back to the global `model` when unset. Narration/wording default to the
+        // cheaper Haiku tier; extraction stays on the global (Sonnet) tier;
+        // categorization moves to Haiku behind the confidence-routing safety net (D17.2).
+        'model_narration' => env('ANTHROPIC_MODEL_NARRATION', 'claude-haiku-4-5'),
+        'model_wording' => env('ANTHROPIC_MODEL_WORDING', 'claude-haiku-4-5'),
+        'model_extraction' => env('ANTHROPIC_MODEL_EXTRACTION', env('ANTHROPIC_MODEL', 'claude-sonnet-4-6')),
+        'model_categorization' => env('ANTHROPIC_MODEL_CATEGORIZATION', 'claude-haiku-4-5'),
+
+        // D17 per-purpose daily budget caps (call counters live in the Cache).
+        // A null/absent cap is treated as uncapped (PHP_INT_MAX) by the budget
+        // helper, so throughput is unchanged until a cap is explicitly configured.
+        'daily_budget_narration' => env('CLAUDE_DAILY_BUDGET_NARRATION', 200),
+        'daily_budget_wording' => env('CLAUDE_DAILY_BUDGET_WORDING', 100),
+        'daily_budget_categorization' => env('CLAUDE_DAILY_BUDGET_CATEGORIZATION'), // null => uncapped
     ],
 
 ];

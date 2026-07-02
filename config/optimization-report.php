@@ -13,6 +13,30 @@
  */
 return [
 
+    // ── D17 Template-first finding narration (SCN-03 / template-first) ────
+    // Deterministic, zero-Claude narration copy keyed by finding_type. When a
+    // finding's finding_type has an entry here, NarrationService::narrateFinding()
+    // renders the string via token substitution and returns WITHOUT any HTTP call.
+    // Only genuinely bespoke finding_types fall through to the (budget-gated,
+    // Haiku) Claude path. Tokens: {value} (formatted estimated_value figure at
+    // render time — NO dollar literal here), {severity}. Educational framing only
+    // ("may"/"could"/"consider") — banned assertive phrases must never appear
+    // (enforced by BannedPhraseTemplatesTest / SAFE-01).
+    'finding_narration_templates' => [
+        'income_discrepancy' => 'Your reported income and your bank deposits may differ enough to be worth '
+            .'a closer look before you file. Consider discussing this with a tax professional.',
+        'withholding' => 'Your current federal withholding may not line up with your expected tax for the year, '
+            .'which could affect your refund or balance due. Consider reviewing this with a tax professional.',
+        'qbi' => 'You may be able to explore the qualified business income deduction based on your income mix. '
+            .'Consider discussing whether it could apply to your situation with a tax professional.',
+        'refundable_credit' => 'You may qualify to review one or more refundable credits based on your household. '
+            .'Consider confirming eligibility with a tax professional.',
+        'benefit_gap' => 'One or more workplace benefits may be worth reviewing to see whether you could be '
+            .'leaving value on the table. Consider exploring your options with your employer or a professional.',
+        'estimated_tax' => 'Your estimated tax payments may be worth reviewing so you can avoid a surprise at '
+            .'filing time. Consider discussing your payment schedule with a tax professional.',
+    ],
+
     // ── Section Definitions (RPT-01: 4 topical sections) ──────────────────
 
     'sections' => [

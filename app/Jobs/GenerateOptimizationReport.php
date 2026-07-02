@@ -66,6 +66,21 @@ class GenerateOptimizationReport implements ShouldBeUnique, ShouldQueue
         // Memory guard for dompdf and report assembly (Pitfall 5)
         ini_set('memory_limit', '512M');
 
+        // D17 activity gate (DRIFT-06): skip AI dispatch for inactive users on
+        // background/scheduled paths. Mirrors the commit 4e75c46 console.php
+        // precedent. Does NOT apply to on-demand endpoints (users hitting an
+        // endpoint are by definition active).
+        $thresholdDays = config('spendifiai.sync.active_threshold_days', 28);
+        $gateUser = User::find($this->userId);
+        if ($gateUser && $gateUser->last_active_at && $gateUser->last_active_at->lt(now()->subDays($thresholdDays))) {
+            Log::info('GenerateOptimizationReport: skipped inactive user', [
+                'user_id' => $this->userId,
+                'tax_year' => $this->taxYear,
+            ]);
+
+            return;
+        }
+
         Log::info('GenerateOptimizationReport: starting', [
             'user_id' => $this->userId,
             'tax_year' => $this->taxYear,
