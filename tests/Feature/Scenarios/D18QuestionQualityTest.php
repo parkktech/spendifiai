@@ -468,6 +468,162 @@ it('d18_p2p_answer: the choice answer records the income-classification fact and
     Http::assertNothingSent();
 });
 
+// ─── D18 exemplar 3: the vehicle/powersports question (owner-reported) ───────
+//
+// Owner: the Rocky Mountain ATV/MC finding rendered as ONE dense paragraph
+// mixing three topics (mileage methods + fuel tax credit + fraud warning),
+// ending in a vague confirm ask. Required shape: data lead, purpose choices
+// from the detection-spec vehicle question tree, ALL education demoted to the
+// collapsible context, follow-ups fanned via gating — never crammed.
+
+function seedPowersportsPurchases(int $userId): void
+{
+    \App\Models\DetectionMerchant::create([
+        'company_name' => 'Rocky Mountain ATV/MC',
+        'aliases' => ['ROCKY MOUNTAIN ATV', 'ROCKY MOUNTAIN ATV MC', 'RMATV'],
+        'category' => 'vehicle',
+        'subdetector_key' => 'offroad_vehicle',
+        'defensibility_rating' => 'conditional',
+        'gray_area' => true,
+        'rule_id' => 'category_vehicle',
+    ]);
+
+    foreach ([420.00, 189.99, 315.50] as $amount) {
+        \App\Models\Transaction::factory()->create([
+            'user_id' => $userId,
+            'merchant_name' => 'ROCKY MOUNTAIN ATV MC',
+            'merchant_normalized' => 'rocky mountain atv',
+            'amount' => $amount, // debits positive
+            'transaction_date' => now()->startOfYear()->addDays(60),
+        ]);
+    }
+}
+
+it('d18_vehicle_template: the powersports finding renders as a data-led purpose-choice question with demoted education', function () {
+    Http::preventStrayRequests();
+    Http::fake();
+
+    $user = createAuthenticatedUser(['last_active_at' => now()]);
+    seedPowersportsPurchases($user->id);
+
+    $emitted = app(\App\Services\Detectors\CategoryLibraryDetector::class)
+        ->run($user->id, (int) now()->year, app(RedFlagDetectorService::class), []);
+    expect($emitted)->toContain('category_vehicle_parts');
+
+    $service = app(InterviewOrchestratorService::class);
+    $session = $service->startOrResume($user->id, (int) now()->year);
+    expect($session->queue)->toContain('category_vehicle_parts');
+
+    $question = $service->nextQuestion($session);
+    expect($question)->not->toBeNull();
+    expect($question->ai_best_guess)->toBe('category_vehicle_parts');
+
+    // Data lead: merchant + purchase count + rough total.
+    expect($question->question)->toContain('Rocky Mountain ATV/MC');
+    expect($question->question)->toMatch('/\d+ purchases/');
+    expect($question->question)->toContain('$');
+
+    // Purpose choices from the detection-spec vehicle question tree.
+    expect($question->options['answer_type'] ?? null)->toBe('choice');
+    $labels = strtolower(implode(' | ', array_column((array) $question->options['choices'], 'label')));
+    expect($labels)->toContain('hobby');
+    expect($labels)->toContain('work vehicle');
+    expect($labels)->toContain('sponsorship');
+    expect($labels)->toContain('resell');
+    expect($labels)->toContain('monetize');
+    expect($labels)->toContain('off-road');
+
+    // Education DEMOTED: mileage/fuel-credit/fraud-warning copy lives in context,
+    // never in the question body.
+    $body = strtolower($question->question);
+    expect($body)->not->toContain('mileage method');
+    expect($body)->not->toContain('fuel tax credit');
+    expect($body)->not->toContain('fraud');
+    $context = strtolower((string) ($question->options['context'] ?? ''));
+    expect($context)->toContain('mileage');
+    expect($context)->toContain('fuel');
+    expect($context)->toContain('gallons');
+
+    // Copy bar: short body, no internal keys.
+    expect(mb_strlen($question->question))->toBeLessThanOrEqual(280);
+    expect(preg_match(D18_INTERNAL_KEY_PATTERN, $question->question))->toBe(0);
+
+    Http::assertNothingSent();
+});
+
+it('d18_vehicle_followup: a business-flavored purpose answer fans the usage-log follow-up as its OWN question', function () {
+    Http::preventStrayRequests();
+    Http::fake();
+
+    $user = createAuthenticatedUser(['last_active_at' => now()]);
+    seedPowersportsPurchases($user->id);
+    app(\App\Services\Detectors\CategoryLibraryDetector::class)
+        ->run($user->id, (int) now()->year, app(RedFlagDetectorService::class), []);
+
+    $service = app(InterviewOrchestratorService::class);
+    $session = $service->startOrResume($user->id, (int) now()->year);
+    $question = $service->nextQuestion($session);
+    expect($question)->not->toBeNull();
+
+    // Owner's real answer: sponsorship/advertising race vehicles.
+    $this->postJson(
+        "/api/v1/optimizer/interview/{$session->id}/questions/{$question->id}/answer",
+        ['answer' => 'sponsorship_advertising']
+    )->assertOk();
+
+    expect(UserTaxFact::currentFact($user->id, 'category_vehicle_parts')?->value)->toBe('sponsorship_advertising');
+
+    // The usage-log follow-up surfaces as its OWN question (never crammed).
+    $followUp = $service->nextQuestion($session->fresh());
+    expect($followUp)->not->toBeNull();
+    expect($followUp->ai_best_guess)->toBe('vehicle.usage_log_status');
+    expect(strtolower($followUp->question))->toContain('log');
+    expect(preg_match(D18_INTERNAL_KEY_PATTERN, $followUp->question))->toBe(0);
+
+    // Answer with the owner's real state: not kept, willing to start.
+    $this->postJson(
+        "/api/v1/optimizer/interview/{$session->id}/questions/{$followUp->id}/answer",
+        ['answer' => 'willing_to_start']
+    )->assertOk();
+
+    expect(UserTaxFact::currentFact($user->id, 'vehicle.usage_log_status')?->value)->toBe('willing_to_start');
+
+    // Neither question re-appears in a fresh session.
+    $resumed = $service->startOrResume($user->id, (int) now()->year);
+    expect($resumed->queue)->not->toContain('category_vehicle_parts');
+    $next = $service->nextQuestion($resumed);
+    if ($next !== null) {
+        expect($next->ai_best_guess)->not->toBeIn(['category_vehicle_parts', 'vehicle.usage_log_status']);
+    }
+
+    Http::assertNothingSent();
+});
+
+it('d18_vehicle_personal_answer: a personal-hobby answer does NOT fan the usage-log follow-up', function () {
+    Http::preventStrayRequests();
+    Http::fake();
+
+    $user = createAuthenticatedUser(['last_active_at' => now()]);
+    seedPowersportsPurchases($user->id);
+    app(\App\Services\Detectors\CategoryLibraryDetector::class)
+        ->run($user->id, (int) now()->year, app(RedFlagDetectorService::class), []);
+
+    $service = app(InterviewOrchestratorService::class);
+    $session = $service->startOrResume($user->id, (int) now()->year);
+    $question = $service->nextQuestion($session);
+
+    $this->postJson(
+        "/api/v1/optimizer/interview/{$session->id}/questions/{$question->id}/answer",
+        ['answer' => 'personal_hobby']
+    )->assertOk();
+
+    // No log follow-up for personal use — value-density rule (D18 rule 4).
+    $next = $service->nextQuestion($session->fresh());
+    if ($next !== null) {
+        expect($next->ai_best_guess)->not->toBe('vehicle.usage_log_status');
+    }
+});
+
 // ─── D18 rule 2: automated sweep — NO rendered question carries internal keys ─
 
 it('d18_no_internal_keys: every rendered interview question and choice label is free of snake_case internal keys', function () {
