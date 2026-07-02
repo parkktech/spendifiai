@@ -6,14 +6,14 @@ current_phase: 10
 current_phase_name: Foundation — Tax Rules Engine & Cross-Source Snapshot
 status: executing
 stopped_at: ROADMAP.md written, REQUIREMENTS.md traceability filled (41/41 mapped)
-last_updated: "2026-07-02T00:05:49.035Z"
+last_updated: "2026-07-02T00:14:36.973Z"
 last_activity: 2026-07-01
 last_activity_desc: Phase 10 execution started
 progress:
   total_phases: 4
   completed_phases: 0
   total_plans: 3
-  completed_plans: 1
+  completed_plans: 2
   percent: 0
 ---
 
@@ -29,7 +29,7 @@ See: .planning/PROJECT.md (updated 2026-07-01)
 ## Current Position
 
 Phase: 10 (Foundation — Tax Rules Engine & Cross-Source Snapshot) — EXECUTING
-Plan: 2 of 3
+Plan: 3 of 3
 Status: Ready to execute
 Last activity: 2026-07-01 — Phase 10 execution started
 
@@ -65,6 +65,7 @@ Continuing global phase numbering from v2.0 (ended Phase 9). Granularity: coarse
 
 *Updated after each plan completion*
 | Phase 10 P01 | 12 | 3 tasks | 4 files |
+| Phase 10-foundation-tax-rules-engine-cross-source-snapshot P02 | 316 | 3 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -82,6 +83,8 @@ Recent decisions affecting current work:
 - [Phase ?]: All IRS dollar amounts live in config/tax-rules.php only — zero literals in TaxRulesEngineService
 - [Phase ?]: QBI Phase 10 scope: below-threshold 20% estimate; above-threshold non-SSTB returns professional-review sentinel (deduction_cents=null)
 - [Phase ?]: mandatory_roth_catchup_threshold tagged [ASSUMED] — confirm exact 2026 indexed value from IRS final regs before Phase 13
+- [Phase ?]: filing_status normalised from married_jointly to married_joint in assembler to match tax-rules.php config keys
+- [Phase ?]: Bank deposit classification logic inlined in assembler to enforce calendar-year Jan 1-Dec 31 window and avoid IncomeDetectorService rolling-window pitfall
 
 ### Pending Todos
 
@@ -96,6 +99,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-07-02T00:05:39.332Z
+Last session: 2026-07-02T00:14:29.216Z
 Stopped at: ROADMAP.md written, REQUIREMENTS.md traceability filled (41/41 mapped)
 Resume file: None — next action is `/gsd-plan-phase 10`
