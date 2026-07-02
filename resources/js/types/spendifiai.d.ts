@@ -1254,3 +1254,241 @@ export interface DocumentRequest {
     accountant_name: string;
     created_at: string;
 }
+
+// ─── Phase-14 Action Center Types (14-10) ─────────────────────────────────────
+
+/** Stage-0 onboarding prerequisite item (disappears when the prerequisite is met). */
+export interface ActionCenterStage0Item {
+  key: string;
+  priority: number;
+  title: string;
+  description: string;
+  completed: boolean;
+  cta_url: string;
+}
+
+/**
+ * Engine-computed benefit parameters for a checklist step.
+ * All monetary values are integer cents. Divide by 100 for display.
+ */
+export interface ChecklistBenefitParams {
+  // k1 (W-4 alignment)
+  per_paycheck?: number;   // cents — take-home increase per paycheck
+  annual?: number;          // cents — annual take-home delta
+
+  // k2 (Roth/Trad split)
+  delta_tax?: number;       // cents — annual federal tax delta (negative = savings)
+  roth_pct?: number;        // integer 0–100 — chosen Roth share
+  trad_pct?: number;        // integer 0–100 — chosen Trad share
+  fv_low?: number;          // cents — illustration FV range low
+  fv_high?: number;         // cents — illustration FV range high
+  age?: number;             // target retirement age (illustration)
+
+  // k3 (401k deferral level)
+  pct?: number;             // float — chosen deferral percentage
+  match?: number;           // cents — annual employer match delta
+  delta_paycheck?: number;  // cents — per-paycheck take-home delta
+  delta_annual?: number;    // cents — annual take-home delta
+
+  // k4 (HSA election)
+  amount?: number;          // cents — annual HSA election OR per-period transfer
+  delta_paycheck?: number;  // already declared above (shared field)
+
+  // k5 (IRA contribution)
+  trad?: number;            // cents — traditional IRA contribution
+  roth?: number;            // cents — Roth IRA contribution
+  delta_deduction?: number; // cents — deduction delta (positive = savings)
+  n?: number;               // number of transfers
+  // amount shared with k4
+
+  // k6 (auto-transfer)
+  period_label?: string;    // 'every 2 weeks', 'monthly', etc.
+  // amount and annual shared above
+
+  // Header aggregate (nested in header item's benefit_line_params)
+  header_aggregate?: {
+    take_home_annual_delta_cents: number;
+    federal_tax_annual_delta_cents: number;
+    retirement_contributions_delta_cents: number;
+    interaction_remainder_take_home_cents: number;
+    interaction_remainder_federal_tax_cents: number;
+    interaction_remainder_retirement_cents: number;
+  };
+  action_count?: number;
+  option_key?: string;
+}
+
+/** A materialized optimization checklist item (from GET /optimizer/checklist/{year}). */
+export interface OptimizationChecklistItemView {
+  id: number;
+  knob: 'k1' | 'k2' | 'k3' | 'k4' | 'k5' | 'k6' | 'header';
+  step_key: string;
+  /** 'directive' = actionable; 'confirm_ask' = fact-gate still needs confirmation. */
+  kind: 'directive' | 'confirm_ask';
+  benefit_line_params: ChecklistBenefitParams | null;
+  position: number;
+  done: boolean;
+  done_at: string | null;
+}
+
+/** Full checklist response from GET /optimizer/checklist/{year}. */
+export interface OptimizationChecklistResponse {
+  tax_year: number;
+  header_aggregate: ChecklistBenefitParams | null;
+  items: OptimizationChecklistItemView[];
+}
+
+/** Action Center change-detected finding (monitor prompt). */
+export interface ActionCenterMonitorPrompt {
+  id: number;
+  finding_key: string;
+  severity: 'high' | 'medium' | 'low';
+  description: string | null;
+  details: Record<string, unknown> | null;
+  deadline: string | null;
+  created_at: string;
+}
+
+/** Action Center calendar event (bonus/year-end alert). */
+export interface ActionCenterCalendarItem {
+  id: number;
+  event_type: string;
+  expected_at: string | null;
+  lead_time_days: number;
+  metadata: Record<string, unknown> | null;
+  due_date: string | null;
+}
+
+/** Condensed checklist item shape returned from the Action Center endpoint. */
+export interface ActionCenterChecklistItem {
+  id: number;
+  knob: string;
+  step_key: string;
+  kind: 'directive' | 'confirm_ask';
+  benefit_line_params: ChecklistBenefitParams | null;
+  position: number;
+  due_date: string | null;
+}
+
+/** Full response from GET /api/v1/optimizer/action-center. */
+export interface ActionCenterResponse {
+  stage0_items: ActionCenterStage0Item[];
+  checklist_items: ActionCenterChecklistItem[];
+  monitor_prompts: ActionCenterMonitorPrompt[];
+  calendar_items: ActionCenterCalendarItem[];
+  total_open: number;
+  is_empty: boolean;
+}
+
+// ─── Phase-14 Scenario Types (14-10) ──────────────────────────────────────────
+
+/**
+ * Objective readiness data per objective (from GET /optimizer/objectives/{year}).
+ * Educational frame: never shows dollar figures (those come from the checklist/compute endpoints).
+ */
+export interface ObjectiveReadiness {
+  label: string;
+  ready: boolean;
+  completeness_pct: number;
+  questions_to_unlock: number;
+  blocking: Array<{
+    fact_key: string;
+    label: string;
+    state: 'confirmed' | 'known' | 'missing';
+    source: string;
+  }>;
+  confirm_needed: Array<{ fact_key: string; label: string }>;
+  optional_missing: Array<{ fact_key: string; label: string; default_note: string }>;
+}
+
+export interface ObjectivesResponse {
+  tax_year: number;
+  objectives: Record<string, ObjectiveReadiness>;
+}
+
+/**
+ * Outcome delta tier (SAFE-03: no raw cents in scenario API response).
+ * Qualitative direction + magnitude for displaying the three-metric block.
+ */
+export type DeltaTier =
+  | 'positive_large'
+  | 'positive_medium'
+  | 'positive_small'
+  | 'neutral'
+  | 'negative_small'
+  | 'negative_medium'
+  | 'negative_large';
+
+/** Public (SAFE-03) scenario option outcome block. */
+export interface ScenarioOptionOutcome {
+  take_home: DeltaTier;
+  federal_tax: DeltaTier;
+  retirement: DeltaTier;
+}
+
+/** Public (no-cents) knob values for display in comparison cards. */
+export interface PublicKnobs {
+  w4: {
+    filing_status: string | null;
+    dependents_under_17: number;
+    other_dependents: number;
+  };
+  k401: {
+    deferral_pct: number;
+    roth_share_pct: number;
+  };
+}
+
+/** A single scenario option (take_home, tax_burden, retirement, balanced, or merged). */
+export interface ScenarioOption {
+  key: string;
+  label: string;
+  badges?: string[];
+  knobs: PublicKnobs;
+  outcome: ScenarioOptionOutcome;
+}
+
+/** Full response from GET /optimizer/scenarios/{year}. */
+export interface ScenariosResponse {
+  tax_year: number;
+  readiness: Record<string, { ready: boolean; missing_fact_keys: string[] }>;
+  agreement: boolean;
+  options: ScenarioOption[];
+  chosen: {
+    option_key: string;
+    fact_set_id: number;
+    chosen_at: string;
+  } | null;
+  fact_set: { id: number; fact_count: number };
+  disclaimer: string;
+}
+
+/** Response from POST /optimizer/scenarios/{year}/compute (mix panel). */
+export interface ComputeScenarioResponse {
+  outcome: {
+    take_home: number;    // cents (annual delta)
+    federal_tax: number;  // cents (annual delta, negative = savings)
+    retirement: number;   // cents (annual contributions delta)
+    knobs: Record<string, unknown>;
+  };
+}
+
+// ─── Phase-14 AI Usage Types (14-10 / D17) ────────────────────────────────────
+
+export interface AiUsageDayCount {
+  date: string;
+  count: number;
+}
+
+export interface AiUsagePurpose {
+  purpose: string;
+  daily_budget: number | null;
+  model: string;
+  days: AiUsageDayCount[];
+}
+
+export interface AiUsageResponse {
+  window_days: number;
+  today: string;
+  usage: Record<string, AiUsagePurpose>;
+}

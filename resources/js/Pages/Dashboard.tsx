@@ -45,6 +45,7 @@ import PrimaryVsExtraCard from '@/Components/SpendifiAI/PrimaryVsExtraCard';
 import TimelineFilter from '@/Components/SpendifiAI/TimelineFilter';
 import TopStoresSection from '@/Components/SpendifiAI/TopStoresSection';
 import CharitableGivingSection from '@/Components/SpendifiAI/CharitableGivingSection';
+import ActionCenterWidget from '@/Components/SpendifiAI/ActionCenterWidget';
 import { useApi, useApiPost } from '@/hooks/useApi';
 import { formatDateShort, formatDateTime } from '@/utils/formatDate';
 import { getPeriodLabels, DEFAULT_PERIOD_LABELS } from '@/utils/periodLabels';
@@ -862,7 +863,7 @@ function LoadingSkeleton() {
 // --- Main Dashboard ---
 
 export default function Dashboard() {
-  const pageAuth = usePage().props.auth as { timezone?: string; onboardingPending?: boolean };
+  const pageAuth = usePage().props.auth as { timezone?: string; onboardingPending?: boolean; hasBankConnected?: boolean };
   const tz = pageAuth.timezone;
 
   // Redirect to onboarding if not yet completed
@@ -1453,6 +1454,9 @@ export default function Dashboard() {
               <Badge variant="info">{data.summary.pending_questions}</Badge>
             </Link>
           )}
+
+          {/* SECTION F2: Action Center — optimization checklist + monitor prompts (14-10) */}
+          <ActionCenterWidget hasBankConnected={pageAuth.hasBankConnected ?? false} />
 
           {/* SECTION G: Financial Health — Charts */}
           <SpendingChart data={data.spending_trend} categories={data.categories} />

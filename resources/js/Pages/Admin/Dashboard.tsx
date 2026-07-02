@@ -4,6 +4,7 @@ import { Head, Link } from '@inertiajs/react';
 import { Database, CheckCircle, XCircle, Link2, ChevronRight, Heart, Star, Users, Activity, Landmark, ShieldCheck, HardDrive } from 'lucide-react';
 import type { AdminStats, AdminCharityStats } from '@/types/spendifiai';
 import axios from 'axios';
+import AiUsagePanel from '@/Components/SpendifiAI/AiUsagePanel';
 
 interface UserStats {
   total_users: number;
@@ -253,6 +254,11 @@ export default function AdminDashboard() {
           </div>
         </div>
       )}
+
+      {/* AI Usage Panel (D17 cost discipline) — 14-10 additive mount */}
+      <div className="mt-6">
+        <AiUsagePanel />
+      </div>
     </AuthenticatedLayout>
   );
 }

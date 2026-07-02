@@ -127,7 +127,7 @@ export default function AuthenticatedLayout({
     { label: 'Tax Vault', href: '/vault', routeName: 'vault', icon: <Archive size={18} /> },
     { label: 'Connect', href: '/connect', routeName: 'connect', icon: <Link2 size={18} /> },
     { label: 'AI Questions', href: '/questions', routeName: 'questions', icon: <HelpCircle size={18} /> },
-    { label: 'Optimize My Income', href: '/optimize', routeName: 'optimize', icon: <TrendingUp size={18} />, badge: (auth.pendingOptimizationCount as number) || undefined },
+    { label: 'Optimize My Income', href: '/optimize', routeName: 'optimize', icon: <TrendingUp size={18} />, badge: (((auth.pendingOptimizationCount as number) || 0) + ((auth.pendingActionCount as number) || 0)) || undefined },
     ...(isAccountant ? [
       { label: 'Clients', href: '/accountant/clients', routeName: 'accountant.clients', icon: <Users size={18} /> },
     ] : []),
