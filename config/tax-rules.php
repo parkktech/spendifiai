@@ -262,6 +262,11 @@ return [
             // [CITED: IRC §24; OBBBA §70301 — increased to $2,200 per child]
             'ctc_amount' => 2_200,
 
+            // ── Credit for Other Dependents (W-4 Step 3) ─────────────────────
+            // [CITED: IRC §24(h)(4); $500 non-refundable, not inflation-indexed]
+            // Used by SCN-01 W-4 alignment (K1) alongside ctc_amount. (DRIFT-04 / §F)
+            'odc_amount' => 500,
+
             // ── Adoption Credit ──────────────────────────────────────────────
             // [ASSUMED] ~$17,000 partially refundable; indexed annually; P13 sign-off gate
             'adoption_credit' => 17_000, // [ASSUMED]
