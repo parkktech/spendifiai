@@ -36,6 +36,38 @@ class DeductibleSaasSweep
     ];
 
     /**
+     * Active SaaS-category subscriptions for a user (shared with
+     * FindingPatternQuestionService so the D18 aggregated question resolves
+     * the SAME records this sweep derived its findings from).
+     *
+     * @return \Illuminate\Database\Eloquent\Collection<int, Subscription>
+     */
+    public static function activeSaasSubscriptions(int $userId): \Illuminate\Database\Eloquent\Collection
+    {
+        return Subscription::where('user_id', $userId)
+            ->where('status', SubscriptionStatus::Active)
+            ->where(function ($q) {
+                $q->whereIn('category', self::SAAS_CATEGORIES)
+                    ->orWhere('category', 'LIKE', '%Software%')
+                    ->orWhere('category', 'LIKE', '%SaaS%');
+            })
+            ->get(['id', 'merchant_name', 'merchant_normalized', 'category', 'amount', 'frequency']);
+    }
+
+    /**
+     * The canonical merchant slug used in deductible_saas_* finding keys.
+     * Shared with FindingPatternQuestionService for slug round-tripping (D18).
+     */
+    public static function merchantSlug(Subscription $sub): string
+    {
+        return preg_replace(
+            '/[^a-z0-9_]/',
+            '_',
+            strtolower($sub->merchant_normalized ?? $sub->merchant_name)
+        );
+    }
+
+    /**
      * @param  array<string, string>  $electionFacts
      * @return string[] Finding keys emitted
      */
@@ -48,14 +80,7 @@ class DeductibleSaasSweep
         $emitted = [];
 
         // Query active Software-category subscriptions for this user
-        $saasSubs = Subscription::where('user_id', $userId)
-            ->where('status', SubscriptionStatus::Active)
-            ->where(function ($q) {
-                $q->whereIn('category', self::SAAS_CATEGORIES)
-                    ->orWhere('category', 'LIKE', '%Software%')
-                    ->orWhere('category', 'LIKE', '%SaaS%');
-            })
-            ->get(['id', 'merchant_name', 'merchant_normalized', 'category', 'amount', 'frequency']);
+        $saasSubs = self::activeSaasSubscriptions($userId);
 
         if ($saasSubs->isEmpty()) {
             return [];
@@ -68,8 +93,7 @@ class DeductibleSaasSweep
             }
 
             // Finding key per-subscription (normalized merchant slug)
-            $slug = preg_replace('/[^a-z0-9_]/', '_', strtolower($sub->merchant_normalized ?? $sub->merchant_name));
-            $findingKey = 'deductible_saas_'.$slug;
+            $findingKey = 'deductible_saas_'.self::merchantSlug($sub);
 
             $treatment = trim($sub->merchant_name).' is an active software subscription '
                 .'that may be deductible as an ordinary and necessary business expense '

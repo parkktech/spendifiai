@@ -72,6 +72,7 @@ it('a skipped key is excluded from the stale-queue self-heal rebuild', function 
 
     $user = createAuthenticatedUser();
 
+    // D18: conditional findings need question-phrased narrations to be queue-eligible.
     OptimizationFinding::factory()->create([
         'user_id' => $user->id,
         'tax_year' => 2026,
@@ -79,6 +80,7 @@ it('a skipped key is excluded from the stale-queue self-heal rebuild', function 
         'finding_type' => 'deduction_probe',
         'band' => 'conditional',
         'status' => 'open',
+        'description' => 'Do any of these recurring charges relate to your business?',
     ]);
     OptimizationFinding::factory()->create([
         'user_id' => $user->id,
@@ -87,6 +89,7 @@ it('a skipped key is excluded from the stale-queue self-heal rebuild', function 
         'finding_type' => 'deduction_probe',
         'band' => 'conditional',
         'status' => 'open',
+        'description' => 'Do you use any of these purchases for work purposes?',
     ]);
 
     // Empty queue (the stale-session bug state) + one already-skipped item.

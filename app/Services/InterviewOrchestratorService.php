@@ -84,6 +84,7 @@ class InterviewOrchestratorService
 
     public function __construct(
         private readonly ScenarioFactResolverService $resolver = new ScenarioFactResolverService,
+        private readonly FindingPatternQuestionService $patterns = new FindingPatternQuestionService,
     ) {
         // §A.4.3: merge config prerequisite pairs with the shipped const gate map.
         // array_merge order → GATED_PROBES (const) wins on key collision.
@@ -191,39 +192,87 @@ class InterviewOrchestratorService
      * Gated probes (INT-04) are skipped in nextQuestion() via prerequisite check;
      * they are still placed in the queue here so they surface once prerequisites are met.
      *
+     * D18 QUESTION-QUALITY GATING (owner decision, binding):
+     *   - Rule 3: finding types with an aggregated pattern template (e.g.
+     *     deductible_saas) collapse into ONE synthetic 'pattern.{type}' key —
+     *     never per-item interrogation.
+     *   - Rule 4: findings WITHOUT a data-grounded question source (config
+     *     template, question-phrased narration, or — for auto/battery bands —
+     *     a treatment to show) are EXCLUDED from the interview queue. They
+     *     remain visible in the findings list as suggested-confirm items.
+     *
      * @return string[] ordered fact_key / finding_key strings
      */
     private function buildInitialQueue(int $userId, int $taxYear): array
     {
         $initialCap = (int) config('tax-detection.interview.initial_cap', 10);
 
-        // 1. High-band (auto) findings — ordered first
+        // 1. High-band (auto) findings — ordered first. Data-grounded gate (D18):
+        //    the suggested-confirm UI renders the treatment as the data, so a
+        //    treatment (or question-phrased narration / template) is required.
         $autoFindings = OptimizationFinding::forUser($userId)
             ->where('tax_year', $taxYear)
             ->where('band', 'auto')
             ->where('status', 'open')
             ->take($initialCap)
+            ->get(['finding_key', 'finding_type', 'band', 'treatment', 'description'])
+            ->filter(fn (OptimizationFinding $f) => $this->hasDataGroundedQuestion($f))
             ->pluck('finding_key')
             ->toArray();
 
         // 2. Conditional findings (non-battery) — the interview's core purpose.
         //    These need user answers to determine if they apply. 'specialist' band
         //    is intentionally excluded (belongs to professional-review section only).
-        $conditionalFindings = OptimizationFinding::forUser($userId)
+        //    D18: pattern types collapse; untemplated findings are excluded.
+        $conditionalRows = OptimizationFinding::forUser($userId)
             ->where('tax_year', $taxYear)
             ->where('band', 'conditional')
             ->where('finding_type', '!=', 'battery_question')
             ->where('status', 'open')
-            ->pluck('finding_key')
-            ->toArray();
+            ->get(['finding_key', 'finding_type', 'band', 'treatment', 'description']);
+
+        $conditionalFindings = [];
+        $patternKeys = [];
+        foreach ($conditionalRows as $f) {
+            // D18 rule 3: aggregate — one question per PATTERN, never per item.
+            if ($this->patterns->isPatternType($f->finding_type)) {
+                $patternKey = $this->patterns->patternKey($f->finding_type);
+                if (! in_array($patternKey, $patternKeys, true)
+                    && ! $this->isAlreadyAnswered($patternKey, $userId)) {
+                    $patternKeys[] = $patternKey;
+                }
+
+                continue;
+            }
+
+            // D18 rule 4: conditional findings need a REAL question source —
+            // a config template or question-phrased narration. Treatment prose
+            // alone is not interview-ready for the conditional band.
+            if ($this->questionTemplate($f->finding_key) !== null
+                || $this->isQuestionPhrased($f->description)) {
+                $conditionalFindings[] = $f->finding_key;
+
+                continue;
+            }
+
+            Log::info('InterviewOrchestratorService: finding excluded from interview (D18 — no data-grounded template)', [
+                'user_id' => $userId,
+                'finding_key' => $f->finding_key,
+                'finding_type' => $f->finding_type,
+            ]);
+        }
+        $conditionalFindings = array_merge($patternKeys, $conditionalFindings);
 
         // 3. Annual battery questions — appended after auto + conditional findings.
         //    Battery questions are annual life-event check-ins (marriage, birth, job change,
         //    inheritance, Medicare). They are lower priority than auto-band red flags.
+        //    Their treatment is authored check-in copy → same data-grounded gate as auto.
         $batteryFindings = OptimizationFinding::forUser($userId)
             ->where('tax_year', $taxYear)
             ->where('finding_type', 'battery_question')
             ->where('status', 'open')
+            ->get(['finding_key', 'finding_type', 'band', 'treatment', 'description'])
+            ->filter(fn (OptimizationFinding $f) => $this->hasDataGroundedQuestion($f))
             ->pluck('finding_key')
             ->toArray();
 
@@ -233,6 +282,32 @@ class InterviewOrchestratorService
         ));
 
         return $queue;
+    }
+
+    /**
+     * D18: does this finding carry enough concrete data to render a real,
+     * show-the-data question? (config template | question-phrased narration |
+     * treatment copy that the suggested-confirm / fallback path can surface).
+     */
+    private function hasDataGroundedQuestion(OptimizationFinding $finding): bool
+    {
+        if ($this->questionTemplate($finding->finding_key) !== null) {
+            return true;
+        }
+
+        if ($this->isQuestionPhrased($finding->description)) {
+            return true;
+        }
+
+        return trim((string) $finding->treatment) !== '';
+    }
+
+    /** A narration string usable AS the question (already phrased as one). */
+    private function isQuestionPhrased(?string $text): bool
+    {
+        $text = trim((string) $text);
+
+        return $text !== '' && str_ends_with($text, '?');
     }
 
     // ─── Question Popping ─────────────────────────────────────────────────────
@@ -382,16 +457,21 @@ class InterviewOrchestratorService
         }
 
         // §A.3 / D17 — TEMPLATE-FIRST BRANCH (zero Claude, safe by construction).
-        // If the fact key has a deterministic template, build the AIQuestion from it
-        // and skip wordQuestion() entirely. This is the SCN-03 gap-question path and
-        // the fix for DEFECT 1 (objective gap questions become real, typed, answerable
-        // questions instead of finding narration).
-        $template = $this->questionTemplate($factKey);
+        // If the fact key has a deterministic template — config-defined or a D18
+        // aggregated pattern template (dynamic, data-grounded) — build the
+        // AIQuestion from it and skip wordQuestion() entirely.
+        $template = $this->resolveTemplate($session, $factKey);
         if ($template !== null) {
             return $this->createTemplateQuestion($session, $factKey, $template);
         }
 
-        // ── Finding-driven questions: existing Claude wording path (untouched) ──
+        // Pattern keys without a resolvable template (all items answered / no
+        // matching findings) are skipped — never verbalized generically (D18).
+        if ($this->patterns->isPatternKey($factKey)) {
+            return null;
+        }
+
+        // ── Finding-driven questions: Claude wording path ──
         // INT-07: determine confidence from band
         $band = $finding?->band ?? 'auto';
         $confidence = self::BAND_CONFIDENCE[$band] ?? 0.70;
@@ -405,8 +485,23 @@ class InterviewOrchestratorService
             'transaction_ids' => $finding?->transaction_ids ?? [],
         ];
 
-        // Call Claude ONLY to phrase the question (SAFE-01 / SAFE-03)
-        $questionText = $this->wordQuestion($factKey, $finding, $band);
+        // D17 template-first: a question-phrased narration IS the question —
+        // zero Claude. Otherwise call Claude ONLY to phrase it (SAFE-01/SAFE-03).
+        $questionText = $this->isQuestionPhrased($finding?->description)
+            ? trim($finding->description)
+            : $this->wordQuestion($factKey, $finding, $band);
+
+        // D18 rule 4/5: no data-grounded copy available → skip the key entirely.
+        // The finding stays in the findings list; the interview NEVER renders a
+        // contentless "does this apply to you" question or a raw internal key.
+        if ($questionText === null) {
+            Log::info('InterviewOrchestratorService: question skipped (D18 — no data-grounded copy)', [
+                'user_id' => $userId,
+                'fact_key' => $factKey,
+            ]);
+
+            return null;
+        }
 
         // Create the AIQuestion (INT-06: one per finding_key = one per merchant pattern)
         return AIQuestion::create([
@@ -434,8 +529,13 @@ class InterviewOrchestratorService
         $taxYear = $session->tax_year;
 
         // §A.5.5: is there a known-but-unconfirmed value? → suggested-confirm (band=auto).
-        $resolved = $this->resolver->resolve($session->user, $taxYear, $factKey);
-        $isSuggestedConfirm = $resolved !== null && ! ($resolved['confirmed'] ?? false);
+        // Dynamic (D18 pattern) templates have no static fact to pre-fill — skip.
+        $isSuggestedConfirm = false;
+        $resolved = null;
+        if (empty($template['dynamic'])) {
+            $resolved = $this->resolver->resolve($session->user, $taxYear, $factKey);
+            $isSuggestedConfirm = $resolved !== null && ! ($resolved['confirmed'] ?? false);
+        }
 
         $band = $isSuggestedConfirm ? 'auto' : 'conditional';
         $confidence = self::BAND_CONFIDENCE[$band] ?? 0.70;
@@ -446,6 +546,7 @@ class InterviewOrchestratorService
             'band' => $band,
             'answer_type' => $template['answer_type'] ?? 'string',
             'choices' => $template['choices'] ?? null,
+            'none_value' => $template['none_value'] ?? null,
             'objective_tags' => $this->objectiveTagsFor($factKey),
             'doc_affordance' => $template['doc_affordance'] ?? null,
             'transaction_ids' => [],
@@ -480,6 +581,26 @@ class InterviewOrchestratorService
         $templates = (array) config('optimization-objectives.question_templates', []);
 
         return isset($templates[$factKey]) ? (array) $templates[$factKey] : null;
+    }
+
+    /**
+     * D18 — full template resolution: static config templates first, then the
+     * aggregated pattern templates (dynamic, built from the user's live data).
+     *
+     * @return array<string, mixed>|null
+     */
+    private function resolveTemplate(InterviewSession $session, string $factKey): ?array
+    {
+        $template = $this->questionTemplate($factKey);
+        if ($template !== null) {
+            return $template;
+        }
+
+        if ($this->patterns->isPatternKey($factKey)) {
+            return $this->patterns->templateFor($session->user, (int) $session->tax_year, $factKey);
+        }
+
+        return null;
     }
 
     /**
@@ -519,7 +640,7 @@ class InterviewOrchestratorService
         string $factKey,
         ?OptimizationFinding $finding,
         string $band
-    ): string {
+    ): ?string {
         // Use Claude to generate a natural-language question (wording only)
         // If finding description already exists (from NarrationService), use it as context
         $safePayload = json_encode([
@@ -553,7 +674,7 @@ SYS;
         // D17 budget cap (purpose 'wording'): at cap, skip the Claude wording call
         // gracefully and fall through to the deterministic fallback below (no HTTP).
         if (! $this->checkAndIncrementBudget('wording')) {
-            return $this->findingFallbackQuestion($factKey, $finding);
+            return $this->findingFallbackQuestion($finding);
         }
 
         try {
@@ -590,28 +711,38 @@ SYS;
         }
 
         // Fallback: a real answerable question — never raw finding narration.
-        return $this->findingFallbackQuestion($factKey, $finding);
+        return $this->findingFallbackQuestion($finding);
     }
 
     /**
-     * DEFECT 1 fix — deterministic fallback question for a finding-driven item when
+     * DEFECT 1 / D18 fix — deterministic fallback for a finding-driven item when
      * Claude wording is unavailable (budget cap / error).
      *
-     * A finding's `description` is NARRATION (e.g. "...Consider discussing this with a
-     * tax professional"), not an answerable question. Surfacing it verbatim is the
-     * reported "not asking a question" bug. We only reuse the description when it is
-     * already phrased as a question (ends with '?'); otherwise we emit a real,
-     * answerable question so the interview never presents advice with no way to respond.
+     * D18 rules 1+2 (owner decision, binding): the fallback must SHOW THE DATA
+     * and NEVER leak internal keys. In order:
+     *   1. question-phrased narration → used verbatim (it IS the question);
+     *   2. treatment copy (concrete, merchant-named detector output) → surfaced
+     *      with a real confirm ask appended;
+     *   3. nothing data-grounded → NULL. The caller skips the key entirely —
+     *      a contentless question is worse than no question (D18 rule 4).
+     *
+     * The pre-D18 output — "We noticed something related to {finding_key}..." —
+     * is the owner-reported live defect and is permanently dead.
      */
-    private function findingFallbackQuestion(string $factKey, ?OptimizationFinding $finding): string
+    private function findingFallbackQuestion(?OptimizationFinding $finding): ?string
     {
-        $description = $finding?->description !== null ? trim($finding->description) : null;
-
-        if ($description !== null && $description !== '' && str_ends_with($description, '?')) {
-            return $description;
+        if ($this->isQuestionPhrased($finding?->description)) {
+            return trim($finding->description);
         }
 
-        return "We noticed something related to {$factKey} that may affect your taxes. Does this apply to you?";
+        $treatment = trim((string) $finding?->treatment);
+        if ($treatment !== '' && str_contains($treatment, ' ')) {
+            // Real prose (not a bare enum token like 'standard_mileage'):
+            // lead with the data, ask the unknown.
+            return rtrim($treatment, '.').'. Does this reflect your situation?';
+        }
+
+        return null;
     }
 
     /**
@@ -664,10 +795,11 @@ SYS;
         ?string $questionText = null,
         ?int $questionId = null
     ): UserTaxFact {
-        // §A.5.3 additive: when a template exists for this key, apply typed conversion
-        // and pull volatility/taxYear/label from the template. Non-template keys keep
-        // the EXACT current hardcoded behavior (DRIFT-02 additive guard).
-        $template = $this->questionTemplate($factKey);
+        // §A.5.3 additive: when a template exists for this key (config or D18
+        // pattern), apply typed conversion and pull volatility/taxYear/label from
+        // the template. Non-template keys keep the EXACT current hardcoded
+        // behavior (DRIFT-02 additive guard).
+        $template = $this->resolveTemplate($session, $factKey);
 
         $storedValue = $value;
         $volatility = 'stable';
@@ -675,7 +807,7 @@ SYS;
         $label = $questionText ?? "Answer to: {$factKey}";
 
         if ($template !== null) {
-            if (strtolower(trim($value)) === self::CONFIRM_SENTINEL) {
+            if (empty($template['dynamic']) && strtolower(trim($value)) === self::CONFIRM_SENTINEL) {
                 // §A.5.5: resolve the prefill pointer server-side at answer time and
                 // record the resolved value (user-confirmed provenance). The value is
                 // never taken from client-supplied options.
@@ -693,6 +825,12 @@ SYS;
             $volatility = $template['volatility'] ?? 'stable';
             $taxYear = ! empty($template['tax_year_scoped']) ? (int) $session->tax_year : null;
             $label = $template['label'] ?? $label;
+        }
+
+        // D18 rule 3 fan-out: ONE aggregated multi-select answer writes the
+        // per-item fact for EVERY choice (yes for selected, no for the rest).
+        if ($template !== null && ! empty($template['fan_out'])) {
+            $this->fanOutPatternAnswer($session, $template, $storedValue, $questionId);
         }
 
         // Write (or supersede) the durable fact — append-only with concurrency safety
@@ -777,8 +915,86 @@ SYS;
 
                 return $trimmed;
 
+            case 'multi_select':
+                // D18 rule 3 — comma-joined choice values; 'none' is exclusive.
+                $values = array_values(array_filter(
+                    array_map('trim', explode(',', $trimmed)),
+                    fn (string $v) => $v !== ''
+                ));
+                if ($values === []) {
+                    throw ValidationException::withMessages([
+                        'answer' => 'Please select at least one option.',
+                    ]);
+                }
+
+                $choices = array_column((array) ($template['choices'] ?? []), 'value');
+                $none = (string) ($template['none_value'] ?? 'none');
+
+                if (in_array($none, $values, true)) {
+                    if (count($values) > 1) {
+                        throw ValidationException::withMessages([
+                            'answer' => 'Please choose either specific items or "None of these", not both.',
+                        ]);
+                    }
+
+                    return $none;
+                }
+
+                foreach ($values as $v) {
+                    if (! in_array($v, $choices, true)) {
+                        throw ValidationException::withMessages([
+                            'answer' => 'Please choose only from the provided options.',
+                        ]);
+                    }
+                }
+
+                return implode(',', array_values(array_unique($values)));
+
             default:
                 return $trimmed;
+        }
+    }
+
+    /**
+     * D18 rule 3 — fan the aggregated multi-select answer out to per-item facts.
+     *
+     * For every non-none choice in the template, records
+     * `{fact_prefix}{choice_value}` = 'yes' (selected) or 'no' (not selected)
+     * as an interview_answer fact. Labels stay humanized (the choice label,
+     * never the key) so the facts surface cleanly in Profile & Settings.
+     *
+     * @param  array<string, mixed>  $template
+     */
+    private function fanOutPatternAnswer(
+        InterviewSession $session,
+        array $template,
+        string $storedValue,
+        ?int $questionId
+    ): void {
+        $fanOut = (array) $template['fan_out'];
+        $prefix = (string) ($fanOut['fact_prefix'] ?? 'finding.');
+        $selectedValue = (string) ($fanOut['selected_value'] ?? 'yes');
+        $unselectedValue = (string) ($fanOut['unselected_value'] ?? 'no');
+        $labelPrefix = (string) ($fanOut['label_prefix'] ?? '');
+        $none = (string) ($template['none_value'] ?? 'none');
+
+        $selected = $storedValue === $none ? [] : explode(',', $storedValue);
+
+        foreach ((array) ($template['choices'] ?? []) as $choice) {
+            $choiceValue = (string) ($choice['value'] ?? '');
+            if ($choiceValue === '' || $choiceValue === $none) {
+                continue;
+            }
+
+            UserTaxFact::recordFact(
+                userId: $session->user_id,
+                factKey: $prefix.$choiceValue,
+                value: in_array($choiceValue, $selected, true) ? $selectedValue : $unselectedValue,
+                sourceType: 'interview_answer',
+                label: $labelPrefix.(string) ($choice['label'] ?? $choiceValue),
+                volatility: (string) ($template['volatility'] ?? 'stable'),
+                sourceId: $questionId ? (string) $questionId : null,
+            );
         }
     }
 

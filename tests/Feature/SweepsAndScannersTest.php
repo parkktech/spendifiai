@@ -509,6 +509,7 @@ it('LifeEventTriggerDetector fires escrow inflow trigger from title company cred
 
 it('battery questions appear in interview queue after auto-band items (FLAG-27 end-to-end bridge)', function () {
     // Create one auto-band finding — verifies ordering guarantee (auto BEFORE battery)
+    // D18: auto findings need data-grounded content (treatment) to be queue-eligible.
     OptimizationFinding::factory()->create([
         'user_id' => $this->user->id,
         'tax_year' => $this->taxYear,
@@ -516,6 +517,7 @@ it('battery questions appear in interview queue after auto-band items (FLAG-27 e
         'finding_type' => 'income_discrepancy',
         'band' => 'auto',
         'status' => 'open',
+        'treatment' => 'Your reported wages appear lower than your total bank deposits for the year.',
     ]);
 
     // Run detector with no UserTaxFacts seeded — battery questions must be emitted
@@ -543,7 +545,7 @@ it('battery questions appear in interview queue after auto-band items (FLAG-27 e
 
     // Ordering: auto-band sentinel must come BEFORE any battery key
     $autoPos = array_search('auto_test_sentinel', $queue, true);
-    $batteryPositions = array_map(fn($k) => array_search($k, $queue, true), $batteryFindings);
+    $batteryPositions = array_map(fn ($k) => array_search($k, $queue, true), $batteryFindings);
 
     expect($autoPos)->toBeLessThan(min($batteryPositions));
 });

@@ -211,7 +211,8 @@ it('conditional_findings_in_queue: buildInitialQueue includes band=conditional n
 
     $user = createAuthenticatedUser();
 
-    // Create a conditional finding (NOT battery_question) — previously ignored by buildInitialQueue
+    // Create a conditional finding (NOT battery_question) — previously ignored by buildInitialQueue.
+    // D18: conditional findings need a question-phrased narration (or template) to be queue-eligible.
     OptimizationFinding::factory()->create([
         'user_id' => $user->id,
         'tax_year' => 2026,
@@ -219,6 +220,7 @@ it('conditional_findings_in_queue: buildInitialQueue includes band=conditional n
         'finding_type' => 'deduction_probe',
         'band' => 'conditional',
         'status' => 'open',
+        'description' => 'Do you maintain a dedicated home office space used regularly for your business?',
     ]);
 
     $service = app(InterviewOrchestratorService::class);
@@ -241,6 +243,8 @@ it('conditional_ordering: auto findings come before conditional in queue', funct
         'finding_type' => 'income_discrepancy',
         'band' => 'auto',
         'status' => 'open',
+        // D18: auto findings need data-grounded content (treatment/narration) to queue.
+        'treatment' => 'Your reported wages appear lower than your total bank deposits for the year.',
     ]);
 
     OptimizationFinding::factory()->create([
@@ -250,6 +254,8 @@ it('conditional_ordering: auto findings come before conditional in queue', funct
         'finding_type' => 'deduction_probe',
         'band' => 'conditional',
         'status' => 'open',
+        // D18: conditional findings need a question-phrased narration to queue.
+        'description' => 'Do any of these recurring payments relate to your business activity?',
     ]);
 
     $service = app(InterviewOrchestratorService::class);
@@ -301,7 +307,8 @@ it('stale_queue_self_heal: session with empty queue + conditional findings yield
         'asked' => [],
     ]);
 
-    // Conditional finding now exists (seeded after session was created)
+    // Conditional finding now exists (seeded after session was created).
+    // D18: question-phrased narration keeps it queue-eligible.
     OptimizationFinding::factory()->create([
         'user_id' => $user->id,
         'tax_year' => 2026,
@@ -309,6 +316,7 @@ it('stale_queue_self_heal: session with empty queue + conditional findings yield
         'finding_type' => 'deduction_probe',
         'band' => 'conditional',
         'status' => 'open',
+        'description' => 'Do you have a dedicated home office you use regularly for work?',
     ]);
 
     $service = app(InterviewOrchestratorService::class);
@@ -336,7 +344,7 @@ it('stale_queue_self_heal_skips_already_asked_keys', function () {
         'asked' => ['already_answered_probe'],  // previously asked
     ]);
 
-    // Two findings — one already asked, one new
+    // Two findings — one already asked, one new (D18: question-phrased narrations)
     OptimizationFinding::factory()->create([
         'user_id' => $user->id,
         'tax_year' => 2026,
@@ -344,6 +352,7 @@ it('stale_queue_self_heal_skips_already_asked_keys', function () {
         'finding_type' => 'deduction_probe',
         'band' => 'conditional',
         'status' => 'open',
+        'description' => 'Have you already reviewed this recurring charge with us?',
     ]);
 
     OptimizationFinding::factory()->create([
@@ -353,6 +362,7 @@ it('stale_queue_self_heal_skips_already_asked_keys', function () {
         'finding_type' => 'deduction_probe',
         'band' => 'conditional',
         'status' => 'open',
+        'description' => 'Do any of your recent purchases relate to a side business?',
     ]);
 
     $service = app(InterviewOrchestratorService::class);

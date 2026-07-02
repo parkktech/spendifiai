@@ -117,8 +117,7 @@ class SurfaceHighPriorityRedFlags implements ShouldQueue
             ],
             [
                 'transaction_id' => null,  // optimization questions have no transaction
-                'question' => $finding->description
-                    ?? "We noticed a potential tax optimization related to: {$finding->finding_key}. Would you like to review it?",
+                'question' => $this->humanizedQuestionText($finding),
                 'options' => $options,
                 'ai_confidence' => 1.0,   // auto-band = highest confidence
                 // ai_best_guess is already in the search key above
@@ -128,5 +127,32 @@ class SurfaceHighPriorityRedFlags implements ShouldQueue
         $wasCreated = $question->wasRecentlyCreated;
 
         return [$question, $wasCreated];
+    }
+
+    /**
+     * D18 rule 2 (owner decision, binding): NEVER leak internal finding keys
+     * into user copy. Fallback order when narration has not run yet:
+     *   1. description (narrated copy);
+     *   2. treatment prose (detector-authored, merchant-named data) + confirm ask;
+     *   3. a generic-but-clean review prompt — the treatment still renders in the
+     *      suggested-confirm card, so the data is shown there.
+     *
+     * The pre-D18 output ("...related to: {finding_key}...") is permanently dead.
+     */
+    private function humanizedQuestionText(OptimizationFinding $finding): string
+    {
+        $description = trim((string) $finding->description);
+        if ($description !== '') {
+            return $description;
+        }
+
+        $treatment = trim((string) $finding->treatment);
+        if ($treatment !== '' && str_contains($treatment, ' ')) {
+            return str_ends_with($treatment, '?')
+                ? $treatment
+                : rtrim($treatment, '.').'. Does this reflect your situation?';
+        }
+
+        return 'We spotted a potential tax opportunity in your account activity. Would you like to review it?';
     }
 }

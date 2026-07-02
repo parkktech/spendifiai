@@ -115,6 +115,7 @@ class InterviewController extends Controller
                 'objective_tags' => $question->options['objective_tags'] ?? [],
                 'answer_type' => $question->options['answer_type'] ?? null,
                 'choices' => $question->options['choices'] ?? null,
+                'none_value' => $question->options['none_value'] ?? null, // D18 multi-select exclusive choice
                 'doc_affordance' => $question->options['doc_affordance'] ?? null,
                 'prefill_display' => $prefillDisplay, // transient — never stored
                 'prefill_value' => $prefillValue,     // transient — never stored
