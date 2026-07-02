@@ -7,6 +7,8 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreDocumentRequestRequest;
 use App\Models\AccountantClient;
 use App\Models\DocumentRequest;
+use App\Models\OptimizationFinding;
+use App\Models\TaxDocument;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -91,6 +93,58 @@ class DocumentRequestController extends Controller
             ->get();
 
         return response()->json($requests);
+    }
+
+    // ─── DOC-05: In-flow vault-upload finding fulfillment ────────────────────────
+
+    /**
+     * When a vault upload auto-fulfills a document request, also update any
+     * OptimizationFinding whose docs_missing array contains the document's category.
+     *
+     * Moves the category slug from docs_missing → docs_captured (adds the document id).
+     *
+     * SECURITY (T-12-02-03): scopeForUser() is mandatory — prevents cross-user
+     * finding mutation. The document must belong to the caller's user_id.
+     *
+     * DESIGN NOTE: Called from TaxDocumentController::autoFulfillRequests() (v2.0
+     * auto-fulfillment path) after a vault upload. No new route required; reuses
+     * the existing upload → auto-fulfill pipeline. Additive — no change to existing
+     * DocumentRequest response shapes.
+     *
+     * @param  TaxDocument  $document  The just-uploaded vault document
+     */
+    public static function updateFindingDocsOnFulfillment(TaxDocument $document): void
+    {
+        $categoryValue = $document->category?->value;
+        if ($categoryValue === null) {
+            return;
+        }
+
+        // scopeForUser() enforces ownership — T-12-02-03 mitigation
+        $findings = OptimizationFinding::forUser($document->user_id)
+            ->where('tax_year', $document->tax_year)
+            ->whereJsonContains('docs_missing', $categoryValue)
+            ->get();
+
+        foreach ($findings as $finding) {
+            $docsMissing = $finding->docs_missing ?? [];
+            $docsCaptured = $finding->docs_captured ?? [];
+
+            // Remove the fulfilled category from docs_missing
+            $docsMissing = array_values(
+                array_filter($docsMissing, fn (string $v) => $v !== $categoryValue)
+            );
+
+            // Add the vault document id to docs_captured (deduplicated)
+            if (! in_array($document->id, $docsCaptured, true)) {
+                $docsCaptured[] = $document->id;
+            }
+
+            $finding->update([
+                'docs_missing' => $docsMissing ?: null,
+                'docs_captured' => $docsCaptured,
+            ]);
+        }
     }
 
     /**

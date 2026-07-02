@@ -199,6 +199,10 @@ class TaxDocumentController extends Controller
                 }
             }
         }
+
+        // [P12 DOC-05] Update OptimizationFinding docs_captured/docs_missing for any finding
+        // that lists this document's category in its docs_missing array (in-flow vault upload).
+        DocumentRequestController::updateFindingDocsOnFulfillment($document);
     }
 
     /**
