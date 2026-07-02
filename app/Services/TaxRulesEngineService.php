@@ -811,7 +811,7 @@ class TaxRulesEngineService
         $se = (int) ($baseline['se_income_cents'] ?? 0);
 
         $magiBeforeIra = max(0, $gross + $se - $a['trad401k'] - $a['hsa']);
-        $deductibleIra = $this->deductibleTradIraCents($baseline, $a['iraTrad'], $a['trad401k'], $magiBeforeIra, $year);
+        $deductibleIra = $this->deductibleTradIraCents($baseline, $a['iraTrad'], $a['deferralCents'], $magiBeforeIra, $year);
 
         return max(0, $magiBeforeIra - $deductibleIra);
     }
@@ -928,7 +928,7 @@ class TaxRulesEngineService
             $clamps[] = 'roth_ira_phaseout';
         }
 
-        $covered = $this->coveredByPlan($baseline, $trad401k);
+        $covered = $this->coveredByPlan($baseline, $deferralCents);
         $dedCap = $this->tradIraDeductibleCapCents($baseline, $magiBeforeIra, $covered, $year);
         if ($iraTrad > $dedCap) {
             $iraTrad = $dedCap;
@@ -1006,7 +1006,7 @@ class TaxRulesEngineService
         $stdDeduction = $this->standardDeductionCents($status, $age, $year);
 
         $curMagiBeforeIra = max(0, $gross + $se - $curTrad401k - $curHsa);
-        $curDedIra = $this->deductibleTradIraCents($baseline, $curIraTrad, $curTrad401k, $curMagiBeforeIra, $year);
+        $curDedIra = $this->deductibleTradIraCents($baseline, $curIraTrad, $curTrad401k + $curRoth401k, $curMagiBeforeIra, $year);
         $curPretax = $curTrad401k + $curHsa + $curDedIra;
         $curTaxable = max(0, $gross + $se - $curPretax - $stdDeduction);
         $curTax = $this->computeTax($curTaxable, $status, $year);
@@ -1195,10 +1195,14 @@ class TaxRulesEngineService
         return $this->remainingHsaRoomCents(0, $coverageType, $age, $year);
     }
 
-    /** Is the taxpayer an active workplace-plan participant (for IRA deductibility)? */
-    private function coveredByPlan(array $baseline, int $scenarioTrad401k): bool
+    /**
+     * Is the taxpayer an active workplace-plan participant (for IRA deductibility)?
+     * Keys off TOTAL deferral (trad + roth) so coverage is invariant to the ACA guard's
+     * roth↔trad reallocation — keeping projectedMagiCents consistent with the guard.
+     */
+    private function coveredByPlan(array $baseline, int $totalDeferralCents): bool
     {
-        return $scenarioTrad401k > 0
+        return $totalDeferralCents > 0
             || (int) ($baseline['current']['trad_401k_cents'] ?? 0) > 0
             || (int) ($baseline['current']['roth_401k_cents'] ?? 0) > 0
             || (bool) ($baseline['employer']['has_401k'] ?? false);
@@ -1224,9 +1228,9 @@ class TaxRulesEngineService
     }
 
     /** Deductible portion of a traditional IRA contribution, capped at the deductible amount. */
-    private function deductibleTradIraCents(array $baseline, int $iraTrad, int $scenarioTrad401k, int $magiBeforeIra, int $year): int
+    private function deductibleTradIraCents(array $baseline, int $iraTrad, int $totalDeferralCents, int $magiBeforeIra, int $year): int
     {
-        $covered = $this->coveredByPlan($baseline, $scenarioTrad401k);
+        $covered = $this->coveredByPlan($baseline, $totalDeferralCents);
         $cap = $this->tradIraDeductibleCapCents($baseline, $magiBeforeIra, $covered, $year);
 
         return min($iraTrad, $cap);
