@@ -36,15 +36,57 @@ class OptimizationFinding extends Model
         'details',
         'description',
         'status',
+        // FLAG-13 additive extension (D6)
+        'transaction_ids',
+        'treatment',
+        'legal_basis',
+        'assumptions',
+        'band',
+        'user_assertions',
+        'docs_captured',
+        'docs_missing',
+        'estimated_value_cents',
+        'pro_export_ready',
+        'deadline',
+        'lead_time_days',
+        'net_cash_cost',
+        'tax_saved',
+        'cliff_bonus_value',
+        'reversible',
+    ];
+
+    /**
+     * Fields hidden from API responses.
+     *
+     * SECURITY (D12): user_assertions is encrypted and must never appear in
+     * JSON serialisation. estimated_value_cents is a financial figure that
+     * should only be exposed via the dedicated tax-rules engine output, not
+     * raw model serialisation.
+     */
+    protected $hidden = [
+        'user_assertions',
     ];
 
     /**
      * Laravel 12 method-syntax casts.
+     *
+     * Encryption note (D12): user_assertions uses the 'encrypted' cast which
+     * requires a TEXT column in PostgreSQL. All other JSON fields use 'array'
+     * (JSONB in Postgres). The 'deadline' cast ensures Carbon date objects.
      */
     protected function casts(): array
     {
         return [
             'details' => 'array',
+            // FLAG-13 new casts
+            'transaction_ids' => 'array',
+            'assumptions' => 'array',
+            'docs_captured' => 'array',
+            'docs_missing' => 'array',
+            'user_assertions' => 'encrypted',   // TEXT column + encrypted (D12)
+            'pro_export_ready' => 'boolean',
+            'reversible' => 'boolean',
+            'deadline' => 'date',
         ];
     }
 
