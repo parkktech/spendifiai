@@ -59,7 +59,7 @@ Requirements for this milestone. Each maps to a roadmap phase. All outputs are e
 ### Guided Interview (INT)
 
 - [x] **INT-01**: `InterviewOrchestratorService` runs a persisted `InterviewSession` state machine (Claude used only to word each question)
-- [ ] **INT-02**: The interview presents one high-value question at a time with skip and back navigation
+- [x] **INT-02**: The interview presents one high-value question at a time with skip and back navigation
 - [x] **INT-03**: The interview asks only high-signal questions/red flags — it does not re-ask anything derivable from the snapshot, and caps the initial pass to a small number of questions
 - [x] **INT-04**: Deduction/eligibility probes are gated behind explicit prerequisite answers (e.g. backdoor-Roth probe gated behind an IRA-balance question to respect the pro-rata rule)
 - [x] **INT-05**: A user can resume an in-progress interview and re-answer a prior question
@@ -209,7 +209,7 @@ Each requirement maps to exactly one phase. Phases continue the global numbering
 | FLAG-05 | Phase 11 | Pending |
 | FLAG-06 | Phase 11 | Complete |
 | INT-01 | Phase 11 | Complete |
-| INT-02 | Phase 11 | Pending |
+| INT-02 | Phase 11 | Complete |
 | INT-03 | Phase 11 | Complete |
 | INT-04 | Phase 11 | Complete |
 | INT-05 | Phase 11 | Complete |
