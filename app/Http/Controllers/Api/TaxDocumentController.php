@@ -30,6 +30,66 @@ class TaxDocumentController extends Controller
     ) {}
 
     /**
+     * Per-type document inventory for the upload-flow type-picker grid (Fix 2).
+     *
+     * Returns status for each type the DocumentUploadFlow grid displays so the
+     * frontend can overlay green-check badges without a separate vault page visit.
+     *
+     * Response shape: { types: { [docTypeValue]: DocTypeStatus } }
+     * DocTypeStatus: { has_ready_doc, latest_uploaded_at, ready_count, extracted_fields_count }
+     *
+     * SECURITY: scoped to auth user only; no cross-user leakage.
+     */
+    public function typeStatus(Request $request): JsonResponse
+    {
+        $user = $request->user();
+
+        // Mapping: frontend doc-type value → TaxDocumentCategory enum value(s)
+        // (the enum uses 'pay_stub' but the UI historically sent 'paystub')
+        $typeMap = [
+            'paystub' => ['pay_stub'],
+            'w2' => ['w2'],
+            'benefits_guide' => ['benefits_guide'],
+            'hsa_statement' => ['5498_sa', '1099_sa'],
+            'retirement_statement' => ['retirement_statement'],
+            'medical_receipt' => ['receipts'],
+            'other' => ['other'],
+        ];
+
+        // Fetch all user documents (only fields needed — avoid loading extracted_data for perf)
+        $docs = $user->taxDocuments()
+            ->selectRaw('id, category, status, created_at, extracted_data')
+            ->get();
+
+        $result = [];
+        foreach ($typeMap as $frontendType => $dbCategories) {
+            $matching = $docs->filter(
+                fn ($d) => in_array($d->category?->value, $dbCategories, true)
+            );
+            $ready = $matching->filter(fn ($d) => $d->status?->value === 'ready');
+
+            $latestDoc = $ready->sortByDesc('created_at')->first();
+            $extractedFieldsCount = 0;
+            if ($latestDoc && $latestDoc->extracted_data) {
+                $fields = $latestDoc->extracted_data['fields'] ?? [];
+                $extractedFieldsCount = count(array_filter(
+                    $fields,
+                    fn ($f) => is_array($f) ? ($f['value'] ?? null) !== null : $f !== null
+                ));
+            }
+
+            $result[$frontendType] = [
+                'has_ready_doc' => $ready->isNotEmpty(),
+                'latest_uploaded_at' => $latestDoc?->created_at?->toIso8601String(),
+                'ready_count' => $ready->count(),
+                'extracted_fields_count' => $extractedFieldsCount,
+            ];
+        }
+
+        return response()->json(['types' => $result]);
+    }
+
+    /**
      * List user's tax documents, optionally filtered by year.
      */
     public function index(Request $request)
