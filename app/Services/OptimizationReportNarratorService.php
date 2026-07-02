@@ -350,6 +350,88 @@ SYS;
     }
 
     /**
+     * Narrate the chosen_plan report section (SCN-08 / §D.7 / T-14-08-03).
+     *
+     * SAFE-03 enforcement (absolute):
+     *   - Payload carries ZERO monetary figures — no *_cents keys, no raw dollar amounts.
+     *   - Claude must never see money values: echoing them back as assertions creates liability.
+     *   - Option outcomes are described by their tier tags (positive_large, neutral, etc.)
+     *     and by their semantic direction, NOT by dollar amounts.
+     *
+     * This is NOT a new Claude call site — it uses the same callClaudeStructuredSection()
+     * helper already sanctioned by the SAFE-03 contract. Call budget is shared with
+     * narrateSection() / narrateExecutiveSummary() under the 'narration' budget key.
+     *
+     * Returns {summary: string, bullets: string[]} or null on failure (graceful degradation).
+     *
+     * @param  array{
+     *   option_key: string,
+     *   option_label: string,
+     *   checklist_item_count: int,
+     *   readiness: array<string, array{ready: bool}>,
+     *   outcomes: array<string, string>,   // take_home|federal_tax|retirement → tier string (no cents)
+     * }  $chosenPlanContext
+     * @return array{summary: string, bullets: string[]}|null
+     */
+    public function narrateScenarioComparison(array $chosenPlanContext): ?array
+    {
+        if (empty($chosenPlanContext['option_key'])) {
+            return null;
+        }
+
+        // SAFE-03: build the payload from NON-monetary fields only.
+        // 'outcomes' carries tier-tags (positive_large, neutral, etc.) — never raw cents.
+        $userPayload = json_encode([
+            'task' => 'chosen_plan_summary',
+            'option_key' => $chosenPlanContext['option_key'],
+            'option_label' => $chosenPlanContext['option_label'] ?? $chosenPlanContext['option_key'],
+            'checklist_item_count' => (int) ($chosenPlanContext['checklist_item_count'] ?? 0),
+            'readiness' => array_map(fn ($r): array => [
+                'ready' => $r['ready'] ?? false,
+            ], $chosenPlanContext['readiness'] ?? []),
+            'outcomes' => $chosenPlanContext['outcomes'] ?? [],  // tier tags only — no _cents
+            // NO monetary fields. EstimatedValueGuardTest grep-gate enforces this.
+        ], JSON_UNESCAPED_UNICODE);
+
+        $systemPrompt = <<<'SYS'
+You are an educational financial assistant. Write a brief overview of the optimization plan a user
+has chosen for their tax optimization report.
+
+RULES (non-negotiable):
+1. Educational, non-assertive: "may", "could", "worth exploring", "consider" — never "you should", "you qualify".
+2. NEVER state dollar amounts. Outcomes like "positive_large" mean "could meaningfully improve" — paraphrase accordingly.
+3. NEVER give securities advice, filing-status commands, or guaranteed outcomes.
+4. Mention the plan type and that next steps are in the checklist.
+
+"positive_large" = "potentially meaningful improvement"
+"positive_medium" = "moderate potential improvement"
+"positive_small" = "modest potential improvement"
+"neutral" = "no material change projected"
+"negative_*" = "trade-off compared to current approach"
+
+OUTPUT CONTRACT — return ONLY valid JSON, no markdown, no extra text:
+{
+  "summary": "<≤2 sentences describing the chosen approach, educational framing>",
+  "bullets": ["<≤15 words each, describing the plan focus and checklist next steps>", "...up to 4 items"]
+}
+SYS;
+
+        $structured = $this->callClaudeStructuredSection($systemPrompt, $userPayload);
+
+        if ($structured === null) {
+            $structured = $this->callClaudeStructuredSection(self::SYSTEM_PROMPT_SHORTER, $userPayload);
+        }
+
+        if ($structured === null) {
+            Log::warning('OptimizationReportNarratorService: failed to narrate chosen_plan', [
+                'option_key' => $chosenPlanContext['option_key'],
+            ]);
+        }
+
+        return $structured;
+    }
+
+    /**
      * Make a single-turn Claude API call.
      *
      * Uses the same Http::post() pattern as NarrationService for consistency.

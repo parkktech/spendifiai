@@ -3,9 +3,11 @@
 namespace App\Services;
 
 use App\Models\IncomeOptimizationProfile;
+use App\Models\OptimizationChecklistItem;
 use App\Models\OptimizationFinding;
 use App\Models\OptimizationReport;
 use App\Models\User;
+use App\Models\UserTaxFact;
 use Illuminate\Support\Facades\Log;
 
 /**
@@ -80,6 +82,15 @@ class OptimizationReportGeneratorService
 
         $glossarySection = $this->buildGlossarySection();
         $sections[] = $glossarySection;
+
+        // ── Step 4b: Chosen Plan Section (SCN-08 / §D.7) ─────────────────
+        // Injected ONLY when the user has an active scenario.chosen_option fact.
+        // SAFE-03: carries no dollar figures — delta-tier strings + metadata only.
+
+        $chosenPlanSection = $this->buildChosenPlanSection($user, $taxYear);
+        if ($chosenPlanSection !== null) {
+            $sections[] = $chosenPlanSection;
+        }
 
         // ── Step 5: Narrate Executive Summary ────────────────────────────
 
@@ -421,5 +432,96 @@ class OptimizationReportGeneratorService
             'narrator_prose' => null,
             'disclaimer' => config('optimization-report.section_disclaimer', ''),
         ];
+    }
+
+    // ─── Private: Chosen Plan Section Builder (SCN-08 / §D.7) ───────────
+
+    /**
+     * Build the chosen_plan report section (§D.7).
+     *
+     * Injected into the report only when the user has an active scenario.chosen_option
+     * UserTaxFact for this tax year. Returns null when no choice has been made.
+     *
+     * SAFE-03: this section stores NO monetary values. The 'outcomes' field carries
+     * tier-strings (positive_large, neutral, etc.) produced by ScenarioController::deltaTier()
+     * — never raw cents. The narrator payload is also non-monetary (narrateScenarioComparison).
+     */
+    protected function buildChosenPlanSection(User $user, int $taxYear): ?array
+    {
+        // Check if a scenario choice exists for this year
+        $chosenFact = UserTaxFact::currentFact($user->id, 'scenario.chosen_option', null, $taxYear);
+        if ($chosenFact === null) {
+            return null;
+        }
+
+        $optionKey = $chosenFact->value;
+        $factSetId = $chosenFact->metadata['fact_set_id'] ?? null;
+
+        // Load chosen knobs (if available) for outcome tiers
+        $knobsFact = UserTaxFact::currentFact($user->id, 'scenario.chosen_knobs', null, $taxYear);
+        $chosenKnobs = [];
+        if ($knobsFact !== null) {
+            $chosenKnobs = json_decode($knobsFact->value, true) ?? [];
+        }
+
+        // Checklist item count for the narrator context
+        $checklistCount = OptimizationChecklistItem::where('user_id', $user->id)
+            ->where('tax_year', $taxYear)
+            ->where('kind', '!=', 'header')
+            ->count();
+
+        // Outcome tiers from metadata (stored by ScenarioController — no dollar amounts)
+        $outcomes = $chosenFact->metadata['outcomes'] ?? [];
+
+        // Config section definition
+        $sectionConfig = config('optimization-report.chosen_plan_section', []);
+
+        // Narrate — SAFE-03 payload (no cents fields)
+        $narratorContext = [
+            'option_key' => $optionKey,
+            'option_label' => $this->optionLabel($optionKey),
+            'checklist_item_count' => $checklistCount,
+            'readiness' => [],   // not available at section-build time — narrator uses option_key
+            'outcomes' => $outcomes,
+        ];
+        $narrated = $this->narrator->narrateScenarioComparison($narratorContext);
+        $narratorProse = $narrated['summary'] ?? null;
+
+        return [
+            'section_key' => 'chosen_plan',
+            'section_type' => 'chosen_plan',
+            'title' => $sectionConfig['title'] ?? 'Your Optimization Plan',
+            'description' => $sectionConfig['description'] ?? '',
+            'icon' => $sectionConfig['icon'] ?? 'check-circle',
+            'order' => (int) ($sectionConfig['order'] ?? 100),
+            'findings' => [],
+            'chosen' => [
+                'option_key' => $optionKey,
+                'option_label' => $this->optionLabel($optionKey),
+                'fact_set_id' => $factSetId,
+                'checklist_item_count' => $checklistCount,
+                // SAFE-03: no _cents fields in this payload
+                'outcomes' => $outcomes,
+            ],
+            'narrator_structured' => $narrated,
+            'narrator_prose' => $narratorProse,
+            'disclaimer' => config('optimization-report.section_disclaimer', ''),
+        ];
+    }
+
+    /**
+     * Map an option_key to a human-readable label (mirrors ScenarioController).
+     */
+    private function optionLabel(string $optionKey): string
+    {
+        return match ($optionKey) {
+            'take_home' => 'Maximize take-home pay',
+            'tax_burden' => 'Minimize 2026 federal tax',
+            'retirement' => 'Maximize retirement contributions',
+            'balanced' => 'Balanced approach',
+            'merged' => 'Balanced across all objectives',
+            'custom' => 'Custom plan',
+            default => ucfirst(str_replace('_', ' ', $optionKey)),
+        };
     }
 }

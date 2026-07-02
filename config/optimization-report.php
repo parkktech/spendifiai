@@ -111,6 +111,25 @@ return [
     // Default section for unmapped finding types
     'default_section' => 'deductions',
 
+    // ── chosen_plan Section (SCN-08 / §D.7) ──────────────────────────────
+    //
+    // Injected into the report when the user has chosen a scenario plan
+    // (scenario.chosen_option UserTaxFact exists for this year).
+    // SAFE-03: section carries no dollar figures — only tier strings and metadata.
+    // Narration is performed by OptimizationReportNarratorService::narrateScenarioComparison().
+    //
+    // This section is always rendered AFTER the wrapper sections (order > 100 to
+    // sort safely after any positional topical/wrapper section reordering).
+
+    'chosen_plan_section' => [
+        'section_key' => 'chosen_plan',
+        'section_type' => 'chosen_plan',
+        'title' => 'Your Optimization Plan',
+        'description' => 'The scenario you selected and the next steps in your action checklist.',
+        'icon' => 'check-circle',
+        'order' => 100,
+    ],
+
     // ── Decision 13: Report Staleness Policy ─────────────────────────────
     //
     // freshness_days: data-churn events (OptimizationProfileBuilt from scheduled
