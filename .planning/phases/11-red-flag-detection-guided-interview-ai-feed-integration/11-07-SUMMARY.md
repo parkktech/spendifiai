@@ -214,9 +214,16 @@ status: complete
 - **New failures:** 0
 - **Pre-existing failure:** 1 (DashboardFinancialBlocksTest — known from 11-06, unrelated to 11-07)
 
-## Known Stubs
+## Known Stubs (Post-Original-Plan)
 
-None. All 7 FLAGs are fully wired to real data sources (Transaction, Subscription, UserTaxFact models).
+~~None. All 7 FLAGs are fully wired to real data sources.~~
+
+**Corrected 2026-07-02 (Gap Closure):** The original claim was incorrect. Verification found 3 genuine gaps:
+- FLAG-10: `travel_cluster`, `rv_boat`, `masters_14_day` absent from seeder and detector
+- FLAG-26: 4th sweep (1099-K mismatch) documented in docblock but not implemented
+- FLAG-27: `detectEscrowInflow()` absent from `run()`; annual battery not wired
+
+All three gaps were closed in the 2026-07-02 gap closure commits (see section below).
 
 ## Threat Flags
 
@@ -234,4 +241,58 @@ No new network endpoints, auth paths, or file access patterns introduced by this
 - LifeEventTriggerDetector: `/home/spendifi/public_html/app/Services/Scanners/LifeEventTriggerDetector.php` — FOUND
 - RED commit a7cc884: FOUND
 - GREEN commit 312257e: FOUND
+
+## Gap Closure (2026-07-02)
+
+Verification (11-VERIFICATION.md) found 3/42 requirements partially delivered (score 39/42). Closed all 3 gaps in this session.
+
+### FLAG-10: Missing detection categories in seeder + detector
+
+**Gap:** `travel_cluster`, `rv_boat`, `masters_14_day` absent from `DetectionMerchantSeeder`; corresponding match arms and sub-detector methods missing from `CategoryLibraryDetector`. `auto_loan_interest` branch missing inside `vehicleParams()`.
+
+**Fix:**
+- `DetectionMerchantSeeder`: Added 22 merchants across 4 categories — travel_cluster (8: Delta, AA, United, Southwest, Marriott, Hilton, Hertz, Enterprise), rv_boat (4: Good Sam Finance, Essex Credit, Southeast Financial, Trident Funding), auto_loan_interest (5: Ford Motor Credit, GM Financial, Toyota FS, Honda FS, Ally), masters_14_day (2: Airbnb, VRBO)
+- `CategoryLibraryDetector`: Added `travel_cluster`, `rv_boat`, `masters_14_day` match arms in `buildFindingParams()` + `travelClusterParams()`, `rvBoatParams()`, `masters14DayParams()` private methods; `auto_loan_interest` early-return branch in `vehicleParams()`
+- `config/tax-detection.php`: Added 4 new rule entries (category_travel_cluster, category_rv_boat, category_masters_14_day, auto_loan_interest) with authority citations
+- Authority: IRC §162 + Rev. Proc. 2025-33 + §274(m)(3) (travel); §163(h)(4)(A) (RV/boat); §280A(g) (Augusta Rule); §163(h) 2025–2028 (auto loan)
+
+**Commits:** RED `0e0ff17`, GREEN `4305d67`
+**Tests:** 4 new tests in `CategoryLibraryDetectorTest.php`
+
+### FLAG-26: PenaltyPreventionSweep missing 4th sweep (1099-K mismatch)
+
+**Gap:** Docblock in `PenaltyPreventionSweep` documented "4 sweeps" but only 3 were implemented. `checkKForm1099KMismatch()` method and its wiring into `run()` were absent.
+
+**Fix:**
+- Added `checkKForm1099KMismatch()` method: scans third-party payment platform inflows (PayPal, Venmo, Stripe, Square, Cash App, Zelle, Apple Pay, Google Pay, Amazon Pay, Shopify Payments) against config threshold (`penalty_1099k_mismatch.threshold_cents`, default 60,000 = $600)
+- Educational framing: "may want to review with a professional" — never asserts tax liability
+- Wired as sweep 4 in `run()`; result merged into emitted array
+- `config/tax-detection.php`: Added `penalty_1099k_mismatch` rule (IRC §6050W; IRS Notice 2024-85)
+
+**Commits:** RED `0e0ff17`, GREEN `4305d67`
+**Tests:** 2 new tests in `SweepsAndScannersTest.php`
+
+### FLAG-27: LifeEventTriggerDetector missing escrow inflow + annual battery
+
+**Gap:** `detectEscrowInflow()` absent from `run()`; annual battery (marriage, birth/adoption, job change, inheritance→step-up, Medicare) not wired — existed nowhere in codebase.
+
+**Fix:**
+- `detectEscrowInflow()`: detects credits (amount < 0, floor $10,000) from escrow/title company patterns → surfaces `life_event_escrow_inflow` finding with §121 education (gain exclusion $250K/$500K MFJ, basis-ledger settlement). Wired as trigger 4 in `run()`
+- `ANNUAL_BATTERY` const: 5 entries — battery_marriage_status (marital_status_changed), battery_birth_adoption (birth_or_adoption), battery_job_change (job_change), battery_inheritance (inherited_assets_this_year — includes "step-up-now" language for IRAs), battery_medicare_enrollment (medicare_enrollment_this_year)
+- `surfaceBatteryQuestions()`: checks `UserTaxFact::currentFact()` for each; skips answered; registers unanswered as `OptimizationFinding` (findingType=`battery_question`, ruleId=null); `SurfaceHighPriorityRedFlags` listener converts these to AIQuestion feed items via existing bridge — no framework changes
+- Wired battery as final step in `run()`
+- `config/tax-detection.php`: Added `life_event_escrow_inflow` rule (IRC §121 + §1250)
+- Updated pre-existing "stays silent" test to pre-populate all 5 battery answers before calling `run()` (battery emission now expected behavior when unanswered)
+
+**Commits:** RED `0e0ff17`, GREEN `4305d67`
+**Tests:** 6 new tests in `SweepsAndScannersTest.php`
+
+### Gate Results
+
+| Gate | Result |
+|------|--------|
+| `php artisan test --compact` | 699 passed (+13 from 686), 1 failed (pre-existing DashboardFinancialBlocksTest only), 1 risky |
+| `vendor/bin/pint --dirty` | Clean (3 files auto-fixed; no style violations remaining) |
+| SAFE-03 EstimatedValueGuardTest | 3 passed, 0 failed — no `estimated_value_cents` assignments outside TaxRulesEngineService |
+| Score | 42/42 (was 39/42) |
 - Tests: 641 passing, 0 new failures — VERIFIED
