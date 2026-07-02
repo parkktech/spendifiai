@@ -118,9 +118,9 @@ Requirements for this milestone. Each maps to a roadmap phase. All outputs are e
 ### Action Center (ACT)
 
 - [ ] **ACT-01**: A lifecycle-adaptive, persistent to-do surface (Dashboard widget + Optimize page; nav badge showing open item count) aggregates every actionable item as a large-checkmark to-do; per-item done-state is persisted in the durable-facts/action store with timestamps
-- [ ] **ACT-02**: Stage-0 onboarding items are generated deterministically from connection/profile state for first-run users — ① Link your bank account ② Link your credit cards ③ Link your emails ④ Do the onboarding interview ⑤ Upload a pay stub — each disappears when completed and is replaced by what it unlocks
-- [ ] **ACT-03**: Every Action Center item carries a quantified benefit line (deterministic engine arithmetic for short-horizon figures; D9.7 illustration rules with stated config assumptions for long-horizon projections) and a due date where real (bonus election cutoffs, Dec 31 year-end items)
-- [ ] **ACT-04**: Checking an item done enters claimed state in the ChangeMonitor's 2-4-week observation window and transitions to verified when the expected change materializes in transaction/deposit data, reusing the SavingsLedger claimed→verified pattern
+- [x] **ACT-02**: Stage-0 onboarding items are generated deterministically from connection/profile state for first-run users — ① Link your bank account ② Link your credit cards ③ Link your emails ④ Do the onboarding interview ⑤ Upload a pay stub — each disappears when completed and is replaced by what it unlocks
+- [x] **ACT-03**: Every Action Center item carries a quantified benefit line (deterministic engine arithmetic for short-horizon figures; D9.7 illustration rules with stated config assumptions for long-horizon projections) and a due date where real (bonus election cutoffs, Dec 31 year-end items)
+- [x] **ACT-04**: Checking an item done enters claimed state in the ChangeMonitor's 2-4-week observation window and transitions to verified when the expected change materializes in transaction/deposit data, reusing the SavingsLedger claimed→verified pattern
 - [ ] **ACT-05**: The empty-list state renders as an achievement moment ("You're fully optimized for now — we're watching for changes"), not a blank or dead-end view
 
 ### Scenarios (SCN)
@@ -136,8 +136,8 @@ Requirements for this milestone. Each maps to a roadmap phase. All outputs are e
 
 ### Monitors (MON)
 
-- [ ] **MON-01**: `ChangeMonitor` unifies verification watches and change detection in one service: the verification side watches for EXPECTED changes (checklist items checked done → 2-4-week observation window → verified outcome surfaced when the projected change lands in transaction/deposit data, reusing SavingsLedger claimed→verified); the detection side fires on UNEXPECTED changes (income shift ≥2 pay cycles, CrossSourceReview discrepancy, life-event triggers) and creates an `OptimizationFinding` + AIQuestion + DOC-05 document request with educational, benefit-forward copy ("We noticed [specific change] — send an updated [doc] and we'll check whether your [withholding/401k/transfers] are still optimized"); cadence guard ensures one prompt per detected change per freshness window with ≥2 pay-cycle persistence requirement
-- [ ] **MON-02**: Predictive calendar watchers extend ChangeMonitor with expected-event scheduling: bonus lead-time alerts (sourced from prior-year pattern, interview fact, or offer-letter extraction) fire with config lead time before the expected payroll cutoff, presenting a bonus scenario set (Option A: 0% deferral/max cash; Option B: max deferral/bracket management; Option C: standing election); year-end window items are gated on the user's confirmed business/personal context and confirmed business type, and every purchase-timing item carries the net-cost honesty statement ("a $10,000 purchase in the 24% bracket saves ~$2,400 in tax and costs ~$7,600 net cash — only if you needed it anyway")
+- [x] **MON-01**: `ChangeMonitor` unifies verification watches and change detection in one service: the verification side watches for EXPECTED changes (checklist items checked done → 2-4-week observation window → verified outcome surfaced when the projected change lands in transaction/deposit data, reusing SavingsLedger claimed→verified); the detection side fires on UNEXPECTED changes (income shift ≥2 pay cycles, CrossSourceReview discrepancy, life-event triggers) and creates an `OptimizationFinding` + AIQuestion + DOC-05 document request with educational, benefit-forward copy ("We noticed [specific change] — send an updated [doc] and we'll check whether your [withholding/401k/transfers] are still optimized"); cadence guard ensures one prompt per detected change per freshness window with ≥2 pay-cycle persistence requirement
+- [x] **MON-02**: Predictive calendar watchers extend ChangeMonitor with expected-event scheduling: bonus lead-time alerts (sourced from prior-year pattern, interview fact, or offer-letter extraction) fire with config lead time before the expected payroll cutoff, presenting a bonus scenario set (Option A: 0% deferral/max cash; Option B: max deferral/bracket management; Option C: standing election); year-end window items are gated on the user's confirmed business/personal context and confirmed business type, and every purchase-timing item carries the net-cost honesty statement ("a $10,000 purchase in the 24% bracket saves ~$2,400 in tax and costs ~$7,600 net cash — only if you needed it anyway")
 
 ### Design Elevation (ELEV)
 
@@ -300,9 +300,9 @@ Each requirement maps to exactly one phase. Phases continue the global numbering
 | SAFE-06 | Phase 13 | Pending |
 | SAFE-07 | Phase 13 | Pending |
 | ACT-01 | Phase 14 | Pending |
-| ACT-02 | Phase 14 | Pending |
-| ACT-03 | Phase 14 | Pending |
-| ACT-04 | Phase 14 | Pending |
+| ACT-02 | Phase 14 | Complete |
+| ACT-03 | Phase 14 | Complete |
+| ACT-04 | Phase 14 | Complete |
 | ACT-05 | Phase 14 | Pending |
 | SCN-01 | Phase 14 | Complete |
 | SCN-02 | Phase 14 | Pending |
@@ -312,8 +312,8 @@ Each requirement maps to exactly one phase. Phases continue the global numbering
 | SCN-06 | Phase 14 | Pending |
 | SCN-07 | Phase 14 | Pending |
 | SCN-08 | Phase 14 | Pending |
-| MON-01 | Phase 14 | Pending |
-| MON-02 | Phase 14 | Pending |
+| MON-01 | Phase 14 | Complete |
+| MON-02 | Phase 14 | Complete |
 | ELEV-01 | Phase 14 | Complete |
 | ELEV-02 | Phase 14 | Complete |
 | ELEV-03 | Phase 14 | Pending |

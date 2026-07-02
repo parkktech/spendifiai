@@ -4,16 +4,16 @@ milestone: v2.1
 milestone_name: Optimize My Income
 current_phase: 14
 current_phase_name: Action Center, Scenarios & Design Elevation
-status: executing
-stopped_at: Completed 11-04 guided interview + AI-feed bridge
-last_updated: "2026-07-02T22:23:02.112Z"
+status: verifying
+stopped_at: Completed 14-09-PLAN.md
+last_updated: "2026-07-02T22:46:47.337Z"
 last_activity: 2026-07-02
 last_activity_desc: Phase 14 execution started
 progress:
   total_phases: 5
   completed_phases: 3
   total_plans: 26
-  completed_plans: 27
+  completed_plans: 28
   percent: 60
 ---
 
@@ -30,7 +30,7 @@ See: .planning/PROJECT.md (updated 2026-07-01)
 
 Phase: 14 (Action Center, Scenarios & Design Elevation) — EXECUTING
 Plan: 10 of 10
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-07-02 — Phase 14 execution started
 
 ## v2.1 Roadmap Summary
@@ -128,6 +128,9 @@ Recent decisions affecting current work:
 - [Phase ?]: Route model binding 'checklistItem' avoids collision with OrderItem binding
 - [Phase ?]: writeRealityFact K2/K3: taxYear=null for stable employer facts (§A.1.2)
 - [Phase ?]: SAFE-03: choose() emits delta-tier strings not raw cents in response
+- [Phase ?]: Income-shift persistence anchored on optimization_calendar_events NOT report.stale_since (resolves Research A3)
+- [Phase ?]: Stage-0 paystub first per DOCUMENTS-FIRST-FUNNEL Δ1; action-center route has no bank.connected middleware
+- [Phase ?]: pendingActionCount additive in HandleInertiaRequests; pendingOptimizationCount unchanged (DRIFT-09, ACT-01)
 
 ### Pending Todos
 
@@ -142,6 +145,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-07-02T22:22:54.198Z
-Stopped at: Completed 11-04 guided interview + AI-feed bridge
+Last session: 2026-07-02T22:46:47.327Z
+Stopped at: Completed 14-09-PLAN.md
 Resume file: None
