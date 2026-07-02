@@ -127,7 +127,7 @@ Plans:
 **Cross-cutting constraints (honored in every phase):** Educational-only framing ("may/could/consider"), banned assertive language, persistent non-dismissable disclaimers, Claude never computes dollar amounts, additive/forward-only migrations, no destructive DB ops, no changes to existing API responses/models/component interfaces.
 
 - [x] **Phase 10: Foundation — Tax Rules Engine & Cross-Source Snapshot** - Deterministic 2026 tax math and a per-user financial snapshot, both proven correct with zero Claude involvement in numbers (completed 2026-07-02)
-- [ ] **Phase 11: Red-Flag Detection, Guided Interview & AI Feed Integration** - Deterministic red-flag findings surfaced through a resumable one-question interview and the existing AI Questions feed
+- [x] **Phase 11: Red-Flag Detection, Guided Interview & AI Feed Integration** - Deterministic red-flag findings surfaced through a resumable one-question interview and the existing AI Questions feed (completed 2026-07-02)
 - [ ] **Phase 12: Optimization Report, Document Intake & Feature Surface** - Exportable educational optimization report reached through a dedicated Optimize My Income surface, fed by expanded financial document intake
 - [ ] **Phase 13: Safety, Validation & Hardening** - The complete feature certified within the educational-only liability boundary via security, legal, and PII hardening
 
@@ -164,7 +164,7 @@ Plans:
   3. High-priority red flags appear as `QuestionType::Optimization` records in the existing AI Questions feed, and a user's answers feed back into the optimization profile.
   4. Existing transaction-categorization behavior and tests are unaffected — the `UpdateTransactionCategory` listener ignores optimization questions.
 
-**Plans**: 7/8 plans executed
+**Plans**: 8/8 plans complete
 **UI hint**: yes
 > Scope expanded 2026-07-01 by tax-playbook integration (15→42 reqs). Execute as two waves within the phase: wave 11a = detector/interview/storage infrastructure (plans 11-01..05, GSD waves 1-4), wave 11b = detector content (plans 11-06..08, GSD waves 5-7). See .planning/reference/INTEGRATION-MAP.md.
 
@@ -177,7 +177,7 @@ Plans:
 - [x] 11-05-PLAN.md — Interview UI + suggested-confirm + Settings learned-facts (INT-02) [frontend]
 - [x] 11-06-PLAN.md — Core detectors + profile-vs-reality conformance + audit-risk (FLAG-02/03/04/05/14/15/28)
 - [x] 11-07-PLAN.md — Merchant category library + sweeps + retroactive scanners + safe-harbor benchmark + life events (FLAG-07/10/11/12/18/26/27)
-- [ ] 11-08-PLAN.md — Probe matrix + W-2 benefits + alarms + ACA cliff + refundable credits (FLAG-16/17/20/21/22/23/24/25)
+- [x] 11-08-PLAN.md — Probe matrix + W-2 benefits + alarms + ACA cliff + refundable credits (FLAG-16/17/20/21/22/23/24/25)
 
 ### Phase 12: Optimization Report, Document Intake & Feature Surface
 
@@ -226,6 +226,6 @@ Phases execute in numeric order: 10 → 11 → 12 → 13
 | 8. Accountant Document Collaboration | v2.0 | 5/5 | Complete | 2026-03-31 |
 | 9. Intelligence Layer & Final Validation | v2.0 | 3/3 | Complete | 2026-03-31 |
 | 10. Foundation — Tax Rules Engine & Cross-Source Snapshot | v2.1 | 3/3 | Complete   | 2026-07-02 |
-| 11. Red-Flag Detection, Guided Interview & AI Feed Integration | v2.1 | 7/8 | In Progress|  |
+| 11. Red-Flag Detection, Guided Interview & AI Feed Integration | v2.1 | 8/8 | Complete   | 2026-07-02 |
 | 12. Optimization Report, Document Intake & Feature Surface | v2.1 | 0/TBD | Not started | - |
 | 13. Safety, Validation & Hardening | v2.1 | 0/TBD | Not started | - |
