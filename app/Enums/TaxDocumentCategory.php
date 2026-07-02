@@ -30,6 +30,30 @@ enum TaxDocumentCategory: string
     case PropertyTax = 'property_tax';
     case CharitableDonation = 'charitable_donation';
 
+    // DOC-01: Financial statement types (data plane — Phase 12)
+    case PayStub = 'pay_stub';
+    case OfferLetter = 'offer_letter';
+    case RetirementStatement = 'retirement_statement';
+    case StockStatement = 'stock_statement';
+    case InsuranceDoc = 'insurance_doc';
+
+    // DOC-07: Benefits guide (data plane + D4 profile proposals — Phase 12)
+    case BenefitsGuide = 'benefits_guide';
+
+    // DOC-06: Substantiation documents (doc-checklist linkage, TIER2_FIELDS extraction — Phase 12)
+    case SponsorshipAgreement = 'sponsorship_agreement';
+    case MarketCompMemo = 'market_comp_memo';
+    case PhysicianLetter = 'physician_letter';
+    case Appraisal = 'appraisal';
+    case GallonsLog = 'gallons_log';
+    case RescueOrgLetter = 'rescue_org_letter';
+    case SecurityMemo = 'security_memo';
+    case LoanDoc = 'loan_doc';
+    case ContractorInvoice = 'contractor_invoice';
+    case MileageLog = 'mileage_log';
+    case DaycareLicense = 'daycare_license';
+    case SponsorshipVendorEvidence = 'sponsorship_vendor_evidence';
+
     public function label(): string
     {
         return match ($this) {
@@ -58,6 +82,27 @@ enum TaxDocumentCategory: string
             self::IRA_5498 => '5498 IRA Contributions',
             self::PropertyTax => 'Property Tax Statement',
             self::CharitableDonation => 'Charitable Donation Receipt',
+            // DOC-01 financial
+            self::PayStub => 'Pay Stub',
+            self::OfferLetter => 'Offer Letter',
+            self::RetirementStatement => 'Retirement Account Statement',
+            self::StockStatement => 'Brokerage / Stock Statement',
+            self::InsuranceDoc => 'Insurance Document',
+            // DOC-07 benefits
+            self::BenefitsGuide => 'Employee Benefits Guide',
+            // DOC-06 substantiation
+            self::SponsorshipAgreement => 'Sponsorship Agreement',
+            self::MarketCompMemo => 'Market Compensation Memo',
+            self::PhysicianLetter => 'Physician Letter',
+            self::Appraisal => 'Appraisal',
+            self::GallonsLog => 'Fuel / Gallons Log',
+            self::RescueOrgLetter => 'Rescue Organization Letter',
+            self::SecurityMemo => 'Security Memorandum',
+            self::LoanDoc => 'Loan Document',
+            self::ContractorInvoice => 'Contractor Invoice',
+            self::MileageLog => 'Mileage Log',
+            self::DaycareLicense => 'Daycare / Childcare License',
+            self::SponsorshipVendorEvidence => 'Sponsorship Vendor Evidence',
         };
     }
 
