@@ -624,6 +624,174 @@ it('d18_vehicle_personal_answer: a personal-hobby answer does NOT fan the usage-
     }
 });
 
+// ─── D18 exemplar 4: the job-change CONFIRMATION question (owner-reported) ────
+//
+// Owner's verbatim desired format: "It appears you had a Job Change due to
+// bi-weekly income from X then it switched to bi-weekly income from Y. /
+// Yes / No / Other, please explain below." — a second question SHAPE
+// (shape='confirmation'): evidence lead + Yes/No/escape, education demoted,
+// follow-ups fanning from YES via the gated tree.
+
+function seedEmployerSwitch(int $userId): void
+{
+    // Old employer: biweekly payroll deposits that stopped ~3 months ago.
+    for ($i = 0; $i < 6; $i++) {
+        \App\Models\Transaction::factory()->create([
+            'user_id' => $userId,
+            'merchant_name' => 'ACME CORP PAYROLL 8827162',
+            'merchant_normalized' => 'acme corp payroll',
+            'amount' => -2150.00,
+            'transaction_date' => now()->subMonths(6)->addWeeks($i * 2),
+        ]);
+    }
+    // New employer: biweekly deposits that began ~2 months ago and continue.
+    for ($i = 0; $i < 4; $i++) {
+        \App\Models\Transaction::factory()->create([
+            'user_id' => $userId,
+            'merchant_name' => 'GLOBEX INDUSTRIES DIRECT DEP 991',
+            'merchant_normalized' => 'globex industries direct dep',
+            'amount' => -2380.00,
+            'transaction_date' => now()->subMonths(2)->addWeeks($i * 2),
+        ]);
+    }
+}
+
+/** Pre-answer every battery fact except the one under test so only it surfaces. */
+function suppressBatteriesExcept(int $userId, string $keepFindingKey): void
+{
+    $batteries = [
+        'battery_marriage_status' => 'life_event.marital_status_changed',
+        'battery_birth_adoption' => 'life_event.birth_or_adoption',
+        'battery_job_change' => 'life_event.job_change',
+        'battery_inheritance' => 'life_event.inherited_assets_this_year',
+        'battery_medicare_enrollment' => 'life_event.medicare_enrollment_this_year',
+    ];
+    foreach ($batteries as $findingKey => $factKey) {
+        if ($findingKey === $keepFindingKey) {
+            continue;
+        }
+        UserTaxFact::recordFact(
+            userId: $userId,
+            factKey: $factKey,
+            value: 'no',
+            sourceType: 'interview_answer',
+            taxYear: (int) now()->year,
+        );
+    }
+}
+
+it('d18_jobchange_confirmation: the job-change battery renders as an evidence-led Yes/No confirmation with demoted education', function () {
+    Http::preventStrayRequests();
+    Http::fake();
+
+    $user = createAuthenticatedUser(['last_active_at' => now()]);
+    seedEmployerSwitch($user->id);
+    suppressBatteriesExcept($user->id, 'battery_job_change');
+
+    app(\App\Services\Scanners\LifeEventTriggerDetector::class)
+        ->run($user->id, (int) now()->year, app(RedFlagDetectorService::class), []);
+
+    $service = app(InterviewOrchestratorService::class);
+    $session = $service->startOrResume($user->id, (int) now()->year);
+    expect($session->queue)->toContain('battery_job_change');
+
+    $question = $service->nextQuestion($session);
+    expect($question)->not->toBeNull();
+    expect($question->ai_best_guess)->toBe('battery_job_change');
+
+    // 1. Evidence lead with HUMANIZED employer names from the deposit patterns.
+    expect($question->question)->toContain('Acme Corp');
+    expect($question->question)->toContain('Globex Industries');
+    expect($question->question)->not->toContain('8827162');
+    expect($question->question)->not->toContain('ACME CORP PAYROLL');
+
+    // 2. Confirmation shape: Yes / No (+ the escape hatch appended).
+    $values = array_column((array) $question->options['choices'], 'value');
+    expect($values)->toContain('yes');
+    expect($values)->toContain('no');
+    expect($values)->toContain('__other__');
+
+    // 3. ALL education (W-4, severance, rollover, NUA) demoted to context.
+    $body = $question->question;
+    expect($body)->not->toContain('W-4');
+    expect(strtolower($body))->not->toContain('severance');
+    expect(strtolower($body))->not->toContain('rollover');
+    $context = strtolower((string) ($question->options['context'] ?? ''));
+    expect($context)->toContain('rollover');
+    expect($context)->toContain('withholding');
+
+    // Copy bar (addendum 6) + zero Claude on the template path (D17).
+    expect(mb_strlen($body))->toBeLessThanOrEqual(240);
+    expect(preg_match(D18_INTERNAL_KEY_PATTERN, $body))->toBe(0);
+    Http::assertNothingSent();
+});
+
+it('d18_jobchange_yes: YES records the life-event fact (year-scoped), fans W-4 follow-ups, and never re-asks', function () {
+    Http::preventStrayRequests();
+    Http::fake();
+
+    $user = createAuthenticatedUser(['last_active_at' => now()]);
+    seedEmployerSwitch($user->id);
+    suppressBatteriesExcept($user->id, 'battery_job_change');
+
+    $detector = app(\App\Services\Scanners\LifeEventTriggerDetector::class);
+    $detector->run($user->id, (int) now()->year, app(RedFlagDetectorService::class), []);
+
+    $service = app(InterviewOrchestratorService::class);
+    $session = $service->startOrResume($user->id, (int) now()->year);
+    $question = $service->nextQuestion($session);
+
+    $this->postJson(
+        "/api/v1/optimizer/interview/{$session->id}/questions/{$question->id}/answer",
+        ['answer' => 'yes']
+    )->assertOk();
+
+    // The canonical life-event fact is written tax-year-scoped — this is what
+    // 14-09's Action Center checklist items (rollover / W-4 review) key off.
+    expect(UserTaxFact::currentFact($user->id, 'life_event.job_change', null, (int) now()->year)?->value)
+        ->toBe('yes');
+
+    // Follow-up probes fan out via the gated tree — one topic per follow-up.
+    $followUp = $service->nextQuestion($session->fresh());
+    expect($followUp)->not->toBeNull();
+    expect($followUp->ai_best_guess)->toStartWith('w4.');
+
+    // The detector never re-emits the answered battery question.
+    $reEmitted = $detector->surfaceBatteryQuestions(
+        $user->id, (int) now()->year, app(RedFlagDetectorService::class), []
+    );
+    expect($reEmitted)->not->toContain('battery_job_change');
+});
+
+it('d18_battery_confirmation_generic: batteries without detected evidence render their clean label with Yes/No/escape', function () {
+    Http::preventStrayRequests();
+    Http::fake();
+
+    $user = createAuthenticatedUser(['last_active_at' => now()]);
+    suppressBatteriesExcept($user->id, 'battery_marriage_status');
+
+    app(\App\Services\Scanners\LifeEventTriggerDetector::class)
+        ->run($user->id, (int) now()->year, app(RedFlagDetectorService::class), []);
+
+    $service = app(InterviewOrchestratorService::class);
+    $session = $service->startOrResume($user->id, (int) now()->year);
+    $question = $service->nextQuestion($session);
+
+    expect($question)->not->toBeNull();
+    expect($question->ai_best_guess)->toBe('battery_marriage_status');
+    expect($question->question)->toBe('Did your marital status change this year?');
+
+    $values = array_column((array) $question->options['choices'], 'value');
+    expect($values)->toContain('yes');
+    expect($values)->toContain('no');
+    expect($values)->toContain('__other__');
+
+    // The dense marriage/divorce education paragraph lives in context now.
+    expect(strtolower((string) ($question->options['context'] ?? '')))->toContain('filing status');
+
+    Http::assertNothingSent();
+});
+
 // ─── D18 addendum 7: the escape hatch on every choice question ────────────────
 
 it('d18_escape_hatch: every choice question carries a "Something else" option and free text is interpreted onto the fact', function () {
