@@ -28,12 +28,8 @@ use Throwable;
  * Constructor takes primitive scalar IDs (int, not Eloquent models) per project
  * job convention — avoids stale model issues with SerializesModels.
  *
- * Queue: 'optimization'
- * Workers can include this queue with: php artisan queue:work redis --queue=optimization,default
- *
- * Operationally, no .env change is required for development — the sync driver
- * processes all queues. In production, configure QUEUE_CONNECTION=redis and
- * add an 'optimization' queue to the supervisor configuration.
+ * Queue: default (house convention — the running worker uses queue:work redis with no --queue flag)
+ * Tries: 3 / Timeout: 180s
  */
 class BuildIncomeOptimizationProfile implements ShouldQueue
 {
@@ -46,9 +42,7 @@ class BuildIncomeOptimizationProfile implements ShouldQueue
     public function __construct(
         public readonly int $userId,
         public readonly int $taxYear,
-    ) {
-        $this->onQueue('optimization');
-    }
+    ) {}
 
     public function handle(
         IncomeOptimizerDataAssemblerService $assembler,

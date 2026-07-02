@@ -20,13 +20,13 @@ use Throwable;
  * uniqueId() = "{userId}:{taxYear}" — only one job per user+year runs at a time.
  * Multiple dispatches for the same user+year coalesce into a single execution.
  *
- * Queue: 'optimization'
+ * Queue: default (house convention — the running worker uses queue:work redis with no --queue flag)
  * Timeout: 300s (narrating 4 sections × 45s timeout + executive summary buffer)
  *
  * Constructor takes primitive scalar IDs (not Eloquent models) per project
  * job convention — avoids stale model issues with SerializesModels.
  */
-class GenerateOptimizationReport implements ShouldQueue, ShouldBeUnique
+class GenerateOptimizationReport implements ShouldBeUnique, ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
@@ -37,9 +37,7 @@ class GenerateOptimizationReport implements ShouldQueue, ShouldBeUnique
     public function __construct(
         public readonly int $userId,
         public readonly int $taxYear,
-    ) {
-        $this->onQueue('optimization');
-    }
+    ) {}
 
     /**
      * Unique key prevents thundering-herd when multiple events fire simultaneously.

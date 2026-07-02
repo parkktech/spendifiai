@@ -25,7 +25,7 @@ use Throwable;
  * Zero Claude / HTTP calls in this job — purely reads from the already-extracted
  * extracted_data JSON and writes UserTaxFact rows.
  *
- * Queue: 'optimization' (same queue as report generation)
+ * Queue: default (house convention — the running worker uses queue:work redis with no --queue flag)
  * Tries: 3
  * Timeout: 120s
  * Constructor: scalar document ID (avoids stale model issues)
@@ -40,9 +40,7 @@ class ExtractProfileFacts implements ShouldQueue
 
     public function __construct(
         public readonly int $documentId,
-    ) {
-        $this->onQueue('optimization');
-    }
+    ) {}
 
     public function handle(PaystubFactExtractorService $extractor): void
     {
@@ -50,14 +48,14 @@ class ExtractProfileFacts implements ShouldQueue
 
         Log::info('ExtractProfileFacts: proposing facts from document', [
             'document_id' => $document->id,
-            'category'    => $document->category?->value,
-            'tax_year'    => $document->tax_year,
+            'category' => $document->category?->value,
+            'tax_year' => $document->tax_year,
         ]);
 
         $count = $extractor->proposeFacts($document);
 
         Log::info('ExtractProfileFacts: proposals created', [
-            'document_id'     => $document->id,
+            'document_id' => $document->id,
             'proposals_count' => $count,
         ]);
     }
@@ -66,7 +64,7 @@ class ExtractProfileFacts implements ShouldQueue
     {
         Log::error('ExtractProfileFacts: job failed permanently', [
             'document_id' => $this->documentId,
-            'error'       => $exception->getMessage(),
+            'error' => $exception->getMessage(),
         ]);
     }
 }

@@ -1,6 +1,7 @@
 <?php
 
 use App\Jobs\GenerateOptimizationReport;
+use App\Models\IncomeOptimizationProfile;
 use App\Models\OptimizationFinding;
 use App\Models\OptimizationReport;
 use Illuminate\Support\Facades\Queue;
@@ -62,6 +63,14 @@ test('GET report dispatches generation job on stale report', function () {
     $user = createAuthenticatedUser();
     $taxYear = now()->year;
 
+    // A stale report implies the pipeline ran before — profile must exist.
+    // Without a profile the controller dispatches BuildIncomeOptimizationProfile (first-visit path).
+    IncomeOptimizationProfile::create([
+        'user_id' => $user->id,
+        'tax_year' => $taxYear,
+        'built_at' => now()->subDay(),
+    ]);
+
     OptimizationReport::create([
         'user_id' => $user->id,
         'tax_year' => $taxYear,
@@ -115,6 +124,14 @@ test('POST regenerate queues a generation job and returns generating status', fu
 
     $user = createAuthenticatedUser();
     $taxYear = now()->year;
+
+    // Profile must exist for the regenerate endpoint to dispatch GenerateOptimizationReport.
+    // Without a profile it dispatches BuildIncomeOptimizationProfile (first-visit self-healing path).
+    IncomeOptimizationProfile::create([
+        'user_id' => $user->id,
+        'tax_year' => $taxYear,
+        'built_at' => now()->subDay(),
+    ]);
 
     $response = $this->actingAs($user)->postJson("/api/v1/optimizer/report/{$taxYear}/regenerate");
 

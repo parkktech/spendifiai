@@ -3,7 +3,9 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Jobs\BuildIncomeOptimizationProfile;
 use App\Jobs\GenerateOptimizationReport;
+use App\Models\IncomeOptimizationProfile;
 use App\Models\OptimizationFinding;
 use App\Models\OptimizationReport;
 use App\Services\OptimizationProReviewExportService;
@@ -42,6 +44,19 @@ class OptimizationReportController extends Controller
      * model instance (Pitfall 8 guard). If the report is stale or has no sections,
      * dispatches a background generation job and returns a "generating" status.
      *
+     * First-visit self-healing (RPT-02 chain gap fix):
+     *   When the user has no IncomeOptimizationProfile for the year, dispatching
+     *   GenerateOptimizationReport directly produces an empty report (no findings).
+     *   Instead, dispatch BuildIncomeOptimizationProfile which runs the full pipeline:
+     *     BuildIncomeOptimizationProfile
+     *       → OptimizationProfileBuilt event
+     *         → RunRedFlagDetectors (findings)
+     *         → NarrateOptimizationFindings (Claude narration)
+     *         → SurfaceHighPriorityRedFlags (AIQuestion rows)
+     *         → MarkOptimizationReportStale (flag flip)
+     *         → DispatchReportGeneration (debounced, 30s delay)
+     *           → GenerateOptimizationReport (ShouldBeUnique — coalesces bursts)
+     *
      * Never returns null or 500 on first access (RPT-02).
      */
     public function show(Request $request, int $year): JsonResponse
@@ -55,16 +70,33 @@ class OptimizationReportController extends Controller
         $needsGeneration = $report->is_stale || $isEmpty;
 
         if ($needsGeneration) {
-            // Dispatch background generation — ShouldBeUnique coalesces concurrent dispatches
-            GenerateOptimizationReport::dispatch($userId, $year)
-                ->delay(now()->addSeconds(5));  // Small delay avoids race with current request
+            $hasProfile = IncomeOptimizationProfile::forUser($userId)
+                ->where('tax_year', $year)
+                ->exists();
 
-            Log::info('OptimizationReportController@show: dispatched generation', [
-                'user_id' => $userId,
-                'tax_year' => $year,
-                'is_stale' => $report->is_stale,
-                'is_empty' => $isEmpty,
-            ]);
+            if (! $hasProfile) {
+                // No profile yet — kick the full pipeline so findings exist before report generation.
+                // BuildIncomeOptimizationProfile fires OptimizationProfileBuilt which triggers
+                // RunRedFlagDetectors, NarrateOptimizationFindings, and DispatchReportGeneration.
+                BuildIncomeOptimizationProfile::dispatch($userId, $year)
+                    ->delay(now()->addSeconds(5));
+
+                Log::info('OptimizationReportController@show: no profile found — dispatched full pipeline', [
+                    'user_id' => $userId,
+                    'tax_year' => $year,
+                ]);
+            } else {
+                // Profile exists but report is stale — findings are already in DB, just regen the report.
+                GenerateOptimizationReport::dispatch($userId, $year)
+                    ->delay(now()->addSeconds(5));
+
+                Log::info('OptimizationReportController@show: profile exists — dispatched report regen', [
+                    'user_id' => $userId,
+                    'tax_year' => $year,
+                    'is_stale' => $report->is_stale,
+                    'is_empty' => $isEmpty,
+                ]);
+            }
         }
 
         return response()->json([
@@ -84,8 +116,10 @@ class OptimizationReportController extends Controller
     /**
      * Request explicit regeneration of the optimization report.
      *
-     * Dispatches a GenerateOptimizationReport job (rate-limited like other
-     * optimizer endpoints). ShouldBeUnique coalesces concurrent requests.
+     * Applies the same first-visit self-healing as show(): if no profile exists,
+     * dispatches the full pipeline via BuildIncomeOptimizationProfile instead of
+     * GenerateOptimizationReport directly. When a profile already exists, only
+     * the report job is dispatched (ShouldBeUnique coalesces concurrent requests).
      */
     public function regenerate(Request $request, int $year): JsonResponse
     {
@@ -94,13 +128,27 @@ class OptimizationReportController extends Controller
         // Ensure the report row exists (auto-init guards against null)
         OptimizationReport::fetchOrInit($userId, $year);
 
-        GenerateOptimizationReport::dispatch($userId, $year)
-            ->delay(now()->addSeconds(2));
+        $hasProfile = IncomeOptimizationProfile::forUser($userId)
+            ->where('tax_year', $year)
+            ->exists();
 
-        Log::info('OptimizationReportController@regenerate: queued', [
-            'user_id' => $userId,
-            'tax_year' => $year,
-        ]);
+        if (! $hasProfile) {
+            BuildIncomeOptimizationProfile::dispatch($userId, $year)
+                ->delay(now()->addSeconds(2));
+
+            Log::info('OptimizationReportController@regenerate: no profile — dispatched full pipeline', [
+                'user_id' => $userId,
+                'tax_year' => $year,
+            ]);
+        } else {
+            GenerateOptimizationReport::dispatch($userId, $year)
+                ->delay(now()->addSeconds(2));
+
+            Log::info('OptimizationReportController@regenerate: queued report regen', [
+                'user_id' => $userId,
+                'tax_year' => $year,
+            ]);
+        }
 
         return response()->json([
             'message' => 'Report regeneration queued. Check back in a moment.',
