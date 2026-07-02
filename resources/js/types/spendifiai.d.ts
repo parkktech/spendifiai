@@ -678,6 +678,22 @@ export interface OptimizationQuestionPayload {
   suggested_treatment: string | null;
   /** How many transactions are associated with this finding. */
   transaction_count: number;
+  // ── Phase-14 / D18 additive fields (optional — older payloads omit them) ──
+  /** Typed answer kind for template questions ('choice', 'multi_select', 'money_dollars', ...). */
+  answer_type?: string | null;
+  /** Structured choices for choice/multi_select questions (values are never rendered). */
+  choices?: { value: string; label: string }[] | null;
+  /** The exclusive "None of these" choice value on multi-select questions. */
+  none_value?: string | null;
+  /** D18: collapsible "Why we're asking" educational context (never in the body). */
+  context?: string | null;
+  /** Objective ids this question unlocks (readiness tags). */
+  objective_tags?: string[];
+  /** Document-upload affordance hint (e.g. 'pay_stub'). */
+  doc_affordance?: string | null;
+  /** Transient suggested-confirm prefill (never stored). */
+  prefill_display?: string | null;
+  prefill_value?: string | null;
 }
 
 /**

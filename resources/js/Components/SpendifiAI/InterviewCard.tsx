@@ -33,6 +33,8 @@
 import { useState, useCallback, useEffect } from 'react';
 import {
   Brain,
+  Check,
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
   SkipForward,
@@ -40,6 +42,7 @@ import {
   Send,
   Loader2,
   CheckCircle,
+  HelpCircle,
   Info,
   AlertCircle,
 } from 'lucide-react';
@@ -70,6 +73,9 @@ interface HistoryEntry {
 
 const CURRENT_YEAR = new Date().getFullYear();
 
+/** D18 addendum 7 — the escape-hatch choice value (never rendered as text). */
+const ESCAPE_VALUE = '__other__';
+
 export default function InterviewCard({ taxYear = CURRENT_YEAR, onAnswered }: InterviewCardProps) {
   const [cardState, setCardState] = useState<CardState>('loading-session');
   const [session, setSession] = useState<InterviewSessionInfo | null>(null);
@@ -79,6 +85,9 @@ export default function InterviewCard({ taxYear = CURRENT_YEAR, onAnswered }: In
   const [totalAnswered, setTotalAnswered] = useState(0);
   const [freeText, setFreeText] = useState('');
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
+  const [selectedMulti, setSelectedMulti] = useState<string[]>([]);
+  const [escapeText, setEscapeText] = useState('');
+  const [showContext, setShowContext] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [showEditMode, setShowEditMode] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -87,6 +96,9 @@ export default function InterviewCard({ taxYear = CURRENT_YEAR, onAnswered }: In
   const resetInputState = useCallback(() => {
     setFreeText('');
     setSelectedOption(null);
+    setSelectedMulti([]);
+    setEscapeText('');
+    setShowContext(false);
     setShowEditMode(false);
   }, []);
 
@@ -272,6 +284,45 @@ export default function InterviewCard({ taxYear = CURRENT_YEAR, onAnswered }: In
     currentQuestion.suggested_treatment &&
     !showEditMode;
 
+  // ── D18 template questions: structured choices + escape hatch + context ──
+  const templateChoices = currentQuestion?.choices ?? null;
+  const noneValue = currentQuestion?.none_value ?? 'none';
+  const isMultiSelect =
+    currentQuestion?.answer_type === 'multi_select' && !!templateChoices?.length;
+  const isChoiceSelect =
+    currentQuestion?.answer_type === 'choice' && !!templateChoices?.length;
+  const escapeActive =
+    (isMultiSelect && selectedMulti.includes(ESCAPE_VALUE)) ||
+    (isChoiceSelect && selectedOption === ESCAPE_VALUE);
+
+  /** Toggle a multi-select choice — 'none' and the escape hatch are exclusive. */
+  const toggleMultiChoice = useCallback(
+    (value: string) => {
+      setSelectedMulti((prev) => {
+        if (value === noneValue || value === ESCAPE_VALUE) {
+          return prev.includes(value) ? [] : [value];
+        }
+        const withoutExclusive = prev.filter((v) => v !== noneValue && v !== ESCAPE_VALUE);
+        return withoutExclusive.includes(value)
+          ? withoutExclusive.filter((v) => v !== value)
+          : [...withoutExclusive, value];
+      });
+    },
+    [noneValue]
+  );
+
+  /** Build the answer string for a template choice/multi-select question. */
+  const buildTemplateAnswer = useCallback((): string | null => {
+    if (escapeActive) {
+      const text = escapeText.trim();
+      return text ? `${ESCAPE_VALUE}: ${text}` : null;
+    }
+    if (isMultiSelect) {
+      return selectedMulti.length > 0 ? selectedMulti.join(',') : null;
+    }
+    return selectedOption;
+  }, [escapeActive, escapeText, isMultiSelect, selectedMulti, selectedOption]);
+
   // ── Render states ────────────────────────────────────────────────────────────
 
   if (cardState === 'loading-session' || cardState === 'loading-question') {
@@ -398,6 +449,29 @@ export default function InterviewCard({ taxYear = CURRENT_YEAR, onAnswered }: In
               Your previous answer: <span className="font-medium text-sw-text">{currentHistoryEntry.answer}</span>
             </p>
           )}
+
+          {/* D18: education lives in a collapsible context, never the body */}
+          {currentQuestion.context && (
+            <div>
+              <button
+                onClick={() => setShowContext((v) => !v)}
+                className="inline-flex items-center gap-1 text-[11px] font-medium text-sw-muted hover:text-sw-text transition"
+                aria-expanded={showContext}
+              >
+                <HelpCircle size={11} />
+                Why we&rsquo;re asking
+                <ChevronDown
+                  size={11}
+                  className={`transition-transform duration-200 ${showContext ? 'rotate-180' : ''}`}
+                />
+              </button>
+              {showContext && (
+                <p className="mt-1.5 px-3 py-2.5 rounded-lg bg-sw-surface/70 border border-sw-border/60 text-[11px] text-sw-text-secondary leading-relaxed">
+                  {currentQuestion.context}
+                </p>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Answer area */}
@@ -410,6 +484,66 @@ export default function InterviewCard({ taxYear = CURRENT_YEAR, onAnswered }: In
             onEdit={() => setShowEditMode(true)}
             disabled={submitting}
           />
+        ) : isMultiSelect || isChoiceSelect ? (
+          /* D18: structured template choices (single or multi) + escape hatch */
+          <div className="space-y-3">
+            <div className="space-y-1.5">
+              {(templateChoices ?? []).map((choice) => {
+                const selected = isMultiSelect
+                  ? selectedMulti.includes(choice.value)
+                  : selectedOption === choice.value;
+                return (
+                  <button
+                    key={choice.value}
+                    onClick={() =>
+                      isMultiSelect ? toggleMultiChoice(choice.value) : setSelectedOption(choice.value)
+                    }
+                    disabled={submitting}
+                    className={`w-full flex items-start gap-2.5 px-3.5 py-2.5 rounded-lg border text-left text-[13px] font-medium transition ${
+                      selected
+                        ? 'border-sw-accent bg-sw-accent/10 text-sw-text'
+                        : 'border-sw-border bg-transparent text-sw-muted hover:text-sw-text hover:border-sw-border-strong'
+                    } disabled:cursor-not-allowed`}
+                  >
+                    <span
+                      className={`mt-0.5 w-4 h-4 shrink-0 flex items-center justify-center border transition ${
+                        isMultiSelect ? 'rounded' : 'rounded-full'
+                      } ${selected ? 'border-sw-accent bg-sw-accent text-white' : 'border-sw-border-strong'}`}
+                    >
+                      {selected && <Check size={11} strokeWidth={3} />}
+                    </span>
+                    {choice.label}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Escape hatch free-text ("Something else? Let's talk about it") */}
+            {escapeActive && (
+              <input
+                type="text"
+                value={escapeText}
+                onChange={(e) => setEscapeText(e.target.value)}
+                placeholder="Tell us in your own words..."
+                disabled={submitting}
+                autoFocus
+                className="w-full px-3 py-2.5 rounded-lg border border-sw-border bg-sw-bg text-sw-text text-sm placeholder:text-sw-dim focus:outline-none focus:ring-2 focus:ring-sw-accent/30 focus:border-sw-accent transition disabled:opacity-50"
+                aria-label="Describe your situation"
+              />
+            )}
+
+            <button
+              onClick={() => {
+                const answer = buildTemplateAnswer();
+                if (answer) (alreadyAnswered ? handleReAnswer : handleAnswer)(answer);
+              }}
+              disabled={!buildTemplateAnswer() || submitting}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-sw-accent text-white text-sm font-semibold hover:bg-sw-accent-hover transition disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {submitting ? <Loader2 size={14} className="animate-spin" /> : <ChevronRight size={14} />}
+              {alreadyAnswered ? 'Update answer' : 'Submit'}
+            </button>
+          </div>
         ) : hasOptions ? (
           <div className="space-y-3">
             <div className="flex flex-wrap gap-2">
