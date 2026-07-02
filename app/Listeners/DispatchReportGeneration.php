@@ -5,6 +5,9 @@ namespace App\Listeners;
 use App\Events\OptimizationProfileBuilt;
 use App\Events\TaxDocumentExtracted;
 use App\Jobs\GenerateOptimizationReport;
+use App\Models\IncomeOptimizationProfile;
+use App\Models\OptimizationReport;
+use App\Services\ReportStalenessPolicy;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Support\Facades\Log;
@@ -12,9 +15,13 @@ use Illuminate\Support\Facades\Log;
 /**
  * Dispatch a debounced, unique report generation job on staleness-triggering events.
  *
+ * Decision 13 (2026-07-02) — REPLACES the old dispatch-on-every-event behaviour.
+ *
  * This listener handles:
- *   - TaxDocumentExtracted:     document ready → new profile facts available
- *   - OptimizationProfileBuilt: profile rebuilt → findings changed
+ *   - TaxDocumentExtracted:     USER_ACTION → always dispatch regen (document ready)
+ *   - OptimizationProfileBuilt: DATA_CHURN  → dispatch ONLY if outside freshness
+ *                                             window OR material change detected
+ *                                             (mirrors MarkOptimizationReportStale D13 gate)
  *
  * The 30-second delay + GenerateOptimizationReport's ShouldBeUnique(user:taxYear)
  * coalesce a burst of events (e.g., 20-page paystub upload firing 20 events) into
@@ -25,8 +32,8 @@ use Illuminate\Support\Facades\Log;
  * Report regeneration from answers happens lazily on the next API call.
  *
  * SEPARATION OF CONCERNS:
- *   MarkOptimizationReportStale  → immediate flag flip (always)
- *   DispatchReportGeneration     → debounced job dispatch (doc extraction + profile rebuild)
+ *   MarkOptimizationReportStale  → immediate flag flip (applies D13 gate)
+ *   DispatchReportGeneration     → debounced job dispatch (applies same D13 gate)
  */
 class DispatchReportGeneration implements ShouldQueue
 {
@@ -37,21 +44,59 @@ class DispatchReportGeneration implements ShouldQueue
     public int $timeout = 30;
 
     /**
-     * Handle TaxDocumentExtracted: dispatch a debounced report generation job.
+     * Handle TaxDocumentExtracted (USER_ACTION): always dispatch a debounced regen job.
+     *
+     * User-uploaded documents are immediate-stale triggers — regenerate promptly (D13 §2).
      */
     public function handleTaxDocumentExtracted(TaxDocumentExtracted $event): void
     {
         $document = $event->document;
 
-        $this->dispatchDebounced($document->user_id, $document->tax_year, 'TaxDocumentExtracted');
+        $this->dispatchDebounced($document->user_id, $document->tax_year, 'TaxDocumentExtracted:user_action');
     }
 
     /**
-     * Handle OptimizationProfileBuilt: dispatch a debounced report generation job.
+     * Handle OptimizationProfileBuilt (DATA_CHURN): apply D13 gate before dispatching.
+     *
+     * Routine scheduled rebuilds and bank-sync chains fire this event frequently.
+     * Within the freshness window, dispatch is suppressed unless a material change
+     * in income/savings aggregates is detected vs. the built_against snapshot (D13 §1, §3).
      */
     public function handleOptimizationProfileBuilt(OptimizationProfileBuilt $event): void
     {
-        $this->dispatchDebounced($event->userId, $event->taxYear, 'OptimizationProfileBuilt');
+        $userId = $event->userId;
+        $taxYear = $event->taxYear;
+
+        // Load current report to check freshness and built_against snapshot
+        $report = OptimizationReport::forUser($userId)
+            ->where('tax_year', $taxYear)
+            ->first();
+
+        if ($report === null) {
+            // No report exists yet — dispatch so it gets created
+            $this->dispatchDebounced($userId, $taxYear, 'OptimizationProfileBuilt:no_report');
+
+            return;
+        }
+
+        // Apply D13 DATA_CHURN gate (same policy as MarkOptimizationReportStale)
+        $currentProfile = IncomeOptimizationProfile::where('user_id', $userId)
+            ->where('tax_year', $taxYear)
+            ->first();
+
+        if (! ReportStalenessPolicy::shouldChurnStale($report, $currentProfile)) {
+            Log::info('DispatchReportGeneration: suppressed (within freshness window, no material change)', [
+                'user_id' => $userId,
+                'tax_year' => $taxYear,
+                'trigger' => 'OptimizationProfileBuilt',
+                'rebuilt_at' => $report->rebuilt_at?->toIso8601String(),
+            ]);
+
+            return;
+        }
+
+        $reason = ReportStalenessPolicy::isFresh($report) ? 'material_change' : 'window_expired';
+        $this->dispatchDebounced($userId, $taxYear, "OptimizationProfileBuilt:{$reason}");
     }
 
     /**

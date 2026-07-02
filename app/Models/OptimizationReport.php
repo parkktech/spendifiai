@@ -36,6 +36,8 @@ class OptimizationReport extends Model
         'is_stale',
         'stale_since',
         'rebuilt_at',
+        // D13: aggregate snapshot stored at generation time for material-change detection
+        'built_against',
     ];
 
     /**
@@ -54,6 +56,8 @@ class OptimizationReport extends Model
             'is_stale' => 'boolean',
             'stale_since' => 'datetime',
             'rebuilt_at' => 'datetime',
+            // D13: JSONB aggregate snapshot — income_cents, savings_cents, finding_keys, generated_at
+            'built_against' => 'array',
         ];
     }
 

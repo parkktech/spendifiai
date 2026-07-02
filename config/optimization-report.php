@@ -87,6 +87,33 @@ return [
     // Default section for unmapped finding types
     'default_section' => 'deductions',
 
+    // ── Decision 13: Report Staleness Policy ─────────────────────────────
+    //
+    // freshness_days: data-churn events (OptimizationProfileBuilt from scheduled
+    // jobs / bank syncs) do NOT stale a report that was rebuilt within this
+    // many days — unless a material change is also detected.
+    //
+    // material_change.*: percentage thresholds used to detect a "material change"
+    // in the user's financial picture between the current profile aggregates and
+    // the built_against snapshot stored at the time of report generation.
+    //
+    // Rationale (owner, 2026-07-02): user actions take 2-4 weeks to appear in
+    // transactions/paystubs — early churn regeneration burns without signal.
+    // The material-change detector catches when actions actually land.
+
+    'freshness_days' => 30,
+
+    'material_change' => [
+        // Income change (bank_deposit_total / w2_wages) percentage threshold.
+        // A shift of ≥ income_pct % compared to the built_against snapshot
+        // triggers staleness even within the freshness window.
+        'income_pct' => 5,
+
+        // Savings/contributions change percentage threshold.
+        // Covers sum of traditional_401k_ytd + roth_401k_ytd + ira_ytd + hsa_ytd.
+        'savings_pct' => 10,
+    ],
+
     // ── Severity Ordering for Ranking (RPT-01: severity tier then value DESC) ─
 
     'severity_order' => [

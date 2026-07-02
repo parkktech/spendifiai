@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\IncomeOptimizationProfile;
 use App\Models\OptimizationFinding;
 use App\Models\OptimizationReport;
 use App\Models\User;
@@ -89,7 +90,25 @@ class OptimizationReportGeneratorService
 
         $executiveSummary = $this->narrator->narrateExecutiveSummary($sectionSummaries);
 
-        // ── Step 6: Upsert Report ─────────────────────────────────────────
+        // ── Step 6: Build built_against snapshot (D13) ───────────────────
+        // Snapshot the income/savings aggregates from the current profile so
+        // MarkOptimizationReportStale can detect material changes in future
+        // data-churn events and suppress within-window staleness correctly.
+
+        $profile = IncomeOptimizationProfile::where('user_id', $user->id)
+            ->where('tax_year', $taxYear)
+            ->first();
+
+        $findingKeys = $findings->pluck('finding_type')->unique()->sort()->values()->all();
+
+        $builtAgainst = [
+            'income_cents' => ReportStalenessPolicy::computeIncomeCents($profile),
+            'savings_cents' => ReportStalenessPolicy::computeSavingsCents($profile),
+            'finding_keys' => $findingKeys,
+            'generated_at' => now()->toIso8601String(),
+        ];
+
+        // ── Step 7: Upsert Report ─────────────────────────────────────────
 
         $report = OptimizationReport::updateOrCreate(
             ['user_id' => $user->id, 'tax_year' => $taxYear],
@@ -99,6 +118,7 @@ class OptimizationReportGeneratorService
                 'is_stale' => false,
                 'rebuilt_at' => now(),
                 'stale_since' => null,
+                'built_against' => $builtAgainst,
             ]
         );
 
@@ -107,6 +127,8 @@ class OptimizationReportGeneratorService
             'tax_year' => $taxYear,
             'section_count' => count($sections),
             'finding_count' => $findings->count(),
+            'income_cents_snapshot' => $builtAgainst['income_cents'],
+            'savings_cents_snapshot' => $builtAgainst['savings_cents'],
         ]);
 
         return $report;
@@ -120,7 +142,7 @@ class OptimizationReportGeneratorService
      * Ranking: severity tier (high=0, medium=1, low=2) then estimated_value_cents
      * DESC. estimated_value_cents is READ only — never assigned (SAFE-03).
      *
-     * @param  array<int, array<string, mixed>> $findingsArray
+     * @param  array<int, array<string, mixed>>  $findingsArray
      * @return array<int, array<string, mixed>>
      */
     protected function buildTopicalSections(array $findingsArray): array
@@ -214,7 +236,7 @@ class OptimizationReportGeneratorService
      *  2. Needs Professional Review (specialist-band findings)
      *  3. What We Refused and Why
      *
-     * @param  array<int, array<string, mixed>> $findingsArray
+     * @param  array<int, array<string, mixed>>  $findingsArray
      * @return array<int, array<string, mixed>>
      */
     protected function buildWrapperSections(array $findingsArray): array
@@ -303,7 +325,7 @@ class OptimizationReportGeneratorService
      * State-layer items suppressed (STATE-01).
      * NO countdown/pressure — educational surfacing only.
      *
-     * @param  array<int, array<string, mixed>> $findingsArray
+     * @param  array<int, array<string, mixed>>  $findingsArray
      */
     protected function buildYearEndSection(array $findingsArray, int $taxYear): array
     {
