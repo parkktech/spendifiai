@@ -117,11 +117,11 @@ Requirements for this milestone. Each maps to a roadmap phase. All outputs are e
 
 ### Action Center (ACT)
 
-- [ ] **ACT-01**: A lifecycle-adaptive, persistent to-do surface (Dashboard widget + Optimize page; nav badge showing open item count) aggregates every actionable item as a large-checkmark to-do; per-item done-state is persisted in the durable-facts/action store with timestamps
+- [x] **ACT-01**: A lifecycle-adaptive, persistent to-do surface (Dashboard widget + Optimize page; nav badge showing open item count) aggregates every actionable item as a large-checkmark to-do; per-item done-state is persisted in the durable-facts/action store with timestamps
 - [x] **ACT-02**: Stage-0 onboarding items are generated deterministically from connection/profile state for first-run users — ① Link your bank account ② Link your credit cards ③ Link your emails ④ Do the onboarding interview ⑤ Upload a pay stub — each disappears when completed and is replaced by what it unlocks
 - [x] **ACT-03**: Every Action Center item carries a quantified benefit line (deterministic engine arithmetic for short-horizon figures; D9.7 illustration rules with stated config assumptions for long-horizon projections) and a due date where real (bonus election cutoffs, Dec 31 year-end items)
 - [x] **ACT-04**: Checking an item done enters claimed state in the ChangeMonitor's 2-4-week observation window and transitions to verified when the expected change materializes in transaction/deposit data, reusing the SavingsLedger claimed→verified pattern
-- [ ] **ACT-05**: The empty-list state renders as an achievement moment ("You're fully optimized for now — we're watching for changes"), not a blank or dead-end view
+- [x] **ACT-05**: The empty-list state renders as an achievement moment ("You're fully optimized for now — we're watching for changes"), not a blank or dead-end view
 
 ### Scenarios (SCN)
 
@@ -143,7 +143,7 @@ Requirements for this milestone. Each maps to a roadmap phase. All outputs are e
 
 - [x] **ELEV-01**: DESIGN-ELEVATION-SPEC.md Wave 1 is applied: the 41 additive `sw-*` elevation tokens (shadow scale, motion tokens, display type scale, gradient recipes, surface colors) are added to `resources/css/app.css`; `AuthenticatedLayout.tsx` receives the spring-cubic-bezier sidebar transition, premium top header (backdrop-blur, 2-layer shadow, h-14), pill-indicator active nav state, and the `btn-press` / `card-lift` CSS utilities; Wave 1 preservation audit (§6 template) passes
 - [x] **ELEV-02**: DESIGN-ELEVATION-SPEC.md Wave 2 is applied: `StatCard` gains the double-bezel anatomy (outer gradient frame, inner core, value at `text-[28px] font-[800]`, sentence-case label, semantic icon container variants); `SubscriptionCard`, `Badge`, and generic content cards gain `ring-1`/gradient/`shadow-sw-1` treatment and `card-lift` hover; Dashboard stat grid uses `stagger-children`; transaction row hover uses the gradient-fade pattern; Wave 2 preservation + tests audit passes
-- [ ] **ELEV-03**: All new Phase-14 UI components (Action Center widget, scenario comparison cards, checklist items, ChangeMonitor doc-request cards) are born to DESIGN-ELEVATION-SPEC canonical recipes (§3.11 scenario/checklist action card, §3.9 premium empty state, §3.10 skeleton) from their initial commit — no retrofitting required
+- [x] **ELEV-03**: All new Phase-14 UI components (Action Center widget, scenario comparison cards, checklist items, ChangeMonitor doc-request cards) are born to DESIGN-ELEVATION-SPEC canonical recipes (§3.11 scenario/checklist action card, §3.9 premium empty state, §3.10 skeleton) from their initial commit — no retrofitting required
 
 ## Future Requirements
 
@@ -299,11 +299,11 @@ Each requirement maps to exactly one phase. Phases continue the global numbering
 | DOC-07 | Phase 12 | Complete |
 | SAFE-06 | Phase 13 | Pending |
 | SAFE-07 | Phase 13 | Pending |
-| ACT-01 | Phase 14 | Pending |
+| ACT-01 | Phase 14 | Complete |
 | ACT-02 | Phase 14 | Complete |
 | ACT-03 | Phase 14 | Complete |
 | ACT-04 | Phase 14 | Complete |
-| ACT-05 | Phase 14 | Pending |
+| ACT-05 | Phase 14 | Complete |
 | SCN-01 | Phase 14 | Complete |
 | SCN-02 | Phase 14 | Pending |
 | SCN-03 | Phase 14 | Complete |
@@ -316,7 +316,7 @@ Each requirement maps to exactly one phase. Phases continue the global numbering
 | MON-02 | Phase 14 | Complete |
 | ELEV-01 | Phase 14 | Complete |
 | ELEV-02 | Phase 14 | Complete |
-| ELEV-03 | Phase 14 | Pending |
+| ELEV-03 | Phase 14 | Complete |
 
 **Coverage:**
 
