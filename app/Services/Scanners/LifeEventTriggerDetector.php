@@ -428,6 +428,24 @@ class LifeEventTriggerDetector
     ];
 
     /**
+     * Look up one annual-battery definition by finding key (D18 — consumed by
+     * FindingPatternQuestionService to build the confirmation-shaped question
+     * and to route the answer onto the canonical life_event.* fact key).
+     *
+     * @return array{finding_key: string, fact_key: string, label: string, treatment: string, legal_basis: string}|null
+     */
+    public static function batteryDefinition(string $findingKey): ?array
+    {
+        foreach (self::ANNUAL_BATTERY as $battery) {
+            if ($battery['finding_key'] === $findingKey) {
+                return $battery;
+            }
+        }
+
+        return null;
+    }
+
+    /**
      * Surface unanswered annual battery questions as interview/feed findings.
      *
      * For each battery question defined in ANNUAL_BATTERY:

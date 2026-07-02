@@ -695,7 +695,17 @@ it('d18_jobchange_confirmation: the job-change battery renders as an evidence-le
     $session = $service->startOrResume($user->id, (int) now()->year);
     expect($session->queue)->toContain('battery_job_change');
 
-    $question = $service->nextQuestion($session);
+    // The payroll-stop TRIGGER surfaces first — it must ALSO use the
+    // confirmation shape (generalization: all trigger questions inherit it).
+    $trigger = $service->nextQuestion($session);
+    expect($trigger)->not->toBeNull();
+    expect($trigger->ai_best_guess)->toBe('life_event_payroll_stop');
+    expect(array_column((array) $trigger->options['choices'], 'value'))->toContain('yes');
+    expect(mb_strlen($trigger->question))->toBeLessThanOrEqual(240);
+    expect((string) ($trigger->options['context'] ?? ''))->not->toBe('');
+    $service->recordAnswer($session->fresh(), 'life_event_payroll_stop', 'no');
+
+    $question = $service->nextQuestion($session->fresh());
     expect($question)->not->toBeNull();
     expect($question->ai_best_guess)->toBe('battery_job_change');
 
@@ -739,7 +749,14 @@ it('d18_jobchange_yes: YES records the life-event fact (year-scoped), fans W-4 f
 
     $service = app(InterviewOrchestratorService::class);
     $session = $service->startOrResume($user->id, (int) now()->year);
-    $question = $service->nextQuestion($session);
+
+    // Consume the payroll-stop trigger question first (surfaces before battery).
+    $trigger = $service->nextQuestion($session);
+    expect($trigger->ai_best_guess)->toBe('life_event_payroll_stop');
+    $service->recordAnswer($session->fresh(), 'life_event_payroll_stop', 'no');
+
+    $question = $service->nextQuestion($session->fresh());
+    expect($question->ai_best_guess)->toBe('battery_job_change');
 
     $this->postJson(
         "/api/v1/optimizer/interview/{$session->id}/questions/{$question->id}/answer",

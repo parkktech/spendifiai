@@ -988,6 +988,25 @@ SYS;
             'question_id' => $questionId,
         ]);
 
+        // D18 confirmation shape: also record the canonical fact key (e.g. the
+        // battery's life_event.* key, tax-year scoped) so detector suppression
+        // and 14-09 Action Center items read the same durable fact.
+        if ($template !== null && ! empty($template['also_record'])) {
+            $also = (array) $template['also_record'];
+            if (! empty($also['fact_key'])) {
+                UserTaxFact::recordFact(
+                    userId: $session->user_id,
+                    factKey: (string) $also['fact_key'],
+                    value: $storedValue,
+                    sourceType: 'interview_answer',
+                    label: (string) ($also['label'] ?? $label),
+                    volatility: (string) ($template['volatility'] ?? 'stable'),
+                    taxYear: ! empty($also['tax_year_scoped']) ? (int) $session->tax_year : null,
+                    sourceId: $questionId ? (string) $questionId : null,
+                );
+            }
+        }
+
         // Mark as asked in the session (remove from queue if still there)
         $session->markAsked($factKey);
         $session->dequeueKey($factKey);

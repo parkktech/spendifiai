@@ -50,6 +50,32 @@ class FindingPatternQuestionService
      */
     private const FINDING_KEY_TEMPLATES = ['penalty_1099k_mismatch', 'category_vehicle_parts'];
 
+    /**
+     * D18 exemplar 4 — CONFIRMATION-shaped questions (shape='confirmation'):
+     * an evidence lead (detected data, humanized) + Yes / No / escape hatch,
+     * with ALL education demoted to the collapsible context. Applies to every
+     * life-event battery + change-monitor trigger question; 14-09's monitor
+     * prompts inherit this shape.
+     *
+     * @var array<string, string> finding_key => evidence lead (static one-liners;
+     *                            battery keys resolve their lead dynamically)
+     */
+    private const CONFIRMATION_TRIGGER_LEADS = [
+        'life_event_payroll_stop' => 'Your regular payroll deposits appear to have stopped recently. Did your job or income situation change?',
+        'life_event_new_mortgage' => 'We spotted what looks like a new monthly mortgage payment. Did you recently buy or refinance a home?',
+        'life_event_marketplace_premium' => 'We spotted payments that look like health-insurance marketplace premiums. Do you have coverage through an ACA marketplace plan?',
+        'life_event_escrow_inflow' => 'We spotted a large deposit that looks like it came from a title or escrow company. Did you sell a home this year?',
+    ];
+
+    /** Battery finding keys (annual life-event check-ins) — confirmation shape. */
+    private const CONFIRMATION_BATTERY_KEYS = [
+        'battery_marriage_status',
+        'battery_birth_adoption',
+        'battery_job_change',
+        'battery_inheritance',
+        'battery_medicare_enrollment',
+    ];
+
     public function isPatternType(string $findingType): bool
     {
         return in_array($findingType, self::PATTERN_TYPES, true);
@@ -65,7 +91,9 @@ class FindingPatternQuestionService
     public function hasTemplate(string $queueKey): bool
     {
         return $this->isPatternKey($queueKey)
-            || in_array($queueKey, self::FINDING_KEY_TEMPLATES, true);
+            || in_array($queueKey, self::FINDING_KEY_TEMPLATES, true)
+            || in_array($queueKey, self::CONFIRMATION_BATTERY_KEYS, true)
+            || isset(self::CONFIRMATION_TRIGGER_LEADS[$queueKey]);
     }
 
     /** Synthetic queue key for a pattern finding type. */
@@ -94,6 +122,11 @@ class FindingPatternQuestionService
                 'deductible_saas' => $this->deductibleSaasTemplate($user, $taxYear),
                 default => null,
             };
+        }
+
+        if (in_array($factKey, self::CONFIRMATION_BATTERY_KEYS, true)
+            || isset(self::CONFIRMATION_TRIGGER_LEADS[$factKey])) {
+            return $this->confirmationTemplate($user, $taxYear, $factKey);
         }
 
         return match ($factKey) {
@@ -166,6 +199,169 @@ class FindingPatternQuestionService
             'volatility' => 'stable',
             'label' => 'Software subscriptions used for business',
         ];
+    }
+
+    // ─── Confirmation shape (D18 exemplar 4) — life-event battery + triggers ──
+
+    /**
+     * shape='confirmation': one evidence sentence (detected data, humanized) +
+     * a Yes/No ask; the finding's dense educational treatment demoted to the
+     * collapsible context. Answers also_record the canonical life_event.* fact
+     * (tax-year scoped) so the detector never re-emits and 14-09 checklist
+     * items can key off it. YES on job-change fans the W-4 review follow-ups.
+     *
+     * @return array<string, mixed>|null
+     */
+    private function confirmationTemplate(User $user, int $taxYear, string $findingKey): ?array
+    {
+        $finding = OptimizationFinding::forUser($user->id)
+            ->where('tax_year', $taxYear)
+            ->where('finding_key', $findingKey)
+            ->where('status', 'open')
+            ->first();
+
+        if ($finding === null) {
+            return null;
+        }
+
+        $battery = \App\Services\Scanners\LifeEventTriggerDetector::batteryDefinition($findingKey);
+
+        // Evidence lead: detected data where derivable, clean label otherwise.
+        if ($findingKey === 'battery_job_change') {
+            $switch = $this->detectEmployerSwitch($user->id);
+            $question = $switch !== null
+                ? "It looks like you changed jobs — regular deposits from {$switch['from']} stopped "
+                    ."and regular deposits from {$switch['to']} began. Is that right?"
+                : ($battery['label'] ?? 'Did you start, leave, or change a job this year?');
+        } elseif ($battery !== null) {
+            $question = $battery['label'];
+        } else {
+            $question = self::CONFIRMATION_TRIGGER_LEADS[$findingKey] ?? null;
+            if ($question === null) {
+                return null;
+            }
+        }
+
+        $template = [
+            'shape' => 'confirmation',
+            'question' => $question,
+            'answer_type' => 'choice',
+            'choices' => [
+                ['value' => 'yes', 'label' => 'Yes'],
+                ['value' => 'no', 'label' => 'No'],
+            ],
+            // ALL education (the detector's treatment paragraph) → context.
+            'context' => trim((string) $finding->treatment) ?: null,
+            'dynamic' => true,
+            'volatility' => 'annual',
+            'label' => $battery['label'] ?? ucfirst(str_replace(['life_event_', '_'], ['', ' '], $findingKey)),
+        ];
+
+        // Battery answers also land on the canonical life_event.* fact key,
+        // tax-year scoped — the detector's suppression check and the 14-09
+        // Action Center items read THIS key.
+        if ($battery !== null) {
+            $template['also_record'] = [
+                'fact_key' => $battery['fact_key'],
+                'tax_year_scoped' => true,
+                'label' => $battery['label'],
+            ];
+        }
+
+        // YES on job-change fans the withholding-review probes via the gated
+        // tree — one topic per follow-up, never crammed (D18 rules 3/5).
+        if ($findingKey === 'battery_job_change') {
+            $template['follow_ups'] = [
+                'w4.filing_status' => ['yes'],
+                'w4.dependents_claimed' => ['yes'],
+            ];
+        }
+
+        return $template;
+    }
+
+    /**
+     * Detect an employer switch from payroll-pattern deposit history: one
+     * employer whose regular deposits stopped ≥45 days ago and another whose
+     * deposits began recently and continue. Returns humanized names or null.
+     *
+     * @return array{from: string, to: string}|null
+     */
+    private function detectEmployerSwitch(int $userId): ?array
+    {
+        $payrollPatterns = ['payroll', 'direct dep', 'dir dep', 'salary', 'wages'];
+
+        $txs = Transaction::where('user_id', $userId)
+            ->where('amount', '<', 0) // credits (deposits)
+            ->where('transaction_date', '>=', now()->subMonths(9))
+            ->where(function ($q) use ($payrollPatterns) {
+                foreach ($payrollPatterns as $pattern) {
+                    $q->orWhere('merchant_normalized', 'ILIKE', "%{$pattern}%")
+                        ->orWhere('merchant_name', 'ILIKE', "%{$pattern}%");
+                }
+            })
+            ->orderBy('transaction_date')
+            ->get(['merchant_name', 'merchant_normalized', 'transaction_date']);
+
+        if ($txs->isEmpty()) {
+            return null;
+        }
+
+        $stopped = null;
+        $started = null;
+        foreach ($txs->groupBy('merchant_normalized') as $group) {
+            $first = $group->first()->transaction_date;
+            $last = $group->last()->transaction_date;
+
+            if ($group->count() >= 3 && $last->lt(now()->subDays(45))) {
+                $stopped = $group;
+            } elseif ($group->count() >= 2
+                && $last->gte(now()->subDays(45))
+                && $first->gt(now()->subMonths(6))) {
+                $started = $group;
+            }
+        }
+
+        if ($stopped === null || $started === null) {
+            return null;
+        }
+
+        $from = $this->humanizeEmployerName((string) $stopped->first()->merchant_name);
+        $to = $this->humanizeEmployerName((string) $started->first()->merchant_name);
+
+        return ($from !== null && $to !== null && $from !== $to)
+            ? ['from' => $from, 'to' => $to]
+            : null;
+    }
+
+    /**
+     * Humanize a payroll memo into an employer display name (D18 rule 2):
+     * "ACME CORP PAYROLL 8827162" → "Acme Corp".
+     */
+    private function humanizeEmployerName(string $memo): ?string
+    {
+        $stopwords = [
+            'payroll', 'direct', 'deposit', 'dep', 'dir', 'des', 'ppd', 'id',
+            'ach', 'salary', 'wages', 'pay', 'net', 'co', 'xx',
+        ];
+
+        $tokens = preg_split("/[^a-zA-Z0-9'\\-&]+/", $memo) ?: [];
+        $names = [];
+        foreach ($tokens as $token) {
+            $lower = strtolower($token);
+            if ($lower === '' || in_array($lower, $stopwords, true)) {
+                continue;
+            }
+            if (preg_match('/\d/', $token) || strlen($token) > 18) {
+                continue; // reference codes carry digits
+            }
+            $names[] = ucfirst($lower);
+            if (count($names) >= 4) {
+                break;
+            }
+        }
+
+        return $names === [] ? null : implode(' ', $names);
     }
 
     // ─── penalty_1099k_mismatch (FLAG-26) — the D18 P2P-deposits exemplar ─────
