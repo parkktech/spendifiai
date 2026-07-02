@@ -4,12 +4,15 @@ use App\Enums\QuestionType;
 use App\Events\OptimizationProfileBuilt;
 use App\Events\TaxDocumentExtracted;
 use App\Events\UserAnsweredQuestion;
+use App\Jobs\BuildIncomeOptimizationProfile;
 use App\Jobs\GenerateOptimizationReport;
+use App\Jobs\SyncBankTransactions;
 use App\Listeners\DispatchReportGeneration;
 use App\Listeners\MarkOptimizationReportStale;
 use App\Models\AIQuestion;
 use App\Models\OptimizationReport;
 use App\Models\TaxDocument;
+use App\Services\PlaidService;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Storage;
 
@@ -223,4 +226,42 @@ test('cross-user: staling user1 report does not affect user2 report', function (
 
     expect($report1->is_stale)->toBeTrue();
     expect($report2->is_stale)->toBeFalse();  // Other user's report unaffected
+});
+
+/**
+ * RPT-02 / ROADMAP SC1 — bank-sync staleness path.
+ *
+ * Verifies that SyncBankTransactions::handle() dispatches BuildIncomeOptimizationProfile
+ * for the connection's user after a successful Plaid sync. That job fires
+ * OptimizationProfileBuilt, which MarkOptimizationReportStale already handles.
+ * No new listeners are needed — this test asserts the missing dispatch only.
+ */
+test('bank sync dispatches BuildIncomeOptimizationProfile to trigger the staleness chain (RPT-02)', function () {
+    Queue::fake();
+
+    ['user' => $user, 'connection' => $connection] = createUserWithBank();
+    $taxYear = now()->year;
+
+    // Seed a fresh report
+    OptimizationReport::create([
+        'user_id' => $user->id,
+        'tax_year' => $taxYear,
+        'is_stale' => false,
+        'sections' => [],
+    ]);
+
+    // Mock PlaidService — no real API call in tests
+    $plaid = Mockery::mock(PlaidService::class);
+    $plaid->shouldReceive('syncTransactions')
+        ->once()
+        ->with($connection)
+        ->andReturn(['added' => 3, 'modified' => 1, 'removed' => 0]);
+    app()->instance(PlaidService::class, $plaid);
+
+    $job = new SyncBankTransactions($connection);
+    $job->handle($plaid);
+
+    Queue::assertPushed(BuildIncomeOptimizationProfile::class, function ($queued) use ($user, $taxYear) {
+        return $queued->userId === $user->id && $queued->taxYear === $taxYear;
+    });
 });

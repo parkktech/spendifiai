@@ -51,6 +51,13 @@ class SyncBankTransactions implements ShouldQueue
             $user = $this->bankConnection->user;
             if ($user) {
                 SendSyncDigestEmail::dispatch($user, $result)->delay(now()->addSeconds(30));
+
+                // RPT-02 staleness chain: rebuild the optimization profile so that
+                // OptimizationProfileBuilt fires, which MarkOptimizationReportStale
+                // and DispatchReportGeneration already handle. No new listeners needed.
+                // GenerateOptimizationReport is ShouldBeUnique, so burst-coalescing
+                // handles multiple connections syncing for the same user.
+                BuildIncomeOptimizationProfile::dispatch($user->id, now()->year);
             }
         } catch (\Exception $e) {
             Log::error('Bank sync failed', [
