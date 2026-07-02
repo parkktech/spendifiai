@@ -814,6 +814,93 @@ return [
             'band' => 'conditional',
         ],
 
+        // ── FLAG-20: W-2 Benefit Arbitrage ───────────────────────────────────
+        // HSA gap, ESPP participation-education, NQDC education, mega-backdoor.
+        // ESPP: participation-education only — ban "free money"/"guaranteed return".
+        // NQDC: employer-credit-risk warning mandatory. Mega-backdoor: "if your plan allows".
+
+        'hsa_contribution_gap' => [
+            'rule_id' => 'hsa_contribution_gap',
+            'authority' => 'IRC §223 (HSA); IRS Publication 969',
+            'effective_start' => '2025-01-01',
+            'effective_end' => null,
+            'phaseouts' => [],
+            'caps_cents' => [
+                'self_only' => 432_000,   // 2026 HSA limit, self-only (~$4,320) — verify annually
+                'family' => 860_000,      // 2026 HSA limit, family (~$8,600) — verify annually
+            ],
+            'inflation_adjusted' => true,
+            'source_url' => 'https://www.irs.gov/publications/p969',
+            'last_verified' => '2026-07-01',
+            'status' => 'verified',
+            'band' => 'auto',  // HSA is triple-tax-advantaged; gap is high-value action
+        ],
+
+        'espp_participation_education' => [
+            'rule_id' => 'espp_participation_education',
+            'authority' => 'IRC §423 (qualified ESPP); IRC §83 (disqualifying disposition income)',
+            'effective_start' => '2025-01-01',
+            'effective_end' => null,
+            'phaseouts' => [],
+            'inflation_adjusted' => false,
+            'source_url' => 'https://www.irs.gov/pub/irs-pdf/p525.pdf',
+            'last_verified' => '2026-07-01',
+            'status' => 'verified',
+            // BINDING: participation-education only — never "free money" / "guaranteed return"
+            // BINDING: no disposition modeling (qualifying vs. disqualifying)
+            'band' => 'conditional',
+        ],
+
+        'nqdc_employer_credit_risk' => [
+            'rule_id' => 'nqdc_employer_credit_risk',
+            'authority' => 'IRC §409A (NQDC requirements and 20% excise tax on violations)',
+            'effective_start' => '2025-01-01',
+            'effective_end' => null,
+            'phaseouts' => [],
+            'inflation_adjusted' => false,
+            'source_url' => 'https://www.irs.gov/pub/irs-pdf/n2007-34.pdf',
+            'last_verified' => '2026-07-01',
+            'status' => 'verified',
+            // BINDING: employer-credit-risk warning mandatory in every NQDC finding
+            'band' => 'specialist',
+        ],
+
+        // ── FLAG-21: Public-Sector Retirement ────────────────────────────────
+        'ps_457b_limits' => [
+            'rule_id' => 'ps_457b_limits',
+            'authority' => 'IRC §457(b); IRC §457(b)(3) (3-yr catch-up doubles the limit)',
+            'effective_start' => '2025-01-01',
+            'effective_end' => null,
+            'phaseouts' => [],
+            'annual_limit_cents' => 2_450_000,  // ~$24,500 457(b)/403(b) separate limit 2026
+            'catchup_limit_cents' => 4_900_000, // 3-yr pre-retirement catch-up: doubles the limit
+            'inflation_adjusted' => true,
+            'source_url' => 'https://www.irs.gov/retirement-plans/irc-457b-deferred-compensation-plans',
+            'last_verified' => '2026-07-01',
+            'status' => 'verified',
+            // BINDING: non-governmental 457(b) creditor-risk caveat BEFORE any 457(b) content
+            'band' => 'conditional',
+        ],
+
+        // ── FLAG-25: Reimbursement Beats Deduction ────────────────────────────
+        'reimbursement_accountable_plan' => [
+            'rule_id' => 'reimbursement_accountable_plan',
+            'authority' => 'IRC §62(c) (accountable plan); Reg. §1.62-2; IRC §62(a)(2)(A) (suspended 2018-2025)',
+            'effective_start' => '2025-01-01',
+            'effective_end' => null,
+            'phaseouts' => [],
+            'inflation_adjusted' => false,
+            'source_url' => 'https://www.irs.gov/pub/irs-pdf/p463.pdf',
+            'last_verified' => '2026-07-01',
+            'status' => 'verified',
+            // BINDING: W-2 employee work expenses → "consider asking employer" NOT "deduct this"
+            'band' => 'conditional',
+        ],
+
+        // ── FLAG-24: IRA→HSA Qualified Funding Distribution ──────────────────
+        // Probe-level finding (no ruleId needed; gates enforce prerequisites).
+        // Testing-period caveat is MANDATORY in all QFD findings.
+
         // Battery answers don't need a rule_id in the tax rules registry
         // (they're stored as UserTaxFacts, not OptimizationFindings).
 

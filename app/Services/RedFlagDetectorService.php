@@ -196,6 +196,10 @@ class RedFlagDetectorService
             // ── Wave 11d — Plan 11-08 (FLAG-16, FLAG-17, FLAG-20, FLAG-21, FLAG-22, FLAG-23, FLAG-24, FLAG-25) ──
             \App\Services\Detectors\SignalProbeMatrix::class,
             \App\Services\Detectors\TimeCriticalAlarmDetector::class,
+            \App\Services\Detectors\W2BenefitArbitrageDetector::class,
+            \App\Services\Detectors\PublicSectorRetirementDetector::class,
+            \App\Services\Detectors\ReimbursementRoutingRule::class,
+            \App\Services\Detectors\IraToHsaQfdProbe::class,
             // ── Wave 11c — Plan 11-07 (FLAG-07, FLAG-10, FLAG-11, FLAG-12, FLAG-18, FLAG-26, FLAG-27) ──
             \App\Services\Detectors\CategoryLibraryDetector::class,
             \App\Services\Detectors\DeductibleSaasSweep::class,
