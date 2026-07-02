@@ -245,7 +245,7 @@ function SectionCard({
   const medCount = section.findings.filter((f) => f.severity === 'medium').length;
 
   return (
-    <div className="rounded-2xl border border-sw-border bg-sw-card shadow-sm overflow-hidden">
+    <div className="rounded-2xl ring-1 ring-sw-border/70 bg-gradient-to-b from-white to-slate-50/40 shadow-sw-2 overflow-hidden">
       {/* Section header */}
       <button
         onClick={() => setOpen(!open)}
@@ -253,7 +253,7 @@ function SectionCard({
         className="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-sw-surface/50 transition-colors"
       >
         <div className="flex items-center gap-3 min-w-0">
-          <div className="w-8 h-8 rounded-lg bg-sw-accent/10 border border-sw-accent/20 flex items-center justify-center shrink-0">
+          <div className="w-8 h-8 rounded-xl bg-sw-accent/10 ring-1 ring-sw-accent/20 flex items-center justify-center shrink-0">
             <FileText size={14} className="text-sw-accent" />
           </div>
           <div className="min-w-0">
@@ -414,7 +414,7 @@ export default function OptimizationReportView({
   return (
     <div className="space-y-4">
       {/* Report header bar */}
-      <div className="rounded-2xl border border-sw-border bg-sw-card px-5 py-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+      <div className="rounded-2xl ring-1 ring-sw-border/70 bg-gradient-to-b from-white to-slate-50/40 shadow-sw-2 px-5 py-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div>
           <p className="text-[13px] font-semibold text-sw-text">
             {taxYear} Income Optimization Report

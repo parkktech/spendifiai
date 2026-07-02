@@ -41,7 +41,8 @@ import OptimizationReportView from '@/Components/SpendifiAI/OptimizationReportVi
 import ObjectiveReadinessPanel from '@/Components/SpendifiAI/ObjectiveReadinessPanel';
 import ScenarioComparisonCards from '@/Components/SpendifiAI/ScenarioComparisonCards';
 import ScenarioMixPanel from '@/Components/SpendifiAI/ScenarioMixPanel';
-import { useApi, useApiPost } from '@/hooks/useApi';
+import OptimizationChecklistView from '@/Components/SpendifiAI/OptimizationChecklistView';
+import { useApi } from '@/hooks/useApi';
 import axios from 'axios';
 import type { ObjectivesResponse, ScenariosResponse } from '@/types/spendifiai';
 
@@ -120,9 +121,9 @@ function FindingSummaryCard({
   const medFindings = section.findings.filter((f) => f.severity === 'medium');
 
   return (
-    <div className="rounded-2xl border border-sw-border bg-sw-card shadow-sm p-5 space-y-3">
+    <div className="rounded-2xl ring-1 ring-sw-border/70 bg-gradient-to-b from-white to-slate-50/40 shadow-sw-2 p-5 space-y-3 card-lift">
       <div className="flex items-start gap-3">
-        <div className="w-9 h-9 rounded-xl bg-sw-accent/10 border border-sw-accent/20 flex items-center justify-center shrink-0">
+        <div className="w-9 h-9 rounded-xl bg-sw-accent/10 ring-1 ring-sw-accent/20 flex items-center justify-center shrink-0">
           <BarChart2 size={16} className="text-sw-accent" />
         </div>
         <div className="min-w-0">
@@ -414,8 +415,8 @@ export default function OptimizeIndex() {
     <AuthenticatedLayout
       header={
         <div>
-          <h1 className="text-xl font-bold text-sw-text tracking-tight">Optimize My Income</h1>
-          <p className="text-xs text-sw-dim mt-0.5">Educational review — not tax advice</p>
+          <h1 className="text-[28px] font-[800] text-sw-text tracking-[-0.03em] leading-tight">Optimize My Income</h1>
+          <p className="text-xs text-sw-muted mt-0.5">Educational review — not tax advice</p>
         </div>
       }
     >
@@ -455,18 +456,18 @@ export default function OptimizeIndex() {
 
       {/* Summary stats (findings stage only) */}
       {viewMode === 'findings' && !reportLoading && report && totalCount > 0 && (
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-5">
-          <div className="rounded-xl border border-sw-border bg-sw-card p-3.5">
-            <p className="text-[11px] text-sw-dim uppercase tracking-wide">Total Findings</p>
-            <p className="text-2xl font-bold text-sw-text mt-0.5">{totalCount}</p>
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-5 stagger-children">
+          <div className="rounded-xl ring-1 ring-sw-border/70 bg-gradient-to-b from-white to-slate-50/50 shadow-sw-1 p-3.5 card-lift">
+            <p className="text-[11px] text-sw-muted font-medium">Total Findings</p>
+            <p className="text-2xl font-bold text-sw-text mt-0.5 font-tabular">{totalCount}</p>
           </div>
-          <div className="rounded-xl border border-sw-danger/30 bg-sw-danger/5 p-3.5">
-            <p className="text-[11px] text-sw-danger uppercase tracking-wide font-medium">High Priority</p>
-            <p className="text-2xl font-bold text-sw-text mt-0.5">{highCount}</p>
+          <div className="rounded-xl ring-1 ring-sw-danger/30 bg-sw-danger/5 shadow-sw-1 p-3.5 card-lift">
+            <p className="text-[11px] text-sw-danger font-medium">High Priority</p>
+            <p className="text-2xl font-bold text-sw-text mt-0.5 font-tabular">{highCount}</p>
           </div>
-          <div className="rounded-xl border border-sw-border bg-sw-card p-3.5 col-span-2 sm:col-span-1">
-            <p className="text-[11px] text-sw-dim uppercase tracking-wide">Tax Year</p>
-            <p className="text-2xl font-bold text-sw-text mt-0.5">{currentYear}</p>
+          <div className="rounded-xl ring-1 ring-sw-border/70 bg-gradient-to-b from-white to-slate-50/50 shadow-sw-1 p-3.5 col-span-2 sm:col-span-1 card-lift">
+            <p className="text-[11px] text-sw-muted font-medium">Tax Year</p>
+            <p className="text-2xl font-bold text-sw-text mt-0.5 font-tabular">{currentYear}</p>
           </div>
         </div>
       )}
@@ -487,10 +488,24 @@ export default function OptimizeIndex() {
             </button>
           </div>
 
-          {/* Loading */}
+          {/* Loading skeleton (§3.10 — replaces spinner) */}
           {reportLoading && (
-            <div className="flex items-center justify-center py-12">
-              <Loader2 size={22} className="animate-spin text-sw-accent" />
+            <div className="space-y-3 animate-pulse">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="rounded-2xl ring-1 ring-sw-border/70 bg-gradient-to-b from-white to-slate-50/40 p-5">
+                  <div className="flex items-start gap-3 mb-3">
+                    <div className="w-9 h-9 rounded-xl bg-slate-200 shrink-0" />
+                    <div className="flex-1 space-y-1.5">
+                      <div className="h-4 bg-slate-200 rounded w-3/4" />
+                      <div className="h-3 bg-slate-100 rounded w-1/2" />
+                    </div>
+                  </div>
+                  <div className="space-y-2 pl-12">
+                    <div className="h-3 bg-slate-100 rounded w-full" />
+                    <div className="h-3 bg-slate-100 rounded w-4/5" />
+                  </div>
+                </div>
+              ))}
             </div>
           )}
 
@@ -503,13 +518,15 @@ export default function OptimizeIndex() {
             </div>
           )}
 
-          {/* Generating state */}
+          {/* Generating state — born-premium §3.9 empty/waiting state */}
           {!reportLoading && !reportError && (!report || report.status === 'generating') && (
-            <div className="rounded-2xl border border-sw-border bg-sw-card p-8 text-center space-y-3">
-              <Loader2 size={24} className="mx-auto animate-spin text-sw-accent" />
-              <p className="text-sm font-medium text-sw-text">Analyzing your financial data...</p>
-              <p className="text-xs text-sw-muted">
-                Your income optimization analysis may take a moment to prepare.
+            <div className="rounded-2xl ring-1 ring-sw-border/70 bg-gradient-to-b from-white to-slate-50/40 shadow-sw-1 p-8 text-center space-y-3">
+              <div className="w-12 h-12 mx-auto rounded-2xl bg-sw-accent/10 ring-1 ring-sw-accent/20 flex items-center justify-center">
+                <Loader2 size={22} className="animate-spin text-sw-accent" />
+              </div>
+              <p className="text-sm font-semibold text-sw-text">Analyzing your financial data...</p>
+              <p className="text-xs text-sw-muted max-w-xs mx-auto leading-relaxed">
+                Your income optimization analysis may take a moment to prepare. This page updates automatically.
               </p>
             </div>
           )}
@@ -518,10 +535,12 @@ export default function OptimizeIndex() {
           {!reportLoading && report && report.status === 'ready' && (
             <>
               {report.sections.length === 0 ? (
-                <div className="rounded-2xl border border-sw-border bg-sw-card p-8 text-center">
-                  <CheckCircle size={28} className="mx-auto text-sw-accent/50 mb-3" />
-                  <p className="text-sm font-medium text-sw-text mb-1">No findings yet</p>
-                  <p className="text-xs text-sw-muted max-w-xs mx-auto">
+                <div className="rounded-2xl ring-1 ring-sw-border/70 bg-gradient-to-b from-white to-slate-50/40 shadow-sw-1 p-8 text-center">
+                  <div className="w-12 h-12 mx-auto rounded-2xl bg-sw-success/10 ring-1 ring-sw-success/30 flex items-center justify-center mb-3">
+                    <CheckCircle size={22} className="text-sw-success" />
+                  </div>
+                  <h3 className="text-[15px] font-semibold text-sw-text mb-1">No findings yet</h3>
+                  <p className="text-xs text-sw-muted max-w-xs mx-auto leading-relaxed">
                     Connect your bank and complete the income review to see potential optimization areas.
                   </p>
                 </div>
@@ -679,6 +698,14 @@ export default function OptimizeIndex() {
 
           {/* Mix panel */}
           <ScenarioMixPanel taxYear={currentYear} />
+
+          {/* Checklist (materialized after choosing a scenario) */}
+          {scenariosData?.chosen && (
+            <OptimizationChecklistView
+              taxYear={currentYear}
+              hasBankConnected={auth.hasBankConnected}
+            />
+          )}
         </div>
       )}
 
@@ -691,6 +718,14 @@ export default function OptimizeIndex() {
               <h2 className="text-sm font-semibold text-sw-text">Your Optimization Report</h2>
             </div>
           </div>
+
+          {/* D7: chosen plan checklist mirror in the report stage */}
+          {scenariosData?.chosen && (
+            <OptimizationChecklistView
+              taxYear={currentYear}
+              hasBankConnected={auth.hasBankConnected}
+            />
+          )}
 
           <OptimizationReportView
             taxYear={currentYear}
