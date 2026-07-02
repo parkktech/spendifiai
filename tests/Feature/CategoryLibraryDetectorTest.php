@@ -38,14 +38,14 @@ beforeEach(function () {
 
 it('DetectionMerchant can be created with aliases as JSONB array', function () {
     $merchant = DetectionMerchant::create([
-        'company_name'       => 'AutoZone',
-        'aliases'            => ['AUTOZONE', 'AUTO ZONE', 'AUTOZONE.COM'],
-        'category'           => 'vehicle',
-        'subdetector_key'    => 'vehicle_parts',
+        'company_name' => 'AutoZone',
+        'aliases' => ['AUTOZONE', 'AUTO ZONE', 'AUTOZONE.COM'],
+        'category' => 'vehicle',
+        'subdetector_key' => 'vehicle_parts',
         'defensibility_rating' => 'conditional',
-        'gray_area'          => false,
-        'notes'              => 'Auto parts store',
-        'rule_id'            => 'category_vehicle',
+        'gray_area' => false,
+        'notes' => 'Auto parts store',
+        'rule_id' => 'category_vehicle',
     ]);
 
     expect($merchant->id)->not->toBeNull()
@@ -74,8 +74,8 @@ it('DetectionMerchant forCategory scope filters correctly by category', function
 it('DetectionMerchant matchesNormalizedName returns true for known alias', function () {
     $merchant = DetectionMerchant::create([
         'company_name' => 'AutoZone',
-        'aliases'      => ['AUTOZONE', 'AUTO ZONE'],
-        'category'     => 'vehicle', 'subdetector_key' => 'vehicle_parts',
+        'aliases' => ['AUTOZONE', 'AUTO ZONE'],
+        'category' => 'vehicle', 'subdetector_key' => 'vehicle_parts',
         'defensibility_rating' => 'conditional', 'gray_area' => false,
     ]);
 
@@ -104,10 +104,10 @@ it('CategoryLibraryDetector emits finding for high-value vehicle-merchant transa
 
     // 3 × $400 = $1,200 annual — above the $500/yr recurring gate
     Transaction::factory()->count(3)->create([
-        'user_id'             => $this->user->id,
+        'user_id' => $this->user->id,
         'merchant_normalized' => 'autozone',
-        'amount'              => 400.00,
-        'transaction_date'    => now()->subDays(30),
+        'amount' => 400.00,
+        'transaction_date' => now()->subDays(30),
     ]);
 
     $detector = app(CategoryLibraryDetector::class);
@@ -127,10 +127,10 @@ it('CategoryLibraryDetector never surfaces gambling as deductible (band=suppress
 
     // 10 × $500 = $5,000 — well above thresholds
     Transaction::factory()->count(10)->create([
-        'user_id'             => $this->user->id,
+        'user_id' => $this->user->id,
         'merchant_normalized' => 'draftkings',
-        'amount'              => 500.00,
-        'transaction_date'    => now()->subDays(5),
+        'amount' => 500.00,
+        'transaction_date' => now()->subDays(5),
     ]);
 
     $detector = app(CategoryLibraryDetector::class);
@@ -158,10 +158,10 @@ it('CategoryLibraryDetector treatment never asserts deductibility for any catego
     ]);
 
     Transaction::factory()->count(5)->create([
-        'user_id'             => $this->user->id,
+        'user_id' => $this->user->id,
         'merchant_normalized' => 'autozone',
-        'amount'              => 300.00,
-        'transaction_date'    => now()->subDays(20),
+        'amount' => 300.00,
+        'transaction_date' => now()->subDays(20),
     ]);
 
     $detector = app(CategoryLibraryDetector::class);
@@ -179,7 +179,7 @@ it('CategoryLibraryDetector treatment never asserts deductibility for any catego
 
 it('CategoryLibraryDetector gray-area pool/spa finding includes docs checklist', function () {
     DetectionMerchant::create([
-        'company_name' => "Leslie's", 'aliases' => ["LESLIES", "LESLIES POOL"],
+        'company_name' => "Leslie's", 'aliases' => ['LESLIES', 'LESLIES POOL'],
         'category' => 'pool_spa', 'subdetector_key' => 'pool_supply',
         'defensibility_rating' => 'conditional', 'gray_area' => true,
         'rule_id' => 'category_pool_spa',
@@ -187,10 +187,10 @@ it('CategoryLibraryDetector gray-area pool/spa finding includes docs checklist',
 
     // $2,000 single transaction — above $1,000 interrogate threshold
     Transaction::factory()->create([
-        'user_id'             => $this->user->id,
+        'user_id' => $this->user->id,
         'merchant_normalized' => 'leslies',
-        'amount'              => 2000.00,
-        'transaction_date'    => now()->subDays(10),
+        'amount' => 2000.00,
+        'transaction_date' => now()->subDays(10),
     ]);
 
     $detector = app(CategoryLibraryDetector::class);
@@ -228,15 +228,15 @@ it('DeductibleSaasSweep stays silent when no active subscriptions exist', functi
 
 it('DeductibleSaasSweep surfaces active Software subscriptions as educational findings', function () {
     Subscription::factory()->create([
-        'user_id'             => $this->user->id,
-        'merchant_name'       => 'GitHub',
+        'user_id' => $this->user->id,
+        'merchant_name' => 'GitHub',
         'merchant_normalized' => 'github',
-        'category'            => 'Software',
-        'status'              => 'active',
-        'amount'              => '10.00',
-        'frequency'           => 'monthly',
-        'is_essential'        => false,
-        'last_charge_date'    => now()->subDays(15),
+        'category' => 'Software',
+        'status' => 'active',
+        'amount' => '10.00',
+        'frequency' => 'monthly',
+        'is_essential' => false,
+        'last_charge_date' => now()->subDays(15),
     ]);
 
     $sweep = app(DeductibleSaasSweep::class);
@@ -256,15 +256,15 @@ it('DeductibleSaasSweep surfaces active Software subscriptions as educational fi
 
 it('DeductibleSaasSweep does not surface cancelled subscriptions', function () {
     Subscription::factory()->create([
-        'user_id'             => $this->user->id,
-        'merchant_name'       => 'Adobe',
+        'user_id' => $this->user->id,
+        'merchant_name' => 'Adobe',
         'merchant_normalized' => 'adobe',
-        'category'            => 'Software',
-        'status'              => 'cancelled',
-        'amount'              => '55.00',
-        'frequency'           => 'monthly',
-        'is_essential'        => false,
-        'last_charge_date'    => now()->subMonths(3),
+        'category' => 'Software',
+        'status' => 'cancelled',
+        'amount' => '55.00',
+        'frequency' => 'monthly',
+        'is_essential' => false,
+        'last_charge_date' => now()->subMonths(3),
     ]);
 
     $sweep = app(DeductibleSaasSweep::class);
@@ -276,15 +276,15 @@ it('DeductibleSaasSweep does not surface cancelled subscriptions', function () {
 it('DeductibleSaasSweep finding is_essential subscription still surfaced for business review', function () {
     // Essential subscriptions like Google Workspace may still be deductible for businesses
     Subscription::factory()->create([
-        'user_id'             => $this->user->id,
-        'merchant_name'       => 'Google Workspace',
+        'user_id' => $this->user->id,
+        'merchant_name' => 'Google Workspace',
         'merchant_normalized' => 'google workspace',
-        'category'            => 'Software',
-        'status'              => 'active',
-        'amount'              => '14.00',
-        'frequency'           => 'monthly',
-        'is_essential'        => true,
-        'last_charge_date'    => now()->subDays(5),
+        'category' => 'Software',
+        'status' => 'active',
+        'amount' => '14.00',
+        'frequency' => 'monthly',
+        'is_essential' => true,
+        'last_charge_date' => now()->subDays(5),
     ]);
 
     $sweep = app(DeductibleSaasSweep::class);
@@ -299,4 +299,138 @@ it('DeductibleSaasSweep finding is_essential subscription still surfaced for bus
 
     expect($finding)->not->toBeNull()
         ->and($finding->treatment)->not->toContain('is deductible');
+});
+
+// ── GAP CLOSURE 2026-07-02: FLAG-10 missing categories ──────────────────────
+// RED tests for travel_cluster, rv_boat, masters_14_day, auto_loan_interest
+
+it('CategoryLibraryDetector emits travel_cluster finding for airline transactions', function () {
+    DetectionMerchant::create([
+        'company_name' => 'Delta Air Lines',
+        'aliases' => ['DELTA', 'DELTA AIR LINES', 'DELTA AIRLINES'],
+        'category' => 'travel_cluster',
+        'subdetector_key' => 'travel_cluster',
+        'defensibility_rating' => 'conditional',
+        'gray_area' => false,
+        'rule_id' => 'category_travel_cluster',
+    ]);
+
+    Transaction::factory()->count(3)->create([
+        'user_id' => $this->user->id,
+        'merchant_normalized' => 'delta',
+        'amount' => 650.00,
+        'transaction_date' => now()->subDays(30),
+    ]);
+
+    $detector = app(CategoryLibraryDetector::class);
+    $result = $detector->run($this->user->id, $this->taxYear, $this->service, []);
+
+    expect(count($result))->toBeGreaterThanOrEqual(1);
+
+    $finding = OptimizationFinding::where('user_id', $this->user->id)
+        ->whereIn('finding_key', $result)
+        ->first();
+
+    expect($finding)->not->toBeNull()
+        ->and($finding->treatment)->toContain('may')
+        ->and($finding->treatment)->not->toContain('is deductible');
+});
+
+it('CategoryLibraryDetector emits rv_boat finding for RV loan servicer merchant', function () {
+    DetectionMerchant::create([
+        'company_name' => 'Good Sam Finance',
+        'aliases' => ['GOOD SAM FINANCE', 'GOOD SAM FINANCIAL', 'GOODSAM FINANCE'],
+        'category' => 'rv_boat',
+        'subdetector_key' => 'rv_boat_loan',
+        'defensibility_rating' => 'conditional',
+        'gray_area' => false,
+        'rule_id' => 'category_rv_boat',
+    ]);
+
+    Transaction::factory()->count(3)->create([
+        'user_id' => $this->user->id,
+        'merchant_normalized' => 'good sam finance',
+        'amount' => 650.00,
+        'transaction_date' => now()->subDays(20),
+        'is_subscription' => true,
+    ]);
+
+    $detector = app(CategoryLibraryDetector::class);
+    $result = $detector->run($this->user->id, $this->taxYear, $this->service, []);
+
+    expect(count($result))->toBeGreaterThanOrEqual(1);
+
+    $finding = OptimizationFinding::where('user_id', $this->user->id)
+        ->whereIn('finding_key', $result)
+        ->first();
+
+    expect($finding)->not->toBeNull()
+        ->and($finding->treatment)->toContain('may')
+        ->and($finding->treatment)->not->toContain('is deductible');
+});
+
+it('CategoryLibraryDetector emits masters_14_day finding for short-term rental platform', function () {
+    DetectionMerchant::create([
+        'company_name' => 'Airbnb',
+        'aliases' => ['AIRBNB', 'AIRBNB.COM', 'AIRBNB INC'],
+        'category' => 'masters_14_day',
+        'subdetector_key' => 'masters_14_day',
+        'defensibility_rating' => 'conditional',
+        'gray_area' => false,
+        'rule_id' => 'category_masters_14_day',
+    ]);
+
+    // Airbnb host service fees (debit) — 3 payments totaling > $500/yr → recurring gate trigger
+    Transaction::factory()->count(3)->create([
+        'user_id' => $this->user->id,
+        'merchant_normalized' => 'airbnb',
+        'amount' => 210.00,   // 3 × $210 = $630 > $500/yr recurring gate
+        'transaction_date' => now()->subDays(15),
+    ]);
+
+    $detector = app(CategoryLibraryDetector::class);
+    $result = $detector->run($this->user->id, $this->taxYear, $this->service, []);
+
+    expect(count($result))->toBeGreaterThanOrEqual(1);
+
+    $finding = OptimizationFinding::where('user_id', $this->user->id)
+        ->whereIn('finding_key', $result)
+        ->first();
+
+    expect($finding)->not->toBeNull()
+        ->and($finding->treatment)->toContain('may')
+        ->and($finding->treatment)->not->toContain('is tax-free');
+});
+
+it('CategoryLibraryDetector emits auto_loan_interest finding for captive auto lender', function () {
+    DetectionMerchant::create([
+        'company_name' => 'Ford Motor Credit',
+        'aliases' => ['FORD MOTOR CREDIT', 'FORD CREDIT', 'FORD MOTOR CREDIT CO'],
+        'category' => 'vehicle',
+        'subdetector_key' => 'auto_loan_interest',
+        'defensibility_rating' => 'conditional',
+        'gray_area' => false,
+        'rule_id' => 'auto_loan_interest',
+    ]);
+
+    Transaction::factory()->count(6)->create([
+        'user_id' => $this->user->id,
+        'merchant_normalized' => 'ford motor credit',
+        'amount' => 450.00,
+        'transaction_date' => now()->subDays(10),
+        'is_subscription' => true,
+    ]);
+
+    $detector = app(CategoryLibraryDetector::class);
+    $result = $detector->run($this->user->id, $this->taxYear, $this->service, []);
+
+    expect(count($result))->toBeGreaterThanOrEqual(1);
+
+    $finding = OptimizationFinding::where('user_id', $this->user->id)
+        ->whereIn('finding_key', $result)
+        ->first();
+
+    expect($finding)->not->toBeNull()
+        ->and($finding->treatment)->toContain('may')
+        ->and($finding->treatment)->not->toContain('you qualify');
 });

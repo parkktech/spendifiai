@@ -19,7 +19,6 @@
 use App\Models\IncomeOptimizationProfile;
 use App\Models\OptimizationFinding;
 use App\Models\User;
-use App\Models\UserFinancialProfile;
 use App\Models\UserTaxFact;
 use App\Services\Detectors\SignalProbeMatrix;
 use App\Services\Detectors\TimeCriticalAlarmDetector;
@@ -36,18 +35,6 @@ beforeEach(function () {
     $this->service = app(RedFlagDetectorService::class);
 });
 
-// Helper to record a durable fact using the existing recordFact() API
-function recordFact(int $userId, string $factKey, string $value, ?int $taxYear = null): void
-{
-    UserTaxFact::recordFact(
-        userId: $userId,
-        factKey: $factKey,
-        value: $value,
-        sourceType: 'interview_answer',
-        taxYear: $taxYear,
-    );
-}
-
 // ──────────────────────────────────────────────────────────────────────────────
 // SignalProbeMatrix — FLAG-17 (prerequisite gating)
 // ──────────────────────────────────────────────────────────────────────────────
@@ -58,12 +45,11 @@ it('SignalProbeMatrix stays silent when no income signals present', function () 
     expect($result)->toBeEmpty();
 });
 
-it('SignalProbeMatrix emits deferral_gap probe only when payroll detected and no/low 401k deferral', function () {
+it('SignalProbeMatrix emits deferral_gap probe when payroll detected and no 401k deferral fact', function () {
     IncomeOptimizationProfile::factory()->create([
         'user_id' => $this->user->id,
         'tax_year' => $this->taxYear,
-        'annual_income' => 90000_00,
-        'income_sources' => [['type' => 'payroll', 'annual_amount' => 90000_00]],
+        'w2_wages' => '9000000', // $90,000
     ]);
 
     // No deferral fact recorded → gap detected
@@ -79,12 +65,17 @@ it('SignalProbeMatrix does NOT emit deferral_gap when user already maxing 401k',
     IncomeOptimizationProfile::factory()->create([
         'user_id' => $this->user->id,
         'tax_year' => $this->taxYear,
-        'annual_income' => 90000_00,
-        'income_sources' => [['type' => 'payroll', 'annual_amount' => 90000_00]],
+        'w2_wages' => '9000000',
     ]);
 
     // Record max deferral fact (2450000 cents = $24,500)
-    recordFact($this->user->id, 'retirement.k401_contribution_ytd_cents', '2450000', $this->taxYear);
+    UserTaxFact::recordFact(
+        userId: $this->user->id,
+        factKey: 'retirement.k401_contribution_ytd_cents',
+        value: '2450000',
+        sourceType: 'interview_answer',
+        taxYear: $this->taxYear,
+    );
 
     $detector = app(SignalProbeMatrix::class);
     $result = $detector->run($this->user->id, $this->taxYear, $this->service, []);
@@ -92,12 +83,12 @@ it('SignalProbeMatrix does NOT emit deferral_gap when user already maxing 401k',
     expect($result)->not->toContain('probe_deferral_gap');
 });
 
-it('SignalProbeMatrix emits se_income_probe when Schedule C proxy income detected', function () {
+it('SignalProbeMatrix emits se_income_probe when SE income detected', function () {
     IncomeOptimizationProfile::factory()->create([
         'user_id' => $this->user->id,
         'tax_year' => $this->taxYear,
-        'annual_income' => 60000_00,
-        'income_sources' => [['type' => 'self_employment', 'annual_amount' => 60000_00]],
+        'self_employment_income' => '6000000', // $60,000
+        'has_self_employment' => true,
     ]);
 
     $detector = app(SignalProbeMatrix::class);
@@ -111,10 +102,16 @@ it('SignalProbeMatrix entity probe leads with 60-month lock warning', function (
     IncomeOptimizationProfile::factory()->create([
         'user_id' => $this->user->id,
         'tax_year' => $this->taxYear,
-        'annual_income' => 80000_00,
-        'income_sources' => [['type' => 'self_employment', 'annual_amount' => 80000_00]],
+        'self_employment_income' => '8000000', // $80,000
+        'has_self_employment' => true,
     ]);
-    recordFact($this->user->id, 'business.schedule_c_net_cents', '6000000', $this->taxYear);
+    UserTaxFact::recordFact(
+        userId: $this->user->id,
+        factKey: 'business.schedule_c_net_cents',
+        value: '6000000', // $60,000 net
+        sourceType: 'interview_answer',
+        taxYear: $this->taxYear,
+    );
 
     $detector = app(SignalProbeMatrix::class);
     $detector->run($this->user->id, $this->taxYear, $this->service, []);
@@ -133,15 +130,20 @@ it('SignalProbeMatrix entity probe leads with 60-month lock warning', function (
 });
 
 it('SignalProbeMatrix income-drop Roth trigger uses income signals only, not asset values', function () {
+    // Low current income
     IncomeOptimizationProfile::factory()->create([
         'user_id' => $this->user->id,
         'tax_year' => $this->taxYear,
-        'annual_income' => 30000_00,
-        'income_sources' => [['type' => 'payroll', 'annual_amount' => 30000_00]],
+        'w2_wages' => '3000000', // $30,000 this year
     ]);
 
     // Prior year income much higher (income-drop signal)
-    recordFact($this->user->id, 'income.prior_year_income_cents', '9000000');
+    UserTaxFact::recordFact(
+        userId: $this->user->id,
+        factKey: 'income.prior_year_income_cents',
+        value: '9000000', // $90,000 prior year
+        sourceType: 'interview_answer',
+    );
 
     $detector = app(SignalProbeMatrix::class);
     $result = $detector->run($this->user->id, $this->taxYear, $this->service, []);
@@ -161,12 +163,18 @@ it('SignalProbeMatrix QBI above-threshold returns professional-review sentinel, 
     IncomeOptimizationProfile::factory()->create([
         'user_id' => $this->user->id,
         'tax_year' => $this->taxYear,
-        'annual_income' => 300000_00,
-        'income_sources' => [['type' => 'self_employment', 'annual_amount' => 300000_00]],
+        'self_employment_income' => '30000000', // $300,000
+        'has_self_employment' => true,
     ]);
 
     // Schedule C net well above QBI phaseout ($201,750 single 2026)
-    recordFact($this->user->id, 'business.schedule_c_net_cents', '28000000', $this->taxYear);
+    UserTaxFact::recordFact(
+        userId: $this->user->id,
+        factKey: 'business.schedule_c_net_cents',
+        value: '28000000', // $280,000 net
+        sourceType: 'interview_answer',
+        taxYear: $this->taxYear,
+    );
 
     $detector = app(SignalProbeMatrix::class);
     $detector->run($this->user->id, $this->taxYear, $this->service, []);
@@ -181,7 +189,12 @@ it('SignalProbeMatrix QBI above-threshold returns professional-review sentinel, 
 });
 
 it('SignalProbeMatrix ISO/AMT probe ships only the safe one-liner', function () {
-    recordFact($this->user->id, 'equity.has_iso', 'true');
+    UserTaxFact::recordFact(
+        userId: $this->user->id,
+        factKey: 'equity.has_iso',
+        value: 'true',
+        sourceType: 'interview_answer',
+    );
 
     $detector = app(SignalProbeMatrix::class);
     $detector->run($this->user->id, $this->taxYear, $this->service, []);
@@ -200,10 +213,16 @@ it('SignalProbeMatrix solo-401k probe includes employee gate', function () {
     IncomeOptimizationProfile::factory()->create([
         'user_id' => $this->user->id,
         'tax_year' => $this->taxYear,
-        'annual_income' => 50000_00,
-        'income_sources' => [['type' => 'self_employment', 'annual_amount' => 50000_00]],
+        'self_employment_income' => '5000000',
+        'has_self_employment' => true,
     ]);
-    recordFact($this->user->id, 'business.schedule_c_net_cents', '3000000', $this->taxYear);
+    UserTaxFact::recordFact(
+        userId: $this->user->id,
+        factKey: 'business.schedule_c_net_cents',
+        value: '3000000', // $30,000 net
+        sourceType: 'interview_answer',
+        taxYear: $this->taxYear,
+    );
 
     $detector = app(SignalProbeMatrix::class);
     $detector->run($this->user->id, $this->taxYear, $this->service, []);
@@ -215,8 +234,18 @@ it('SignalProbeMatrix solo-401k probe includes employee gate', function () {
 });
 
 it('SignalProbeMatrix 529 probe surfaces federal-parts only', function () {
-    recordFact($this->user->id, 'family.has_children', 'true');
-    recordFact($this->user->id, 'family.has_529_account', 'false');
+    UserTaxFact::recordFact(
+        userId: $this->user->id,
+        factKey: 'family.has_children',
+        value: 'true',
+        sourceType: 'interview_answer',
+    );
+    UserTaxFact::recordFact(
+        userId: $this->user->id,
+        factKey: 'family.has_529_account',
+        value: 'false',
+        sourceType: 'interview_answer',
+    );
 
     $detector = app(SignalProbeMatrix::class);
     $detector->run($this->user->id, $this->taxYear, $this->service, []);
@@ -233,7 +262,7 @@ it('SignalProbeMatrix findings never contain blocked content', function () {
     IncomeOptimizationProfile::factory()->create([
         'user_id' => $this->user->id,
         'tax_year' => $this->taxYear,
-        'annual_income' => 150000_00,
+        'w2_wages' => '15000000',
     ]);
 
     $detector = app(SignalProbeMatrix::class);
@@ -262,7 +291,12 @@ it('TimeCriticalAlarmDetector stays silent when no startup equity signals presen
 });
 
 it('TimeCriticalAlarmDetector emits 83b alarm at critical severity when restricted stock grant within 30 days', function () {
-    recordFact($this->user->id, 'equity.restricted_stock_grant_date', now()->subDays(10)->toDateString());
+    UserTaxFact::recordFact(
+        userId: $this->user->id,
+        factKey: 'equity.restricted_stock_grant_date',
+        value: now()->subDays(10)->toDateString(),
+        sourceType: 'interview_answer',
+    );
 
     $detector = app(TimeCriticalAlarmDetector::class);
     $result = $detector->run($this->user->id, $this->taxYear, $this->service, []);
@@ -279,7 +313,12 @@ it('TimeCriticalAlarmDetector emits 83b alarm at critical severity when restrict
 });
 
 it('TimeCriticalAlarmDetector does NOT emit 83b alarm when grant is older than 30 days', function () {
-    recordFact($this->user->id, 'equity.restricted_stock_grant_date', now()->subDays(45)->toDateString());
+    UserTaxFact::recordFact(
+        userId: $this->user->id,
+        factKey: 'equity.restricted_stock_grant_date',
+        value: now()->subDays(45)->toDateString(),
+        sourceType: 'interview_answer',
+    );
 
     $detector = app(TimeCriticalAlarmDetector::class);
     $result = $detector->run($this->user->id, $this->taxYear, $this->service, []);
@@ -288,8 +327,18 @@ it('TimeCriticalAlarmDetector does NOT emit 83b alarm when grant is older than 3
 });
 
 it('TimeCriticalAlarmDetector emits QOF end-2026 alarm when pre-2027 QOF investment detected', function () {
-    recordFact($this->user->id, 'investment.has_qof', 'true');
-    recordFact($this->user->id, 'investment.qof_invested_before_2027', 'true');
+    UserTaxFact::recordFact(
+        userId: $this->user->id,
+        factKey: 'investment.has_qof',
+        value: 'true',
+        sourceType: 'interview_answer',
+    );
+    UserTaxFact::recordFact(
+        userId: $this->user->id,
+        factKey: 'investment.qof_invested_before_2027',
+        value: 'true',
+        sourceType: 'interview_answer',
+    );
 
     $detector = app(TimeCriticalAlarmDetector::class);
     $result = $detector->run($this->user->id, $this->taxYear, $this->service, []);
@@ -304,8 +353,18 @@ it('TimeCriticalAlarmDetector emits QOF end-2026 alarm when pre-2027 QOF investm
 });
 
 it('TimeCriticalAlarmDetector emits QSBS eligibility alarm at C-corp formation with §1244 note', function () {
-    recordFact($this->user->id, 'business.entity_type', 'c_corp');
-    recordFact($this->user->id, 'business.formation_date', now()->subDays(30)->toDateString());
+    UserTaxFact::recordFact(
+        userId: $this->user->id,
+        factKey: 'business.entity_type',
+        value: 'c_corp',
+        sourceType: 'interview_answer',
+    );
+    UserTaxFact::recordFact(
+        userId: $this->user->id,
+        factKey: 'business.formation_date',
+        value: now()->subDays(30)->toDateString(),
+        sourceType: 'interview_answer',
+    );
 
     $detector = app(TimeCriticalAlarmDetector::class);
     $result = $detector->run($this->user->id, $this->taxYear, $this->service, []);
@@ -321,7 +380,12 @@ it('TimeCriticalAlarmDetector emits QSBS eligibility alarm at C-corp formation w
 });
 
 it('TimeCriticalAlarmDetector treatment never contains banned phrases', function () {
-    recordFact($this->user->id, 'equity.restricted_stock_grant_date', now()->subDays(5)->toDateString());
+    UserTaxFact::recordFact(
+        userId: $this->user->id,
+        factKey: 'equity.restricted_stock_grant_date',
+        value: now()->subDays(5)->toDateString(),
+        sourceType: 'interview_answer',
+    );
 
     $detector = app(TimeCriticalAlarmDetector::class);
     $detector->run($this->user->id, $this->taxYear, $this->service, []);
