@@ -40,9 +40,14 @@ it('skips the Claude call gracefully (no HTTP, null return) when the daily budge
 
 it('increments the day-counter and proceeds when below the daily budget cap', function () {
     config()->set('services.anthropic.daily_budget_narration', 200);
+    // D19: response must be valid JSON {hook, detail, action_cue}
     Http::fake([
         'api.anthropic.com/*' => Http::response([
-            'content' => [['text' => 'An educational note you may wish to review.']],
+            'content' => [['type' => 'text', 'text' => json_encode([
+                'hook' => 'An educational note you may wish to review.',
+                'detail' => 'This area may be worth discussing with a tax professional.',
+                'action_cue' => 'Consider reviewing with a professional.',
+            ])]],
         ]),
     ]);
 

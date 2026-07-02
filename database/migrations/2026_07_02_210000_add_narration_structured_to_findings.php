@@ -21,7 +21,9 @@ return new class extends Migration
         Schema::table('optimization_findings', function (Blueprint $table) {
             // D19 structured output: {hook ≤120 chars, detail ≤2 sentences, action_cue ≤1 sentence}
             // Null means not yet narrated in structured format (falls back to description + clamp).
-            $table->jsonb('narration_structured')->nullable()->after('description');
+            if (! Schema::hasColumn('optimization_findings', 'narration_structured')) {
+                $table->jsonb('narration_structured')->nullable()->after('description');
+            }
         });
 
         Schema::table('optimization_reports', function (Blueprint $table) {
@@ -30,7 +32,9 @@ return new class extends Migration
             // Null means not yet upgraded; renderer falls back to narrator_prose + clamp.
             // The existing sections JSONB column already contains narrator_prose per-section —
             // we add a top-level column for the executive_summary structured contract.
-            $table->jsonb('executive_summary_structured')->nullable()->after('executive_summary');
+            if (! Schema::hasColumn('optimization_reports', 'executive_summary_structured')) {
+                $table->jsonb('executive_summary_structured')->nullable()->after('executive_summary');
+            }
         });
     }
 
