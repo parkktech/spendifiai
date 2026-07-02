@@ -204,6 +204,166 @@ it('skips_known_facts: orchestrator skips fact keys already in UserTaxFact', fun
     expect($question)->toBeNull();
 });
 
+// ─── Task 2: conditional findings enter the queue ─────────────────────────────
+
+it('conditional_findings_in_queue: buildInitialQueue includes band=conditional non-battery findings', function () {
+    Http::fake(['https://api.anthropic.com/*' => Http::response(['content' => [['text' => 'test?']]], 200)]);
+
+    $user = createAuthenticatedUser();
+
+    // Create a conditional finding (NOT battery_question) — previously ignored by buildInitialQueue
+    OptimizationFinding::factory()->create([
+        'user_id' => $user->id,
+        'tax_year' => 2026,
+        'finding_key' => 'home_office_deduction_probe',
+        'finding_type' => 'deduction_probe',
+        'band' => 'conditional',
+        'status' => 'open',
+    ]);
+
+    $service = app(InterviewOrchestratorService::class);
+    $session = $service->startOrResume($user->id, 2026);
+    $queue = $session->queue ?? [];
+
+    // The conditional finding must appear in the interview queue
+    expect($queue)->toContain('home_office_deduction_probe');
+});
+
+it('conditional_ordering: auto findings come before conditional in queue', function () {
+    Http::fake(['https://api.anthropic.com/*' => Http::response(['content' => [['text' => 'test?']]], 200)]);
+
+    $user = createAuthenticatedUser();
+
+    OptimizationFinding::factory()->create([
+        'user_id' => $user->id,
+        'tax_year' => 2026,
+        'finding_key' => 'auto_sentinel',
+        'finding_type' => 'income_discrepancy',
+        'band' => 'auto',
+        'status' => 'open',
+    ]);
+
+    OptimizationFinding::factory()->create([
+        'user_id' => $user->id,
+        'tax_year' => 2026,
+        'finding_key' => 'conditional_sentinel',
+        'finding_type' => 'deduction_probe',
+        'band' => 'conditional',
+        'status' => 'open',
+    ]);
+
+    $service = app(InterviewOrchestratorService::class);
+    $session = $service->startOrResume($user->id, 2026);
+    $queue = $session->queue ?? [];
+
+    $autoPos = array_search('auto_sentinel', $queue, true);
+    $condPos = array_search('conditional_sentinel', $queue, true);
+
+    expect($autoPos)->not->toBeFalse();
+    expect($condPos)->not->toBeFalse();
+    expect($autoPos)->toBeLessThan($condPos);
+});
+
+it('specialist_findings_excluded_from_queue', function () {
+    Http::fake(['https://api.anthropic.com/*' => Http::response(['content' => [['text' => 'test?']]], 200)]);
+
+    $user = createAuthenticatedUser();
+
+    // Specialist findings must NOT enter the queue (they belong in pro-review section)
+    OptimizationFinding::factory()->create([
+        'user_id' => $user->id,
+        'tax_year' => 2026,
+        'finding_key' => 'specialist_only_finding',
+        'finding_type' => 'complex_entity_probe',
+        'band' => 'specialist',
+        'status' => 'open',
+    ]);
+
+    $service = app(InterviewOrchestratorService::class);
+    $session = $service->startOrResume($user->id, 2026);
+    $queue = $session->queue ?? [];
+
+    expect($queue)->not->toContain('specialist_only_finding');
+});
+
+it('stale_queue_self_heal: session with empty queue + conditional findings yields questions on resume', function () {
+    Http::fake(['https://api.anthropic.com/*' => Http::response(['content' => [['text' => 'Do you have a home office?']]], 200)]);
+
+    $user = createAuthenticatedUser();
+
+    // Simulate the owner's stale session created during the pipeline outage —
+    // queue is empty because findings were conditional and weren't included when it was built
+    $session = InterviewSession::factory()->create([
+        'user_id' => $user->id,
+        'tax_year' => 2026,
+        'status' => 'in_progress',
+        'queue' => [],   // empty — the bug state
+        'asked' => [],
+    ]);
+
+    // Conditional finding now exists (seeded after session was created)
+    OptimizationFinding::factory()->create([
+        'user_id' => $user->id,
+        'tax_year' => 2026,
+        'finding_key' => 'home_office_probe',
+        'finding_type' => 'deduction_probe',
+        'band' => 'conditional',
+        'status' => 'open',
+    ]);
+
+    $service = app(InterviewOrchestratorService::class);
+    $resumedSession = $service->startOrResume($user->id, 2026);
+
+    // Queue must have been rebuilt — not empty anymore
+    expect($resumedSession->queue)->not->toBeEmpty();
+    expect($resumedSession->queue)->toContain('home_office_probe');
+
+    // nextQuestion must return a question (not null) — proving interview is unblocked
+    $question = $service->nextQuestion($resumedSession);
+    expect($question)->not->toBeNull();
+});
+
+it('stale_queue_self_heal_skips_already_asked_keys', function () {
+    Http::fake(['https://api.anthropic.com/*' => Http::response(['content' => [['text' => 'test?']]], 200)]);
+
+    $user = createAuthenticatedUser();
+
+    $session = InterviewSession::factory()->create([
+        'user_id' => $user->id,
+        'tax_year' => 2026,
+        'status' => 'in_progress',
+        'queue' => [],
+        'asked' => ['already_answered_probe'],  // previously asked
+    ]);
+
+    // Two findings — one already asked, one new
+    OptimizationFinding::factory()->create([
+        'user_id' => $user->id,
+        'tax_year' => 2026,
+        'finding_key' => 'already_answered_probe',
+        'finding_type' => 'deduction_probe',
+        'band' => 'conditional',
+        'status' => 'open',
+    ]);
+
+    OptimizationFinding::factory()->create([
+        'user_id' => $user->id,
+        'tax_year' => 2026,
+        'finding_key' => 'new_probe',
+        'finding_type' => 'deduction_probe',
+        'band' => 'conditional',
+        'status' => 'open',
+    ]);
+
+    $service = app(InterviewOrchestratorService::class);
+    $resumed = $service->startOrResume($user->id, 2026);
+
+    // already_answered_probe must NOT be re-added to the rebuilt queue
+    expect($resumed->queue)->not->toContain('already_answered_probe');
+    // new_probe must be in the queue
+    expect($resumed->queue)->toContain('new_probe');
+});
+
 // ─── Session record-answer plumbing ──────────────────────────────────────────
 
 it('recordAnswer: writes UserTaxFact and updates session asked array', function () {

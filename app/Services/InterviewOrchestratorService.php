@@ -74,10 +74,16 @@ class InterviewOrchestratorService
      *
      * RESUME (INT-05): if a paused session exists for this user+year, it is
      * resumed (set back to in_progress) rather than creating a new one.
+     *
+     * STALE-QUEUE SELF-HEAL: if the existing session's queue is empty (or all
+     * items consumed) AND eligible findings now exist, rebuild the queue from
+     * the current finding set. This repairs sessions created during a pipeline
+     * outage (e.g., when conditional findings had not yet been seeded). The
+     * session history (asked[], transcript) is preserved.
      */
     public function startOrResume(int $userId, int $taxYear): InterviewSession
     {
-        // 1. Check for an existing in_progress session (resume if found)
+        // 1. Check for an existing in_progress / paused session (resume if found)
         $session = InterviewSession::forUser($userId)
             ->where('tax_year', $taxYear)
             ->whereIn('status', ['in_progress', 'paused'])
@@ -86,10 +92,30 @@ class InterviewOrchestratorService
         if ($session !== null) {
             $session->activate(); // idempotent: in_progress stays in_progress
 
+            // Stale-queue self-heal: rebuild queue if it is empty and new eligible
+            // findings are available (covers sessions created during pipeline outage).
+            if (empty($session->queue)) {
+                $newQueue = $this->buildInitialQueue($userId, $taxYear);
+                // Exclude keys already asked so we never re-ask answered questions
+                $asked = $session->asked ?? [];
+                $filteredQueue = array_values(array_diff($newQueue, $asked));
+
+                if (! empty($filteredQueue)) {
+                    $session->update(['queue' => $filteredQueue]);
+
+                    Log::info('InterviewOrchestratorService: stale-queue self-healed', [
+                        'user_id' => $userId,
+                        'tax_year' => $taxYear,
+                        'session_id' => $session->id,
+                        'rebuilt_queue_size' => count($filteredQueue),
+                    ]);
+                }
+            }
+
             return $session->fresh();
         }
 
-        // 2. No active session — create one and seed the queue from high-band findings
+        // 2. No active session — create one and seed the queue from all eligible findings
         $queue = $this->buildInitialQueue($userId, $taxYear);
         $initialCap = (int) config('tax-detection.interview.initial_cap', 10);
 
@@ -113,18 +139,23 @@ class InterviewOrchestratorService
     }
 
     /**
-     * Build the initial question queue from high-band OptimizationFindings (INT-03 / D5).
+     * Build the initial question queue from eligible OptimizationFindings (INT-03 / D5).
      *
-     * Queue order:
+     * Queue order (diagnostic INT-04 priority):
      *   1. High-band (auto) findings — highest confidence, suggested-confirm mode.
-     *   2. Annual battery questions (finding_type='battery_question') — life-event
-     *      check-ins surfaced by LifeEventTriggerDetector. These are always
-     *      band='conditional' and are appended AFTER auto findings. They belong in
-     *      the interview queue, not the high-priority feed (SurfaceHighPriorityRedFlags
-     *      listener handles band='auto' only — battery questions are excluded from the
-     *      feed intentionally).
+     *   2. Conditional findings (non-battery) — the primary interview content; these
+     *      are findings that REQUIRE prerequisite answers to resolve (band='conditional',
+     *      finding_type != 'battery_question'). Prior queue only included auto+battery,
+     *      so 'conditional' findings never entered the interview — this is the root cause
+     *      of "No questions yet" on an all-conditional finding set.
+     *   3. Annual battery questions (finding_type='battery_question') — life-event
+     *      check-ins surfaced by LifeEventTriggerDetector. Always band='conditional' and
+     *      appended LAST. Excluded from SurfaceHighPriorityRedFlags (feed) intentionally.
      *
-     * Gated probes (INT-04) are added AFTER their prerequisites in the queue.
+     * 'specialist' band stays OUT — belongs to the report's professional-review section.
+     *
+     * Gated probes (INT-04) are skipped in nextQuestion() via prerequisite check;
+     * they are still placed in the queue here so they surface once prerequisites are met.
      *
      * @return string[] ordered fact_key / finding_key strings
      */
@@ -141,7 +172,18 @@ class InterviewOrchestratorService
             ->pluck('finding_key')
             ->toArray();
 
-        // 2. Annual battery questions — appended after auto findings regardless of band.
+        // 2. Conditional findings (non-battery) — the interview's core purpose.
+        //    These need user answers to determine if they apply. 'specialist' band
+        //    is intentionally excluded (belongs to professional-review section only).
+        $conditionalFindings = OptimizationFinding::forUser($userId)
+            ->where('tax_year', $taxYear)
+            ->where('band', 'conditional')
+            ->where('finding_type', '!=', 'battery_question')
+            ->where('status', 'open')
+            ->pluck('finding_key')
+            ->toArray();
+
+        // 3. Annual battery questions — appended after auto + conditional findings.
         //    Battery questions are annual life-event check-ins (marriage, birth, job change,
         //    inheritance, Medicare). They are lower priority than auto-band red flags.
         $batteryFindings = OptimizationFinding::forUser($userId)
@@ -151,8 +193,10 @@ class InterviewOrchestratorService
             ->pluck('finding_key')
             ->toArray();
 
-        // Deduplicate (battery key already in auto queue is not re-added)
-        $queue = array_values(array_unique(array_merge($autoFindings, $batteryFindings)));
+        // Merge order: auto → conditional → battery. Deduplicate to avoid double-asking.
+        $queue = array_values(array_unique(
+            array_merge($autoFindings, $conditionalFindings, $batteryFindings)
+        ));
 
         return $queue;
     }
