@@ -21,7 +21,7 @@ Requirements for this milestone. Each maps to a roadmap phase. All outputs are e
 
 - [x] **CTX-01**: `IncomeOptimizerDataAssemblerService` assembles a per-user financial snapshot from existing sources (UserFinancialProfile, transactions, income detection, vault-extracted documents) with no Claude calls
 - [x] **CTX-02**: The snapshot is persisted in a new `IncomeOptimizationProfile` cache model and rebuilt via a background job
-- [ ] **CTX-03**: `CrossSourceReviewService` compares documents vs bank deposits vs email data and flags discrepancies deterministically (Claude only explains a detected discrepancy)
+- [x] **CTX-03**: `CrossSourceReviewService` compares documents vs bank deposits vs email data and flags discrepancies deterministically (Claude only explains a detected discrepancy)
 - [x] **CTX-04**: The interview and detectors skip anything already answerable from the snapshot ("know what you know before asking")
 
 ### Red-Flag Detection (FLAG)
@@ -118,7 +118,7 @@ Each requirement maps to exactly one phase. Phases continue the global numbering
 | TAX-07 | Phase 10 | Complete |
 | CTX-01 | Phase 10 | Complete |
 | CTX-02 | Phase 10 | Complete |
-| CTX-03 | Phase 10 | Pending |
+| CTX-03 | Phase 10 | Complete |
 | CTX-04 | Phase 10 | Complete |
 | FLAG-01 | Phase 11 | Pending |
 | FLAG-02 | Phase 11 | Pending |
