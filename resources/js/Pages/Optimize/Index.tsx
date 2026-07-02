@@ -49,6 +49,7 @@ import {
   RefreshCw,
   Link2,
   ChevronRight,
+  Plus,
 } from 'lucide-react';
 import Badge from '@/Components/SpendifiAI/Badge';
 import ConnectBankPrompt from '@/Components/SpendifiAI/ConnectBankPrompt';
@@ -324,6 +325,8 @@ export default function OptimizeIndex() {
   const [rateLimited, setRateLimited] = useState(false);
   // Dismissed proposal IDs (rejected locally)
   const [dismissedProposalIds, setDismissedProposalIds] = useState<Set<number>>(new Set());
+  // Fix 4: "Add more documents" collapsed section (visible when upload not required)
+  const [addMoreExpanded, setAddMoreExpanded] = useState(false);
 
   // Phase 14-10: Scenarios/Choices stage state
   const [enqueueing, setEnqueueing] = useState(false);
@@ -548,8 +551,9 @@ export default function OptimizeIndex() {
       {viewMode === 'overview' && (
         <div className="space-y-6">
 
-          {/* ── 1. Upload hero — only rendered when paystub is missing/stale ── */}
-          {needsDocUpload && (
+          {/* ── 1. Upload section — ALWAYS present (Fix 4: never disappear) ── */}
+          {needsDocUpload ? (
+            /* Upload hero — shown when paystub is missing/stale */
             <div className="rounded-2xl ring-1 ring-sw-border/70 bg-gradient-to-b from-white to-slate-50/40 shadow-sw-2 p-5 space-y-4">
               <div className="flex items-start gap-3">
                 <div className="w-9 h-9 rounded-xl bg-sw-accent/10 ring-1 ring-sw-accent/20 flex items-center justify-center shrink-0">
@@ -564,6 +568,31 @@ export default function OptimizeIndex() {
                 </div>
               </div>
               <DocumentUploadFlow onComplete={handleUploadComplete} />
+            </div>
+          ) : (
+            /* Collapsed "Add more documents" — always available, voluntary uploads (Fix 4) */
+            <div className="rounded-2xl ring-1 ring-sw-border/70 bg-gradient-to-b from-white to-slate-50/40 shadow-sw-2 overflow-hidden">
+              <button
+                onClick={() => setAddMoreExpanded((v) => !v)}
+                className="w-full flex items-center justify-between px-5 py-3.5 text-left hover:bg-sw-surface/40 transition group"
+                aria-expanded={addMoreExpanded}
+              >
+                <div className="flex items-center gap-2.5">
+                  <div className="w-7 h-7 rounded-lg bg-sw-accent/10 flex items-center justify-center shrink-0">
+                    <Plus size={13} className="text-sw-accent" />
+                  </div>
+                  <span className="text-[13px] font-semibold text-sw-text">Add more documents</span>
+                  <span className="text-[11px] text-sw-dim">W-2, benefits guide, retirement statement…</span>
+                </div>
+                {addMoreExpanded
+                  ? <ChevronUp size={14} className="text-sw-dim" />
+                  : <ChevronDown size={14} className="text-sw-dim" />}
+              </button>
+              {addMoreExpanded && (
+                <div className="px-5 pb-5 pt-1 border-t border-sw-border/60">
+                  <DocumentUploadFlow onComplete={handleUploadComplete} />
+                </div>
+              )}
             </div>
           )}
 
@@ -589,6 +618,16 @@ export default function OptimizeIndex() {
                 <CheckCircle size={13} className="text-sw-success shrink-0" />
                 <p className="text-[12px] text-sw-success font-medium">
                   Review and confirm each suggestion to save it to your profile.
+                </p>
+              </div>
+
+              {/* Group disclaimer — one per section (not per card). UI-03 educational framing. */}
+              <div className="flex items-start gap-1.5 rounded-xl border border-sw-border/60 bg-sw-surface px-3.5 py-2.5">
+                <Info size={11} className="text-sw-dim shrink-0 mt-0.5" />
+                <p className="text-[10px] text-sw-dim leading-relaxed">
+                  These values were extracted from your uploaded document by AI and may need verification.
+                  Confirming adds them to your profile — it does not constitute tax filing or advice.
+                  Nothing is saved until you click Confirm.
                 </p>
               </div>
 

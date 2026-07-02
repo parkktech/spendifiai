@@ -20,33 +20,32 @@ uses(\Illuminate\Foundation\Testing\RefreshDatabase::class);
  *   (c) User-entered facts are NOT overwritten when a proposal is created
  *   (d) confirm() promotes the proposal to current, superseding user-entered value
  */
-
 function makePaystubDocument(int $userId, array $extractedFields = []): TaxDocument
 {
     Storage::fake('local');
     Storage::disk('local')->put("tax-vault/{$userId}/2025/pay_stub/test.pdf", 'fake-content');
 
     $defaultFields = [
-        'employer_name'             => ['value' => 'Acme Corp', 'confidence' => 0.98],
+        'employer_name' => ['value' => 'Acme Corp', 'confidence' => 0.98],
         'traditional_401k_deduction' => ['value' => '1000.00', 'confidence' => 0.90],
-        'roth_401k_deduction'       => ['value' => '500.00',  'confidence' => 0.88],
-        'hsa_deduction'             => ['value' => '200.00',  'confidence' => 0.85],
-        'fsa_deduction'             => ['value' => '150.00',  'confidence' => 0.80],
+        'roth_401k_deduction' => ['value' => '500.00',  'confidence' => 0.88],
+        'hsa_deduction' => ['value' => '200.00',  'confidence' => 0.85],
+        'fsa_deduction' => ['value' => '150.00',  'confidence' => 0.80],
     ];
 
     return TaxDocument::create([
-        'user_id'          => $userId,
+        'user_id' => $userId,
         'original_filename' => 'paystub.pdf',
-        'stored_path'      => "tax-vault/{$userId}/2025/pay_stub/test.pdf",
-        'disk'             => 'local',
-        'mime_type'        => 'application/pdf',
-        'file_size'        => 1024,
-        'file_hash'        => hash('sha256', 'fake-content'),
-        'tax_year'         => 2025,
-        'status'           => 'ready',
-        'category'         => 'pay_stub',
-        'extracted_data'   => [
-            'fields'             => array_merge($defaultFields, $extractedFields),
+        'stored_path' => "tax-vault/{$userId}/2025/pay_stub/test.pdf",
+        'disk' => 'local',
+        'mime_type' => 'application/pdf',
+        'file_size' => 1024,
+        'file_hash' => hash('sha256', 'fake-content'),
+        'tax_year' => 2025,
+        'status' => 'ready',
+        'category' => 'pay_stub',
+        'extracted_data' => [
+            'fields' => array_merge($defaultFields, $extractedFields),
             'overall_confidence' => 0.90,
         ],
     ]);
@@ -58,25 +57,25 @@ function makeBenefitsDocument(int $userId, array $extractedFields = []): TaxDocu
     Storage::disk('local')->put("tax-vault/{$userId}/2025/benefits_guide/test.pdf", 'fake-content');
 
     $defaultFields = [
-        'has_401k'                 => ['value' => 'true', 'confidence' => 0.95],
-        'employer_match_formula'   => ['value' => '4% up to IRS limit', 'confidence' => 0.88],
-        'hdhp_hsa_available'       => ['value' => 'true', 'confidence' => 0.92],
+        'has_401k' => ['value' => 'true', 'confidence' => 0.95],
+        'employer_match_formula' => ['value' => '4% up to IRS limit', 'confidence' => 0.88],
+        'hdhp_hsa_available' => ['value' => 'true', 'confidence' => 0.92],
         'after_tax_401k_available' => ['value' => 'false', 'confidence' => 0.85],
     ];
 
     return TaxDocument::create([
-        'user_id'          => $userId,
+        'user_id' => $userId,
         'original_filename' => 'benefits-guide.pdf',
-        'stored_path'      => "tax-vault/{$userId}/2025/benefits_guide/test.pdf",
-        'disk'             => 'local',
-        'mime_type'        => 'application/pdf',
-        'file_size'        => 2048,
-        'file_hash'        => hash('sha256', 'fake-content'),
-        'tax_year'         => 2025,
-        'status'           => 'ready',
-        'category'         => 'benefits_guide',
-        'extracted_data'   => [
-            'fields'             => array_merge($defaultFields, $extractedFields),
+        'stored_path' => "tax-vault/{$userId}/2025/benefits_guide/test.pdf",
+        'disk' => 'local',
+        'mime_type' => 'application/pdf',
+        'file_size' => 2048,
+        'file_hash' => hash('sha256', 'fake-content'),
+        'tax_year' => 2025,
+        'status' => 'ready',
+        'category' => 'benefits_guide',
+        'extracted_data' => [
+            'fields' => array_merge($defaultFields, $extractedFields),
             'overall_confidence' => 0.92,
         ],
     ]);
@@ -85,9 +84,9 @@ function makeBenefitsDocument(int $userId, array $extractedFields = []): TaxDocu
 // ─── (a) Proposals created with correct flags + confidence ────────────────────
 
 it('creates UserTaxFact proposals with is_current=false for PayStub extraction', function () {
-    $user     = User::factory()->create();
+    $user = User::factory()->create();
     $document = makePaystubDocument($user->id);
-    $service  = app(PaystubFactExtractorService::class);
+    $service = app(PaystubFactExtractorService::class);
 
     $count = $service->proposeFacts($document);
 
@@ -107,11 +106,11 @@ it('creates UserTaxFact proposals with is_current=false for PayStub extraction',
 });
 
 it('proposal value is an integer-cents-as-string for money fields', function () {
-    $user     = User::factory()->create();
+    $user = User::factory()->create();
     $document = makePaystubDocument($user->id, [
         'traditional_401k_deduction' => ['value' => '1500.00', 'confidence' => 0.90],
     ]);
-    $service  = app(PaystubFactExtractorService::class);
+    $service = app(PaystubFactExtractorService::class);
 
     $service->proposeFacts($document);
 
@@ -128,9 +127,9 @@ it('proposal value is an integer-cents-as-string for money fields', function () 
 });
 
 it('creates proposals for BenefitsGuide boolean fields as yes/no strings', function () {
-    $user     = User::factory()->create();
+    $user = User::factory()->create();
     $document = makeBenefitsDocument($user->id);
-    $service  = app(PaystubFactExtractorService::class);
+    $service = app(PaystubFactExtractorService::class);
 
     $count = $service->proposeFacts($document);
 
@@ -149,30 +148,30 @@ it('creates proposals for BenefitsGuide boolean fields as yes/no strings', funct
 });
 
 it('returns 0 for documents with no matching fields', function () {
-    $user     = User::factory()->create();
+    $user = User::factory()->create();
 
     // PayStub with no mappable fields
     Storage::fake('local');
     Storage::disk('local')->put("tax-vault/{$user->id}/2025/pay_stub/empty.pdf", 'fake');
     $document = TaxDocument::create([
-        'user_id'        => $user->id,
+        'user_id' => $user->id,
         'original_filename' => 'empty.pdf',
-        'stored_path'    => "tax-vault/{$user->id}/2025/pay_stub/empty.pdf",
-        'disk'           => 'local',
-        'mime_type'      => 'application/pdf',
-        'file_size'      => 512,
-        'file_hash'      => hash('sha256', 'fake'),
-        'tax_year'       => 2025,
-        'status'         => 'ready',
-        'category'       => 'pay_stub',
+        'stored_path' => "tax-vault/{$user->id}/2025/pay_stub/empty.pdf",
+        'disk' => 'local',
+        'mime_type' => 'application/pdf',
+        'file_size' => 512,
+        'file_hash' => hash('sha256', 'fake'),
+        'tax_year' => 2025,
+        'status' => 'ready',
+        'category' => 'pay_stub',
         'extracted_data' => [
-            'fields'             => ['employer_name' => ['value' => 'Acme', 'confidence' => 0.9]],
+            'fields' => ['employer_name' => ['value' => 'Acme', 'confidence' => 0.9]],
             'overall_confidence' => 0.90,
         ],
     ]);
 
     $service = app(PaystubFactExtractorService::class);
-    $count   = $service->proposeFacts($document);
+    $count = $service->proposeFacts($document);
 
     // employer_name is not in PAYSTUB_FACT_MAP, so no proposals for dollar fields
     expect($count)->toBe(0);
@@ -181,9 +180,9 @@ it('returns 0 for documents with no matching fields', function () {
 // ─── (b) Proposals excluded from currentFactKeys() pre-confirm ───────────────
 
 it('excludes proposals from UserTaxFact::currentFactKeys() pre-confirm', function () {
-    $user     = User::factory()->create();
+    $user = User::factory()->create();
     $document = makePaystubDocument($user->id);
-    $service  = app(PaystubFactExtractorService::class);
+    $service = app(PaystubFactExtractorService::class);
 
     $service->proposeFacts($document);
 
@@ -195,15 +194,15 @@ it('excludes proposals from UserTaxFact::currentFactKeys() pre-confirm', functio
 });
 
 it('excludes proposals from IncomeOptimizationProfile::answerableFields() pre-confirm', function () {
-    $user     = User::factory()->create();
+    $user = User::factory()->create();
     $document = makePaystubDocument($user->id);
-    $service  = app(PaystubFactExtractorService::class);
+    $service = app(PaystubFactExtractorService::class);
 
     $service->proposeFacts($document);
 
-    $factsProxy = new \App\Models\UserTaxFact();
-    $profile    = \App\Models\IncomeOptimizationProfile::create([
-        'user_id'  => $user->id,
+    $factsProxy = new \App\Models\UserTaxFact;
+    $profile = \App\Models\IncomeOptimizationProfile::create([
+        'user_id' => $user->id,
         'tax_year' => 2025,
     ]);
 
@@ -234,7 +233,7 @@ it('does NOT overwrite a user_edit fact when a proposal is created for the same 
 
     // Now create a proposal
     $document = makePaystubDocument($user->id);
-    $service  = app(PaystubFactExtractorService::class);
+    $service = app(PaystubFactExtractorService::class);
     $service->proposeFacts($document);
 
     // The original user_edit fact must STILL be current
@@ -301,4 +300,154 @@ it('confirm() promotes a proposal to current and supersedes the user_edit fact',
     // currentFactKeys() must now include this key
     $keys = UserTaxFact::currentFactKeys($user->id);
     expect($keys)->toContain('retirement.traditional_401k_ytd_cents');
+});
+
+// ─── display_value + source_label in GET /api/v1/optimizer/facts ─────────────
+//
+// Owner UX fix cluster — Fix 1: proposals must expose humanized display_value
+// and source_label so the ProposalConfirmCard can show the actual value extracted.
+
+it('proposals API returns display_value and source_label for money cents fact', function () {
+    Storage::fake('local');
+
+    $user = createAuthenticatedUser();
+    Sanctum::actingAs($user);
+
+    $doc = makePaystubDocument($user->id, [
+        'gross_pay' => ['value' => '4250.00', 'confidence' => 0.95],
+    ]);
+
+    app(PaystubFactExtractorService::class)->proposeFacts($doc);
+
+    $response = $this->getJson('/api/v1/optimizer/facts');
+    $response->assertOk();
+
+    $proposals = $response->json('proposals');
+    expect($proposals)->not->toBeEmpty();
+
+    $grossFact = collect($proposals)->first(fn ($p) => $p['fact_key'] === 'pay.gross_per_period_cents');
+    expect($grossFact)->not->toBeNull();
+
+    // display_value: $4,250.00 (cents → dollars humanized)
+    expect($grossFact['display_value'])->toBe('$4,250.00');
+
+    // source_label: "from your [date] Pay Stub"
+    expect($grossFact['source_label'])->toContain('Pay Stub');
+    expect($grossFact['source_label'])->toStartWith('from your');
+
+    // raw 'value' must NOT be exposed in the response
+    expect(array_key_exists('value', $grossFact))->toBeFalse();
+});
+
+it('proposals API returns humanized Yes/No for boolean facts', function () {
+    Storage::fake('local');
+
+    $user = createAuthenticatedUser();
+    Sanctum::actingAs($user);
+
+    $doc = makeBenefitsDocument($user->id, [
+        'has_401k' => ['value' => 'true', 'confidence' => 0.95],
+        'after_tax_401k_available' => ['value' => 'false', 'confidence' => 0.85],
+    ]);
+
+    app(PaystubFactExtractorService::class)->proposeFacts($doc);
+
+    $response = $this->getJson('/api/v1/optimizer/facts');
+    $response->assertOk();
+
+    $proposals = collect($response->json('proposals'));
+
+    $has401k = $proposals->first(fn ($p) => $p['fact_key'] === 'employer.has_401k');
+    expect($has401k['display_value'])->toBe('Yes');
+
+    $afterTax = $proposals->first(fn ($p) => $p['fact_key'] === 'employer.after_tax_401k_available');
+    expect($afterTax['display_value'])->toBe('No');
+});
+
+it('proposals API humanizes w4 filing status', function () {
+    Storage::fake('local');
+
+    $user = createAuthenticatedUser();
+    Sanctum::actingAs($user);
+
+    $doc = makePaystubDocument($user->id, [
+        'w4_filing_status' => ['value' => 'married', 'confidence' => 0.90],
+    ]);
+
+    app(PaystubFactExtractorService::class)->proposeFacts($doc);
+
+    $response = $this->getJson('/api/v1/optimizer/facts');
+    $response->assertOk();
+
+    $proposal = collect($response->json('proposals'))
+        ->first(fn ($p) => $p['fact_key'] === 'w4.filing_status');
+
+    expect($proposal)->not->toBeNull();
+    expect($proposal['display_value'])->toBe('Married Filing Jointly');
+    // raw 'value' column excluded
+    expect(array_key_exists('value', $proposal))->toBeFalse();
+});
+
+// ─── GET /api/v1/tax-vault/type-status (Fix 2 — green-check grid) ────────────
+
+it('type-status endpoint returns inventory shape for upload grid types', function () {
+    Storage::fake('local');
+
+    $user = createAuthenticatedUser();
+    Sanctum::actingAs($user);
+
+    // No documents yet — all types should be not-ready
+    $response = $this->getJson('/api/v1/tax-vault/type-status');
+    $response->assertOk();
+
+    $types = $response->json('types');
+    expect($types)->toHaveKeys(['paystub', 'w2', 'benefits_guide', 'hsa_statement', 'retirement_statement', 'medical_receipt', 'other']);
+
+    foreach ($types as $type => $status) {
+        expect($status)->toHaveKeys(['has_ready_doc', 'latest_uploaded_at', 'ready_count', 'extracted_fields_count']);
+        expect($status['has_ready_doc'])->toBeFalse();
+        expect($status['ready_count'])->toBe(0);
+    }
+});
+
+it('type-status shows has_ready_doc=true after a ready paystub is uploaded', function () {
+    Storage::fake('local');
+
+    $user = createAuthenticatedUser();
+    Sanctum::actingAs($user);
+
+    Storage::disk('local')->put("tax-vault/{$user->id}/2026/pay_stub/test.pdf", 'content');
+
+    // Create a ready pay_stub document
+    TaxDocument::create([
+        'user_id' => $user->id,
+        'original_filename' => 'paystub.pdf',
+        'stored_path' => "tax-vault/{$user->id}/2026/pay_stub/test.pdf",
+        'disk' => 'local',
+        'mime_type' => 'application/pdf',
+        'file_size' => 1024,
+        'file_hash' => hash('sha256', 'unique-paystub-content-99'),
+        'tax_year' => 2026,
+        'status' => 'ready',
+        'category' => 'pay_stub',
+        'extracted_data' => [
+            'fields' => [
+                'gross_pay' => ['value' => '5000.00', 'confidence' => 0.95],
+                'federal_tax_withheld' => ['value' => '800.00', 'confidence' => 0.90],
+            ],
+            'overall_confidence' => 0.92,
+        ],
+    ]);
+
+    $response = $this->getJson('/api/v1/tax-vault/type-status');
+    $response->assertOk();
+
+    $paystub = $response->json('types.paystub');
+    expect($paystub['has_ready_doc'])->toBeTrue();
+    expect($paystub['ready_count'])->toBe(1);
+    expect($paystub['extracted_fields_count'])->toBe(2);
+    expect($paystub['latest_uploaded_at'])->not->toBeNull();
+
+    // Other types still not ready
+    expect($response->json('types.w2.has_ready_doc'))->toBeFalse();
 });

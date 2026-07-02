@@ -6,11 +6,14 @@ use App\Models\AIQuestion;
 use App\Models\InterviewSession;
 use App\Models\OptimizationFinding;
 use App\Models\Subscription;
+use App\Models\TaxDocument;
 use App\Models\UserTaxFact;
+use App\Services\AI\PaystubFactExtractorService;
 use App\Services\Detectors\DeductibleSaasSweep;
 use App\Services\InterviewOrchestratorService;
 use App\Services\RedFlagDetectorService;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Storage;
 
 /*
  * D18QuestionQualityTest — owner Decision 18 (the question-quality bar).
@@ -928,4 +931,84 @@ it('d18_no_internal_keys: every rendered interview question and choice label is 
         }
         $session = $session->fresh();
     }
+});
+
+// ─── D18 extension: proposals API surface (owner UX fix cluster) ──────────────
+//
+// Extends D18 rule 2 to the DurableFactsController proposals response.
+// label and display_value must never contain raw snake_case fact_key paths.
+
+it('d18_proposals_no_key_leak: proposals API label + display_value contain no internal key paths', function () {
+    Http::preventStrayRequests();
+    Http::fake();
+    Storage::fake('local');
+
+    $user = createAuthenticatedUser();
+
+    // Create a real paystub document with extracted data
+    $doc = TaxDocument::create([
+        'user_id' => $user->id,
+        'original_filename' => 'paystub.pdf',
+        'stored_path' => "tax-vault/{$user->id}/2026/pay_stub/test.pdf",
+        'disk' => 'local',
+        'mime_type' => 'application/pdf',
+        'file_size' => 1024,
+        'file_hash' => hash('sha256', 'fake-d18-content'),
+        'tax_year' => 2026,
+        'status' => 'ready',
+        'category' => 'pay_stub',
+        'extracted_data' => [
+            'fields' => [
+                'gross_pay' => ['value' => '4250.00', 'confidence' => 0.95],
+                'w4_filing_status' => ['value' => 'married', 'confidence' => 0.90],
+                'traditional_401k_deduction' => ['value' => '500.00', 'confidence' => 0.88],
+            ],
+            'overall_confidence' => 0.91,
+        ],
+    ]);
+
+    // Run the fact extractor to create proposals
+    $count = app(PaystubFactExtractorService::class)->proposeFacts($doc);
+    expect($count)->toBeGreaterThan(0);
+
+    // Hit the proposals API as the authenticated user
+    $response = $this->actingAs($user)
+        ->getJson('/api/v1/optimizer/facts');
+    $response->assertOk();
+
+    $proposals = $response->json('proposals');
+    expect($proposals)->not->toBeEmpty();
+
+    foreach ($proposals as $proposal) {
+        $label = (string) ($proposal['label'] ?? '');
+        $displayValue = (string) ($proposal['display_value'] ?? '');
+
+        // D18 rule 2 extended: label must be a human sentence, not a key path
+        expect(preg_match(D18_INTERNAL_KEY_PATTERN, $label))
+            ->toBe(0, "Internal key leaked in proposal label: {$label}");
+
+        // display_value (dollars/Yes/No/human strings) must never contain raw key paths
+        if ($displayValue !== '') {
+            expect(preg_match(D18_INTERNAL_KEY_PATTERN, $displayValue))
+                ->toBe(0, "Internal key leaked in proposal display_value: {$displayValue}");
+        }
+
+        // Confirm the VALUE is NOT exposed directly in the response
+        expect(array_key_exists('value', $proposal))->toBeFalse('raw encrypted value must not appear in API response');
+    }
+
+    // Spot-check humanization: cents facts render as dollars
+    $grossFact = collect($proposals)->first(fn ($p) => str_ends_with($p['fact_key'], '_cents'));
+    if ($grossFact) {
+        expect($grossFact['display_value'])->toStartWith('$');
+    }
+
+    // Spot-check: w4.filing_status renders human label
+    $filingFact = collect($proposals)->first(fn ($p) => $p['fact_key'] === 'w4.filing_status');
+    if ($filingFact) {
+        expect($filingFact['display_value'])->not->toBe('married');
+        expect($filingFact['display_value'])->toContain('Married');
+    }
+
+    Http::assertNothingSent();
 });

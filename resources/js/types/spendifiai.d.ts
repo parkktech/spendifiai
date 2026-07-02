@@ -700,6 +700,11 @@ export interface OptimizationQuestionPayload {
  * A durable tax fact as returned by GET /api/v1/optimizer/facts.
  * The encrypted `value` column is always excluded from API responses.
  * `metadata` (JSONB) carries extraction_confidence for document_extraction source.
+ *
+ * Proposals (source_type='document_extraction') also carry:
+ *   display_value — humanized value decrypted server-side for the authenticated owner
+ *                   (e.g. "$4,250.00" for cents facts, "Yes/No" for booleans)
+ *   source_label  — attribution line ("from your Jul 2 Pay Stub")
  */
 export interface UserTaxFactView {
   id: number;
@@ -715,6 +720,10 @@ export interface UserTaxFactView {
   /** Non-PII confidence metadata (e.g. { extraction_confidence: 0.82 }). */
   metadata: Record<string, unknown> | null;
   created_at: string;
+  /** Proposals only: humanized value (e.g. "$4,250.00"). null when not available. */
+  display_value?: string | null;
+  /** Proposals only: attribution line (e.g. "from your Jul 2 Pay Stub"). */
+  source_label?: string | null;
 }
 
 export interface DurableFactsResponse {
