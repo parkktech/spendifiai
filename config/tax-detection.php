@@ -87,6 +87,31 @@ return [
         'w2_box_12' => 'W-2 with Box 12 codes (pre-tax benefits, excess salary deferral)',
     ],
 
+    // ── Withholding Gap Floor (FLAG-03) ──────────────────────────────────────
+    // The minimum gap (estimated_tax - detected_withholding) that triggers a finding.
+    // Read by WithholdingGapDetector — NEVER hardcode in service code.
+    'withholding' => [
+        'gap_floor_cents' => 50_000,  // $500 — matches TD-v1 §11.5 / INTEGRATION-MAP config table
+    ],
+
+    // ── Deduction Probe Thresholds (FLAG-05) ─────────────────────────────────
+    // Probes fire only when their data prerequisite is verified AND materiality passes.
+    // Meal deduction rate (50% of business meals allowable under §274).
+    'deduction' => [
+        'meal_rate' => 0.50,
+        'electronics_min_cents' => 50_000,  // $500 — minimum qualifying §179 eligible purchase
+    ],
+
+    // ── Audit Risk Thresholds (FLAG-15) ──────────────────────────────────────
+    // Score inputs: each factor adds 1 point; score >= threshold triggers a finding.
+    'audit_risk' => [
+        'score_threshold' => 2,    // at least 2 risk factors to emit (avoids false positives)
+        // Charitable outlier: contributions > charitable_pct_of_income % of income
+        'charitable_outlier_pct' => 0.20, // 20% of income is a documented audit trigger
+        // SE perpetual losses: how many consecutive loss years before flagging
+        'se_loss_years_threshold' => 2,
+    ],
+
     // ── Versioned Rule Registry (TAX-09 / D1) ────────────────────────────────
     // Every Phase 11 detector rule carries the canonical TD-v2Δ §9 schema:
     //   rule_id, authority, effective_start, effective_end, phaseouts (MAGI-keyed),
@@ -263,6 +288,202 @@ return [
             'last_verified' => '2026-07-01',
             'status' => 'expired',      // the "fully deductible" form of this rule is dead
             'band' => 'suppress',     // NEVER surface as fully deductible — never-surface trio
+        ],
+
+        // ── FLAG-02: Filing Status Mismatch ──────────────────────────────────
+        // SURFACED never ASSERTED — detector compares snapshot filing_status vs
+        // UserFinancialProfile.tax_filing_status. Any mismatch → educational finding.
+        'filing_status_mismatch' => [
+            'rule_id' => 'filing_status_mismatch',
+            'authority' => 'IRS Publication 501; IRC §1(a)–(d)',
+            'effective_start' => '2025-01-01',
+            'effective_end' => null,
+            'phaseouts' => [],
+            'inflation_adjusted' => false,
+            'source_url' => 'https://www.irs.gov/pub/irs-pdf/p501.pdf',
+            'last_verified' => '2026-07-01',
+            'status' => 'verified',
+            'band' => 'conditional',  // professional review required to confirm
+        ],
+
+        // ── FLAG-03: Withholding Gap ──────────────────────────────────────────
+        // Fires when engine-computed estimated_tax − detected_withholding exceeds
+        // config('tax-detection.withholding.gap_floor_cents') ($500 default).
+        // Dollar magnitude is TaxRulesEngineService-only; detector emits no dollar.
+        'withholding_gap' => [
+            'rule_id' => 'withholding_gap',
+            'authority' => 'IRC §3402; IRS Publication 505',
+            'effective_start' => '2025-01-01',
+            'effective_end' => null,
+            'phaseouts' => [],
+            'inflation_adjusted' => false,
+            'source_url' => 'https://www.irs.gov/pub/irs-pdf/p505.pdf',
+            'last_verified' => '2026-07-01',
+            'status' => 'verified',
+            'band' => 'conditional',  // withholding review requires professional or W-4 update
+        ],
+
+        // ── FLAG-04: Employer Match Gap ───────────────────────────────────────
+        // Fires when durable facts show employer match_pct > 0 and user contribution
+        // is below the match threshold. "if your plan allows" framing mandatory.
+        'employer_match_gap' => [
+            'rule_id' => 'employer_match_gap',
+            'authority' => 'IRC §401(k)',
+            'effective_start' => '2025-01-01',
+            'effective_end' => null,
+            'phaseouts' => [],
+            'inflation_adjusted' => false,
+            'source_url' => 'https://www.irs.gov/retirement-plans/401k-plans',
+            'last_verified' => '2026-07-01',
+            'status' => 'verified',
+            'band' => 'auto',  // unclaimed match is the highest-return action for W-2 workers
+        ],
+
+        // ── FLAG-05: Deduction Probes (5 probes) ─────────────────────────────
+        // Each probe is prerequisite-gated. Merchant-pattern enrichment (FLAG-10)
+        // lands in 11-07 — these probes fire on profile/entity/fact prerequisites only.
+
+        'deduction_home_office' => [
+            'rule_id' => 'deduction_home_office',
+            'authority' => 'IRC §280A; Rev. Proc. 2013-13 (simplified $5/sqft, $1,500 cap)',
+            'effective_start' => '2025-01-01',
+            'effective_end' => null,
+            'phaseouts' => [],
+            'cap_cents' => 150_000,   // $1,500 simplified method cap; regular method has no cap
+            'inflation_adjusted' => false,
+            'source_url' => 'https://www.irs.gov/publications/p587',
+            'last_verified' => '2026-07-01',
+            'status' => 'verified',
+            'band' => 'conditional',  // sq footage and exclusive-use test required
+        ],
+
+        'deduction_vehicle' => [
+            'rule_id' => 'deduction_vehicle',
+            'authority' => 'IRC §179; Rev. Proc. 2025-33 (standard mileage 72.5¢/mi 2026)',
+            'effective_start' => '2025-01-01',
+            'effective_end' => null,
+            'phaseouts' => [],
+            'inflation_adjusted' => true,  // mileage rate adjusted annually
+            'source_url' => 'https://www.irs.gov/tax-professionals/standard-mileage-rates',
+            'last_verified' => '2026-07-01',
+            'status' => 'verified',
+            'band' => 'conditional',  // business-use % and method election required
+        ],
+
+        'deduction_electronics' => [
+            'rule_id' => 'deduction_electronics',
+            'authority' => 'IRC §179; IRC §168(k) (bonus depreciation)',
+            'effective_start' => '2025-01-01',
+            'effective_end' => null,
+            'phaseouts' => [],
+            'inflation_adjusted' => false,
+            'source_url' => 'https://www.irs.gov/publications/p946',
+            'last_verified' => '2026-07-01',
+            'status' => 'verified',
+            'band' => 'conditional',  // listed-property business-use % > 50% required
+        ],
+
+        'deduction_pet' => [
+            'rule_id' => 'deduction_pet',
+            'authority' => 'IRC §162 (guard-dog/working-animal); IRC §170 (*Van Dusen* foster)',
+            'effective_start' => '2025-01-01',
+            'effective_end' => null,
+            'phaseouts' => [],
+            'inflation_adjusted' => false,
+            'source_url' => 'https://www.irs.gov/publications/p526',
+            'last_verified' => '2026-07-01',
+            'status' => 'verified',
+            'band' => 'specialist',   // gray-area: question + pro routing only (never assert)
+        ],
+
+        'deduction_meals' => [
+            'rule_id' => 'deduction_meals',
+            'authority' => 'IRC §274 (50% business meals); Notice 2021-63 (restaurant exception expired)',
+            'effective_start' => '2025-01-01',
+            'effective_end' => null,
+            'phaseouts' => [],
+            'inflation_adjusted' => false,
+            'source_url' => 'https://www.irs.gov/publications/p463',
+            'last_verified' => '2026-07-01',
+            'status' => 'verified',
+            'band' => 'conditional',  // business purpose and documentation required
+        ],
+
+        // ── FLAG-14: Commingling Monitor ──────────────────────────────────────
+        // Locked wording: "Business owners commonly keep a separate account..."
+        // Warn-and-educate ONLY. NEVER "you qualify as a business."
+        'commingling_detected' => [
+            'rule_id' => 'commingling_detected',
+            'authority' => 'IRS hobby-loss 9-factor test; IRC §183',
+            'effective_start' => '2025-01-01',
+            'effective_end' => null,
+            'phaseouts' => [],
+            'inflation_adjusted' => false,
+            'source_url' => 'https://www.irs.gov/taxtopics/tc307',
+            'last_verified' => '2026-07-01',
+            'status' => 'verified',
+            'band' => 'conditional',  // education/awareness — separate-account recommendation
+        ],
+
+        // ── FLAG-15: Audit Risk Score ─────────────────────────────────────────
+        // Locked protective framing: "returns with patterns like [X] commonly receive
+        // additional IRS scrutiny — here is the documentation that typically resolves it."
+        // NEVER accusations, NEVER numeric audit probability.
+        'audit_risk_score' => [
+            'rule_id' => 'audit_risk_score',
+            'authority' => 'IRS audit selection patterns; DIF score research; §183 hobby-loss criteria',
+            'effective_start' => '2025-01-01',
+            'effective_end' => null,
+            'phaseouts' => [],
+            'inflation_adjusted' => false,
+            'source_url' => 'https://www.irs.gov/businesses/small-businesses-self-employed/irs-audit-rates',
+            'last_verified' => '2026-07-01',
+            'status' => 'verified',
+            'band' => 'conditional',  // protective-framing finding with documentation checklist
+        ],
+
+        // ── FLAG-28: Profile-vs-Reality Conformance (3 planes) ───────────────
+        // D13 (LOCKED): both directions per plane; every mismatch = OptimizationFinding
+        // + educational question ("Your paystub appears to show X while profile says Y").
+        // NEVER auto-write to UserFinancialProfile; profile updates via user-confirm only.
+
+        'conformance_filing_status' => [
+            'rule_id' => 'conformance_filing_status',
+            'authority' => 'IRS Publication 501; IRC §1 (filing status rules)',
+            'effective_start' => '2025-01-01',
+            'effective_end' => null,
+            'phaseouts' => [],
+            'inflation_adjusted' => false,
+            'source_url' => 'https://www.irs.gov/pub/irs-pdf/p501.pdf',
+            'last_verified' => '2026-07-01',
+            'status' => 'verified',
+            'band' => 'conditional',
+        ],
+
+        'conformance_ira_hsa' => [
+            'rule_id' => 'conformance_ira_hsa',
+            'authority' => 'IRC §408 (IRA); IRC §223 (HSA); Rev. Proc. 2025-32 (limits)',
+            'effective_start' => '2025-01-01',
+            'effective_end' => null,
+            'phaseouts' => [],
+            'inflation_adjusted' => true,
+            'source_url' => 'https://www.irs.gov/retirement-plans/ira-faqs',
+            'last_verified' => '2026-07-01',
+            'status' => 'verified',
+            'band' => 'conditional',
+        ],
+
+        'conformance_checkbox' => [
+            'rule_id' => 'conformance_checkbox',
+            'authority' => 'IRS Schedule E (rental), Form 2441 (childcare), IRC §221 (student loans)',
+            'effective_start' => '2025-01-01',
+            'effective_end' => null,
+            'phaseouts' => [],
+            'inflation_adjusted' => false,
+            'source_url' => 'https://www.irs.gov/forms-instructions',
+            'last_verified' => '2026-07-01',
+            'status' => 'verified',
+            'band' => 'conditional',
         ],
 
     ],

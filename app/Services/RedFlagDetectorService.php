@@ -173,8 +173,9 @@ class RedFlagDetectorService
     /**
      * Detector class registry.
      *
-     * Wave 11a: contains one trivial reference detector proving the pipeline.
-     * Wave 11b: appends per-category detector class names here.
+     * Wave 11a: harness + infrastructure (empty registry).
+     * Wave 11b (Plan 11-06): core W-2-first detectors + profile-conformance layer.
+     * Wave 11b (Plan 11-07): category detectors + merchant-pattern enrichment (FLAG-10).
      *
      * Each class must implement:
      *   run(int $userId, int $taxYear, RedFlagDetectorService $service, array $electionFacts): array
@@ -184,8 +185,16 @@ class RedFlagDetectorService
     protected function detectorClasses(): array
     {
         return [
-            // Wave 11a: reference detector (proves pipeline; emits a placeholder finding)
-            // Wave 11b content plans append detector classes here
+            // ── Wave 11b — Plan 11-06 (FLAG-02, FLAG-03, FLAG-04, FLAG-05, FLAG-14, FLAG-15, FLAG-28) ──
+            \App\Services\Detectors\FilingStatusDetector::class,
+            \App\Services\Detectors\WithholdingGapDetector::class,
+            \App\Services\Detectors\EmployerMatchGapDetector::class,
+            \App\Services\Detectors\DeductionProbeDetector::class,
+            \App\Services\Detectors\ComminglingMonitor::class,
+            \App\Services\Detectors\AuditRiskScorer::class,
+            \App\Services\Detectors\ProfileConformanceDetector::class,
+            // ── Wave 11b — Plan 11-07 (FLAG-10 category + merchant content) ──
+            // (appended by Plan 11-07)
         ];
     }
 
