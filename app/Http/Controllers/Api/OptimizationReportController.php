@@ -87,15 +87,26 @@ class OptimizationReportController extends Controller
                 ]);
             } else {
                 // Profile exists but report is stale — findings are already in DB, just regen the report.
-                GenerateOptimizationReport::dispatch($userId, $year)
-                    ->delay(now()->addSeconds(5));
+                // Regen COOLDOWN: during batch storms (e.g. a categorization backlog draining) every
+                // batch re-flags staleness; without a cooldown each view triggers a fresh regeneration
+                // (≈5 Claude narration calls each). Populated reports within the cooldown window keep
+                // serving saved content; regen resumes once the window passes.
+                $cooldownMinutes = (int) config('optimization-report.regen_cooldown_minutes', 10);
+                $inCooldown = ! $isEmpty
+                    && $report->rebuilt_at
+                    && $report->rebuilt_at->gt(now()->subMinutes($cooldownMinutes));
 
-                Log::info('OptimizationReportController@show: profile exists — dispatched report regen', [
-                    'user_id' => $userId,
-                    'tax_year' => $year,
-                    'is_stale' => $report->is_stale,
-                    'is_empty' => $isEmpty,
-                ]);
+                if (! $inCooldown) {
+                    GenerateOptimizationReport::dispatch($userId, $year)
+                        ->delay(now()->addSeconds(5));
+
+                    Log::info('OptimizationReportController@show: profile exists — dispatched report regen', [
+                        'user_id' => $userId,
+                        'tax_year' => $year,
+                        'is_stale' => $report->is_stale,
+                        'is_empty' => $isEmpty,
+                    ]);
+                }
             }
         }
 
@@ -104,7 +115,10 @@ class OptimizationReportController extends Controller
                 'id' => $report->id,
                 'tax_year' => $report->tax_year,
                 'is_stale' => $report->is_stale,
-                'status' => $needsGeneration ? 'generating' : 'ready',
+                // Stale-while-revalidate (owner: "we need to be saving these results"):
+                // saved sections are ALWAYS served. 'generating' only when nothing exists yet;
+                // stale-but-populated = 'ready' + is_stale=true (frontend shows a subtle chip).
+                'status' => $isEmpty ? 'generating' : 'ready',
                 'sections' => $report->sections ?? [],
                 'executive_summary' => $report->executive_summary,
                 'rebuilt_at' => $report->rebuilt_at?->toIso8601String(),

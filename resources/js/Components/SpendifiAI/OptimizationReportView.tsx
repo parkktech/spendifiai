@@ -336,7 +336,10 @@ export default function OptimizationReportView({
   }
 
   // ── Generating / empty ───────────────────────────────────────────────────────
-  const isGenerating = !report || report.status === 'generating' || (report.sections.length === 0 && !error);
+  // Stale-while-revalidate: saved sections ALWAYS render (owner: "we need to be
+  // saving these results"). Spinner only when there is genuinely nothing to show;
+  // a stale-but-populated report renders with the is_stale refresh chip instead.
+  const isGenerating = !report || (report.sections.length === 0 && !error);
 
   if (isGenerating) {
     return (
