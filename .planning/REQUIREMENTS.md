@@ -28,19 +28,19 @@ Requirements for this milestone. Each maps to a roadmap phase. All outputs are e
 
 ### Red-Flag Detection (FLAG)
 
-- [ ] **FLAG-01**: `RedFlagDetectorService` runs deterministic detectors and produces `OptimizationFinding` records (Claude only writes each flag's description)
+- [x] **FLAG-01**: `RedFlagDetectorService` runs deterministic detectors and produces `OptimizationFinding` records (Claude only writes each flag's description)
 - [ ] **FLAG-02**: Filing-status mismatch detector surfaces (never asserts) a possible mismatch between stated status and document/expected status
 - [ ] **FLAG-03**: Tax-withholding detector flags an estimated withholding gap greater than $500
 - [ ] **FLAG-04**: 401(k) employer-match-gap detector flags unclaimed employer match from pay-stub data
 - [ ] **FLAG-05**: Deduction-probe detectors (home office, vehicle, electronics, pet, meals) fire ONLY when their data prerequisites are verified from real user data
-- [ ] **FLAG-06**: Every finding carries a severity/priority so high-value items can be surfaced first
+- [x] **FLAG-06**: Every finding carries a severity/priority so high-value items can be surfaced first
 - [ ] **FLAG-07**: Deductible-subscription detection surfaced as optimization findings
 - [x] **FLAG-08**: Detectors respect config-driven materiality gates: single transactions under the auto-classify floor generate no questions unless recurring, recurring patterns over the annual gate are interrogated once as a pattern, single transactions over the interrogate threshold and any transaction at a known rental/business address or to a loan servicer are always interrogated — all thresholds ($100/$500/$1,000) live in config, never in service code, verified by tests
-- [ ] **FLAG-09**: Deterministic method-conflict guards suppress contradictory findings before emission: a standard-mileage election suppresses vehicle actual-expense suggestions (offering an engine-computed annual method comparison instead), a simplified home-office election suppresses actual-expense allocation prompts, §121 planning tracks depreciation recapture from home-office/rental years, and an existing accountable plan routes reimbursable items through the plan rather than Schedule C
+- [x] **FLAG-09**: Deterministic method-conflict guards suppress contradictory findings before emission: a standard-mileage election suppresses vehicle actual-expense suggestions (offering an engine-computed annual method comparison instead), a simplified home-office election suppresses actual-expense allocation prompts, §121 planning tracks depreciation recapture from home-office/rental years, and an existing accountable plan routes reimbursable items through the plan rather than Schedule C
 - [ ] **FLAG-10**: A merchant-pattern category detector library (seeded knowledge table with aliases, following the CancellationProviderSeeder precedent) covers the detection-spec superset beyond FLAG-05: vehicle/powersports (incl. GVWR §179 branch and auto-loan-interest sub-detector), solar/battery/energy loan servicers, pool/spa, landscaping/hardscape, home-improvement one-tap destination question, animals/security, medical/health with HSA-first routing (incl. diagnosed-condition cluster and registered caregiver/disability triggers), the multi-transaction travel-cluster correlator (incl. per-diem-vs-actual), RV/boat-as-second-home loan detection, the Masters/14-day standalone detector, and gambling merchant signal registration — every gray-area module (sponsorship, guard dog, medical pool, grounds, fuel credit) surfaces ONLY as (1) a question the user answers, (2) a documentation checklist, (3) a static config-sourced defensibility rating, and (4) pro-review-export routing — never as a deduction assertion
 - [ ] **FLAG-11**: A monthly scheduled recurring-payee sweep (activity-gated like existing AI jobs) reuses subscription-detection grouping to route recurring payments into modules: same-individual payments → worker-classification questionnaire (warn-and-educate only), childcare → dependent-care credit/FSA (day camp yes, overnight no), tuition/loan servicers → AOTC/LLC/student-loan-interest/§127/scholarship-election (scholarship module flagged narrate-carefully), charitable → bunching/DAF analysis with the reframed appreciated-asset education ("some donors give appreciated holdings…" — mechanics only, no directive; >$5K non-cash always pairs the qualified-appraisal checklist), storage/coworking → business allocation, insurance → SE-health/§105-HRA question-only check
 - [ ] **FLAG-12**: Retroactive scanners run at onboarding over 12–36 months of history (alongside BuildIncomeOptimizationProfile, backfilling via plaid:backfill where needed): a missed-credit scan (§25D solar 3-year amended-return recovery presented ONLY as a config-sourced educational range with uncertainty framing — "recoveries have commonly ranged from $A to $B; a tax professional could evaluate whether an amended return applies"; §30D EV strictly date-gated as a past-window fact never presented as currently available; §25C pre-2026), a missed-deduction scan (SE health insurance, unclaimed home office, auto-loan interest 2025+), basis reconstruction of contractor/improvement payments, method-election comparison on actuals, and estimated-tax safe-harbor exposure — all emitting standard OptimizationFinding records
-- [ ] **FLAG-13**: OptimizationFinding is extended additively to carry the full output contract: `transaction_ids[]`, `treatment`, `legal_basis` + `assumptions` (static config-sourced statutory citations — never Claude output), confidence `band` (cutpoints in config), timestamped `user_assertions[]` (the audit-defense log of user-asserted facts), `docs_captured[]`/`docs_missing[]` linked to Vault records, `estimated_value_cents` (integer cents; the detection spec's `estimated_value` field) written only by TaxRulesEngineService, `pro_export_ready` blocked while required docs are missing (e.g. fuel-credit gallons log), plus year-end forward-compat fields (`deadline`, `lead_time_days`, `net_cash_cost`, `tax_saved`, `cliff_bonus_value`, `reversible`)
+- [x] **FLAG-13**: OptimizationFinding is extended additively to carry the full output contract: `transaction_ids[]`, `treatment`, `legal_basis` + `assumptions` (static config-sourced statutory citations — never Claude output), confidence `band` (cutpoints in config), timestamped `user_assertions[]` (the audit-defense log of user-asserted facts), `docs_captured[]`/`docs_missing[]` linked to Vault records, `estimated_value_cents` (integer cents; the detection spec's `estimated_value` field) written only by TaxRulesEngineService, `pro_export_ready` blocked while required docs are missing (e.g. fuel-credit gallons log), plus year-end forward-compat fields (`deadline`, `lead_time_days`, `net_cash_cost`, `tax_saved`, `cliff_bonus_value`, `reversible`)
 - [ ] **FLAG-14**: A deterministic commingling monitor flags personal-type spend inside business-purpose accounts (expense_type=personal on AccountPurpose::Business) and educates with locked wording — "business owners commonly keep a separate account for business activity; it is the single most effective record in a hobby-loss review" — warn-and-educate only, never "you qualify as a business"
 - [ ] **FLAG-15**: A deterministic audit-risk score feeds finding severity from: perpetual Schedule C losses against W-2 income (9-factor hobby-loss score), 100% business vehicle use, round-number patterns, deposit-vs-reported mismatch, outsized charitable deductions / non-cash >$5K without appraisal, home-office+meals+travel disproportionate to revenue, missing 1099s, and mill-flag credits — surfaced with locked protective framing ("returns with patterns like [X] commonly receive additional IRS scrutiny — here is the documentation that typically resolves it"), never as accusations, never implying wrongdoing, never a numeric audit probability
 - [ ] **FLAG-16**: Time-critical deadline alarms are detected and routed to the feed at highest severity: the 83(b) 30-day window on restricted-stock grant signals, pre-2027 QOF holders' mandatory gain recognition at end of 2026, and a QSBS early-eligibility flag at C-corp formation (paired with a §1244 note) — urgency stated as fact with consider-a-professional framing
@@ -202,12 +202,12 @@ Each requirement maps to exactly one phase. Phases continue the global numbering
 | CTX-02 | Phase 10 | Complete |
 | CTX-03 | Phase 10 | Complete |
 | CTX-04 | Phase 10 | Complete |
-| FLAG-01 | Phase 11 | Pending |
+| FLAG-01 | Phase 11 | Complete |
 | FLAG-02 | Phase 11 | Pending |
 | FLAG-03 | Phase 11 | Pending |
 | FLAG-04 | Phase 11 | Pending |
 | FLAG-05 | Phase 11 | Pending |
-| FLAG-06 | Phase 11 | Pending |
+| FLAG-06 | Phase 11 | Complete |
 | INT-01 | Phase 11 | Pending |
 | INT-02 | Phase 11 | Pending |
 | INT-03 | Phase 11 | Complete |
@@ -236,11 +236,11 @@ Each requirement maps to exactly one phase. Phases continue the global numbering
 | TAX-08 | Phase 11 | Complete |
 | TAX-09 | Phase 11 | Complete |
 | FLAG-08 | Phase 11 | Complete |
-| FLAG-09 | Phase 11 | Pending |
+| FLAG-09 | Phase 11 | Complete |
 | FLAG-10 | Phase 11 | Pending |
 | FLAG-11 | Phase 11 | Pending |
 | FLAG-12 | Phase 11 | Pending |
-| FLAG-13 | Phase 11 | Pending |
+| FLAG-13 | Phase 11 | Complete |
 | FLAG-14 | Phase 11 | Pending |
 | FLAG-15 | Phase 11 | Pending |
 | FLAG-16 | Phase 11 | Pending |
