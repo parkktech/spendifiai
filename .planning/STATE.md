@@ -6,14 +6,14 @@ current_phase: 12
 current_phase_name: Optimization Report, Document Intake & Feature Surface
 status: executing
 stopped_at: Completed 11-04 guided interview + AI-feed bridge
-last_updated: "2026-07-02T07:38:43.577Z"
+last_updated: "2026-07-02T08:01:10.501Z"
 last_activity: 2026-07-02
 last_activity_desc: Phase 12 execution started
 progress:
   total_phases: 4
   completed_phases: 2
   total_plans: 16
-  completed_plans: 14
+  completed_plans: 15
   percent: 50
 ---
 
@@ -29,7 +29,7 @@ See: .planning/PROJECT.md (updated 2026-07-01)
 ## Current Position
 
 Phase: 12 (Optimization Report, Document Intake & Feature Surface) — EXECUTING
-Plan: 4 of 5
+Plan: 5 of 5
 Status: Ready to execute
 Last activity: 2026-07-02 — Phase 12 execution started
 
@@ -75,6 +75,7 @@ Continuing global phase numbering from v2.0 (ended Phase 9). Granularity: coarse
 | Phase 12 P01 | 192 | 2 tasks | 4 files |
 | Phase 12 P03 | 12m | 3 tasks | 11 files |
 | Phase 12-optimization-report-document-intake-feature-surface P02 | 18 minutes | 3 tasks | 12 files |
+| Phase 12 P04 | 14 | 3 tasks | 13 files |
 
 ## Accumulated Context
 
@@ -110,6 +111,7 @@ Recent decisions affecting current work:
 - [Phase ?]: DOC-02: existing buildDocumentContent() vision branch confirmed for JPEG/PNG — no new library required
 - [Phase ?]: D4 gate proven end-to-end: PaystubFactExtractorService creates is_current=false proposals; confirmProposal() ordering bug fixed; confirm() is the only promotion path
 - [Phase ?]: Runtime shape of extracted_data confirmed as nested-with-confidence; defensive fallback pattern in PaystubFactExtractorService + assembler PayStub arm
+- [Phase ?]: RPT-05: MarkOptimizationReportStale is flag-flip only (never dispatches); DispatchReportGeneration debounces 30s + ShouldBeUnique coalesces bursts
 
 ### Pending Todos
 
@@ -124,6 +126,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-07-02T07:38:32.234Z
+Last session: 2026-07-02T08:01:03.203Z
 Stopped at: Completed 11-04 guided interview + AI-feed bridge
 Resume file: None
