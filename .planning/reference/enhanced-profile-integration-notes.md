@@ -172,6 +172,22 @@ Owner: "An alert prior to your bonus to flag it… to not send a portion to your
 
 Sequencing: add as a scenario domain in SCENARIOS-SPEC (post-design addendum if the in-flight spec lacks it); implement with or immediately after the scenarios unit; predictive watcher rides the D14 ChangeMonitor build.
 
+## Decision 16 — The prominent To-Do list ("Action Center") + year-end liability strategy items (owner, 2026-07-02)
+
+Owner: bonus alerts should pop up in a TODO LIST along with tax review strategy — "you are going to have a large tax liability unless you spend X on charity, new race car, new work truck, computer, tractor, salon products etc for their personal/business. Make this Todo list check marks prominent and the user checks them when done."
+
+**1. Unified Action Center (the checklist UI's final form — supersedes per-report-only placement):**
+- ONE persistent, prominent to-do surface aggregating EVERY actionable item: scenario checklist steps (D9/D10), bonus election alerts (D15), change-monitor doc requests (D14), year-end timing items, document requests. Big checkmarks; user checks items done; state persists in the action/facts store with timestamps.
+- Placement: top-of-Dashboard widget + the Optimize page; nav badge = open item count (badge infra shipped). Items carry benefit lines (D9.7) and due-dates where real (bonus cutoffs, Dec 31).
+- Checking an item feeds the benefit-verification watcher (D13.5): claimed → watch the 2-4 week window → verified ("your take-home rose ~$148 ✓").
+
+**2. Year-end liability strategy items (promotes the playbook §8B year-end engine slice into the scenarios domain):**
+- Liability benchmark projection uses FLAG-18-compliant framing (prior-year-liability arithmetic + safe-harbor benchmark; detected income as surfacing trigger only — never "your liability WILL be $X").
+- Purchase-timing items are GATED on confirmed business/personal context and keyed to THEIR confirmed business type: §179/bonus-depreciation equipment for the categories they actually operate (work truck >6,000 lbs GVWR [config constant exists], computer, tractor for a confirmed farm, salon products for a confirmed salon, motorsport equipment ONLY for a confirmed motorsport business per the gray-area gating), charitable bunching education.
+- **HONESTY GUARDRAIL (binding copy rule):** never "spend to save" naked framing. Every purchase-timing item carries the net-cost truth: "Buying reduces taxes only if you needed it anyway — a $10,000 purchase in the 24% bracket saves ~$2,400 in tax and costs ~$7,600 net cash. If it was already planned for your business, completing it before Dec 31 may let it count this year." Educational, timing-focused, professional-review routing on big-ticket items.
+
+Sequencing: the Action Center IS the primary UI deliverable of the scenarios+checklist implementation unit (D9/D10/D13.5/D14/D15/D16 all converge there). Year-end items = a scenario/content domain within it.
+
 ## Non-negotiables that still apply
 
 Educational-only framing on every mismatch surface; additive migrations only; no changes to existing `UserFinancialProfile` API responses or `EnhancedProfileSection` behavior (extend, don't alter); encrypted TEXT + `$hidden` for sensitive new fields; all dollar math in TaxRulesEngineService from config.
