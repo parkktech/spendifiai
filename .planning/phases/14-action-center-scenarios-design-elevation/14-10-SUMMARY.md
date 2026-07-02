@@ -165,6 +165,43 @@ None. All components fetch live data from existing API endpoints (14-09 and earl
 
 No new security-relevant surface introduced. All API calls in new components use existing authenticated endpoints from 14-09 (action-center, checklist/items, scenarios) with no new routes or auth paths.
 
+## One-journey consolidation (corrective)
+
+**Commit:** 3b733ef
+
+### Stage map
+
+| Stage | Key | Condition | Renders |
+|-------|-----|-----------|---------|
+| Overview | `overview` | always | Top-to-bottom journey: Upload hero → Reveal → Doc follow-ups → Gap questions → Findings → CTA |
+| - Upload | (inner) | `stage0_items` has `upload_paystub` | `DocumentUploadFlow` as hero |
+| - Reveal | (inner) | `facts.proposals` non-empty | `ProposalConfirmCard` list; header "What your paystub told us" |
+| - Doc follow-ups | (inner) | other stage0 connectivity items exist | Inline `DocFollowUpCard` prompts with link to `/connect` |
+| - Gap questions | (inner) | `stage0_items` has `do_interview` | `InterviewCard` inline ("A few questions we couldn't answer from your documents") |
+| - Findings | (inner) | always | `FindingSummaryCard` list (sorted by severity) |
+| Choices | `choices` | nav | `ObjectiveReadinessPanel` + `ScenarioComparisonCards` + `ScenarioMixPanel`; after choose → Checklist CTA |
+| Checklist | `checklist` | nav | `OptimizationChecklistView` standalone |
+| Report | `report` | nav | `OptimizationChecklistView` (if chosen) + `OptimizationReportView` |
+
+### What changed
+
+- **Optimize/Index.tsx**: `ViewMode` changed from `'findings' | 'interview' | 'scenarios' | 'report'` → `'overview' | 'choices' | 'checklist' | 'report'`. `'interview'` tab removed; InterviewCard is now an inline step inside Overview.
+- **Optimize/Index.tsx**: Added API calls to `/api/v1/optimizer/action-center` and `/api/v1/optimizer/facts` for conditional journey rendering.
+- **Optimize/Index.tsx**: Added `DocumentUploadFlow` + `ProposalConfirmCard` imports and inline rendering.
+- **Settings/Index.tsx**: `AiOnboardingUploadSection` removed; replaced with compact "Add documents in Optimize My Income →" link card. `LearnedTaxFactsSection` preserved.
+- **UserProfile/Index.tsx**: Same removal + replacement. `LearnedTaxFactsSection` preserved.
+
+### Gates verified
+
+| Gate | Result |
+|------|--------|
+| `npm run build` zero TS errors | PASS |
+| `php artisan test --compact` exactly 1 known failure | PASS (1080 passed, 1 pre-existing DashboardFinancialBlocksTest failure) |
+| Taste audit 1: sw-* tokens only on brand surfaces | PASS (113 sw-* usages, no raw hex/Tailwind color overrides) |
+| Taste audit 2: educational disclaimers on every surface | PASS (13 instances of may/could/consult/estimate copy) |
+| Taste audit 3: D18 InterviewCard anatomy preserved | PASS (unchanged component, same props: taxYear + onAnswered) |
+| Taste audit 4: AiOnboardingUploadSection removed from Settings + UserProfile | PASS (no import or render in either page) |
+
 ## Self-Check: PASSED
 
 | Item | Status |
