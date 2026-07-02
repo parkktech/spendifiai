@@ -22,6 +22,8 @@ import {
   ChevronDown,
   ChevronUp,
   Users,
+  TrendingUp,
+  User,
 } from 'lucide-react';
 
 interface NavItemDef {
@@ -103,6 +105,8 @@ export default function AuthenticatedLayout({
     { label: 'Connect', href: '/connect', routeName: 'connect', icon: <Link2 size={18} /> },
     { label: 'Settings', href: '/settings', routeName: 'settings', icon: <Settings size={18} /> },
     { label: 'AI Questions', href: '/questions', routeName: 'questions', icon: <HelpCircle size={18} /> },
+    { label: 'Optimize My Income', href: '/optimize', routeName: 'optimize', icon: <TrendingUp size={18} />, badge: (auth.pendingOptimizationCount as number) || undefined },
+    { label: 'My Profile', href: '/user-profile', routeName: 'user-profile', icon: <User size={18} /> },
     ...(isAccountant ? [
       { label: 'Clients', href: '/accountant/clients', routeName: 'accountant.clients', icon: <Users size={18} /> },
     ] : []),

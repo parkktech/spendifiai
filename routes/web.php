@@ -63,6 +63,8 @@ Route::middleware(['auth:sanctum', 'verified'])->group(function () {
     Route::get('/connect', fn () => Inertia::render('Connect/Index'))->name('connect');
     Route::get('/settings', fn () => Inertia::render('Settings/Index'))->name('settings');
     Route::get('/questions', fn () => Inertia::render('Questions/Index'))->name('questions');
+    Route::get('/optimize', fn () => Inertia::render('Optimize/Index'))->name('optimize');
+    Route::get('/user-profile', fn () => Inertia::render('UserProfile/Index'))->name('user-profile');
 
     // Tax Vault
     Route::get('/vault', fn () => Inertia::render('Vault/Index'))->name('vault');
