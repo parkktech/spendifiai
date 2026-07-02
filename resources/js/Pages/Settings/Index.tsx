@@ -29,6 +29,7 @@ import axios from 'axios';
 import HouseholdSection from '@/Components/SpendifiAI/HouseholdSection';
 import DependentsSection from '@/Components/SpendifiAI/DependentsSection';
 import EnhancedProfileSection from '@/Components/SpendifiAI/EnhancedProfileSection';
+import LearnedTaxFactsSection from '@/Components/SpendifiAI/LearnedTaxFactsSection';
 
 function SuccessToast({ message }: { message: string }) {
   return (
@@ -414,6 +415,10 @@ export default function SettingsIndex() {
 
         {/* Enhanced Tax Profile */}
         <EnhancedProfileSection />
+
+        {/* AI-Learned Tax Facts (Phase 11-05 STORE-01 anchor — additive alongside EnhancedProfileSection) */}
+        {/* EnhancedProfileSection behavior and props are UNCHANGED — this renders after it.           */}
+        <LearnedTaxFactsSection />
 
         {/* Section 2: My Accountants (for personal users) */}
         {!isAccountant && (
