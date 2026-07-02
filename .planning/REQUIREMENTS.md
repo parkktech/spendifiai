@@ -115,6 +115,36 @@ Requirements for this milestone. Each maps to a roadmap phase. All outputs are e
 - [ ] **SAFE-06**: A hard-block refusal list is enforced in code (detect, refuse-and-educate, never monetize): 831(b) micro-captives, syndicated conservation easements, offshore structures / FBAR-FATCA concealment, Malta pension arrangements / abusive foreign trusts (Dirty Dozen — PB-v1 §8 P13 HARD-BLOCK row), nonprofit-as-personal-shelter (§4958 education), corporation sole / pure trust packages, "start a ministry" structures, crypto non-reporting, cash structuring, PPLI / offshore-crypto-IRA auto-pitches, and Hess-style body-mod probes (never probed — refuse-and-explain material only) — plus a never-surface-as-available config list (ended EV credits, residential solar federal credit for 2026+ primary homes, gambling losses presented as fully deductible) and the anti-waste principle (no output may present spending solely to create a deduction as savings); any matching user prompt triggers refuse-and-educate, the list feeds the RPT-06 refusal section (what/why only, never how), and guard-style warnings carry best-effort (not monitoring-guarantee) disclaimers
 - [ ] **SAFE-07**: The prompt-injection defense explicitly covers every new content path: DOC-02 screenshot/vision extraction (including injection via text inside images), DOC-05 in-flow uploads, DOC-06 substantiation documents, and DOC-07 benefits guides — all passed inside `<document_content>` delimiters with structured JSON output schemas and output validation; and the SAFE-05 framing review enumerates by name every liability-reframed item and every gray-area module wording as testable assertions, pinning SAFE-01 system prompts to the exact reframe phrasings
 
+### Action Center (ACT)
+
+- [ ] **ACT-01**: A lifecycle-adaptive, persistent to-do surface (Dashboard widget + Optimize page; nav badge showing open item count) aggregates every actionable item as a large-checkmark to-do; per-item done-state is persisted in the durable-facts/action store with timestamps
+- [ ] **ACT-02**: Stage-0 onboarding items are generated deterministically from connection/profile state for first-run users — ① Link your bank account ② Link your credit cards ③ Link your emails ④ Do the onboarding interview ⑤ Upload a pay stub — each disappears when completed and is replaced by what it unlocks
+- [ ] **ACT-03**: Every Action Center item carries a quantified benefit line (deterministic engine arithmetic for short-horizon figures; D9.7 illustration rules with stated config assumptions for long-horizon projections) and a due date where real (bonus election cutoffs, Dec 31 year-end items)
+- [ ] **ACT-04**: Checking an item done enters claimed state in the ChangeMonitor's 2-4-week observation window and transitions to verified when the expected change materializes in transaction/deposit data, reusing the SavingsLedger claimed→verified pattern
+- [ ] **ACT-05**: The empty-list state renders as an achievement moment ("You're fully optimized for now — we're watching for changes"), not a blank or dead-end view
+
+### Scenarios (SCN)
+
+- [ ] **SCN-01**: `config/optimization-objectives.php` encodes the full fact-requirements map for objectives `take_home`, `tax_burden`, and `retirement`; `ObjectiveReadinessService` computes per-objective readiness (`blocking_missing`, `confirm_needed`, `optional_missing`, `questions_to_unlock`) in two tiers: `known` (sufficient for scenario math) and `confirmed` (required for fact-gated directives)
+- [ ] **SCN-02**: `ScenarioFactResolverService` resolves every required fact through a per-fact source-priority chain (fact → snapshot → profile → derive → ask) with alias fallback; a citable `ScenarioFactSet` row (HMAC-SHA256 hash, encrypted `resolved_facts`, GDPR cascade) is persisted via an additive migration at choose-time
+- [ ] **SCN-03**: A `POST /optimizer/objectives/{year}/{objective}/enqueue` endpoint front-inserts blocking-missing gap questions into the interview session using deterministic config-driven question templates with typed answer conversion — zero Claude calls in this path
+- [ ] **SCN-04**: `TaxRulesEngineService` gains SCN-01 through SCN-07 pure computation methods (W-4 withholding math, FICA/§125 split, match-capture arithmetic, FV-range illustration, MAGI headroom, full-vector outcome, benefit aggregation); the ACA-cliff guard is arithmetic inside `computeScenarioOutcome()` — no emitted scenario can push a marketplace enrollee over the 400%-FPL cliff; the ACA invariant is covered by a 200-baseline property test
+- [ ] **SCN-05**: `ScenarioSolverService` runs the six-knob solver (W-4 alignment, trad/Roth 401k split, 401k level vs match formula, HSA election, IRA type/amount within the shared limit, auto-transfer to savings) over all three objectives and attributes per-paycheck and per-year benefit figures entirely from TaxRulesEngineService
+- [ ] **SCN-06**: For objectives where knobs diverge the API emits three named options (A=`take_home`, B=`retirement`, `balanced`); when objectives agree a single merged plan is emitted; the frontend renders a side-by-side comparison with knob-diff highlights, trade-off one-liners, and an Illustration badge on long-horizon figures
+- [ ] **SCN-07**: Choosing a scenario re-computes server-side, snapshots the `ScenarioFactSet`, persists `scenario.chosen_option` and `scenario.chosen_knobs` in `UserTaxFact`, materializes or re-materializes the checklist, and marks the optimization report stale; re-choosing supersedes the previous choice
+- [ ] **SCN-08**: Materialized checklist items render as fact-gated imperatives — confirmed-fact steps show the directive ("Contact your payroll department and change your W-4 filing status to Married Filing Jointly"), unconfirmed-fact steps render as the confirmation ask; every step carries an engine-computed benefit line; the checklist header aggregates total unlocked benefit across all confirmed steps
+
+### Monitors (MON)
+
+- [ ] **MON-01**: `ChangeMonitor` unifies verification watches and change detection in one service: the verification side watches for EXPECTED changes (checklist items checked done → 2-4-week observation window → verified outcome surfaced when the projected change lands in transaction/deposit data, reusing SavingsLedger claimed→verified); the detection side fires on UNEXPECTED changes (income shift ≥2 pay cycles, CrossSourceReview discrepancy, life-event triggers) and creates an `OptimizationFinding` + AIQuestion + DOC-05 document request with educational, benefit-forward copy ("We noticed [specific change] — send an updated [doc] and we'll check whether your [withholding/401k/transfers] are still optimized"); cadence guard ensures one prompt per detected change per freshness window with ≥2 pay-cycle persistence requirement
+- [ ] **MON-02**: Predictive calendar watchers extend ChangeMonitor with expected-event scheduling: bonus lead-time alerts (sourced from prior-year pattern, interview fact, or offer-letter extraction) fire with config lead time before the expected payroll cutoff, presenting a bonus scenario set (Option A: 0% deferral/max cash; Option B: max deferral/bracket management; Option C: standing election); year-end window items are gated on the user's confirmed business/personal context and confirmed business type, and every purchase-timing item carries the net-cost honesty statement ("a $10,000 purchase in the 24% bracket saves ~$2,400 in tax and costs ~$7,600 net cash — only if you needed it anyway")
+
+### Design Elevation (ELEV)
+
+- [ ] **ELEV-01**: DESIGN-ELEVATION-SPEC.md Wave 1 is applied: the 41 additive `sw-*` elevation tokens (shadow scale, motion tokens, display type scale, gradient recipes, surface colors) are added to `resources/css/app.css`; `AuthenticatedLayout.tsx` receives the spring-cubic-bezier sidebar transition, premium top header (backdrop-blur, 2-layer shadow, h-14), pill-indicator active nav state, and the `btn-press` / `card-lift` CSS utilities; Wave 1 preservation audit (§6 template) passes
+- [ ] **ELEV-02**: DESIGN-ELEVATION-SPEC.md Wave 2 is applied: `StatCard` gains the double-bezel anatomy (outer gradient frame, inner core, value at `text-[28px] font-[800]`, sentence-case label, semantic icon container variants); `SubscriptionCard`, `Badge`, and generic content cards gain `ring-1`/gradient/`shadow-sw-1` treatment and `card-lift` hover; Dashboard stat grid uses `stagger-children`; transaction row hover uses the gradient-fade pattern; Wave 2 preservation + tests audit passes
+- [ ] **ELEV-03**: All new Phase-14 UI components (Action Center widget, scenario comparison cards, checklist items, ChangeMonitor doc-request cards) are born to DESIGN-ELEVATION-SPEC canonical recipes (§3.11 scenario/checklist action card, §3.9 premium empty state, §3.10 skeleton) from their initial commit — no retrofitting required
+
 ## Future Requirements
 
 Deferred beyond v2.1. Tracked but not in this roadmap.
@@ -269,11 +299,29 @@ Each requirement maps to exactly one phase. Phases continue the global numbering
 | DOC-07 | Phase 12 | Complete |
 | SAFE-06 | Phase 13 | Pending |
 | SAFE-07 | Phase 13 | Pending |
+| ACT-01 | Phase 14 | Pending |
+| ACT-02 | Phase 14 | Pending |
+| ACT-03 | Phase 14 | Pending |
+| ACT-04 | Phase 14 | Pending |
+| ACT-05 | Phase 14 | Pending |
+| SCN-01 | Phase 14 | Pending |
+| SCN-02 | Phase 14 | Pending |
+| SCN-03 | Phase 14 | Pending |
+| SCN-04 | Phase 14 | Pending |
+| SCN-05 | Phase 14 | Pending |
+| SCN-06 | Phase 14 | Pending |
+| SCN-07 | Phase 14 | Pending |
+| SCN-08 | Phase 14 | Pending |
+| MON-01 | Phase 14 | Pending |
+| MON-02 | Phase 14 | Pending |
+| ELEV-01 | Phase 14 | Pending |
+| ELEV-02 | Phase 14 | Pending |
+| ELEV-03 | Phase 14 | Pending |
 
 **Coverage:**
 
-- v2.1 requirements: 78 total (41 existing + 36 new + FLAG-07 promoted from Future)
-- Mapped to phases: 78 / 78 (100%)
+- v2.1 requirements: 96 total (78 existing + 18 new for Phase 14)
+- Mapped to phases: 96 / 96 (100%)
 - Unmapped: 0
 
 **Per-phase counts:**
@@ -282,7 +330,8 @@ Each requirement maps to exactly one phase. Phases continue the global numbering
 - Phase 11 — Detection, Interview & AI Feed Integration: 42 (FLAG ×27, INT ×7, FEED ×4, TAX ×2, STORE ×2)
 - Phase 12 — Report, Document Intake & Feature Surface: 18 (RPT ×8, DOC ×6, UI ×3, STORE ×1)
 - Phase 13 — Safety, Validation & Hardening: 7 (SAFE ×7)
+- Phase 14 — Action Center, Scenarios & Design Elevation: 18 (ACT ×5, SCN ×8, MON ×2, ELEV ×3)
 
 ---
 *Requirements defined: 2026-07-01*
-*Last updated: 2026-07-01 after tax-playbook integration (v2.1 scope expansion)*
+*Last updated: 2026-07-02 after Phase 14 definition (Action Center, Scenarios, Monitors, Design Elevation)*

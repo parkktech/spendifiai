@@ -4,7 +4,7 @@
 
 - v1.0 MVP - Phases 1-5 (shipped 2026-02-11)
 - v2.0 Tax Document Vault & Accountant Portal - Phases 6-9 (shipped 2026-03-31)
-- v2.1 Optimize My Income - Phases 10-13 (in progress)
+- v2.1 Optimize My Income - Phases 10-14 (in progress; execution order: 10→11→12→14→13)
 
 ## Phases
 
@@ -129,7 +129,8 @@ Plans:
 - [x] **Phase 10: Foundation — Tax Rules Engine & Cross-Source Snapshot** - Deterministic 2026 tax math and a per-user financial snapshot, both proven correct with zero Claude involvement in numbers (completed 2026-07-02)
 - [x] **Phase 11: Red-Flag Detection, Guided Interview & AI Feed Integration** - Deterministic red-flag findings surfaced through a resumable one-question interview and the existing AI Questions feed (completed 2026-07-02)
 - [x] **Phase 12: Optimization Report, Document Intake & Feature Surface** - Exportable educational optimization report reached through a dedicated Optimize My Income surface, fed by expanded financial document intake (completed 2026-07-02)
-- [ ] **Phase 13: Safety, Validation & Hardening** - The complete feature certified within the educational-only liability boundary via security, legal, and PII hardening
+- [ ] **Phase 14: Action Center, Scenarios & Design Elevation** - The Action Center becomes the product's spine: scenario options A/B, actionable checklists with quantified benefits, change/calendar monitors — all born to the luxury design spec
+- [ ] **Phase 13: Safety, Validation & Hardening** - The complete feature certified within the educational-only liability boundary via security, legal, and PII hardening (runs LAST)
 
 ## Phase Details
 
@@ -204,10 +205,29 @@ Plans:
 - [x] 12-04-PLAN.md — Staleness wiring + report API (GET/regenerate/download) + pro-review export + nav badge prop (RPT-05, UI-01 support)
 - [x] 12-05-PLAN.md — Feature surface: Optimize My Income page + User/Family Profile page + AI-onboarding proposal-confirm UI + additive nav (UI-01, UI-02, UI-03)
 
+### Phase 14: Action Center, Scenarios & Design Elevation
+
+**Goal**: The Action Center becomes the product's spine: scenario options A/B, actionable checklists with quantified benefits, change/calendar monitors — all born to the luxury design spec.
+**Depends on**: Phase 12 (scenarios build on the optimization report pipeline, existing fact store, and P11 interview infrastructure)
+**Requirements**: ACT-01, ACT-02, ACT-03, ACT-04, ACT-05, SCN-01, SCN-02, SCN-03, SCN-04, SCN-05, SCN-06, SCN-07, SCN-08, MON-01, MON-02, ELEV-01, ELEV-02, ELEV-03
+**Success Criteria** (what must be TRUE):
+
+  1. A user arriving for the first time sees the Action Center with Stage-0 onboarding items (link bank, cards, emails, interview, paystub); each disappears when completed; a returning user sees scenario checklist steps, monitor alerts, and year-end items — all with benefit lines and due dates; the completed empty-state renders as an achievement moment.
+  2. For any objective where scenario knobs diverge, the user sees a side-by-side A/B/Balanced comparison with knob-diff highlights and trade-off one-liners; when objectives agree a single merged plan renders; the user's chosen option persists (`scenario.chosen_option` + `ScenarioFactSet` snapshot) across sessions and re-materializes the checklist.
+  3. Every materialized checklist step carries an engine-computed benefit line; long-horizon projections are clearly labeled as illustrations with stated config assumptions from TaxRulesEngineService; the checklist header aggregates total unlocked benefit across all confirmed steps.
+  4. ChangeMonitor surfaces a verified outcome (e.g. "Your new $500 transfers are live — take-home rose ~$148/paycheck") when an expected change materializes within the 2-4-week window, and proactively prompts for an updated pay stub when an income shift persists ≥2 pay cycles.
+  5. All new Phase-14 UI components and the upgraded existing surfaces (StatCard, SubscriptionCard, app shell, Dashboard) pass the DESIGN-ELEVATION-SPEC §6 preservation + brand-fidelity audit after each wave; `npm run build` and `php artisan test --compact` pass after every wave.
+
+**Note**: Canonical refs: SCENARIOS-SPEC.md, DESIGN-ELEVATION-SPEC.md, Decisions 9-16
+**UI hint**: yes
+> SCENARIOS-SPEC.md §I defines the 5-wave implementation breakdown (W1 config, W2 data substrate, W3 engine orchestration, W4 frontend, W5 hardening). DESIGN-ELEVATION-SPEC.md §5 defines the 3-wave elevation rollout (tokens+shell, core surfaces, feature surfaces). Both specs are implementation-ready; downstream agents MUST read them before planning.
+
+**Plans**: TBD
+
 ### Phase 13: Safety, Validation & Hardening
 
 **Goal**: The complete feature is certified as holding the educational-only liability boundary through a security, legal, and PII hardening pass on the full end-to-end system.
-**Depends on**: Phase 12 (hardening runs last, on the complete feature)
+**Depends on**: Phase 14 (hardening runs last, on the complete feature including Action Center + Scenarios)
 **Requirements**: SAFE-01, SAFE-02, SAFE-03, SAFE-04, SAFE-05, SAFE-06, SAFE-07
 **Success Criteria** (what must be TRUE):
 
@@ -221,7 +241,7 @@ Plans:
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 10 → 11 → 12 → 13
+Phases execute in this order: 10 → 11 → 12 → 14 → 13 (Phase 13 SAFE hardening runs last on the complete feature)
 
 | Phase | Milestone | Plans | Status | Completed |
 |-------|-----------|-------|--------|-----------|
@@ -237,4 +257,5 @@ Phases execute in numeric order: 10 → 11 → 12 → 13
 | 10. Foundation — Tax Rules Engine & Cross-Source Snapshot | v2.1 | 3/3 | Complete   | 2026-07-02 |
 | 11. Red-Flag Detection, Guided Interview & AI Feed Integration | v2.1 | 8/8 | Complete   | 2026-07-02 |
 | 12. Optimization Report, Document Intake & Feature Surface | v2.1 | 5/5 | Complete   | 2026-07-02 |
+| 14. Action Center, Scenarios & Design Elevation | v2.1 | 0/TBD | Not started | - |
 | 13. Safety, Validation & Hardening | v2.1 | 0/TBD | Not started | - |
