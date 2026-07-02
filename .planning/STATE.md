@@ -6,14 +6,14 @@ current_phase: 11
 current_phase_name: Red-Flag Detection, Guided Interview & AI Feed Integration
 status: executing
 stopped_at: Completed 11-04 guided interview + AI-feed bridge
-last_updated: "2026-07-02T04:35:14.791Z"
+last_updated: "2026-07-02T05:02:18.270Z"
 last_activity: 2026-07-02
 last_activity_desc: Phase 11 execution started
 progress:
   total_phases: 4
   completed_phases: 1
   total_plans: 11
-  completed_plans: 9
+  completed_plans: 10
   percent: 25
 ---
 
@@ -29,7 +29,7 @@ See: .planning/PROJECT.md (updated 2026-07-01)
 ## Current Position
 
 Phase: 11 (Red-Flag Detection, Guided Interview & AI Feed Integration) — EXECUTING
-Plan: 7 of 8
+Plan: 8 of 8
 Status: Ready to execute
 Last activity: 2026-07-02 — Phase 11 execution started
 
@@ -71,6 +71,7 @@ Continuing global phase numbering from v2.0 (ended Phase 9). Granularity: coarse
 | Phase 11 P02 | 632 | 3 tasks | 12 files |
 | Phase 11 P04 | 180 | 3 tasks | 22 files |
 | Phase 11 P05 | 440s | 2 tasks | 8 files |
+| Phase 11 P07 | 90min | 3 tasks | 13 files |
 
 ## Accumulated Context
 
@@ -100,6 +101,7 @@ Recent decisions affecting current work:
 - [Phase ?]: FLAG-03 gap computed by engine; detector only decides emit/skip
 - [Phase ?]: score_threshold=2; no numeric probability in treatment
 - [Phase ?]: FLAG-28 D13 locked; test-enforced no-write assertion
+- [Phase 11]: FLAG-18 REFRAMED: SafeHarborBenchmark uses penalty-avoidance benchmark framing only; business inflows excluded from computation by construction (Threat T-11-07-01 mitigated)
 
 ### Pending Todos
 
@@ -114,6 +116,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-07-02T04:34:54.867Z
+Last session: 2026-07-02T05:01:58.671Z
 Stopped at: Completed 11-04 guided interview + AI-feed bridge
 Resume file: None
