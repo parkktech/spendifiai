@@ -168,6 +168,28 @@ Schedule::call(function () {
         });
 })->dailyAt('05:00')->name('penalty-prevention-sweep');
 
+// ── ChangeMonitor — verification watch + change detection + calendar watchers (daily at 6am) ──
+// MON-01/MON-02: activity-gated exactly like detect-subscriptions (28-day threshold).
+// Checks: checkVerificationWindows, detectIncomeShifts, runCalendarWatchers per active user.
+// Zero Claude (D17): all detection is deterministic; all prompts use template copy.
+Schedule::call(function () {
+    $thresholdDays = config('spendifiai.sync.active_threshold_days', 28);
+    $taxYear = (int) date('Y');
+    $monitor = app(\App\Services\ChangeMonitor::class);
+
+    User::whereHas('bankConnections')
+        ->where('last_active_at', '>', now()->subDays($thresholdDays))
+        ->each(function ($user) use ($monitor, $taxYear) {
+            try {
+                $monitor->checkVerificationWindows($user->id, $taxYear);
+                $monitor->detectIncomeShifts($user->id, $taxYear);
+                $monitor->runCalendarWatchers($user->id, $taxYear);
+            } catch (\Throwable $e) {
+                Log::warning('ChangeMonitor failed for user '.$user->id.': '.$e->getMessage());
+            }
+        });
+})->dailyAt('06:00')->name('change-monitor');
+
 // ── Clean up orphaned queue jobs (daily at 1am) ──
 // The active queue is Redis. Database `jobs` table can accumulate orphaned
 // entries from past config or failed dispatches. Also resets email connections
