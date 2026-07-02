@@ -2,19 +2,19 @@
 gsd_state_version: 1.0
 milestone: v2.1
 milestone_name: Optimize My Income
-current_phase: 12
-current_phase_name: Optimization Report, Document Intake & Feature Surface
-status: verifying
+current_phase: 14
+current_phase_name: Action Center, Scenarios & Design Elevation
+status: executing
 stopped_at: Completed 11-04 guided interview + AI-feed bridge
-last_updated: "2026-07-02T08:19:37.161Z"
+last_updated: "2026-07-02T17:57:08.991Z"
 last_activity: 2026-07-02
-last_activity_desc: Phase 12 execution started
+last_activity_desc: Phase 14 execution started
 progress:
-  total_phases: 4
+  total_phases: 5
   completed_phases: 3
-  total_plans: 16
-  completed_plans: 16
-  percent: 75
+  total_plans: 26
+  completed_plans: 20
+  percent: 60
 ---
 
 # Project State
@@ -24,14 +24,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-01)
 
 **Core value:** AI-powered personal finance platform bridging taxpayers and their accountants
-**Current focus:** Phase 12 — Optimization Report, Document Intake & Feature Surface
+**Current focus:** Phase 14 — Action Center, Scenarios & Design Elevation
 
 ## Current Position
 
-Phase: 12 (Optimization Report, Document Intake & Feature Surface) — EXECUTING
-Plan: 5 of 5
-Status: Phase complete — ready for verification
-Last activity: 2026-07-02 — Phase 12 execution started
+Phase: 14 (Action Center, Scenarios & Design Elevation) — EXECUTING
+Plan: 2 of 10
+Status: Ready to execute
+Last activity: 2026-07-02 — Phase 14 execution started
 
 ## v2.1 Roadmap Summary
 
@@ -77,6 +77,7 @@ Continuing global phase numbering from v2.0 (ended Phase 9). Granularity: coarse
 | Phase 12-optimization-report-document-intake-feature-surface P02 | 18 minutes | 3 tasks | 12 files |
 | Phase 12 P04 | 14 | 3 tasks | 13 files |
 | Phase 12 P05 | 13 | 3 tasks | 11 files |
+| Phase 14 P01 | 35min | 3 tasks | 17 files |
 
 ## Accumulated Context
 
@@ -113,6 +114,8 @@ Recent decisions affecting current work:
 - [Phase ?]: D4 gate proven end-to-end: PaystubFactExtractorService creates is_current=false proposals; confirmProposal() ordering bug fixed; confirm() is the only promotion path
 - [Phase ?]: Runtime shape of extracted_data confirmed as nested-with-confidence; defensive fallback pattern in PaystubFactExtractorService + assembler PayStub arm
 - [Phase ?]: RPT-05: MarkOptimizationReportStale is flag-flip only (never dispatches); DispatchReportGeneration debounces 30s + ShouldBeUnique coalesces bursts
+- [Phase ?]: D17 per-purpose Claude model resolution + daily budget Cache counters at all 4 sanctioned call sites; categorization on Haiku behind unchanged confidence-routing safety net (14-01)
+- [Phase ?]: config/optimization-objectives.php is the single readiness source (M5); bonus_election added as scenario domain for 14-09 (D15)
 
 ### Pending Todos
 
@@ -127,6 +130,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-07-02T08:19:37.152Z
+Last session: 2026-07-02T17:56:44.204Z
 Stopped at: Completed 11-04 guided interview + AI-feed bridge
 Resume file: None

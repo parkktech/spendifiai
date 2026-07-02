@@ -127,7 +127,7 @@ Requirements for this milestone. Each maps to a roadmap phase. All outputs are e
 
 - [ ] **SCN-01**: `config/optimization-objectives.php` encodes the full fact-requirements map for objectives `take_home`, `tax_burden`, and `retirement`; `ObjectiveReadinessService` computes per-objective readiness (`blocking_missing`, `confirm_needed`, `optional_missing`, `questions_to_unlock`) in two tiers: `known` (sufficient for scenario math) and `confirmed` (required for fact-gated directives)
 - [ ] **SCN-02**: `ScenarioFactResolverService` resolves every required fact through a per-fact source-priority chain (fact → snapshot → profile → derive → ask) with alias fallback; a citable `ScenarioFactSet` row (HMAC-SHA256 hash, encrypted `resolved_facts`, GDPR cascade) is persisted via an additive migration at choose-time
-- [ ] **SCN-03**: A `POST /optimizer/objectives/{year}/{objective}/enqueue` endpoint front-inserts blocking-missing gap questions into the interview session using deterministic config-driven question templates with typed answer conversion — zero Claude calls in this path
+- [x] **SCN-03**: A `POST /optimizer/objectives/{year}/{objective}/enqueue` endpoint front-inserts blocking-missing gap questions into the interview session using deterministic config-driven question templates with typed answer conversion — zero Claude calls in this path
 - [ ] **SCN-04**: `TaxRulesEngineService` gains SCN-01 through SCN-07 pure computation methods (W-4 withholding math, FICA/§125 split, match-capture arithmetic, FV-range illustration, MAGI headroom, full-vector outcome, benefit aggregation); the ACA-cliff guard is arithmetic inside `computeScenarioOutcome()` — no emitted scenario can push a marketplace enrollee over the 400%-FPL cliff; the ACA invariant is covered by a 200-baseline property test
 - [ ] **SCN-05**: `ScenarioSolverService` runs the six-knob solver (W-4 alignment, trad/Roth 401k split, 401k level vs match formula, HSA election, IRA type/amount within the shared limit, auto-transfer to savings) over all three objectives and attributes per-paycheck and per-year benefit figures entirely from TaxRulesEngineService
 - [ ] **SCN-06**: For objectives where knobs diverge the API emits three named options (A=`take_home`, B=`retirement`, `balanced`); when objectives agree a single merged plan is emitted; the frontend renders a side-by-side comparison with knob-diff highlights, trade-off one-liners, and an Illustration badge on long-horizon figures
@@ -306,7 +306,7 @@ Each requirement maps to exactly one phase. Phases continue the global numbering
 | ACT-05 | Phase 14 | Pending |
 | SCN-01 | Phase 14 | Pending |
 | SCN-02 | Phase 14 | Pending |
-| SCN-03 | Phase 14 | Pending |
+| SCN-03 | Phase 14 | Complete |
 | SCN-04 | Phase 14 | Pending |
 | SCN-05 | Phase 14 | Pending |
 | SCN-06 | Phase 14 | Pending |
