@@ -48,12 +48,26 @@ interface ReportFinding {
   band?: 'auto' | 'conditional' | 'specialist' | null;
 }
 
+/** D19 structured narration fields for report sections. */
+interface NarratorStructured {
+  summary: string;
+  bullets: string[];
+}
+
+/** D19 structured executive summary. */
+interface ExecutiveSummaryStructured {
+  summary: string;
+  bullets: string[];
+}
+
 interface ReportSection {
   section_key: string;
   title: string;
   section_type: 'topical' | 'wrapper' | 'glossary' | 'year_end' | string;
   findings: ReportFinding[];
   narrator_prose: string | null;
+  /** D19: structured narration — prefer over narrator_prose when present. */
+  narrator_structured: NarratorStructured | null;
   disclaimer: string | null;
 }
 
@@ -64,6 +78,8 @@ interface OptimizationReportData {
   status: 'generating' | 'ready';
   sections: ReportSection[];
   executive_summary: string | null;
+  /** D19: structured executive summary — prefer over executive_summary when present. */
+  executive_summary_structured: ExecutiveSummaryStructured | null;
   rebuilt_at: string | null;
   stale_since: string | null;
 }
@@ -262,12 +278,28 @@ function SectionCard({
       {/* Section body */}
       {open && (
         <div className="border-t border-sw-border/60 px-5 py-4 space-y-4">
-          {/* Narrator prose */}
-          {section.narrator_prose && (
-            <p className="text-[13px] text-sw-text-secondary leading-relaxed">
+          {/* D19: Narrator — compose from structured fields when present, fallback to prose clamp */}
+          {section.narrator_structured ? (
+            <div className="space-y-2">
+              <p className="text-[13px] text-sw-text-secondary leading-relaxed">
+                {section.narrator_structured.summary}
+              </p>
+              {section.narrator_structured.bullets.length > 0 && (
+                <ul className="space-y-1 pl-3">
+                  {section.narrator_structured.bullets.map((bullet, i) => (
+                    <li key={i} className="text-[12px] text-sw-muted flex items-start gap-1.5">
+                      <span className="mt-1.5 w-1 h-1 rounded-full bg-sw-muted shrink-0" />
+                      {bullet}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          ) : section.narrator_prose ? (
+            <p className="text-[13px] text-sw-text-secondary leading-relaxed line-clamp-3">
               {section.narrator_prose}
             </p>
-          )}
+          ) : null}
 
           {/* Findings list */}
           {section.findings.length > 0 ? (
@@ -414,11 +446,31 @@ export default function OptimizationReportView({
         </div>
       </div>
 
-      {/* Executive summary */}
-      {report.executive_summary && (
+      {/* D19: Executive summary — compose from structured when present, fallback to prose clamp */}
+      {(report.executive_summary_structured || report.executive_summary) && (
         <div className="rounded-2xl border border-sw-accent/20 bg-sw-accent/5 px-5 py-4 space-y-2">
           <p className="text-[11px] font-semibold text-sw-accent uppercase tracking-wide">Overview</p>
-          <p className="text-[13px] text-sw-text-secondary leading-relaxed">{report.executive_summary}</p>
+          {report.executive_summary_structured ? (
+            <div className="space-y-2">
+              <p className="text-[13px] text-sw-text-secondary leading-relaxed">
+                {report.executive_summary_structured.summary}
+              </p>
+              {report.executive_summary_structured.bullets.length > 0 && (
+                <ul className="space-y-1 pl-3">
+                  {report.executive_summary_structured.bullets.map((bullet, i) => (
+                    <li key={i} className="text-[12px] text-sw-muted flex items-start gap-1.5">
+                      <span className="mt-1.5 w-1 h-1 rounded-full bg-sw-muted shrink-0" />
+                      {bullet}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          ) : (
+            <p className="text-[13px] text-sw-text-secondary leading-relaxed line-clamp-3">
+              {report.executive_summary}
+            </p>
+          )}
           {/* Page-level disclaimer (UI-03) */}
           <div className="flex items-start gap-2 pt-1">
             <Info size={11} className="text-sw-dim shrink-0 mt-0.5" />

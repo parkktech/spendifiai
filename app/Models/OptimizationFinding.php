@@ -53,6 +53,8 @@ class OptimizationFinding extends Model
         'tax_saved',
         'cliff_bonus_value',
         'reversible',
+        // D19 structured narration output contract
+        'narration_structured',
     ];
 
     /**
@@ -87,6 +89,8 @@ class OptimizationFinding extends Model
             'pro_export_ready' => 'boolean',
             'reversible' => 'boolean',
             'deadline' => 'date',
+            // D19: structured narration — {hook, detail, action_cue}
+            'narration_structured' => 'array',
         ];
     }
 

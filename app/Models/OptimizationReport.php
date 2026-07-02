@@ -38,6 +38,8 @@ class OptimizationReport extends Model
         'rebuilt_at',
         // D13: aggregate snapshot stored at generation time for material-change detection
         'built_against',
+        // D19: structured executive summary {summary, bullets}
+        'executive_summary_structured',
     ];
 
     /**
@@ -58,6 +60,8 @@ class OptimizationReport extends Model
             'rebuilt_at' => 'datetime',
             // D13: JSONB aggregate snapshot — income_cents, savings_cents, finding_keys, generated_at
             'built_against' => 'array',
+            // D19: structured executive summary
+            'executive_summary_structured' => 'array',
         ];
     }
 

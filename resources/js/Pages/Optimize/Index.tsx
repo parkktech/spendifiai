@@ -48,6 +48,12 @@ import axios from 'axios';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
+/** D19: structured narration fields for report sections and executive summary. */
+interface NarratorStructured {
+  summary: string;
+  bullets: string[];
+}
+
 interface ReportSection {
   section_key: string;
   title: string;
@@ -57,11 +63,15 @@ interface ReportSection {
     finding_type: string;
     severity: 'high' | 'medium' | 'low' | string;
     description: string | null;
+    /** D19: structured narration — {hook, detail, action_cue}. */
+    narration_structured?: { hook: string; detail: string; action_cue: string } | null;
     docs_missing?: string[];
     docs_captured?: number[];
     band?: 'auto' | 'conditional' | 'specialist' | null;
   }>;
   narrator_prose: string | null;
+  /** D19: structured section narration — prefer over narrator_prose when present. */
+  narrator_structured: NarratorStructured | null;
   disclaimer: string | null;
 }
 
@@ -72,6 +82,8 @@ interface ReportData {
   status: 'generating' | 'ready';
   sections: ReportSection[];
   executive_summary: string | null;
+  /** D19: structured executive summary — prefer over executive_summary when present. */
+  executive_summary_structured: NarratorStructured | null;
   rebuilt_at: string | null;
   stale_since: string | null;
 }
@@ -130,21 +142,32 @@ function FindingSummaryCard({
         </div>
       </div>
 
-      {/* Findings preview list — first sentence only; expand chevron for full narration */}
+      {/* D19: Findings preview — hook from narration_structured (born-structured), or first-sentence clamp. */}
       {section.findings.slice(0, 3).map((finding) => {
         const isExpanded = expandedFindingId === finding.finding_id;
+        // D19: prefer structured hook; fall back to description with clamp.
+        const structured = finding.narration_structured ?? null;
+        const hook = structured?.hook ?? null;
         const desc = finding.description ?? null;
-        const truncated = desc ? firstSentence(desc) : null;
-        const needsExpand = desc !== null && truncated !== desc; // true when we clipped
+        const displayText = hook ?? (desc ? firstSentence(desc) : null);
+        const fullText = hook ?? desc;
+        const needsExpand = !hook && desc !== null && firstSentence(desc) !== desc;
 
         return (
           <div key={finding.finding_id} className="pl-3 border-l-2 border-sw-border">
-            {desc ? (
+            {displayText ? (
               <>
                 <p className="text-[12px] text-sw-text-secondary leading-relaxed">
-                  {isExpanded ? desc : truncated}
+                  {isExpanded && !hook ? fullText : displayText}
                 </p>
-                {needsExpand && (
+                {/* D19: expand shows detail + action_cue from structured contract */}
+                {isExpanded && structured && (
+                  <div className="mt-1.5 space-y-1">
+                    <p className="text-[11px] text-sw-muted leading-relaxed">{structured.detail}</p>
+                    <p className="text-[11px] text-sw-dim italic">{structured.action_cue}</p>
+                  </div>
+                )}
+                {(needsExpand || (structured?.detail)) && (
                   <button
                     onClick={() => setExpandedFindingId(isExpanded ? null : finding.finding_id)}
                     className="mt-1 inline-flex items-center gap-1 text-[11px] font-medium text-sw-muted hover:text-sw-text transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sw-accent/50 rounded"
@@ -170,11 +193,31 @@ function FindingSummaryCard({
         </p>
       )}
 
-      {/* Narrator prose */}
-      {section.narrator_prose && (
-        <p className="text-[12px] text-sw-muted leading-relaxed border-t border-sw-border/60 pt-3">
-          {section.narrator_prose}
-        </p>
+      {/* D19: Narrator — compose from structured fields when present, fallback to prose clamp */}
+      {(section.narrator_structured || section.narrator_prose) && (
+        <div className="border-t border-sw-border/60 pt-3 space-y-1.5">
+          {section.narrator_structured ? (
+            <>
+              <p className="text-[12px] text-sw-muted leading-relaxed">
+                {section.narrator_structured.summary}
+              </p>
+              {section.narrator_structured.bullets.length > 0 && (
+                <ul className="space-y-0.5 pl-3">
+                  {section.narrator_structured.bullets.map((bullet, i) => (
+                    <li key={i} className="text-[11px] text-sw-dim flex items-start gap-1.5">
+                      <span className="mt-1.5 w-1 h-1 rounded-full bg-sw-dim shrink-0" />
+                      {bullet}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </>
+          ) : (
+            <p className="text-[12px] text-sw-muted leading-relaxed line-clamp-2">
+              {section.narrator_prose}
+            </p>
+          )}
+        </div>
       )}
     </div>
   );

@@ -88,7 +88,9 @@ class OptimizationReportGeneratorService
             'finding_count' => count($s['findings'] ?? []),
         ], array_filter($topicalSections, fn ($s): bool => $s['section_type'] === 'topical'));
 
-        $executiveSummary = $this->narrator->narrateExecutiveSummary($sectionSummaries);
+        // D19: structured executive summary {summary, bullets} | null.
+        $execSummaryStructured = $this->narrator->narrateExecutiveSummary($sectionSummaries);
+        $executiveSummary = $execSummaryStructured['summary'] ?? null; // backward compat
 
         // ── Step 6: Build built_against snapshot (D13) ───────────────────
         // Snapshot the income/savings aggregates from the current profile so
@@ -115,6 +117,7 @@ class OptimizationReportGeneratorService
             [
                 'sections' => $sections,
                 'executive_summary' => $executiveSummary,
+                'executive_summary_structured' => $execSummaryStructured, // D19
                 'is_stale' => false,
                 'rebuilt_at' => now(),
                 'stale_since' => null,
@@ -197,10 +200,13 @@ class OptimizationReportGeneratorService
                 // estimated_value_cents NOT included here — stays in the finding model
             ], $sectionFindings);
 
-            // Narrate the section if there are findings
+            // D19: Narrate the section (structured output — {summary, bullets}).
+            // narrator_prose (backward compat) = summary string | null.
+            // narrator_structured (D19) = {summary, bullets} | null.
+            $narratorStructured = null;
             $narratorProse = null;
             if (! empty($findingRows)) {
-                $narratorProse = $this->narrator->narrateSection([
+                $narratorStructured = $this->narrator->narrateSection([
                     'section_title' => $def['title'],
                     // Payload to Claude contains only non-monetary metadata (T-12-03-01)
                     'findings' => array_map(fn (array $r): array => [
@@ -211,6 +217,8 @@ class OptimizationReportGeneratorService
                         // estimated_value_cents and all monetary columns deliberately excluded
                     ], $findingRows),
                 ]);
+                // Backward compat: narrator_prose = summary text (renderers use narrator_structured first)
+                $narratorProse = $narratorStructured['summary'] ?? null;
             }
 
             $sections[] = [
@@ -219,7 +227,8 @@ class OptimizationReportGeneratorService
                 'title' => $def['title'],
                 'description' => $def['description'],
                 'findings' => $findingRows,
-                'narrator_prose' => $narratorProse,
+                'narrator_prose' => $narratorProse,            // backward compat (D17 display clamp)
+                'narrator_structured' => $narratorStructured,  // D19 structured fields
                 // RPT-03: persistent per-section educational disclaimer
                 'disclaimer' => $disclaimer,
             ];

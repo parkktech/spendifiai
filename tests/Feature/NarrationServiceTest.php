@@ -39,11 +39,15 @@ it('claude_never_receives_value_cents', function () {
         'description' => null,
     ]);
 
-    // Capture what is sent to the Anthropic API
+    // D19: Capture what is sent to the Anthropic API (response must be valid JSON)
     Http::fake([
         'https://api.anthropic.com/*' => Http::response([
             'content' => [
-                ['type' => 'text', 'text' => 'You may consider increasing your IRA contributions.'],
+                ['type' => 'text', 'text' => json_encode([
+                    'hook' => 'You may consider increasing your IRA contributions.',
+                    'detail' => 'Maximizing pre-tax retirement contributions could reduce your taxable income.',
+                    'action_cue' => 'Consider discussing with a tax professional.',
+                ])],
             ],
         ], 200),
     ]);
@@ -66,11 +70,15 @@ it('claude_never_receives_value_cents', function () {
 // ── Narration makes no calls to non-Anthropic hosts ──────────────────────────
 
 it('no_stray_requests to non-Anthropic hosts', function () {
-    // Allow only Anthropic; any other host throws
+    // D19: response must be valid JSON {hook, detail, action_cue}
     Http::fake([
         'https://api.anthropic.com/*' => Http::response([
             'content' => [
-                ['type' => 'text', 'text' => 'You could consider reviewing this area.'],
+                ['type' => 'text', 'text' => json_encode([
+                    'hook' => 'You could consider reviewing this area.',
+                    'detail' => 'This may be worth exploring with a professional.',
+                    'action_cue' => 'Consider discussing with a tax professional.',
+                ])],
             ],
         ], 200),
     ]);
@@ -90,12 +98,25 @@ it('no_stray_requests to non-Anthropic hosts', function () {
     // We've faked Anthropic; any other host would throw a MissingMockException
     $service->narrateFinding($finding);
 
+    // D19: up to 2 calls (first attempt + optional retry on cap/error)
     Http::assertSentCount(1);
 });
 
 // ── Banned assertive phrases absent from system prompt ───────────────────────
 
 it('banned_phrases_absent from Claude system prompt', function () {
+    Http::fake([
+        'https://api.anthropic.com/*' => Http::response([
+            'content' => [
+                ['type' => 'text', 'text' => json_encode([
+                    'hook' => 'You may want to consider this area.',
+                    'detail' => 'This could be worth reviewing.',
+                    'action_cue' => 'Consider discussing with a tax professional.',
+                ])],
+            ],
+        ], 200),
+    ]);
+
     // SAFE-01: banned assertive language list
     $bannedPhrases = [
         'you should',
@@ -146,13 +167,18 @@ it('banned_phrases_absent from Claude system prompt', function () {
     });
 });
 
-// ── Narration writes only description (never estimated_value_cents etc.) ─────
+// ── D19: Narration writes description (hook) AND narration_structured ────────
 
-it('narrateFinding writes only description field', function () {
+it('narrateFinding writes description and narration_structured (D19)', function () {
+    // D19: Claude returns valid JSON structured contract
     Http::fake([
         'https://api.anthropic.com/*' => Http::response([
             'content' => [
-                ['type' => 'text', 'text' => 'This area could be worth reviewing with a tax professional.'],
+                ['type' => 'text', 'text' => json_encode([
+                    'hook' => 'This area could be worth reviewing with a tax professional.',
+                    'detail' => 'Your situation may benefit from a closer look at this category.',
+                    'action_cue' => 'Consider discussing with a tax professional.',
+                ])],
             ],
         ], 200),
     ]);
@@ -175,11 +201,16 @@ it('narrateFinding writes only description field', function () {
 
     $fresh = $finding->fresh();
 
-    // description must now be populated
+    // D19: description = hook (backward compat)
     expect($fresh->description)->not->toBeNull()
-        ->and($fresh->description)->toContain('could');  // educational framing
+        ->and($fresh->description)->toContain('could');
 
-    // Other fields must be unchanged
+    // D19: narration_structured = {hook, detail, action_cue}
+    expect($fresh->narration_structured)->not->toBeNull()
+        ->and($fresh->narration_structured['hook'])->toContain('could')
+        ->and($fresh->narration_structured)->toHaveKeys(['hook', 'detail', 'action_cue']);
+
+    // Non-monetary fields must be unchanged (SAFE-03)
     expect($fresh->estimated_value_cents)->toBe(1_000_00)
         ->and($fresh->legal_basis)->toBe('IRC §1234');
 });
@@ -190,7 +221,11 @@ it('user-derived merchant strings are json-encoded in payload', function () {
     Http::fake([
         'https://api.anthropic.com/*' => Http::response([
             'content' => [
-                ['type' => 'text', 'text' => 'You may consider reviewing this area.'],
+                ['type' => 'text', 'text' => json_encode([
+                    'hook' => 'You may consider reviewing this area.',
+                    'detail' => 'This category could be worth exploring further.',
+                    'action_cue' => 'Consider discussing with a tax professional.',
+                ])],
             ],
         ], 200),
     ]);
@@ -233,12 +268,16 @@ it('user-derived merchant strings are json-encoded in payload', function () {
     });
 });
 
-// ── Prompt enforces 2-sentence / ~40-word brevity (Task 1 tightening) ────────
+// ── D19: Prompt enforces structured JSON output contract ────────────────────
 
-it('system_prompt instructs max 2 sentences and ~40 words brevity', function () {
+it('system_prompt requests JSON output contract with field caps (D19)', function () {
     Http::fake([
         'https://api.anthropic.com/*' => Http::response([
-            'content' => [['type' => 'text', 'text' => 'You may have retirement headroom. Consider discussing this with a tax professional.']],
+            'content' => [['type' => 'text', 'text' => json_encode([
+                'hook' => 'You may have retirement headroom worth exploring.',
+                'detail' => 'Maximizing contributions could reduce your taxable income.',
+                'action_cue' => 'Consider discussing this with a tax professional.',
+            ])]],
         ], 200),
     ]);
 
@@ -259,9 +298,11 @@ it('system_prompt instructs max 2 sentences and ~40 words brevity', function () 
         $decoded = json_decode($request->body(), true);
         $systemPrompt = strtolower($decoded['system'] ?? '');
 
-        // Must instruct exactly 2 sentences and ~40 words
-        expect($systemPrompt)->toContain('2 sentence')
-            ->and($systemPrompt)->toContain('40 word');
+        // D19: system prompt must state the JSON output contract and field caps
+        expect($systemPrompt)->toContain('hook')
+            ->and($systemPrompt)->toContain('detail')
+            ->and($systemPrompt)->toContain('action_cue')
+            ->and($systemPrompt)->toContain('json');
 
         return true;
     });
