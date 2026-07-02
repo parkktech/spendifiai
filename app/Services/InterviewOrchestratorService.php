@@ -115,7 +115,15 @@ class InterviewOrchestratorService
     /**
      * Build the initial question queue from high-band OptimizationFindings (INT-03 / D5).
      *
-     * Seeds with finding_keys from open auto-band findings, capped to initial_cap.
+     * Queue order:
+     *   1. High-band (auto) findings — highest confidence, suggested-confirm mode.
+     *   2. Annual battery questions (finding_type='battery_question') — life-event
+     *      check-ins surfaced by LifeEventTriggerDetector. These are always
+     *      band='conditional' and are appended AFTER auto findings. They belong in
+     *      the interview queue, not the high-priority feed (SurfaceHighPriorityRedFlags
+     *      listener handles band='auto' only — battery questions are excluded from the
+     *      feed intentionally).
+     *
      * Gated probes (INT-04) are added AFTER their prerequisites in the queue.
      *
      * @return string[] ordered fact_key / finding_key strings
@@ -124,8 +132,8 @@ class InterviewOrchestratorService
     {
         $initialCap = (int) config('tax-detection.interview.initial_cap', 10);
 
-        // Pull high-band (auto) findings for the queue seed
-        $findings = OptimizationFinding::forUser($userId)
+        // 1. High-band (auto) findings — ordered first
+        $autoFindings = OptimizationFinding::forUser($userId)
             ->where('tax_year', $taxYear)
             ->where('band', 'auto')
             ->where('status', 'open')
@@ -133,7 +141,20 @@ class InterviewOrchestratorService
             ->pluck('finding_key')
             ->toArray();
 
-        return $findings;
+        // 2. Annual battery questions — appended after auto findings regardless of band.
+        //    Battery questions are annual life-event check-ins (marriage, birth, job change,
+        //    inheritance, Medicare). They are lower priority than auto-band red flags.
+        $batteryFindings = OptimizationFinding::forUser($userId)
+            ->where('tax_year', $taxYear)
+            ->where('finding_type', 'battery_question')
+            ->where('status', 'open')
+            ->pluck('finding_key')
+            ->toArray();
+
+        // Deduplicate (battery key already in auto queue is not re-added)
+        $queue = array_values(array_unique(array_merge($autoFindings, $batteryFindings)));
+
+        return $queue;
     }
 
     // ─── Question Popping ─────────────────────────────────────────────────────
