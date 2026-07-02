@@ -84,6 +84,8 @@ class AppServiceProvider extends ServiceProvider
         Route::model('tax-entity', TaxProfileEntity::class);
         // Phase 11-04: interview session binding
         Route::model('interview', InterviewSession::class);
+        // Phase 12-04: optimization finding binding (pro-review export)
+        Route::model('finding', \App\Models\OptimizationFinding::class);
 
         // ── Middleware Aliases ──
         Route::aliasMiddleware('bank.connected', EnsureBankConnected::class);

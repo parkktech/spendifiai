@@ -50,38 +50,38 @@ return [
 
     'finding_type_to_section' => [
         // Deductions & Business Expenses
-        'deduction_probe'        => 'deductions',
-        'deductible_saas'        => 'deductions',
-        'deduction_education'    => 'deductions',
-        'routing_rule'           => 'deductions',
-        'self_employment'        => 'deductions',
-        'category_library'       => 'deductions',
+        'deduction_probe' => 'deductions',
+        'deductible_saas' => 'deductions',
+        'deduction_education' => 'deductions',
+        'routing_rule' => 'deductions',
+        'self_employment' => 'deductions',
+        'category_library' => 'deductions',
 
         // Tax Reduction Opportunities
-        'withholding'            => 'taxes',
-        'qbi'                    => 'taxes',
-        'aca_awareness'          => 'taxes',
-        'refundable_credit'      => 'taxes',
-        'income_discrepancy'     => 'taxes',
-        'benefit_gap'            => 'taxes',
-        'benefit_education'      => 'taxes',
-        'estimated_tax'          => 'taxes',
-        'penalty_prevention'     => 'taxes',
+        'withholding' => 'taxes',
+        'qbi' => 'taxes',
+        'aca_awareness' => 'taxes',
+        'refundable_credit' => 'taxes',
+        'income_discrepancy' => 'taxes',
+        'benefit_gap' => 'taxes',
+        'benefit_education' => 'taxes',
+        'estimated_tax' => 'taxes',
+        'penalty_prevention' => 'taxes',
 
         // Filing & Compliance
-        'filing_status'          => 'filings',
-        'conformance'            => 'filings',
-        'entity'                 => 'filings',
-        'equity'                 => 'filings',
-        'audit_risk'             => 'filings',
-        'commingling'            => 'filings',
-        'time_critical'          => 'filings',
-        'battery_question'       => 'filings',
+        'filing_status' => 'filings',
+        'conformance' => 'filings',
+        'entity' => 'filings',
+        'equity' => 'filings',
+        'audit_risk' => 'filings',
+        'commingling' => 'filings',
+        'time_critical' => 'filings',
+        'battery_question' => 'filings',
 
         // Retirement & Benefits
-        'retirement'             => 'retirement_401k',
-        'hsa_advanced'           => 'retirement_401k',
-        'education'              => 'retirement_401k',
+        'retirement' => 'retirement_401k',
+        'hsa_advanced' => 'retirement_401k',
+        'education' => 'retirement_401k',
     ],
 
     // Default section for unmapped finding types
@@ -90,9 +90,9 @@ return [
     // ── Severity Ordering for Ranking (RPT-01: severity tier then value DESC) ─
 
     'severity_order' => [
-        'high'   => 0,
+        'high' => 0,
         'medium' => 1,
-        'low'    => 2,
+        'low' => 2,
     ],
 
     // Bands that route to "needs professional review" wrapper section (RPT-06)
@@ -173,7 +173,28 @@ return [
         ],
     ],
 
-    // ── RPT-06: What We Refused and Why ──────────────────────────────────
+    // ── RPT-05: Pro-Review Export — Static Defensibility Ratings ─────────
+    // Maps finding band to a static rating label for the professional packet.
+    // Ratings are STATIC config values — never computed from user data or Claude output.
+    //
+    //   solid            — well-established, IRS-accepted treatment; low controversy
+    //   fact-dependent   — correct treatment depends on specific taxpayer facts
+    //   frequently-abused — area subject to frequent IRS scrutiny / listed-transaction risk
+
+    'defensibility_ratings' => [
+        'auto' => 'solid',
+        'conditional' => 'fact-dependent',
+        'specialist' => 'frequently-abused',
+        'suppress' => 'fact-dependent',   // Should not appear in export; fallback label
+        'hard_block' => 'frequently-abused', // Should not appear in export; fallback label
+    ],
+
+    // RPT-05: Persistent disclaimer for every pro-review export packet (PDF and email).
+    // Must appear on every page of the exported document.
+
+    'pro_review_disclaimer' => 'EDUCATIONAL MATERIAL ONLY — NOT TAX ADVICE. This packet was prepared from information self-asserted by the user and has not been independently verified. It does not constitute tax, legal, or financial advice and may not be relied upon as such. The legal citations included are educational references only. Tax laws are complex and fact-specific; the items herein require evaluation by a qualified tax professional (CPA, EA, or tax attorney) with knowledge of your complete financial situation. SpendifiAI is not a licensed tax advisor.',
+
+    // RPT-06: What We Refused and Why ──────────────────────────────────
     // WHAT + WHY only — NEVER HOW these schemes work.
 
     'refused_recommendations' => [

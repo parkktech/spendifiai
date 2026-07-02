@@ -19,6 +19,7 @@ use App\Http\Controllers\Api\HouseholdController;
 use App\Http\Controllers\Api\ImpersonationController;
 use App\Http\Controllers\Api\InterviewController;
 use App\Http\Controllers\Api\OnboardingController;
+use App\Http\Controllers\Api\OptimizationReportController;
 use App\Http\Controllers\Api\OrderItemController;
 use App\Http\Controllers\Api\PlaidController;
 use App\Http\Controllers\Api\ReconciliationController;
@@ -344,6 +345,18 @@ Route::middleware(['auth:sanctum'])->group(function () {
             Route::get('/', [DurableFactsController::class, 'index']);
             Route::post('/{fact}/confirm', [DurableFactsController::class, 'confirm']);
             Route::post('/{fact}/supersede', [DurableFactsController::class, 'supersede']);
+        });
+
+        // ── Phase 12-04: Optimization Report API (RPT-02/RPT-05) ──
+        // GET  /api/v1/optimizer/report/{year}                          — show/auto-init (status: ready|generating)
+        // POST /api/v1/optimizer/report/{year}/regenerate               — explicit regeneration (rate-limited)
+        // GET  /api/v1/optimizer/report/{year}/download                 — stream PDF
+        // POST /api/v1/optimizer/report/finding/{finding}/pro-review-export — RPT-05 packet (blocked while docs missing)
+        Route::prefix('optimizer/report')->middleware('throttle:5,1')->group(function () {
+            Route::get('/{year}', [OptimizationReportController::class, 'show']);
+            Route::post('/{year}/regenerate', [OptimizationReportController::class, 'regenerate']);
+            Route::get('/{year}/download', [OptimizationReportController::class, 'download']);
+            Route::post('/finding/{finding}/pro-review-export', [OptimizationReportController::class, 'proReviewExport']);
         });
 
         // Email Connections
