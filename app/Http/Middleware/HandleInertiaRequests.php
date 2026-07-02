@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\OptimizationChecklistItem;
 use App\Models\OptimizationFinding;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -67,6 +68,16 @@ class HandleInertiaRequests extends Middleware
                     ? OptimizationFinding::forUser($request->user()->id)
                         ->where('status', 'open')
                         ->whereNotNull('description')
+                        ->count()
+                    : 0,
+                // Phase 14-09 (ACT-01): nav badge count — unchecked Action Center checklist items.
+                // ADDITIVE: leaves pendingOptimizationCount byte-for-byte unchanged (DRIFT-09).
+                // Guarded by hasBankConnected (same gate as pendingOptimizationCount) — 0 when no bank.
+                // SECURITY (T-14-09-04): forUser() scope ensures cross-user isolation.
+                'pendingActionCount' => ($request->user()?->hasBankConnected())
+                    ? OptimizationChecklistItem::forUser($request->user()->id)
+                        ->whereNull('done_at')
+                        ->where('knob', '!=', 'header')
                         ->count()
                     : 0,
                 'household' => $request->user()?->household_id ? [

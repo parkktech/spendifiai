@@ -384,6 +384,12 @@ Route::middleware(['auth:sanctum'])->group(function () {
                 ->middleware('throttle:60,1');
         });
 
+        // ── Phase 14-09: Action Center API (ACT-02/03) ──
+        // GET /api/v1/optimizer/action-center — composed Stage-0 + checklist + monitor + calendar
+        // No bank.connected middleware: Stage-0 items are always relevant (upload_paystub is #1).
+        Route::get('/optimizer/action-center', [\App\Http\Controllers\Api\ActionCenterController::class, 'show'])
+            ->middleware('throttle:60,1');
+
         // ── Phase 12-04: Optimization Report API (RPT-02/RPT-05) ──
         // GET  /api/v1/optimizer/report/{year}                          — show/auto-init (status: ready|generating)
         // POST /api/v1/optimizer/report/{year}/regenerate               — explicit regeneration (rate-limited)
