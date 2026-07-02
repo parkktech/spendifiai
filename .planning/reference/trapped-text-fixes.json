@@ -1,0 +1,183 @@
+{
+ "generated": "2026-07-02",
+ "source": "trapped-text-audit wf_8c755932-1f2",
+ "note": "Line numbers valid at audit time; a UI batch has since edited some files - locate by component_context + snippet, not line alone. Dashboard ActionCard ~753 and RecommendationCard already fixed by the UI batch (task 4) - skip if done.",
+ "confirmed": [
+  {
+   "file": "/home/spendifi/public_html/resources/js/Components/SpendifiAI/DocumentRequestCard.tsx",
+   "line": 31,
+   "component_context": "DocumentRequestCard \u2014 accountant document request card; request.description (primary content) truncated in flex-1 min-w-0 header row beside shrink-0 'Upload Document' button, status icon, and Badge",
+   "severity": "bug",
+   "fix": "Line 26: change wrapper 'flex items-start justify-between gap-3' to 'flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3'. Line 29: change inner header row 'flex items-center gap-2 mb-1.5' to 'flex items-start gap-2 mb-1.5'. Line 30: add 'shrink-0 mt-0.5' to StatusIcon className. Line 31: on the description span replace 'truncate' with 'flex-1 min-w-0 break-words' so it wraps. Lines 56-61: add 'self-start' to the Upload Document button so it sits left-aligned below the text on mobile."
+  },
+  {
+   "file": "/home/spendifi/public_html/resources/js/Components/SpendifiAI/LearnedTaxFactsSection.tsx",
+   "line": 117,
+   "component_context": "FactRow in LearnedTaxFactsSection \u2014 multi-line fact label paragraph (line 120) wraps in flex-1 min-w-0 column beside shrink-0 Confirm/Re-answer action buttons (lines 182-209), no responsive stack",
+   "severity": "bug",
+   "fix": "Line 117: change 'flex items-start justify-between gap-3' to 'flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3'. Line 182: on the action-buttons div ('flex items-center gap-2 shrink-0') add 'self-start' so the Confirm/Re-answer buttons drop below the label at full width on mobile."
+  },
+  {
+   "file": "/home/spendifi/public_html/resources/js/Components/SpendifiAI/StatementGapAlert.tsx",
+   "line": 149,
+   "component_context": "Per-month gap rows in StatementGapAlert ('Missing Transaction Data' amber card on Connect page) \u2014 month label + sentence-length gap.reason share flex items-center row with shrink-0 Upload and dismiss buttons, inside an ml-12 indent (line 127)",
+   "severity": "bug",
+   "fix": "Line 149: change row classes from 'flex items-center gap-3 ...' to 'flex flex-wrap items-center gap-3 ...' (keep the conditional bg/border classes). Line 160: on the text container change 'flex-1 min-w-0' to 'flex-1 min-w-0 basis-full sm:basis-0' so the month+reason text takes the full row on mobile and the Upload/X buttons wrap to their own line. Line 127: change 'space-y-3 ml-12' to 'space-y-3 ml-0 sm:ml-12' to reclaim the 48px indent on mobile (also update the show-more button at line 206 from 'ml-12' to 'ml-0 sm:ml-12')."
+  },
+  {
+   "file": "/home/spendifi/public_html/resources/js/Layouts/AuthenticatedLayout.tsx",
+   "line": 394,
+   "component_context": "Email connection banner in AuthenticatedLayout \u2014 multi-sentence flex-1 <p> shares a non-wrapping row with shrink-0 Mail icon, shrink-0 'Link Email' Link, and shrink-0 dismiss X button",
+   "severity": "bug",
+   "fix": "Line 392: change 'flex items-center gap-3 px-6 py-3' to 'flex flex-wrap items-center gap-3 px-6 py-3'. Line 394: change the paragraph's 'flex-1' to 'flex-1 min-w-[220px]' so on ~375px screens the paragraph keeps a readable width and the 'Link Email' + X controls wrap onto a second line; no changes needed to the buttons (they are already shrink-0)."
+  },
+  {
+   "file": "/home/spendifi/public_html/resources/js/Pages/Accountant/Dashboard.tsx",
+   "line": 270,
+   "component_context": "Firm invite-link card on Accountant Dashboard \u2014 description <p> (line 273) beside shrink-0 'Copy Invite Link' button (~160px) in flex items-center justify-between with no responsive stack",
+   "severity": "bug",
+   "fix": "Line 270: change card classes 'rounded-xl border border-sw-border bg-sw-card p-4 flex items-center justify-between' to 'rounded-xl border border-sw-border bg-sw-card p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3'. Line 277: add 'self-start' to the Copy Invite Link button classes so it sits left-aligned below the full-width text on mobile."
+  },
+  {
+   "file": "/home/spendifi/public_html/resources/js/Pages/Dashboard.tsx",
+   "line": 227,
+   "component_context": "BudgetWaterfallSection card header ('Budget Reality Check') \u2014 icon + title + pl.waterfallSubtitle paragraph share row with the 'Saving X%'/'X% over budget' verdict badge (line 237), no responsive stack",
+   "severity": "bug",
+   "fix": "Line 227: change 'flex items-start justify-between mb-5' to 'flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 mb-5'. Line 237: on the verdict badge div add 'self-start shrink-0 whitespace-nowrap' so it drops below the title block at natural width on mobile."
+  },
+  {
+   "file": "/home/spendifi/public_html/resources/js/Pages/Dashboard.tsx",
+   "line": 1243,
+   "component_context": "'Where to Cut' action-feed card header (SECTION D) \u2014 dynamic subtitle 'N actions could save you $X/mo' (lines 1247-1252) shares row with the 'Analyze Spending' button (lines 1255-1262)",
+   "severity": "bug",
+   "fix": "Line 1243: change 'flex items-center justify-between mb-5' to 'flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-5'. Line 1258: add 'self-start' to the Analyze Spending button className so it sits below the title/subtitle at full text width on mobile."
+  },
+  {
+   "file": "/home/spendifi/public_html/resources/js/Pages/Optimize/Index.tsx",
+   "line": 347,
+   "component_context": "'Ready to dig deeper?' CTA card at bottom of findings list \u2014 two-line description (lines 352-354) in left flex child beside shrink-0 'Start Interview' button (lines 357-362)",
+   "severity": "bug",
+   "fix": "Line 347: change 'rounded-2xl border border-sw-accent/20 bg-sw-accent/5 p-5 flex items-center justify-between gap-4' to '... p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4'. Line 359: add 'self-start' to the Start Interview button classes so it drops below the full-width text block on mobile."
+  },
+  {
+   "file": "/home/spendifi/public_html/resources/js/Pages/Settings/Index.tsx",
+   "line": 807,
+   "component_context": "Two-Factor Authentication row in Settings Security section \u2014 description <p> (lines 812-814) inside icon+text block sharing row with Badge + Enable/Disable button group (lines 817-832)",
+   "severity": "bug",
+   "fix": "Line 807: change 'flex items-center justify-between' to 'flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3'. Line 817: on the right controls div ('flex items-center gap-3') add 'self-start pl-7 sm:pl-0' so the Badge + button sit below the text, aligned under it, on mobile (pl-7 matches the 16px icon + gap-3 indent)."
+  },
+  {
+   "file": "/home/spendifi/public_html/resources/js/Pages/Subscriptions/Index.tsx",
+   "line": 72,
+   "component_context": "Subscriptions page header (AuthenticatedLayout header prop) \u2014 title + subtitle share row with wide right group (3-button ViewModeToggle + 'Scan Transactions' button); the inner flex-wrap only wraps within the right group",
+   "severity": "bug",
+   "fix": "Line 72: change 'flex items-center justify-between' to 'flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3' so the ViewModeToggle + Scan Transactions group (line 77) stacks below the title/subtitle at full width on mobile. No changes to the right group itself (it already has flex-wrap)."
+  },
+  {
+   "file": "/home/spendifi/public_html/resources/js/Pages/Tax/Index.tsx",
+   "line": 131,
+   "component_context": "Tax Center page header (AuthenticatedLayout header prop) \u2014 title + subtitle share row with right group containing year select, 'Export', and 'Send to Accountant' buttons (lines 136-163)",
+   "severity": "bug",
+   "fix": "Line 131: change 'flex items-center justify-between' to 'flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3' so the select/Export/Send-to-Accountant group stacks below the title block on mobile. The right group already has flex-wrap; leave it unchanged."
+  },
+  {
+   "file": "/home/spendifi/public_html/resources/js/Components/SpendifiAI/CharitableGivingSection.tsx",
+   "line": 186,
+   "component_context": "CharitableGivingSection \u2014 donation note prose truncated inline in two lists: Top Recipients rows (line 186, beside text-right shrink-0 amount + 'Tax Deductible' badge) and Recent Donations rows (line 240, beside shrink-0 amount + optional 'Tax' badge). Deduped: one fix covers both.",
+   "severity": "borderline",
+   "fix": "Top Recipients (lines 179-189): remove the '{r.note && (<>...</>)}' fragment (the separator dot span and the truncated note span, lines 183-188) from the inline metadata row, and render the note as its own line inside the same flex-1 min-w-0 div, after the metadata row: {r.note && <div className=\"text-[11px] text-sw-muted mt-0.5 break-words\">{r.note}</div>}. Recent Donations (lines 235-246): same relocation \u2014 remove the '{d.note && ...}' fragment (lines 237-245) from the inline date row and render below it inside the flex-1 min-w-0 div: {d.note && <div className=\"text-[10px] text-sw-muted mt-0.5 break-words flex items-start gap-1\"><FileText size={8} className=\"shrink-0 mt-0.5\" />{d.note}</div>}."
+  },
+  {
+   "file": "/home/spendifi/public_html/resources/js/Components/SpendifiAI/HsaShoeboxSection.tsx",
+   "line": 49,
+   "component_context": "ShoeboxItem row in HsaShoeboxSection \u2014 free-text receipt description truncated in flex-1 min-w-0 column between shrink-0 icon and 'Shoebox' Badge",
+   "severity": "borderline",
+   "fix": "Line 43: change 'flex items-center gap-3' to 'flex items-start gap-3'. Line 49: on the description <p> replace 'truncate' with 'break-words' so longer user-entered descriptions wrap instead of clipping; leave the Badge on the row (it is small)."
+  },
+  {
+   "file": "/home/spendifi/public_html/resources/js/Components/SpendifiAI/SpendingChart.tsx",
+   "line": 84,
+   "component_context": "'Where Your Money Goes' donut + legend in SpendingChart \u2014 fixed w-[140px] shrink-0 chart column beside flexible legend leaves ~140px for category names + amounts at 375px",
+   "severity": "borderline",
+   "fix": "Line 84: change 'flex items-start gap-4' to 'flex flex-col sm:flex-row items-center sm:items-start gap-4'. Line 85: change 'w-[140px] shrink-0' to 'w-[140px] shrink-0 mx-auto sm:mx-0'. Line 116: on the legend container add 'w-full' (i.e. 'w-full flex-1 flex flex-col gap-1.5 max-h-[200px] overflow-y-auto') so the legend spans full card width below the chart on mobile."
+  },
+  {
+   "file": "/home/spendifi/public_html/resources/js/Pages/Admin/Dashboard.tsx",
+   "line": 73,
+   "component_context": "Admin Dashboard page header \u2014 subtitle shares row with THREE unshrinkable buttons (Storage Settings / Manage Charities / Manage Providers, ~400px combined, lines 78-97); upgraded from finder's 'fine' because the right group alone exceeds a 375px viewport. Note: sibling admin pages Providers/Index.tsx:57 and Charities/Index.tsx:51 were verified FINE (single small button each) \u2014 do not change them.",
+   "severity": "borderline",
+   "fix": "Line 73: change 'flex items-center justify-between' to 'flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3'. Line 78: change the button group 'flex items-center gap-2' to 'flex flex-wrap items-center gap-2' so the three admin buttons wrap below the title on mobile."
+  },
+  {
+   "file": "/home/spendifi/public_html/resources/js/Pages/Connect/Index.tsx",
+   "line": 435,
+   "component_context": "'Connect Your Bank via Plaid' section header (plaid connectionMode) \u2014 h3 + description <p> (lines 437-440) share row with 'Back to options' text button (lines 442-447)",
+   "severity": "borderline",
+   "fix": "Line 435: change 'flex items-center justify-between mb-4' to 'flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-4'. Line 444: add 'self-start whitespace-nowrap' to the Back to options button classes so it sits on its own line below the description on mobile instead of wrapping to two words beside it."
+  },
+  {
+   "file": "/home/spendifi/public_html/resources/js/Pages/Dashboard.tsx",
+   "line": 132,
+   "component_context": "UpcomingPaymentsCarousel card header \u2014 title + 'N scheduled charges' subtitle share row with text-right 7-day total plus two fixed w-8 scroll buttons (~180px right side)",
+   "severity": "borderline",
+   "fix": "Line 132: change 'flex items-start justify-between mb-4' to 'flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-4'. Line 142: change the right group 'flex items-center gap-3' to 'flex items-center justify-between sm:justify-end gap-3 w-full sm:w-auto'. Line 144: change 'text-right' to 'text-left sm:text-right' so on mobile the 7-day total and scroll buttons form their own full-width row below the title."
+  },
+  {
+   "file": "/home/spendifi/public_html/resources/js/Pages/Dashboard.tsx",
+   "line": 354,
+   "component_context": "MonthlyBillsSection card header ('Your Monthly Bills') \u2014 icon + title + 'N recurring charges found' subtitle share row with text-right $X/mo + $X/yr totals block (lines 364-371)",
+   "severity": "borderline",
+   "fix": "Line 354: change 'flex items-start justify-between mb-5' to 'flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 mb-5'. Line 364: change 'text-right' to 'text-left sm:text-right pl-[52px] sm:pl-0' so the totals sit below the title, aligned under the text (52px = 40px icon + 12px gap), on mobile."
+  },
+  {
+   "file": "/home/spendifi/public_html/resources/js/Pages/Dashboard.tsx",
+   "line": 683,
+   "component_context": "ResolvedCardDisplay (responded card in 'Where to Cut') \u2014 'Reduced from $X to $Y/mo' <p> (lines 687-691) inside flex-1 min-w-0 column squeezed between shrink-0 icon and 'Saving $X/mo' badge",
+   "severity": "borderline",
+   "fix": "Move the conditional block at lines 687-691 ({responded.type === 'reduced' && responded.previousAmount && responded.newAmount !== undefined && (<p ...>Reduced from ...</p>)}) out of the flex-1 min-w-0 div and place it immediately after the closing </div> of the 'flex items-center gap-3' row (after line 696), changing the <p> classes to 'text-[11px] text-sw-dim mt-1.5' so it renders full card width below the title+badge row."
+  },
+  {
+   "file": "/home/spendifi/public_html/resources/js/Pages/Questions/Index.tsx",
+   "line": 207,
+   "component_context": "Bulk-answer rows on Questions page \u2014 the AI question sentence (content the user must read to answer) is truncated to one line, including on mobile where the grid collapses to a single full-width column",
+   "severity": "borderline",
+   "fix": "Line 207: change '<p className=\"text-xs text-sw-muted truncate\">{q.question}</p>' to '<p className=\"text-xs text-sw-muted line-clamp-2\">{q.question}</p>' so the question wraps to two lines instead of being cut off (line-clamp keeps overflow-hidden so the grid cannot blow out)."
+  },
+  {
+   "file": "/home/spendifi/public_html/resources/js/Pages/Savings/Index.tsx",
+   "line": 80,
+   "component_context": "Savings page header (AuthenticatedLayout header prop) \u2014 subtitle 'AI-powered recommendations to cut costs' shares row with 'Analyze Spending' button (lines 85-96)",
+   "severity": "borderline",
+   "fix": "Line 80: change 'flex items-center justify-between' to 'flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3'. Line 88: add 'self-start' to the Analyze Spending button className so it sits below the title block on mobile."
+  },
+  {
+   "file": "/home/spendifi/public_html/resources/js/Pages/Savings/Index.tsx",
+   "line": 141,
+   "component_context": "Savings Target card \u2014 user-entered motivation h3 + non-wrapping Deadline/Monthly-target metadata row (lines 143-152) share row with text-right cumulative-saved block (lines 154-161)",
+   "severity": "borderline",
+   "fix": "Line 141: change 'flex items-center justify-between mb-2' to 'flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-2'. Line 144: change the metadata row 'flex items-center gap-3 mt-1 text-xs text-sw-dim' to 'flex flex-wrap items-center gap-x-3 gap-y-1 mt-1 text-xs text-sw-dim'. Line 154: change 'text-right' to 'text-left sm:text-right' so the saved-amount block stacks below on mobile."
+  },
+  {
+   "file": "/home/spendifi/public_html/resources/js/Pages/Settings/Index.tsx",
+   "line": 701,
+   "component_context": "Cookie preference rows in Settings (Necessary line 675, Analytics line 684, Marketing line 701) \u2014 description <p> beside 'Always Active' Badge or w-9 toggle with items-center and no gap/min-w-0; longest (Marketing) description squishes most",
+   "severity": "borderline",
+   "fix": "On lines 675, 684, and 701 change 'flex items-center justify-between py-2 ...' to 'flex items-center justify-between gap-4 py-2 ...' (keep the border-t classes on 684/701), and add 'min-w-0' to the immediately following left <div> in each row (lines 676, 685, 702) so the descriptions wrap within a properly bounded column; keep the toggles/badge on the same row (they are small controls)."
+  },
+  {
+   "file": "/home/spendifi/public_html/resources/js/Pages/Transactions/Index.tsx",
+   "line": 157,
+   "component_context": "Transactions page header (AuthenticatedLayout header prop) \u2014 subtitle 'View and manage all your transactions' shares row with the wide 'AI Categorize' button (px-4 py-2.5 text-sm, lines 162-169)",
+   "severity": "borderline",
+   "fix": "Line 157: change 'flex items-center justify-between' to 'flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3'. Line 165: add 'self-start' to the AI Categorize button className so it sits below the title block on mobile."
+  }
+ ],
+ "rejected_count": 5,
+ "notes": [
+  "Rejected 5 of 29 raw findings: ProjectedSavingsBanner.tsx:36 (right column is 'hidden sm:block' \u2014 paragraph gets full width on mobile, no squish); Transactions/Index.tsx:208 (Dismiss button is ~50px text link, message keeps ~230px and wraps gracefully); Dashboard.tsx:1446 (AI Questions link card \u2014 siblings are a 40px icon and a small count Badge, description keeps ~200px); SubscriptionCard.tsx:219 (single-line truncated user note with title tooltip is intentional collapsed-card design); CharitableGivingSection.tsx:240 (same component/pattern as line 186 \u2014 merged into one confirmed entry covering both Top Recipients and Recent Donations lists).",
+  "Upgraded Admin/Dashboard.tsx:73 from the finder's 'fine' to borderline: its right-hand group is three unshrinkable buttons (~400px combined) which exceeds a 375px viewport by itself, crushing the subtitle to near-zero width. The other admin pages grouped in that finding (Admin/Providers/Index.tsx:57, Admin/Charities/Index.tsx:51) were verified and are genuinely fine \u2014 single small button each, short label subtitles \u2014 and need no changes.",
+  "StatementGapAlert gap.reason confirmed as sentence-length prose from backend: app/Http/Controllers/Api/StatementUploadController.php lines 645/674/694 produce strings like 'Only 3 transactions found (account average is 45)' and 'No transactions found for this month'.",
+  "Excluded per instructions: Dashboard.tsx ActionCard (~line 703/753) and RecommendationCard.tsx \u2014 already being fixed; neither appeared in the raw findings list.",
+  "Final tally: 24 confirmed (11 bug, 13 borderline), ordered by severity then file path. All confirmed fixes use the same idiom already present in the codebase (flex-col sm:flex-row responsive stacking, min-w-0 bounding, break-words/line-clamp instead of truncate for prose) and touch only className strings or relocate a single conditional <p>, preserving all component interfaces."
+ ]
+}
