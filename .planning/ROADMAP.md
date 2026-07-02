@@ -164,13 +164,13 @@ Plans:
   3. High-priority red flags appear as `QuestionType::Optimization` records in the existing AI Questions feed, and a user's answers feed back into the optimization profile.
   4. Existing transaction-categorization behavior and tests are unaffected — the `UpdateTransactionCategory` listener ignores optimization questions.
 
-**Plans**: 8 plans
+**Plans**: 1/8 plans executed
 **UI hint**: yes
 > Scope expanded 2026-07-01 by tax-playbook integration (15→42 reqs). Execute as two waves within the phase: wave 11a = detector/interview/storage infrastructure (plans 11-01..05, GSD waves 1-4), wave 11b = detector content (plans 11-06..08, GSD waves 5-7). See .planning/reference/INTEGRATION-MAP.md.
 
 Plans:
 
-- [ ] 11-01-PLAN.md — Config foundation: rule schema + expiration validator + materiality gates (TAX-08, TAX-09, FLAG-08)
+- [x] 11-01-PLAN.md — Config foundation: rule schema + expiration validator + materiality gates (TAX-08, TAX-09, FLAG-08)
 - [ ] 11-02-PLAN.md — Durable-facts store: UserTaxFact + TaxProfileEntity, confirm gate, basis ledger, answerableFields ext (STORE-01, STORE-02, INT-03)
 - [ ] 11-03-PLAN.md — Detector core + OptimizationFinding extension + method guards + Claude narration (FLAG-01, FLAG-06, FLAG-09, FLAG-13)
 - [ ] 11-04-PLAN.md — Interview orchestrator + AI-feed bridge (INT-01/04/05/06/07, FEED-01..04)
@@ -226,6 +226,6 @@ Phases execute in numeric order: 10 → 11 → 12 → 13
 | 8. Accountant Document Collaboration | v2.0 | 5/5 | Complete | 2026-03-31 |
 | 9. Intelligence Layer & Final Validation | v2.0 | 3/3 | Complete | 2026-03-31 |
 | 10. Foundation — Tax Rules Engine & Cross-Source Snapshot | v2.1 | 3/3 | Complete   | 2026-07-02 |
-| 11. Red-Flag Detection, Guided Interview & AI Feed Integration | v2.1 | 0/8 | Planned | - |
+| 11. Red-Flag Detection, Guided Interview & AI Feed Integration | v2.1 | 1/8 | In Progress|  |
 | 12. Optimization Report, Document Intake & Feature Surface | v2.1 | 0/TBD | Not started | - |
 | 13. Safety, Validation & Hardening | v2.1 | 0/TBD | Not started | - |
