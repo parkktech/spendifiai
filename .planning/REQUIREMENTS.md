@@ -125,7 +125,7 @@ Requirements for this milestone. Each maps to a roadmap phase. All outputs are e
 
 ### Scenarios (SCN)
 
-- [ ] **SCN-01**: `config/optimization-objectives.php` encodes the full fact-requirements map for objectives `take_home`, `tax_burden`, and `retirement`; `ObjectiveReadinessService` computes per-objective readiness (`blocking_missing`, `confirm_needed`, `optional_missing`, `questions_to_unlock`) in two tiers: `known` (sufficient for scenario math) and `confirmed` (required for fact-gated directives)
+- [x] **SCN-01**: `config/optimization-objectives.php` encodes the full fact-requirements map for objectives `take_home`, `tax_burden`, and `retirement`; `ObjectiveReadinessService` computes per-objective readiness (`blocking_missing`, `confirm_needed`, `optional_missing`, `questions_to_unlock`) in two tiers: `known` (sufficient for scenario math) and `confirmed` (required for fact-gated directives)
 - [ ] **SCN-02**: `ScenarioFactResolverService` resolves every required fact through a per-fact source-priority chain (fact → snapshot → profile → derive → ask) with alias fallback; a citable `ScenarioFactSet` row (HMAC-SHA256 hash, encrypted `resolved_facts`, GDPR cascade) is persisted via an additive migration at choose-time
 - [x] **SCN-03**: A `POST /optimizer/objectives/{year}/{objective}/enqueue` endpoint front-inserts blocking-missing gap questions into the interview session using deterministic config-driven question templates with typed answer conversion — zero Claude calls in this path
 - [ ] **SCN-04**: `TaxRulesEngineService` gains SCN-01 through SCN-07 pure computation methods (W-4 withholding math, FICA/§125 split, match-capture arithmetic, FV-range illustration, MAGI headroom, full-vector outcome, benefit aggregation); the ACA-cliff guard is arithmetic inside `computeScenarioOutcome()` — no emitted scenario can push a marketplace enrollee over the 400%-FPL cliff; the ACA invariant is covered by a 200-baseline property test
@@ -304,7 +304,7 @@ Each requirement maps to exactly one phase. Phases continue the global numbering
 | ACT-03 | Phase 14 | Pending |
 | ACT-04 | Phase 14 | Pending |
 | ACT-05 | Phase 14 | Pending |
-| SCN-01 | Phase 14 | Pending |
+| SCN-01 | Phase 14 | Complete |
 | SCN-02 | Phase 14 | Pending |
 | SCN-03 | Phase 14 | Complete |
 | SCN-04 | Phase 14 | Pending |
