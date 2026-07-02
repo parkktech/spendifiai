@@ -389,9 +389,9 @@ export default function AuthenticatedLayout({
         {/* Email connection banner */}
         {showEmailBanner && (
           <div className="shrink-0 border-b border-blue-200 bg-gradient-to-r from-blue-50 to-indigo-50">
-            <div className="flex items-center gap-3 px-6 py-3">
+            <div className="flex flex-wrap items-center gap-3 px-6 py-3">
               <Mail size={18} className="shrink-0 text-blue-600" />
-              <p className="flex-1 text-sm text-blue-900">
+              <p className="flex-1 min-w-[220px] text-sm text-blue-900">
                 <span className="font-semibold">Get more from SpendifiAI</span> — link your email to automatically match online receipts with your transactions.
                 <button
                   onClick={() => setEmailBannerExpanded(!emailBannerExpanded)}

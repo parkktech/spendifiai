@@ -344,7 +344,7 @@ export default function OptimizeIndex() {
                       <FindingSummaryCard key={section.section_key} section={section} />
                     ))}
                   {/* CTA to start interview */}
-                  <div className="rounded-2xl border border-sw-accent/20 bg-sw-accent/5 p-5 flex items-center justify-between gap-4">
+                  <div className="rounded-2xl border border-sw-accent/20 bg-sw-accent/5 p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                     <div className="flex items-start gap-3">
                       <Brain size={20} className="text-sw-accent shrink-0 mt-0.5" />
                       <div>
@@ -356,7 +356,7 @@ export default function OptimizeIndex() {
                     </div>
                     <button
                       onClick={() => setViewMode('interview')}
-                      className="shrink-0 inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-sw-accent text-white text-sm font-semibold hover:bg-sw-accent-hover transition shadow-sm"
+                      className="self-start shrink-0 inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-sw-accent text-white text-sm font-semibold hover:bg-sw-accent-hover transition shadow-sm"
                     >
                       Start Interview <ArrowRight size={14} />
                     </button>

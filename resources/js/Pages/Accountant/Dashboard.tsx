@@ -267,14 +267,14 @@ export default function Dashboard() {
 
                         {/* Invite Link Generator */}
                         {firm && (
-                            <div className="rounded-xl border border-sw-border bg-sw-card p-4 flex items-center justify-between">
+                            <div className="rounded-xl border border-sw-border bg-sw-card p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                                 <div>
                                     <h3 className="text-sm font-semibold text-sw-text">{firm.name}</h3>
                                     <p className="text-xs text-sw-muted mt-0.5">Share your invite link with clients to connect them to your firm.</p>
                                 </div>
                                 <button
                                     onClick={handleCopyInviteLink}
-                                    className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-sw-accent text-white text-sm font-semibold hover:bg-sw-accent-hover transition shrink-0"
+                                    className="self-start inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-sw-accent text-white text-sm font-semibold hover:bg-sw-accent-hover transition shrink-0"
                                 >
                                     {copiedLink ? <CheckCircle size={14} /> : <Copy size={14} />}
                                     {copiedLink ? 'Copied!' : 'Copy Invite Link'}

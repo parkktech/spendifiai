@@ -672,8 +672,8 @@ export default function SettingsIndex() {
 
           <div className="space-y-3">
             {/* Necessary */}
-            <div className="flex items-center justify-between py-2">
-              <div>
+            <div className="flex items-center justify-between gap-4 py-2">
+              <div className="min-w-0">
                 <span className="text-sm font-medium text-sw-text">Necessary Cookies</span>
                 <p className="text-xs text-sw-dim mt-0.5">Required for the site to function properly</p>
               </div>
@@ -681,8 +681,8 @@ export default function SettingsIndex() {
             </div>
 
             {/* Analytics */}
-            <div className="flex items-center justify-between py-2 border-t border-sw-border">
-              <div>
+            <div className="flex items-center justify-between gap-4 py-2 border-t border-sw-border">
+              <div className="min-w-0">
                 <span className="text-sm font-medium text-sw-text">Analytics Cookies</span>
                 <p className="text-xs text-sw-dim mt-0.5">Help us understand how visitors use SpendifiAI</p>
               </div>
@@ -698,8 +698,8 @@ export default function SettingsIndex() {
             </div>
 
             {/* Marketing */}
-            <div className="flex items-center justify-between py-2 border-t border-sw-border">
-              <div>
+            <div className="flex items-center justify-between gap-4 py-2 border-t border-sw-border">
+              <div className="min-w-0">
                 <span className="text-sm font-medium text-sw-text">Marketing Cookies</span>
                 <p className="text-xs text-sw-dim mt-0.5">Used to show relevant ads and measure campaign effectiveness</p>
               </div>
@@ -804,7 +804,7 @@ export default function SettingsIndex() {
 
           {/* 2FA */}
           <div className="pt-5 border-t border-sw-border">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
               <div className="flex items-center gap-3">
                 <Smartphone size={16} className="text-sw-muted" />
                 <div>
@@ -814,7 +814,7 @@ export default function SettingsIndex() {
                   </p>
                 </div>
               </div>
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3 self-start pl-7 sm:pl-0">
                 <Badge variant={twoFactorEnabled ? 'success' : 'neutral'}>
                   {twoFactorEnabled ? 'Enabled' : 'Disabled'}
                 </Badge>

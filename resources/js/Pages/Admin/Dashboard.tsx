@@ -70,12 +70,12 @@ export default function AdminDashboard() {
   return (
     <AuthenticatedLayout
       header={
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div>
             <h1 className="text-xl font-bold text-sw-text">Admin Dashboard</h1>
             <p className="text-xs text-sw-dim mt-0.5">Manage providers and charitable organizations</p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <Link
               href="/admin/storage"
               className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border border-sw-border text-sw-muted hover:bg-sw-accent/5 hover:text-sw-accent text-xs font-semibold transition"

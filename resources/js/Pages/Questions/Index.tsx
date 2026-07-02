@@ -204,7 +204,7 @@ export default function QuestionsIndex() {
                     ${q.transaction ? Math.abs(q.transaction.amount).toFixed(2) : '0.00'}
                   </div>
                 </div>
-                <p className="text-xs text-sw-muted truncate">{q.question}</p>
+                <p className="text-xs text-sw-muted line-clamp-2">{q.question}</p>
                 <div>
                   {q.options && q.options.length > 0 ? (
                     <select

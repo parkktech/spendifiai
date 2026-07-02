@@ -138,10 +138,10 @@ export default function SavingsIndex() {
 
         {!targetLoading && target && (
           <div>
-            <div className="flex items-center justify-between mb-2">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-2">
               <div>
                 <h3 className="text-base font-semibold text-sw-text">{target.motivation || 'Savings Target'}</h3>
-                <div className="flex items-center gap-3 mt-1 text-xs text-sw-dim">
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1 text-xs text-sw-dim">
                   {target.target_end_date && (
                     <span className="inline-flex items-center gap-1">
                       <Calendar size={12} />
@@ -151,7 +151,7 @@ export default function SavingsIndex() {
                   <span>Monthly target: {fmt.format(target.monthly_target)}</span>
                 </div>
               </div>
-              <div className="text-right">
+              <div className="text-left sm:text-right">
                 {targetData?.current_month && (
                   <div className="text-lg font-bold text-sw-accent">{fmt.format(targetData.current_month.cumulative_saved)}</div>
                 )}

@@ -432,7 +432,7 @@ export default function ConnectIndex() {
         </div>
       ) : connectionMode === 'plaid' ? (
         <div className="rounded-2xl border border-sw-border bg-sw-card p-6 mb-6">
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-4">
             <div>
               <h3 className="text-[15px] font-semibold text-sw-text">Connect Your Bank via Plaid</h3>
               <p className="text-xs text-sw-muted mt-0.5">
@@ -441,7 +441,7 @@ export default function ConnectIndex() {
             </div>
             <button
               onClick={() => setConnectionMode(null)}
-              className="text-xs text-sw-muted hover:text-sw-text transition"
+              className="self-start whitespace-nowrap text-xs text-sw-muted hover:text-sw-text transition"
             >
               Back to options
             </button>
