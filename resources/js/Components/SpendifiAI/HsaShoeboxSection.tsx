@@ -88,7 +88,7 @@ export default function HsaShoeboxSection() {
       if (receiptDate) form.append('incurred_on', receiptDate);
       if (receiptDescription) form.append('description', receiptDescription);
 
-      await axios.post('/api/v1/documents', form, {
+      await axios.post('/api/v1/tax-vault/documents', form, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
 

@@ -75,7 +75,7 @@ export default function DocumentUploadFlow({ onComplete, compact = false }: Docu
       form.append('document_type', docType);
 
       const res = await axios.post<{ document?: { id: number }; id?: number }>(
-        '/api/v1/documents',
+        '/api/v1/tax-vault/documents',
         form,
         { headers: { 'Content-Type': 'multipart/form-data' } }
       );

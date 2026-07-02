@@ -146,7 +146,7 @@ function FindingRow({
       form.append('file', uploadFile);
       form.append('tax_year', String(taxYear));
       // Use the existing vault upload endpoint
-      await axios.post('/api/v1/documents', form, {
+      await axios.post('/api/v1/tax-vault/documents', form, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
       setUploaded(true);
