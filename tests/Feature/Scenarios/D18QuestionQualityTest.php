@@ -424,7 +424,7 @@ it('d18_p2p_template: the 1099-K finding renders as an aggregated, humanized cho
     expect((string) ($question->options['context'] ?? ''))->toContain('1099-K');
 
     // 5. Question body stays short (≤ 2 short sentences) and leaks no keys.
-    expect(mb_strlen($question->question))->toBeLessThanOrEqual(280);
+    expect(mb_strlen($question->question))->toBeLessThanOrEqual(240);
     expect(preg_match(D18_INTERNAL_KEY_PATTERN, $question->question))->toBe(0);
 
     // D17: zero Claude on the template path.
@@ -545,7 +545,7 @@ it('d18_vehicle_template: the powersports finding renders as a data-led purpose-
     expect($context)->toContain('gallons');
 
     // Copy bar: short body, no internal keys.
-    expect(mb_strlen($question->question))->toBeLessThanOrEqual(280);
+    expect(mb_strlen($question->question))->toBeLessThanOrEqual(240);
     expect(preg_match(D18_INTERNAL_KEY_PATTERN, $question->question))->toBe(0);
 
     Http::assertNothingSent();
@@ -624,6 +624,76 @@ it('d18_vehicle_personal_answer: a personal-hobby answer does NOT fan the usage-
     }
 });
 
+// ─── D18 addendum 7: the escape hatch on every choice question ────────────────
+
+it('d18_escape_hatch: every choice question carries a "Something else" option and free text is interpreted onto the fact', function () {
+    Http::preventStrayRequests();
+
+    // The escape-hatch interpretation IS an allowed Claude call (D17 bespoke
+    // input) — fake it mapping the free text onto a real choice value.
+    Http::fake([
+        'https://api.anthropic.com/*' => Http::response([
+            'content' => [['text' => '{"value":"business_work_vehicle"}']],
+        ], 200),
+    ]);
+
+    $user = createAuthenticatedUser(['last_active_at' => now()]);
+    seedPowersportsPurchases($user->id);
+    app(\App\Services\Detectors\CategoryLibraryDetector::class)
+        ->run($user->id, (int) now()->year, app(RedFlagDetectorService::class), []);
+
+    $service = app(InterviewOrchestratorService::class);
+    $session = $service->startOrResume($user->id, (int) now()->year);
+    $question = $service->nextQuestion($session);
+    expect($question)->not->toBeNull();
+
+    // The escape option is present on the rendered choice list.
+    $choices = (array) $question->options['choices'];
+    $escape = collect($choices)->firstWhere('value', '__other__');
+    expect($escape)->not->toBeNull();
+    expect($escape['label'])->toContain('Something else');
+
+    // Choosing the escape hatch and typing a custom answer → interpreted →
+    // written through the same recordFact flow → question resolved.
+    $this->postJson(
+        "/api/v1/optimizer/interview/{$session->id}/questions/{$question->id}/answer",
+        ['answer' => '__other__: these are parts for the trucks I use in my landscaping business']
+    )->assertOk();
+
+    expect(UserTaxFact::currentFact($user->id, 'category_vehicle_parts')?->value)->toBe('business_work_vehicle');
+
+    // Interpreted business-flavored value fans the follow-up like a direct pick.
+    $followUp = $service->nextQuestion($session->fresh());
+    expect($followUp?->ai_best_guess)->toBe('vehicle.usage_log_status');
+
+    // The interpretation call went to Claude exactly once (wording tier).
+    Http::assertSentCount(1);
+});
+
+it('d18_escape_hatch_capped: at the wording budget cap the escape answer degrades to a stored "other" without Claude', function () {
+    Http::preventStrayRequests();
+    Http::fake();
+    config(['services.anthropic.daily_budget_wording' => 0]);
+
+    $user = createAuthenticatedUser(['last_active_at' => now()]);
+    seedPowersportsPurchases($user->id);
+    app(\App\Services\Detectors\CategoryLibraryDetector::class)
+        ->run($user->id, (int) now()->year, app(RedFlagDetectorService::class), []);
+
+    $service = app(InterviewOrchestratorService::class);
+    $session = $service->startOrResume($user->id, (int) now()->year);
+    $question = $service->nextQuestion($session);
+
+    $this->postJson(
+        "/api/v1/optimizer/interview/{$session->id}/questions/{$question->id}/answer",
+        ['answer' => '__other__: hard to explain']
+    )->assertOk();
+
+    // Graceful: fact stored as 'other' (raw text lives in the encrypted transcript).
+    expect(UserTaxFact::currentFact($user->id, 'category_vehicle_parts')?->value)->toBe('other');
+    Http::assertNothingSent();
+});
+
 // ─── D18 rule 2: automated sweep — NO rendered question carries internal keys ─
 
 it('d18_no_internal_keys: every rendered interview question and choice label is free of snake_case internal keys', function () {
@@ -649,13 +719,20 @@ it('d18_no_internal_keys: every rendered interview question and choice label is 
     $session = $service->startOrResume($user->id, 2026);
 
     // Drain the queue — every produced question must pass the D18 copy bar:
-    // no internal keys anywhere, question body short (education goes to context).
+    // no internal keys anywhere; body succinct (addendum 6: data lead ≤ 1
+    // sentence + ask ≤ 1 sentence; education goes to the collapsible context).
     while (($q = $service->nextQuestion($session)) !== null) {
         expect(preg_match(D18_INTERNAL_KEY_PATTERN, $q->question))
             ->toBe(0, "Internal key leaked in question copy: {$q->question}");
 
         expect(mb_strlen($q->question))
-            ->toBeLessThanOrEqual(280, "Question body too long (education belongs in context): {$q->question}");
+            ->toBeLessThanOrEqual(240, "Question body too long (education belongs in context): {$q->question}");
+
+        // ≤ 2 sentences: sentence-ending punctuation followed by whitespace/EOL
+        // (decimals like $9.99 and parentheticals do not count).
+        preg_match_all('/[.!?](?=\s|$)/u', trim($q->question), $boundaries);
+        expect(count($boundaries[0]))
+            ->toBeLessThanOrEqual(2, "Question body exceeds 2 sentences: {$q->question}");
 
         expect(preg_match(D18_INTERNAL_KEY_PATTERN, (string) ($q->options['context'] ?? '')))
             ->toBe(0, 'Internal key leaked in context copy');
