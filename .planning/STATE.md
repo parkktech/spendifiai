@@ -2,14 +2,18 @@
 gsd_state_version: 1.0
 milestone: v2.1
 milestone_name: Optimize My Income
-status: planning
-last_updated: "2026-07-01T23:30:00.000Z"
+current_phase: 10
+current_phase_name: Foundation — Tax Rules Engine & Cross-Source Snapshot
+status: executing
+stopped_at: ROADMAP.md written, REQUIREMENTS.md traceability filled (41/41 mapped)
+last_updated: "2026-07-02T00:05:49.035Z"
 last_activity: 2026-07-01
+last_activity_desc: Phase 10 execution started
 progress:
   total_phases: 4
   completed_phases: 0
-  total_plans: 0
-  completed_plans: 0
+  total_plans: 3
+  completed_plans: 1
   percent: 0
 ---
 
@@ -20,14 +24,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-01)
 
 **Core value:** AI-powered personal finance platform bridging taxpayers and their accountants
-**Current focus:** v2.1 Optimize My Income — roadmap created (Phases 10-13), ready to plan Phase 10
+**Current focus:** Phase 10 — Foundation — Tax Rules Engine & Cross-Source Snapshot
 
 ## Current Position
 
-Phase: 10 — Foundation: Tax Rules Engine & Cross-Source Snapshot (Not started)
-Plan: —
-Status: Roadmap approved — ready to plan Phase 10
-Last activity: 2026-07-01 — Roadmap created for v2.1 (4 phases, 41 requirements mapped, 100% coverage)
+Phase: 10 (Foundation — Tax Rules Engine & Cross-Source Snapshot) — EXECUTING
+Plan: 2 of 3
+Status: Ready to execute
+Last activity: 2026-07-01 — Phase 10 execution started
 
 ## v2.1 Roadmap Summary
 
@@ -60,6 +64,7 @@ Continuing global phase numbering from v2.0 (ended Phase 9). Granularity: coarse
 | 6-9 (v2.0) | 16 | ~50m | ~3m |
 
 *Updated after each plan completion*
+| Phase 10 P01 | 12 | 3 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -74,6 +79,9 @@ Recent decisions affecting current work:
 - [v2.1]: Reuse v2.0 Tax Document Vault + two-pass extraction, AIQuestion feed, DashboardCacheService — additive integration (QuestionType::Optimization, guarded UpdateTransactionCategory listener)
 - [v2.1]: SAFE category grouped into a final hardening phase (P13); constraints still honored while building P10-12, formally audited/pen-tested at the end
 - [v2.0]: All v2.0 decisions carry forward (see PROJECT.md Key Decisions table)
+- [Phase ?]: All IRS dollar amounts live in config/tax-rules.php only — zero literals in TaxRulesEngineService
+- [Phase ?]: QBI Phase 10 scope: below-threshold 20% estimate; above-threshold non-SSTB returns professional-review sentinel (deduction_cents=null)
+- [Phase ?]: mandatory_roth_catchup_threshold tagged [ASSUMED] — confirm exact 2026 indexed value from IRS final regs before Phase 13
 
 ### Pending Todos
 
@@ -88,6 +96,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-07-01 — Roadmap created for v2.1 Optimize My Income
+Last session: 2026-07-02T00:05:39.332Z
 Stopped at: ROADMAP.md written, REQUIREMENTS.md traceability filled (41/41 mapped)
 Resume file: None — next action is `/gsd-plan-phase 10`

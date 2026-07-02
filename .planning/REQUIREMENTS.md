@@ -9,13 +9,13 @@ Requirements for this milestone. Each maps to a roadmap phase. All outputs are e
 
 ### Tax Rules Engine (TAX)
 
-- [ ] **TAX-01**: System stores all 2026 IRS constants (brackets, standard deduction, 401k/IRA/HSA limits, SE tax, Roth phase-outs, QBI thresholds) in a year-versioned `config/tax-rules.php` — the single source of truth
-- [ ] **TAX-02**: `TaxRulesEngineService` computes marginal + effective federal tax rate from taxable income and filing status, reading only from config (zero Claude calls)
-- [ ] **TAX-03**: Engine computes standard-vs-itemized comparison and reports which is larger
-- [ ] **TAX-04**: Engine computes remaining 401(k), IRA, and HSA contribution headroom against annual limits (incl. age-based catch-up)
-- [ ] **TAX-05**: Engine produces a deterministic Traditional-vs-Roth recommendation band (≤12% → Roth lean, ≥32% → Traditional lean, middle → split), including the SECURE 2.0 mandatory-Roth-catch-up flag for high earners
-- [ ] **TAX-06**: Engine surfaces QBI deduction eligibility and self-employment-tax deduction where applicable
-- [ ] **TAX-07**: Rules-engine math is covered by Pest tests asserting exact matches to config values at bracket boundaries
+- [x] **TAX-01**: System stores all 2026 IRS constants (brackets, standard deduction, 401k/IRA/HSA limits, SE tax, Roth phase-outs, QBI thresholds) in a year-versioned `config/tax-rules.php` — the single source of truth
+- [x] **TAX-02**: `TaxRulesEngineService` computes marginal + effective federal tax rate from taxable income and filing status, reading only from config (zero Claude calls)
+- [x] **TAX-03**: Engine computes standard-vs-itemized comparison and reports which is larger
+- [x] **TAX-04**: Engine computes remaining 401(k), IRA, and HSA contribution headroom against annual limits (incl. age-based catch-up)
+- [x] **TAX-05**: Engine produces a deterministic Traditional-vs-Roth recommendation band (≤12% → Roth lean, ≥32% → Traditional lean, middle → split), including the SECURE 2.0 mandatory-Roth-catch-up flag for high earners
+- [x] **TAX-06**: Engine surfaces QBI deduction eligibility and self-employment-tax deduction where applicable
+- [x] **TAX-07**: Rules-engine math is covered by Pest tests asserting exact matches to config values at bracket boundaries
 
 ### Cross-Source Context Engine (CTX)
 
@@ -109,13 +109,13 @@ Each requirement maps to exactly one phase. Phases continue the global numbering
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| TAX-01 | Phase 10 | Pending |
-| TAX-02 | Phase 10 | Pending |
-| TAX-03 | Phase 10 | Pending |
-| TAX-04 | Phase 10 | Pending |
-| TAX-05 | Phase 10 | Pending |
-| TAX-06 | Phase 10 | Pending |
-| TAX-07 | Phase 10 | Pending |
+| TAX-01 | Phase 10 | Complete |
+| TAX-02 | Phase 10 | Complete |
+| TAX-03 | Phase 10 | Complete |
+| TAX-04 | Phase 10 | Complete |
+| TAX-05 | Phase 10 | Complete |
+| TAX-06 | Phase 10 | Complete |
+| TAX-07 | Phase 10 | Complete |
 | CTX-01 | Phase 10 | Pending |
 | CTX-02 | Phase 10 | Pending |
 | CTX-03 | Phase 10 | Pending |
@@ -152,11 +152,13 @@ Each requirement maps to exactly one phase. Phases continue the global numbering
 | SAFE-05 | Phase 13 | Pending |
 
 **Coverage:**
+
 - v2.1 requirements: 41 total (source header previously read "33" — stale count that stopped at DOC-03 before UI + SAFE were added)
 - Mapped to phases: 41 / 41 (100%)
 - Unmapped: 0
 
 **Per-phase counts:**
+
 - Phase 10 — Foundation (Tax Rules Engine & Cross-Source Snapshot): 11 (TAX ×7, CTX ×4)
 - Phase 11 — Detection, Interview & AI Feed Integration: 15 (FLAG ×6, INT ×5, FEED ×4)
 - Phase 12 — Report, Document Intake & Feature Surface: 10 (RPT ×4, DOC ×3, UI ×3)
