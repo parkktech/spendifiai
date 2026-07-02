@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\OptimizationFinding;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Inertia\Middleware;
@@ -57,6 +58,17 @@ class HandleInertiaRequests extends Middleware
                 'onboardingPending' => $request->user()
                     ? (! $request->user()->onboarding_completed_at && ! $request->user()->hasBankConnected() && ! $request->user()->isAccountant())
                     : false,
+                // Phase 12-04 (UI-01): nav badge count — pending optimization findings.
+                // Guarded by hasBankConnected: count is 0 when no bank connected to avoid
+                // unnecessary DB queries for unauthenticated or bank-less sessions.
+                // SECURITY (T-12-04-04): scopeForUser() ensures cross-user isolation.
+                // Counts only 'open' findings with a non-null description (narrated and ready to surface).
+                'pendingOptimizationCount' => ($request->user()?->hasBankConnected())
+                    ? OptimizationFinding::forUser($request->user()->id)
+                        ->where('status', 'open')
+                        ->whereNotNull('description')
+                        ->count()
+                    : 0,
                 'household' => $request->user()?->household_id ? [
                     'id' => $request->user()->household_id,
                     'name' => $request->user()->household?->name,
