@@ -128,6 +128,46 @@ Schedule::call(function () {
 // ── Retry failed email parses (daily at 4am) ──
 Schedule::job(new RetryFailedEmails)->dailyAt('04:00')->name('retry-failed-emails');
 
+// ── Recurring Payee Sweep (monthly — activity-gated, FLAG-11) ────────────────
+// Sweeps active subscriptions by category module for tax-positioning findings.
+// Activity gate: 28-day threshold (same as detect-subscriptions gate).
+Schedule::call(function () {
+    $thresholdDays = config('spendifiai.sync.active_threshold_days', 28);
+    $taxYear = (int) date('Y');
+    $harness = app(\App\Services\RedFlagDetectorService::class);
+    $sweep = app(\App\Services\Sweeps\RecurringPayeeSweep::class);
+
+    User::whereHas('bankConnections')
+        ->where('last_active_at', '>', now()->subDays($thresholdDays))
+        ->each(function ($user) use ($sweep, $harness, $taxYear) {
+            try {
+                $sweep->run($user->id, $taxYear, $harness, []);
+            } catch (\Throwable $e) {
+                Log::warning('RecurringPayeeSweep failed for user '.$user->id.': '.$e->getMessage());
+            }
+        });
+})->monthly()->name('recurring-payee-sweep');
+
+// ── Penalty Prevention Sweep (daily at 5am — activity-gated, FLAG-26) ────────
+// Continuous sweep for observable penalty-prevention signals (excess IRA/HSA, Roth limits).
+// Activity gate: 28-day threshold — avoid work for inactive users.
+Schedule::call(function () {
+    $thresholdDays = config('spendifiai.sync.active_threshold_days', 28);
+    $taxYear = (int) date('Y');
+    $harness = app(\App\Services\RedFlagDetectorService::class);
+    $sweep = app(\App\Services\Sweeps\PenaltyPreventionSweep::class);
+
+    User::whereHas('bankConnections')
+        ->where('last_active_at', '>', now()->subDays($thresholdDays))
+        ->each(function ($user) use ($sweep, $harness, $taxYear) {
+            try {
+                $sweep->run($user->id, $taxYear, $harness, []);
+            } catch (\Throwable $e) {
+                Log::warning('PenaltyPreventionSweep failed for user '.$user->id.': '.$e->getMessage());
+            }
+        });
+})->dailyAt('05:00')->name('penalty-prevention-sweep');
+
 // ── Clean up orphaned queue jobs (daily at 1am) ──
 // The active queue is Redis. Database `jobs` table can accumulate orphaned
 // entries from past config or failed dispatches. Also resets email connections

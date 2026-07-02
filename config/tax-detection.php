@@ -486,6 +486,345 @@ return [
             'band' => 'conditional',
         ],
 
+        // ── FLAG-10: Category Library Rules (Plan 11-07) ─────────────────────
+
+        'category_vehicle' => [
+            'rule_id' => 'category_vehicle',
+            'authority' => 'IRC §179; Rev. Proc. 2025-33 (72.5¢/mi standard mileage); IRC §274',
+            'effective_start' => '2025-01-01',
+            'effective_end' => null,
+            'phaseouts' => [],
+            'inflation_adjusted' => true,
+            'source_url' => 'https://www.irs.gov/tax-professionals/standard-mileage-rates',
+            'last_verified' => '2026-07-01',
+            'status' => 'verified',
+            'band' => 'conditional',
+        ],
+
+        'category_solar' => [
+            'rule_id' => 'category_solar',
+            'authority' => 'IRC §25D (expired 2025-12-31 for primary home); MACRS 5-yr for rental',
+            'effective_start' => '2022-01-01',
+            'effective_end' => '2025-12-31',
+            'phaseouts' => [],
+            'inflation_adjusted' => false,
+            'source_url' => 'https://www.irs.gov/credits-deductions/residential-clean-energy-credit',
+            'last_verified' => '2026-07-01',
+            'status' => 'expired',     // retro-scanner only for pre-2026 installs
+            'band' => 'conditional',
+        ],
+
+        'category_pool_spa' => [
+            'rule_id' => 'category_pool_spa',
+            'authority' => 'IRC §168 (15-yr land improvement); IRC §213 (medical, 7.5% AGI); IRC §121 (basis)',
+            'effective_start' => '2025-01-01',
+            'effective_end' => null,
+            'phaseouts' => [],
+            'inflation_adjusted' => false,
+            'source_url' => 'https://www.irs.gov/publications/p946',
+            'last_verified' => '2026-07-01',
+            'status' => 'verified',
+            'band' => 'specialist',   // gray-area: always routes to pro review
+        ],
+
+        'category_landscaping' => [
+            'rule_id' => 'category_landscaping',
+            'authority' => 'IRC §168 (15-yr land improvement); IRC §121 (basis); IRC §162 (business)',
+            'effective_start' => '2025-01-01',
+            'effective_end' => null,
+            'phaseouts' => [],
+            'inflation_adjusted' => false,
+            'source_url' => 'https://www.irs.gov/publications/p946',
+            'last_verified' => '2026-07-01',
+            'status' => 'verified',
+            'band' => 'conditional',
+        ],
+
+        'category_home_improvement' => [
+            'rule_id' => 'category_home_improvement',
+            'authority' => 'IRC §179; IRC §168 (depreciation); IRC §121 (home basis)',
+            'effective_start' => '2025-01-01',
+            'effective_end' => null,
+            'phaseouts' => [],
+            'inflation_adjusted' => false,
+            'source_url' => 'https://www.irs.gov/publications/p946',
+            'last_verified' => '2026-07-01',
+            'status' => 'verified',
+            'band' => 'conditional',
+        ],
+
+        'category_medical' => [
+            'rule_id' => 'category_medical',
+            'authority' => 'IRC §223 (HSA); IRC §213 (medical deduction, 7.5% AGI floor)',
+            'effective_start' => '2025-01-01',
+            'effective_end' => null,
+            'phaseouts' => [],
+            'inflation_adjusted' => false,
+            'source_url' => 'https://www.irs.gov/publications/p502',
+            'last_verified' => '2026-07-01',
+            'status' => 'verified',
+            'band' => 'conditional',
+        ],
+
+        // ── FLAG-07: Deductible SaaS Sweep ───────────────────────────────────
+
+        'deductible_saas_sweep' => [
+            'rule_id' => 'deductible_saas_sweep',
+            'authority' => 'IRC §162 (ordinary and necessary business expenses)',
+            'effective_start' => '2025-01-01',
+            'effective_end' => null,
+            'phaseouts' => [],
+            'inflation_adjusted' => false,
+            'source_url' => 'https://www.irs.gov/publications/p535',
+            'last_verified' => '2026-07-01',
+            'status' => 'verified',
+            'band' => 'conditional',  // business-use prerequisite required
+        ],
+
+        // ── FLAG-11: Recurring Payee Sweep modules ────────────────────────────
+
+        'recurring_payee_worker_classification' => [
+            'rule_id' => 'recurring_payee_worker_classification',
+            'authority' => 'IRC §3401 (FICA); Rev. Rul. 87-41 (20-factor); IRC §1402 (SE income)',
+            'effective_start' => '2025-01-01',
+            'effective_end' => null,
+            'phaseouts' => [],
+            'inflation_adjusted' => false,
+            'source_url' => 'https://www.irs.gov/taxtopics/tc762',
+            'last_verified' => '2026-07-01',
+            'status' => 'verified',
+            'band' => 'conditional',  // warn-and-educate; classification decision is facts-and-circumstances
+        ],
+
+        'recurring_payee_childcare' => [
+            'rule_id' => 'recurring_payee_childcare',
+            'authority' => 'IRC §21 (Child and Dependent Care Credit); IRC §129 (Dependent Care FSA)',
+            'effective_start' => '2025-01-01',
+            'effective_end' => null,
+            'phaseouts' => [],
+            'inflation_adjusted' => false,
+            'source_url' => 'https://www.irs.gov/publications/p503',
+            'last_verified' => '2026-07-01',
+            'status' => 'verified',
+            'band' => 'conditional',
+        ],
+
+        'recurring_payee_tuition_loans' => [
+            'rule_id' => 'recurring_payee_tuition_loans',
+            'authority' => 'IRC §25A (AOTC/LLC); IRC §127 (employer §127); IRC §221 (student loan $2,500)',
+            'effective_start' => '2025-01-01',
+            'effective_end' => null,
+            'phaseouts' => [],
+            'inflation_adjusted' => false,
+            'source_url' => 'https://www.irs.gov/publications/p970',
+            'last_verified' => '2026-07-01',
+            'status' => 'verified',
+            'band' => 'conditional',
+        ],
+
+        'recurring_payee_charitable' => [
+            'rule_id' => 'recurring_payee_charitable',
+            'authority' => 'IRC §170 (charitable); Rev. Proc. 2023-34 (DAF); IRC §170(e) (appreciated property)',
+            'effective_start' => '2025-01-01',
+            'effective_end' => null,
+            'phaseouts' => [],
+            'inflation_adjusted' => false,
+            'source_url' => 'https://www.irs.gov/publications/p526',
+            'last_verified' => '2026-07-01',
+            'status' => 'verified',
+            'band' => 'conditional',
+        ],
+
+        'recurring_payee_storage_coworking' => [
+            'rule_id' => 'recurring_payee_storage_coworking',
+            'authority' => 'IRC §162 (ordinary and necessary business expenses)',
+            'effective_start' => '2025-01-01',
+            'effective_end' => null,
+            'phaseouts' => [],
+            'inflation_adjusted' => false,
+            'source_url' => 'https://www.irs.gov/publications/p535',
+            'last_verified' => '2026-07-01',
+            'status' => 'verified',
+            'band' => 'conditional',
+        ],
+
+        'recurring_payee_se_health_insurance' => [
+            'rule_id' => 'recurring_payee_se_health_insurance',
+            'authority' => 'IRC §162(l) (SE health insurance 100% deduction); IRC §105 (HRA)',
+            'effective_start' => '2025-01-01',
+            'effective_end' => null,
+            'phaseouts' => [],
+            'inflation_adjusted' => false,
+            'source_url' => 'https://www.irs.gov/publications/p535',
+            'last_verified' => '2026-07-01',
+            'status' => 'verified',
+            'band' => 'conditional',
+        ],
+
+        // ── FLAG-12: Retroactive Scanners ─────────────────────────────────────
+
+        'retroactive_missed_credit_25d' => [
+            'rule_id' => 'retroactive_missed_credit_25d',
+            'authority' => 'IRC §25D; IRC §6511 (3-year amended return window)',
+            'effective_start' => '2022-01-01',
+            'effective_end' => '2025-12-31',
+            'phaseouts' => [],
+            'inflation_adjusted' => false,
+            'source_url' => 'https://www.irs.gov/credits-deductions/residential-clean-energy-credit',
+            'last_verified' => '2026-07-01',
+            'status' => 'expired',
+            'band' => 'conditional',
+        ],
+
+        'retroactive_ev_credit_30d' => [
+            'rule_id' => 'retroactive_ev_credit_30d',
+            'authority' => 'IRC §30D; IRC §6511 (3-year amended return window)',
+            'effective_start' => '2023-01-01',
+            'effective_end' => '2025-09-30',
+            'phaseouts' => [],
+            'inflation_adjusted' => false,
+            'source_url' => 'https://www.irs.gov/credits-deductions/credits-for-new-electric-vehicles',
+            'last_verified' => '2026-07-01',
+            'status' => 'expired',
+            'band' => 'conditional',
+        ],
+
+        'retroactive_basis_reconstruction' => [
+            'rule_id' => 'retroactive_basis_reconstruction',
+            'authority' => 'IRC §1011 (adjusted basis); IRC §121 (gain exclusion basis); IRC §168 (rental)',
+            'effective_start' => '2025-01-01',
+            'effective_end' => null,
+            'phaseouts' => [],
+            'inflation_adjusted' => false,
+            'source_url' => 'https://www.irs.gov/publications/p551',
+            'last_verified' => '2026-07-01',
+            'status' => 'verified',
+            'band' => 'conditional',
+        ],
+
+        // ── FLAG-18: Safe-Harbor Benchmark (REFRAMED per D10) ─────────────────
+        // NEVER "your estimated taxes" — penalty-avoidance benchmark ONLY.
+        // Arithmetic: prior-year liability × 100%/110% + detected IRS payments only.
+
+        'safe_harbor_benchmark' => [
+            'rule_id' => 'safe_harbor_benchmark',
+            'authority' => 'IRC §6654(d)(1) (safe-harbor from underpayment penalty); IRS Publication 505',
+            'effective_start' => '2025-01-01',
+            'effective_end' => null,
+            'phaseouts' => [],
+            'inflation_adjusted' => false,
+            'source_url' => 'https://www.irs.gov/pub/irs-pdf/p505.pdf',
+            'last_verified' => '2026-07-01',
+            'status' => 'verified',
+            'band' => 'conditional',  // penalty-avoidance benchmark, not tax bill
+        ],
+
+        // ── FLAG-26: Penalty Prevention Sweep ────────────────────────────────
+
+        'penalty_excess_ira_contribution' => [
+            'rule_id' => 'penalty_excess_ira_contribution',
+            'authority' => 'IRC §4973 (6% excise tax on excess IRA contributions); IRC §408(d)(4)',
+            'effective_start' => '2025-01-01',
+            'effective_end' => null,
+            'phaseouts' => [],
+            'inflation_adjusted' => false,
+            'source_url' => 'https://www.irs.gov/retirement-plans/ira-faqs',
+            'last_verified' => '2026-07-01',
+            'status' => 'verified',
+            'band' => 'conditional',
+        ],
+
+        'penalty_excess_hsa_contribution' => [
+            'rule_id' => 'penalty_excess_hsa_contribution',
+            'authority' => 'IRC §4973(d) (6% excise on excess HSA contributions); IRC §223(f)(3)',
+            'effective_start' => '2025-01-01',
+            'effective_end' => null,
+            'phaseouts' => [],
+            'inflation_adjusted' => false,
+            'source_url' => 'https://www.irs.gov/publications/p969',
+            'last_verified' => '2026-07-01',
+            'status' => 'verified',
+            'band' => 'conditional',
+        ],
+
+        'penalty_roth_income_limit' => [
+            'rule_id' => 'penalty_roth_income_limit',
+            'authority' => 'IRC §408A(c)(3) (Roth MAGI limits); IRC §408(d)(6) (recharacterization)',
+            'effective_start' => '2025-01-01',
+            'effective_end' => null,
+            'phaseouts' => [],
+            'inflation_adjusted' => true,
+            'source_url' => 'https://www.irs.gov/retirement-plans/roth-iras',
+            'last_verified' => '2026-07-01',
+            'status' => 'verified',
+            'band' => 'conditional',
+        ],
+
+        'penalty_hsa_medicare' => [
+            'rule_id' => 'penalty_hsa_medicare',
+            'authority' => 'IRC §223(b)(7) (HSA ineligibility on Medicare enrollment); IRS Publication 969',
+            'effective_start' => '2025-01-01',
+            'effective_end' => null,
+            'phaseouts' => [],
+            'inflation_adjusted' => false,
+            'source_url' => 'https://www.irs.gov/publications/p969',
+            'last_verified' => '2026-07-01',
+            'status' => 'verified',
+            'band' => 'conditional',
+        ],
+
+        // ── FLAG-27: Life-Event Trigger Detector ──────────────────────────────
+
+        'life_event_payroll_stop' => [
+            'rule_id' => 'life_event_payroll_stop',
+            'authority' => 'IRC §1401 (SE tax); IRC §6654 (estimated tax); IRC §162(l); IRC §401(a)',
+            'effective_start' => '2025-01-01',
+            'effective_end' => null,
+            'phaseouts' => [],
+            'inflation_adjusted' => false,
+            'source_url' => 'https://www.irs.gov/businesses/small-businesses-self-employed/self-employment-tax',
+            'last_verified' => '2026-07-01',
+            'status' => 'verified',
+            'band' => 'conditional',
+        ],
+
+        'life_event_new_mortgage' => [
+            'rule_id' => 'life_event_new_mortgage',
+            'authority' => 'IRC §163(h) (home mortgage interest); IRC §164 (property taxes, $10K SALT); IRC §121',
+            'effective_start' => '2025-01-01',
+            'effective_end' => null,
+            'phaseouts' => [],
+            'inflation_adjusted' => false,
+            'source_url' => 'https://www.irs.gov/publications/p936',
+            'last_verified' => '2026-07-01',
+            'status' => 'verified',
+            'band' => 'conditional',
+        ],
+
+        'life_event_marketplace_premium' => [
+            'rule_id' => 'life_event_marketplace_premium',
+            'authority' => 'IRC §36B (Premium Tax Credit); IRS Form 8962; IRS Form 1095-A',
+            'effective_start' => '2025-01-01',
+            'effective_end' => null,
+            'phaseouts' => [],
+            'inflation_adjusted' => false,
+            'source_url' => 'https://www.irs.gov/affordable-care-act/individuals-and-families',
+            'last_verified' => '2026-07-01',
+            'status' => 'verified',
+            'band' => 'conditional',
+        ],
+
+        // Battery answers don't need a rule_id in the tax rules registry
+        // (they're stored as UserTaxFacts, not OptimizationFindings).
+
+    ],
+
+    // ── Retroactive Scanner Range Config (FLAG-12) ───────────────────────────
+    // §25D amended-return credit range — RANGE with uncertainty framing (never a promise).
+    // See RetroactiveScanner::scanMissedCredits() treatment wording.
+    'retroactive' => [
+        '25d_range_low_dollars' => 10000,  // $10,000 — low end of commonly-observed §25D recoveries
+        '25d_range_high_dollars' => 20000,  // $20,000 — high end of commonly-observed §25D recoveries
     ],
 
 ];

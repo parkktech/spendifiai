@@ -193,8 +193,14 @@ class RedFlagDetectorService
             \App\Services\Detectors\ComminglingMonitor::class,
             \App\Services\Detectors\AuditRiskScorer::class,
             \App\Services\Detectors\ProfileConformanceDetector::class,
-            // ── Wave 11b — Plan 11-07 (FLAG-10 category + merchant content) ──
-            // (appended by Plan 11-07)
+            // ── Wave 11c — Plan 11-07 (FLAG-07, FLAG-10, FLAG-11, FLAG-12, FLAG-18, FLAG-26, FLAG-27) ──
+            \App\Services\Detectors\CategoryLibraryDetector::class,
+            \App\Services\Detectors\DeductibleSaasSweep::class,
+            \App\Services\Sweeps\RecurringPayeeSweep::class,
+            \App\Services\Scanners\RetroactiveScanner::class,
+            \App\Services\Scanners\SafeHarborBenchmark::class,
+            \App\Services\Sweeps\PenaltyPreventionSweep::class,
+            \App\Services\Scanners\LifeEventTriggerDetector::class,
         ];
     }
 
