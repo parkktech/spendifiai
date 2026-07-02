@@ -125,6 +125,15 @@ Owner: plan and think through (1) how we GET the info from the user to understan
 
 Sequencing: SUBSUMES the Decision-9 checklist implementation — design first (spec), then implement checklist+benefits+scenarios as one coherent unit AFTER the review-fixes push. Design spec: .planning/reference/SCENARIOS-SPEC.md.
 
+## Decision 12 — Design posture: LUXURY LEAN (owner, 2026-07-02)
+
+Owner: "Let's lean in a little more on the design skill. We can be making better more luxy design choices. The site is a bit bland still." This AMENDS the conservative reading of "elevate don't replace":
+- The dial moves from "polish within the existing look" to **"make the look premium."** The site should feel expensive: refined depth (layered shadow system), typographic drama (scale contrast, tighter tracking on display sizes), intentional spacing rhythm (more generous section breathing), micro-interactions/motion vocabulary (hover states, transitions, staggered reveals — performance-conscious), richer card treatments (subtle gradients/borders/glass where tasteful), premium empty-states and loading states.
+- **Extending the sw-* token system is ALLOWED and expected** (new tokens: elevation scale, motion durations/easings, display type sizes, gradient stops) — additive tokens, applied app-wide for coherence.
+- **Still preserved**: brand logo, Inter as the type family (weight/scale usage may get bolder), the sw-accent blue family as primary recognition, all URLs/APIs/functionality, accessibility (contrast, reduced-motion respect), light+dark modes.
+- **Method (binding)**: taste-skill v2 full procedure — Section 11.B audit → mode "Preserve brand, elevate premium" → Section 11.D modernisation levers in priority order; soft-skill (high-end-visual-design) standards as the concrete bar; ui-ux-pro-max queried for fintech-premium styles/palettes/typography; redesign-skill audit-first discipline. Blocking audits continue (preservation audit = URLs/nav/forms/anchors; brand-fidelity audit amended to the preserved list above).
+- **Rollout**: (a) DESIGN-ELEVATION-SPEC.md defines the lever set + token extensions first; (b) all NEW UI (scenarios/checklists) is born to that spec; (c) a dedicated elevation pass upgrades the core existing surfaces (app shell/nav, Dashboard, cards, Optimize flow) — staged, verified with npm build + audits per batch.
+
 ## Non-negotiables that still apply
 
 Educational-only framing on every mismatch surface; additive migrations only; no changes to existing `UserFinancialProfile` API responses or `EnhancedProfileSection` behavior (extend, don't alter); encrypted TEXT + `$hidden` for sensitive new fields; all dollar math in TaxRulesEngineService from config.
