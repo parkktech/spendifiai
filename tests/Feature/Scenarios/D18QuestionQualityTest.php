@@ -355,6 +355,119 @@ it('d18_feed_no_leak: SurfaceHighPriorityRedFlags builds humanized copy when des
     expect($question->question)->toContain('HSA');
 });
 
+// ─── D18 exemplar 2: the 1099-K / P2P-deposits question (owner-reported) ─────
+//
+// Owner: the penalty-sweep finding rendered as a dense paragraph containing RAW
+// bank memo strings with reference codes ("Zelle payment from RAELYN STILES
+// 27868366380", "AMANDA DAVIS BACpz1r5pufa"), full 1099-K education inline, and
+// a vague ask. Required shape: humanized payer names, aggregated one-line lead,
+// choice answers, education demoted to a collapsible context field.
+
+function seedP2pInflows(int $userId): void
+{
+    foreach ([
+        ['Zelle payment from RAELYN STILES 27868366380', -320.00],
+        ['Zelle payment from AMANDA DAVIS BACpz1r5pufa', -185.50],
+        ['VENMO PAYMENT 1029384756 APRIL MAYES', -240.00],
+        ['Zelle payment from RAELYN STILES 99118822770', -150.00],
+    ] as [$memo, $amount]) {
+        \App\Models\Transaction::factory()->create([
+            'user_id' => $userId,
+            'merchant_name' => $memo,
+            'merchant_normalized' => strtolower($memo),
+            'amount' => $amount, // credits are negative (inflows)
+            'transaction_date' => now()->startOfYear()->addDays(40),
+        ]);
+    }
+}
+
+it('d18_p2p_template: the 1099-K finding renders as an aggregated, humanized choice question with demoted education', function () {
+    Http::preventStrayRequests();
+    Http::fake();
+
+    $user = createAuthenticatedUser(['last_active_at' => now()]);
+    seedP2pInflows($user->id);
+
+    $emitted = (new \App\Services\Sweeps\PenaltyPreventionSweep(app(\App\Services\TaxRulesEngineService::class)))
+        ->run($user->id, (int) now()->year, app(RedFlagDetectorService::class), []);
+    expect($emitted)->toContain('penalty_1099k_mismatch');
+
+    $service = app(InterviewOrchestratorService::class);
+    $session = $service->startOrResume($user->id, (int) now()->year);
+    expect($session->queue)->toContain('penalty_1099k_mismatch');
+
+    $question = $service->nextQuestion($session);
+    expect($question)->not->toBeNull();
+    expect($question->ai_best_guess)->toBe('penalty_1099k_mismatch');
+
+    // 1. HUMANIZED payer names — no raw memo reference codes.
+    expect($question->question)->toContain('Raelyn Stiles');
+    expect($question->question)->toContain('Amanda Davis');
+    expect($question->question)->not->toContain('RAELYN STILES');
+    expect($question->question)->not->toContain('27868366380');
+    expect($question->question)->not->toContain('BACpz1r5pufa');
+
+    // 2. AGGREGATED lead: total + payment count in one clean line.
+    expect($question->question)->toContain('about $');
+    expect($question->question)->toMatch('/across \d+ /');
+
+    // 3. CHOICES, not a vague open yes/no.
+    expect($question->options['answer_type'] ?? null)->toBe('choice');
+    $labels = implode(' | ', array_column((array) $question->options['choices'], 'label'));
+    expect(strtolower($labels))->toContain('personal');
+    expect(strtolower($labels))->toContain('business');
+    expect(strtolower($labels))->toContain('mix');
+    expect(strtolower($labels))->toContain('not sure');
+
+    // 4. Education DEMOTED to the collapsible context field — not in the body.
+    expect($question->question)->not->toContain('1099-K');
+    expect((string) ($question->options['context'] ?? ''))->toContain('1099-K');
+
+    // 5. Question body stays short (≤ 2 short sentences) and leaks no keys.
+    expect(mb_strlen($question->question))->toBeLessThanOrEqual(280);
+    expect(preg_match(D18_INTERNAL_KEY_PATTERN, $question->question))->toBe(0);
+
+    // D17: zero Claude on the template path.
+    Http::assertNothingSent();
+});
+
+it('d18_p2p_answer: the choice answer records the income-classification fact and the question never re-appears', function () {
+    Http::preventStrayRequests();
+    Http::fake();
+
+    $user = createAuthenticatedUser(['last_active_at' => now()]);
+    seedP2pInflows($user->id);
+    (new \App\Services\Sweeps\PenaltyPreventionSweep(app(\App\Services\TaxRulesEngineService::class)))
+        ->run($user->id, (int) now()->year, app(RedFlagDetectorService::class), []);
+
+    $service = app(InterviewOrchestratorService::class);
+    $session = $service->startOrResume($user->id, (int) now()->year);
+    $question = $service->nextQuestion($session);
+    expect($question)->not->toBeNull();
+
+    // Off-menu answers are rejected (typed choice validation).
+    $this->postJson(
+        "/api/v1/optimizer/interview/{$session->id}/questions/{$question->id}/answer",
+        ['answer' => 'whatever']
+    )->assertStatus(422);
+
+    $this->postJson(
+        "/api/v1/optimizer/interview/{$session->id}/questions/{$question->id}/answer",
+        ['answer' => 'mostly_business']
+    )->assertOk();
+
+    expect(UserTaxFact::currentFact($user->id, 'penalty_1099k_mismatch')?->value)->toBe('mostly_business');
+
+    // Never re-appears in a fresh session.
+    $resumed = $service->startOrResume($user->id, (int) now()->year);
+    $next = $service->nextQuestion($resumed);
+    if ($next !== null) {
+        expect($next->ai_best_guess)->not->toBe('penalty_1099k_mismatch');
+    }
+
+    Http::assertNothingSent();
+});
+
 // ─── D18 rule 2: automated sweep — NO rendered question carries internal keys ─
 
 it('d18_no_internal_keys: every rendered interview question and choice label is free of snake_case internal keys', function () {
@@ -379,10 +492,17 @@ it('d18_no_internal_keys: every rendered interview question and choice label is 
     $service = app(InterviewOrchestratorService::class);
     $session = $service->startOrResume($user->id, 2026);
 
-    // Drain the queue — every produced question must pass the D18 regex bar.
+    // Drain the queue — every produced question must pass the D18 copy bar:
+    // no internal keys anywhere, question body short (education goes to context).
     while (($q = $service->nextQuestion($session)) !== null) {
         expect(preg_match(D18_INTERNAL_KEY_PATTERN, $q->question))
             ->toBe(0, "Internal key leaked in question copy: {$q->question}");
+
+        expect(mb_strlen($q->question))
+            ->toBeLessThanOrEqual(280, "Question body too long (education belongs in context): {$q->question}");
+
+        expect(preg_match(D18_INTERNAL_KEY_PATTERN, (string) ($q->options['context'] ?? '')))
+            ->toBe(0, 'Internal key leaked in context copy');
 
         foreach ((array) ($q->options['choices'] ?? []) as $choice) {
             expect(preg_match(D18_INTERNAL_KEY_PATTERN, (string) ($choice['label'] ?? '')))
