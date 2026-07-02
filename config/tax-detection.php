@@ -45,6 +45,13 @@ return [
     // A rule whose last_verified date is more than this many days ago is flagged stale.
     'staleness_days' => 90,
 
+    // ── Guided Interview Config (INT-01/03 / D5) ─────────────────────────────
+    // initial_cap: maximum questions asked in the first pass of the interview.
+    // Capped to prevent overwhelming the user; gated probes may add more later.
+    'interview' => [
+        'initial_cap' => 10,
+    ],
+
     // ── Onboarding Retroactive History Depth (FLAG-12) ───────────────────────
     // How many months back the retroactive scanner reaches on first profile build.
     // Range: 12–36 months (36 is the full Plaid historical limit).

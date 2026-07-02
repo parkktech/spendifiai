@@ -13,6 +13,7 @@ use App\Models\BankConnection;
 use App\Models\CancellationProvider;
 use App\Models\Dependent;
 use App\Models\Household;
+use App\Models\InterviewSession;
 use App\Models\OrderItem;
 use App\Models\SavingsPlanAction;
 use App\Models\SavingsRecommendation;
@@ -26,6 +27,7 @@ use App\Policies\BankConnectionPolicy;
 use App\Policies\CancellationProviderPolicy;
 use App\Policies\DependentPolicy;
 use App\Policies\HouseholdPolicy;
+use App\Policies\InterviewSessionPolicy;
 use App\Policies\OrderItemPolicy;
 use App\Policies\SavingsPlanActionPolicy;
 use App\Policies\SavingsRecommendationPolicy;
@@ -77,9 +79,11 @@ class AppServiceProvider extends ServiceProvider
         Route::model('provider', CancellationProvider::class);
         Route::model('dependent', Dependent::class);
         Route::model('deduction', \App\Models\TaxDeduction::class);
-        // Phase 11-02: durable-facts store bindings (InterviewSession binding in 11-04)
+        // Phase 11-02: durable-facts store bindings
         Route::model('tax-fact', UserTaxFact::class);
         Route::model('tax-entity', TaxProfileEntity::class);
+        // Phase 11-04: interview session binding
+        Route::model('interview', InterviewSession::class);
 
         // ── Middleware Aliases ──
         Route::aliasMiddleware('bank.connected', EnsureBankConnected::class);
@@ -99,9 +103,11 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(CancellationProvider::class, CancellationProviderPolicy::class);
         Gate::policy(Dependent::class, DependentPolicy::class);
         Gate::policy(Household::class, HouseholdPolicy::class);
-        // Phase 11-02: durable-facts store policies (InterviewSession policy in 11-04)
+        // Phase 11-02: durable-facts store policies
         Gate::policy(UserTaxFact::class, UserTaxFactPolicy::class);
         Gate::policy(TaxProfileEntity::class, TaxProfileEntityPolicy::class);
+        // Phase 11-04: interview session policy
+        Gate::policy(InterviewSession::class, InterviewSessionPolicy::class);
 
         // ── Phase 11: Red-Flag Detection ──
         Event::listen(

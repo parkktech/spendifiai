@@ -16,6 +16,7 @@ use App\Http\Controllers\Api\DocumentRequestController;
 use App\Http\Controllers\Api\EmailConnectionController;
 use App\Http\Controllers\Api\HouseholdController;
 use App\Http\Controllers\Api\ImpersonationController;
+use App\Http\Controllers\Api\InterviewController;
 use App\Http\Controllers\Api\OnboardingController;
 use App\Http\Controllers\Api\OrderItemController;
 use App\Http\Controllers\Api\PlaidController;
@@ -322,6 +323,16 @@ Route::middleware(['auth:sanctum'])->group(function () {
             Route::get('/candidates', [ReconciliationController::class, 'candidates']);
             Route::post('/candidates/{candidate}/confirm', [ReconciliationController::class, 'confirm']);
             Route::post('/candidates/{candidate}/reject', [ReconciliationController::class, 'reject']);
+        });
+
+        // ── Phase 11-04: Guided Interview (INT-01..07) ──
+        // One-question-at-a-time persisted state machine. Answers write to UserTaxFact.
+        // No bank.connected requirement — interview can proceed from any onboarding state.
+        Route::prefix('optimizer/interview')->group(function () {
+            Route::get('/', [InterviewController::class, 'index']);
+            Route::post('/start', [InterviewController::class, 'start']);
+            Route::get('/{interview}/next', [InterviewController::class, 'next']);
+            Route::post('/{interview}/questions/{question}/answer', [InterviewController::class, 'answer']);
         });
 
         // Email Connections
