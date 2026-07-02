@@ -154,7 +154,7 @@ export default function TransactionsIndex() {
   return (
     <AuthenticatedLayout
       header={
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div>
             <h1 className="text-xl font-bold text-sw-text tracking-tight">Transactions</h1>
             <p className="text-xs text-sw-dim mt-0.5">View and manage all your transactions</p>
@@ -162,7 +162,7 @@ export default function TransactionsIndex() {
           <button
             onClick={handleCategorize}
             disabled={categorizing}
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-sw-accent text-white text-sm font-semibold hover:bg-sw-accent-hover transition disabled:opacity-50 disabled:cursor-not-allowed"
+            className="self-start inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-sw-accent text-white text-sm font-semibold hover:bg-sw-accent-hover transition disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {categorizing ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
             {categorizing ? 'Categorizing...' : 'AI Categorize'}

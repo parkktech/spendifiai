@@ -77,7 +77,7 @@ export default function SavingsIndex() {
   return (
     <AuthenticatedLayout
       header={
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div>
             <h1 className="text-xl font-bold text-sw-text tracking-tight">Savings</h1>
             <p className="text-xs text-sw-dim mt-0.5">AI-powered recommendations to cut costs</p>
@@ -85,7 +85,7 @@ export default function SavingsIndex() {
           <button
             onClick={handleAnalyze}
             disabled={analyze.loading}
-            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-sw-accent hover:bg-sw-accent-hover text-white text-xs font-semibold transition disabled:opacity-50"
+            className="self-start inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-sw-accent hover:bg-sw-accent-hover text-white text-xs font-semibold transition disabled:opacity-50"
           >
             {analyze.loading ? (
               <Loader2 size={14} className="animate-spin" />

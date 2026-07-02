@@ -69,7 +69,7 @@ export default function SubscriptionsIndex() {
   return (
     <AuthenticatedLayout
       header={
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div>
             <h1 className="text-xl font-bold text-sw-text tracking-tight">Subscriptions</h1>
             <p className="text-xs text-sw-dim mt-0.5">See where your money goes every month</p>

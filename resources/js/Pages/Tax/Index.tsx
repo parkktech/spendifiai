@@ -128,7 +128,7 @@ export default function TaxIndex() {
   return (
     <AuthenticatedLayout
       header={
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div>
             <h1 className="text-xl font-bold text-sw-text tracking-tight">Tax Center</h1>
             <p className="text-xs text-sw-dim mt-0.5">Track deductible expenses for tax season</p>
