@@ -35,22 +35,20 @@ export default function RecommendationCard({ recommendation, onDismiss, onApply 
         isApplied ? 'opacity-50' : ''
       }`}
     >
-      {/* Header: title + savings */}
-      <div className="flex items-start justify-between mb-2">
-        <div className="flex-1 pr-3">
-          <div className="flex items-center gap-2 mb-1">
-            {isApplied && <Check size={16} className="text-sw-accent shrink-0" />}
-            <h3 className={`text-sm font-semibold ${isApplied ? 'text-sw-muted line-through' : 'text-sw-text'}`}>
-              {recommendation.title}
-            </h3>
-          </div>
-          <p className="text-xs text-sw-muted leading-relaxed">{recommendation.description}</p>
+      {/* Header: title + savings — description moved out to span full card width */}
+      <div className="flex items-start justify-between mb-1">
+        <div className="flex items-center gap-2 min-w-0 pr-3">
+          {isApplied && <Check size={16} className="text-sw-accent shrink-0" />}
+          <h3 className={`text-sm font-semibold ${isApplied ? 'text-sw-muted line-through' : 'text-sw-text'}`}>
+            {recommendation.title}
+          </h3>
         </div>
         <div className="text-right shrink-0">
           <div className="text-lg font-bold text-sw-accent">{fmt.format(recommendation.monthly_savings)}/mo</div>
           <div className="text-[10px] text-sw-dim">{fmt.format(recommendation.annual_savings)}/yr</div>
         </div>
       </div>
+      <p className="text-xs text-sw-muted leading-relaxed mb-2">{recommendation.description}</p>
 
       {/* Category + priority badges */}
       <div className="flex items-center gap-2 mb-3">

@@ -750,11 +750,9 @@ function ActionCard({
           <Icon size={16} />
         </div>
         <div className="flex-1 min-w-0">
+          {/* Title row + amounts — description moved out so it spans full card width */}
           <div className="flex items-start justify-between gap-3">
-            <div className="min-w-0">
-              <h4 className="text-sm font-semibold text-sw-text">{item.title}</h4>
-              <p className="text-xs text-sw-muted mt-0.5 leading-relaxed">{item.description}</p>
-            </div>
+            <h4 className="text-sm font-semibold text-sw-text min-w-0">{item.title}</h4>
             {item.monthlySavings > 0 && (
               <div className="text-right shrink-0">
                 <div className="text-base font-bold text-sw-accent">{fmt.format(item.monthlySavings)}/mo</div>
@@ -762,6 +760,7 @@ function ActionCard({
               </div>
             )}
           </div>
+          <p className="text-xs text-sw-muted mt-1 leading-relaxed">{item.description}</p>
 
           {item.relatedMerchants && item.relatedMerchants.length > 0 && (
             <div className="text-[11px] text-sw-dim mt-1.5">
