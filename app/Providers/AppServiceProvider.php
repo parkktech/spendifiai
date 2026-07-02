@@ -131,6 +131,31 @@ class AppServiceProvider extends ServiceProvider
             \App\Listeners\UpdateOptimizationFromAnswer::class,
         );
 
+        // ── Phase 12-04: Report Staleness + Debounced Regeneration (RPT-02) ──
+        // TaxDocumentExtracted → flag flip (stale) + debounced unique job
+        Event::listen(
+            \App\Events\TaxDocumentExtracted::class,
+            [\App\Listeners\MarkOptimizationReportStale::class, 'handleTaxDocumentExtracted'],
+        );
+        Event::listen(
+            \App\Events\TaxDocumentExtracted::class,
+            [\App\Listeners\DispatchReportGeneration::class, 'handleTaxDocumentExtracted'],
+        );
+        // OptimizationProfileBuilt → flag flip + debounced unique job
+        Event::listen(
+            \App\Events\OptimizationProfileBuilt::class,
+            [\App\Listeners\MarkOptimizationReportStale::class, 'handleOptimizationProfileBuilt'],
+        );
+        Event::listen(
+            \App\Events\OptimizationProfileBuilt::class,
+            [\App\Listeners\DispatchReportGeneration::class, 'handleOptimizationProfileBuilt'],
+        );
+        // UserAnsweredQuestion → flag flip only for optimization questions; no regen dispatch
+        Event::listen(
+            \App\Events\UserAnsweredQuestion::class,
+            [\App\Listeners\MarkOptimizationReportStale::class, 'handleUserAnsweredQuestion'],
+        );
+
         // ── Vite Prefetch (from Breeze starter kit) ──
         Vite::prefetch(concurrency: 3);
 

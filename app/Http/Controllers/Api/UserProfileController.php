@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\UpdateFinancialProfileRequest;
+use App\Jobs\BuildIncomeOptimizationProfile;
 use App\Jobs\CategorizePendingTransactions;
 use App\Models\UserFinancialProfile;
 use App\Services\PlaidService;
@@ -25,6 +26,11 @@ class UserProfileController extends Controller
 
         // Re-categorize all transactions with the updated profile context
         CategorizePendingTransactions::dispatch(auth()->id(), true);
+
+        // Rebuild the income optimization profile so findings and the report stay current.
+        // This fires OptimizationProfileBuilt → MarkOptimizationReportStale (flag flip) +
+        // DispatchReportGeneration (debounced unique job). Additive — existing dispatches unchanged.
+        BuildIncomeOptimizationProfile::dispatch(auth()->id(), now()->year);
 
         return response()->json([
             'message' => 'Profile updated',
