@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use Carbon\Carbon;
 use InvalidArgumentException;
 
 /**
@@ -524,6 +525,127 @@ class TaxRulesEngineService
         $rate = $this->marginalRate($taxableIncomeCents, $filingStatus, $year);
 
         return (int) round($deductionCents * $rate);
+    }
+
+    // ── TAX-09: Versioned Rule Validator ─────────────────────────────────────
+
+    /**
+     * Validate a rule from the config/tax-detection.php rule registry.
+     *
+     * Returns an array with:
+     *   - suppressed (bool): true if effective_end has passed OR band is suppress|hard_block
+     *   - band (string):     the rule's band value (auto|conditional|specialist|suppress|hard_block)
+     *   - status (string):   'expired' if past effective_end, otherwise the rule's own status field
+     *   - stale (bool):      true if now minus last_verified exceeds config('tax-detection.staleness_days')
+     *
+     * This is the single enforcement point — every Phase 11 detector calls this before emitting
+     * a finding. A suppressed=true result must short-circuit emission entirely.
+     *
+     * ZERO HTTP calls are made by this method (no-Claude guard for rule validation).
+     *
+     * @throws InvalidArgumentException if rule_id is not found in the registry
+     */
+    public function validateRule(string $ruleId): array
+    {
+        $rule = config("tax-detection.rules.{$ruleId}");
+
+        if ($rule === null) {
+            throw new InvalidArgumentException("Unknown rule: {$ruleId}. Check config/tax-detection.php rules registry.");
+        }
+
+        $today = now()->toDateString();
+
+        $expired = $rule['effective_end'] !== null && $today > $rule['effective_end'];
+
+        $staleDays = config('tax-detection.staleness_days', 90);
+        $lastVerified = Carbon::parse($rule['last_verified']);
+        $stale = now()->diffInDays($lastVerified, true) > $staleDays;
+
+        return [
+            'suppressed' => $expired || in_array($rule['band'], ['suppress', 'hard_block'], true),
+            'band' => $rule['band'],
+            'status' => $expired ? 'expired' : $rule['status'],
+            'stale' => $stale,
+        ];
+    }
+
+    // ── FLAG-08: Config-Driven Materiality Gate ───────────────────────────────
+
+    /**
+     * Determine whether a transaction / pattern passes the materiality gate for interrogation.
+     *
+     * Gates read EXCLUSIVELY from config('tax-detection.materiality') — never from literals.
+     * A Pest test greps this method's region and fails if any raw threshold literal is present.
+     *
+     * Logic:
+     *  1. address-matched or loan-servicer → always interrogate (returns true)
+     *  2. below the auto-floor → never interrogate (returns false)
+     *  3. recurring pattern → passes if annual total meets the recurring threshold
+     *  4. single transaction → passes if amount meets the interrogate threshold
+     *
+     * All amounts are in INTEGER CENTS.
+     *
+     * @param  int  $amountCents  The single-transaction amount in cents.
+     * @param  bool  $isRecurring  Whether this is a recurring-payee pattern.
+     * @param  int  $annualTotalCents  Annualized total for a recurring pattern (in cents).
+     * @param  bool  $addressMatch  True if the transaction is address-matched.
+     * @param  bool  $loanServicer  True if the transaction comes from a loan servicer.
+     */
+    public function passesMaterialityGate(
+        int $amountCents,
+        bool $isRecurring,
+        int $annualTotalCents,
+        bool $addressMatch = false,
+        bool $loanServicer = false
+    ): bool {
+        $cfg = config('tax-detection.materiality');
+
+        // Always interrogate: address-matched and loan-servicer per D2 / FLAG-08
+        if ($addressMatch || $loanServicer) {
+            return true;
+        }
+
+        // Recurring pattern: gate on annualized total — auto-floor does NOT apply to recurring
+        // (D2 spec: "$100 single-txn floor UNLESS recurring"; recurring has its own annual gate)
+        if ($isRecurring) {
+            return $annualTotalCents >= $cfg['recurring_pattern_annual_cents'];
+        }
+
+        // Single transaction: auto-floor applies — below $100 is never interrogated
+        if ($amountCents < $cfg['single_txn_auto_floor_cents']) {
+            return false;
+        }
+
+        // Single transaction at or above auto-floor: interrogate when it meets the interrogate threshold
+        return $amountCents >= $cfg['single_txn_interrogate_cents'];
+    }
+
+    // ── FLAG-06: Band-to-Severity Mapper ─────────────────────────────────────
+
+    /**
+     * Map a rule band to the OptimizationFinding severity vocabulary.
+     *
+     * Band → Severity mapping (consumed by FLAG-06 in Plan 11-03):
+     *   auto       → 'high'        (surfaced prominently; confidence sufficient for pre-fill)
+     *   conditional → 'medium'     (additional verification required before surfacing)
+     *   specialist  → 'medium'     (pro-review routing; same display tier as conditional)
+     *   suppress    → 'suppressed' (never rendered; findings blocked by suppress band)
+     *   hard_block  → 'blocked'    (Phase 13 SAFE-06 hard-block; finding refused at emission)
+     *
+     * @throws InvalidArgumentException for unknown band values
+     */
+    public function bandToSeverity(string $band): string
+    {
+        return match ($band) {
+            'auto' => 'high',
+            'conditional' => 'medium',
+            'specialist' => 'medium',
+            'suppress' => 'suppressed',
+            'hard_block' => 'blocked',
+            default => throw new InvalidArgumentException(
+                "Unknown band: {$band}. Allowed: auto, conditional, specialist, suppress, hard_block."
+            ),
+        };
     }
 
     // ── Private Helpers ───────────────────────────────────────────────────
