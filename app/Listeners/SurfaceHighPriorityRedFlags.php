@@ -148,9 +148,12 @@ class SurfaceHighPriorityRedFlags implements ShouldQueue
 
         $treatment = trim((string) $finding->treatment);
         if ($treatment !== '' && str_contains($treatment, ' ')) {
-            return str_ends_with($treatment, '?')
-                ? $treatment
-                : rtrim($treatment, '.').'. Does this reflect your situation?';
+            // D18 addendum 6: first sentence only — education never rides the body.
+            $first = (string) (preg_split('/(?<=[.!?])\s+/', $treatment)[0] ?? $treatment);
+
+            return str_ends_with($first, '?')
+                ? $first
+                : rtrim($first, '.').'. Does this reflect your situation?';
         }
 
         return 'We spotted a potential tax opportunity in your account activity. Would you like to review it?';

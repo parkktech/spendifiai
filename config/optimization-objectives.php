@@ -650,6 +650,25 @@ return [
             'volatility' => 'annual', 'tax_year_scoped' => true,
             'label' => 'Expected bonus amount',
         ],
+        // D18 exemplar-3 follow-up: fans from a business-flavored vehicle/powersports
+        // purpose answer as its OWN question (never crammed). 'willing_to_start' is a
+        // CHECKLIST-able state — 14-08/09 wire the mileage/gallons-log Action Center
+        // item to this fact key.
+        'vehicle.usage_log_status' => [
+            'question' => 'Do you currently keep a mileage or fuel-gallons log for these vehicles?',
+            'answer_type' => 'choice',
+            'choices' => [
+                ['value' => 'kept', 'label' => 'Yes, I keep one'],
+                ['value' => 'willing_to_start', 'label' => 'Not yet — but I’m willing to start'],
+                ['value' => 'not_kept', 'label' => 'No, and I don’t plan to'],
+            ],
+            'context' => 'A contemporaneous mileage log supports vehicle deductions under either the '
+                .'standard mileage or actual expense method, and a gallons log is required for any '
+                .'off-road fuel tax credit. Starting one now protects whichever route applies later.',
+            'volatility' => 'stable',
+            'label' => 'Vehicle mileage / gallons log',
+            'prerequisite' => 'category_vehicle_parts',
+        ],
     ],
 
     // ── Prerequisite gate pairs (§A.4.3) — merged with GATED_PROBES at runtime ─
@@ -661,5 +680,8 @@ return [
         'employer.match_threshold_pct' => 'employer.match_pct',
         'employer.contribution_pct' => 'employer.has_401k',
         'family.qualifying_children_under_17' => 'family.dependents_count',
+        // D18 exemplar 3: the usage-log follow-up only surfaces after the
+        // vehicle/powersports purpose question is answered.
+        'vehicle.usage_log_status' => 'category_vehicle_parts',
     ],
 ];

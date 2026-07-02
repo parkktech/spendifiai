@@ -82,6 +82,17 @@ class InterviewOrchestratorService
      */
     private const CONFIRM_SENTINEL = 'confirm';
 
+    /**
+     * D18 addendum 7 — the escape hatch. Every choice/multi-select question
+     * carries a final "Something else? Let's talk about it" option. The client
+     * submits `__other__: <free text>`; the orchestrator interprets the text
+     * onto the choice set (wording-tier Claude, budget-counted) and records the
+     * result through the same recordFact flow.
+     */
+    private const ESCAPE_VALUE = '__other__';
+
+    private const ESCAPE_LABEL = "Something else? Let's talk about it";
+
     public function __construct(
         private readonly ScenarioFactResolverService $resolver = new ScenarioFactResolverService,
         private readonly FindingPatternQuestionService $patterns = new FindingPatternQuestionService,
@@ -246,9 +257,11 @@ class InterviewOrchestratorService
             }
 
             // D18 rule 4: conditional findings need a REAL question source —
-            // a config template or question-phrased narration. Treatment prose
-            // alone is not interview-ready for the conditional band.
+            // a config template, a dedicated dynamic template (exemplars 2/3),
+            // or question-phrased narration. Treatment prose alone is not
+            // interview-ready for the conditional band.
             if ($this->questionTemplate($f->finding_key) !== null
+                || $this->patterns->hasTemplate($f->finding_key)
                 || $this->isQuestionPhrased($f->description)) {
                 $conditionalFindings[] = $f->finding_key;
 
@@ -465,9 +478,10 @@ class InterviewOrchestratorService
             return $this->createTemplateQuestion($session, $factKey, $template);
         }
 
-        // Pattern keys without a resolvable template (all items answered / no
-        // matching findings) are skipped — never verbalized generically (D18).
-        if ($this->patterns->isPatternKey($factKey)) {
+        // Template-mapped keys without a resolvable template right now (all items
+        // answered / no matching findings or transactions) are skipped — never
+        // verbalized generically (D18).
+        if ($this->patterns->hasTemplate($factKey)) {
             return null;
         }
 
@@ -540,13 +554,23 @@ class InterviewOrchestratorService
         $band = $isSuggestedConfirm ? 'auto' : 'conditional';
         $confidence = self::BAND_CONFIDENCE[$band] ?? 0.70;
 
+        // D18 addendum 7: append the escape hatch to every choice-style question.
+        $choices = $template['choices'] ?? null;
+        if (is_array($choices)
+            && in_array($template['answer_type'] ?? 'string', ['choice', 'multi_select'], true)) {
+            $choices = array_values($choices);
+            $choices[] = ['value' => self::ESCAPE_VALUE, 'label' => self::ESCAPE_LABEL];
+        }
+
         $options = [
             'fact_key' => $factKey,
             'template' => true,
             'band' => $band,
             'answer_type' => $template['answer_type'] ?? 'string',
-            'choices' => $template['choices'] ?? null,
+            'choices' => $choices,
             'none_value' => $template['none_value'] ?? null,
+            // D18: education lives in the collapsible context, not the body.
+            'context' => $template['context'] ?? null,
             'objective_tags' => $this->objectiveTagsFor($factKey),
             'doc_affordance' => $template['doc_affordance'] ?? null,
             'transaction_ids' => [],
@@ -596,7 +620,7 @@ class InterviewOrchestratorService
             return $template;
         }
 
-        if ($this->patterns->isPatternKey($factKey)) {
+        if ($this->patterns->hasTemplate($factKey)) {
             return $this->patterns->templateFor($session->user, (int) $session->tax_year, $factKey);
         }
 
@@ -738,11 +762,108 @@ SYS;
         $treatment = trim((string) $finding?->treatment);
         if ($treatment !== '' && str_contains($treatment, ' ')) {
             // Real prose (not a bare enum token like 'standard_mileage'):
-            // lead with the data, ask the unknown.
-            return rtrim($treatment, '.').'. Does this reflect your situation?';
+            // lead with the data, ask the unknown. D18 addendum 6 succinctness —
+            // the FIRST sentence only; longer education never rides the body.
+            $first = preg_split('/(?<=[.!?])\s+/', $treatment)[0] ?? $treatment;
+
+            return rtrim($first, '.').'. Does this reflect your situation?';
         }
 
         return null;
+    }
+
+    /**
+     * D18 addendum 7 — interpret an escape-hatch free-text answer onto the
+     * question's choice set.
+     *
+     * This IS an allowed Claude call per D17 (genuinely bespoke user input):
+     * wording tier (Haiku via model_wording), counted against the 'wording'
+     * daily budget. At the cap — or on any failure — it degrades gracefully to
+     * the neutral value 'other' (the raw text is preserved in the encrypted
+     * session transcript; nothing is asserted from an uninterpreted answer).
+     *
+     * @param  array<string, mixed>  $template
+     */
+    private function interpretEscapeAnswer(array $template, string $freeText): string
+    {
+        if (! $this->checkAndIncrementBudget('wording')) {
+            return 'other';
+        }
+
+        $isMulti = ($template['answer_type'] ?? 'string') === 'multi_select';
+        $choices = (array) ($template['choices'] ?? []);
+        $choiceValues = array_column($choices, 'value');
+        $noneValue = (string) ($template['none_value'] ?? 'none');
+
+        $choiceList = implode("\n", array_map(
+            fn (array $c) => '- '.$c['value'].': '.$c['label'],
+            $choices
+        ));
+
+        $system = <<<'SYS'
+You map a user's free-text answer onto a fixed choice set for a financial questionnaire.
+Return ONLY valid JSON (no markdown): {"value": "<choice value>"}
+
+Rules:
+- Pick the single best-matching choice value from the list.
+- For multi-select questions you may return several values joined by commas.
+- If nothing clearly matches, return {"value": "other"}.
+- Never invent values that are not in the list (except "other").
+SYS;
+
+        $userPrompt = 'Question: '.($template['question'] ?? '')."\n"
+            .'Answer type: '.($isMulti ? 'multi_select' : 'choice')."\n"
+            ."Choices:\n{$choiceList}\n\n"
+            ."User's answer: {$freeText}";
+
+        try {
+            $model = config('services.anthropic.model_wording', config('services.anthropic.model'))
+                ?? 'claude-sonnet-4-6';
+
+            $response = Http::withHeaders([
+                'x-api-key' => config('services.anthropic.key'),
+                'anthropic-version' => '2023-06-01',
+                'content-type' => 'application/json',
+            ])->post('https://api.anthropic.com/v1/messages', [
+                'model' => $model,
+                'max_tokens' => 100,
+                'system' => $system,
+                'messages' => [
+                    ['role' => 'user', 'content' => $userPrompt],
+                ],
+            ]);
+
+            if ($response->successful()) {
+                $decoded = json_decode((string) $response->json('content.0.text'), true);
+                $candidate = trim((string) ($decoded['value'] ?? ''));
+
+                if ($candidate !== '' && $candidate !== 'other') {
+                    $parts = $isMulti
+                        ? array_map('trim', explode(',', $candidate))
+                        : [$candidate];
+
+                    $valid = array_filter(
+                        $parts,
+                        fn (string $p) => in_array($p, $choiceValues, true) && $p !== self::ESCAPE_VALUE
+                    );
+
+                    if ($valid !== [] && count($valid) === count($parts)) {
+                        // 'none' is exclusive on multi-select.
+                        if ($isMulti && in_array($noneValue, $valid, true) && count($valid) > 1) {
+                            return 'other';
+                        }
+
+                        return implode(',', array_values($valid));
+                    }
+                }
+            }
+        } catch (\Throwable $e) {
+            Log::warning('InterviewOrchestratorService: escape-hatch interpretation failed', [
+                'error' => $e->getMessage(),
+            ]);
+        }
+
+        return 'other';
     }
 
     /**
@@ -807,7 +928,19 @@ SYS;
         $label = $questionText ?? "Answer to: {$factKey}";
 
         if ($template !== null) {
-            if (empty($template['dynamic']) && strtolower(trim($value)) === self::CONFIRM_SENTINEL) {
+            $isChoiceStyle = in_array($template['answer_type'] ?? 'string', ['choice', 'multi_select'], true);
+
+            if ($isChoiceStyle && str_starts_with(ltrim($value), self::ESCAPE_VALUE)) {
+                // D18 addendum 7 — escape hatch: interpret the free text onto
+                // the choice set (wording-tier Claude; graceful 'other' at cap).
+                $freeText = trim((string) preg_replace('/^\s*__other__\s*:?\s*/', '', $value));
+                if ($freeText === '') {
+                    throw ValidationException::withMessages([
+                        'answer' => 'Please tell us a little more so we can record your answer.',
+                    ]);
+                }
+                $storedValue = $this->interpretEscapeAnswer($template, $freeText);
+            } elseif (empty($template['dynamic']) && strtolower(trim($value)) === self::CONFIRM_SENTINEL) {
                 // §A.5.5: resolve the prefill pointer server-side at answer time and
                 // record the resolved value (user-confirmed provenance). The value is
                 // never taken from client-supplied options.
@@ -829,7 +962,8 @@ SYS;
 
         // D18 rule 3 fan-out: ONE aggregated multi-select answer writes the
         // per-item fact for EVERY choice (yes for selected, no for the rest).
-        if ($template !== null && ! empty($template['fan_out'])) {
+        // An uninterpretable escape answer ('other') asserts nothing per-item.
+        if ($template !== null && ! empty($template['fan_out']) && $storedValue !== 'other') {
             $this->fanOutPatternAnswer($session, $template, $storedValue, $questionId);
         }
 
@@ -857,6 +991,13 @@ SYS;
         // Mark as asked in the session (remove from queue if still there)
         $session->markAsked($factKey);
         $session->dequeueKey($factKey);
+
+        // D18 rule 5: follow-ups fan from the CHOICE as their own questions —
+        // never crammed into one. Runs LAST (after dequeue) so the queue update
+        // is never clobbered by the stale in-memory model.
+        if ($template !== null && ! empty($template['follow_ups'])) {
+            $this->enqueueFollowUps($session, (array) $template['follow_ups'], $storedValue);
+        }
 
         return $fact;
     }
@@ -995,6 +1136,48 @@ SYS;
                 volatility: (string) ($template['volatility'] ?? 'stable'),
                 sourceId: $questionId ? (string) $questionId : null,
             );
+        }
+    }
+
+    /**
+     * D18 — front-insert follow-up question keys triggered by a choice answer.
+     *
+     * A follow-up fires only when: the answered value is in its trigger list,
+     * a real template exists for it (config question_templates), and it is not
+     * already answered, asked, skipped, or queued. Value-density preserved —
+     * personal-flavored answers fan nothing.
+     *
+     * @param  array<string, string[]>  $followUps  followUpKey => trigger values
+     */
+    private function enqueueFollowUps(InterviewSession $session, array $followUps, string $answeredValue): void
+    {
+        $fresh = $session->fresh();
+        $queue = $fresh->queue ?? [];
+        $consumed = array_merge($queue, $fresh->asked ?? [], $fresh->skipped ?? []);
+
+        $toInsert = [];
+        foreach ($followUps as $followKey => $triggerValues) {
+            if (! in_array($answeredValue, (array) $triggerValues, true)) {
+                continue;
+            }
+            if ($this->questionTemplate($followKey) === null) {
+                continue; // only real, templated asks fan (D18 rule 4)
+            }
+            if (in_array($followKey, $consumed, true)
+                || $this->isAlreadyAnswered($followKey, $session->user_id)) {
+                continue;
+            }
+            $toInsert[] = $followKey;
+        }
+
+        if ($toInsert !== []) {
+            $session->update(['queue' => array_values(array_unique(array_merge($toInsert, $queue)))]);
+
+            Log::info('InterviewOrchestratorService: follow-up questions fanned from answer (D18)', [
+                'user_id' => $session->user_id,
+                'session_id' => $session->id,
+                'follow_ups' => $toInsert,
+            ]);
         }
     }
 
