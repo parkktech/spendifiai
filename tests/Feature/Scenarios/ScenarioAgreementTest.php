@@ -41,7 +41,7 @@ function convergingBaseline(): array
             'trad_401k_cents' => 2_450_000,  // maxed already (full $24,500 limit for 2026)
             'roth_401k_cents' => 0,
             'hsa_cents' => 0,
-            'ira_trad_ytd_cents' => 700_000,    // full IRA limit already used
+            'ira_trad_ytd_cents' => 750_000,    // full 2026 IRA limit ($7,500) already used
             'ira_roth_ytd_cents' => 0,
             'deferral_pct' => 49.0,       // maxed
         ],

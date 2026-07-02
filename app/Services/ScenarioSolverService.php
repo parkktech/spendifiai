@@ -622,11 +622,28 @@ final class ScenarioSolverService
     /**
      * RETIREMENT solver — maximise retirement savings delta (§B.7).
      *
-     * 1. K3: raise deferral_pct to max the floor allows (up to annual-limit pct).
-     * 2. K2: roth_share from rothVsTraditionalBand(marginalRate(taxable_current)).
-     * 3. K4 HSA: fill room within the floor (after K3).
-     * 4. K5: fill remaining shared IRA room (quarter grid); type-split by band + Roth phase-out.
-     * 5. K6: sized to fund K5 IRA amounts per pay period (the transfer IS the mechanism).
+     * Greedy fill order mirrors solveTaxBurden() for Steps 1-3 so both solvers face the same
+     * combined (HSA + 401k) floor constraint and converge to the same K3 ceiling:
+     *   1. K3 = max(current, match_threshold)   — capture free match first.
+     *   2. K2 = 0 (all-traditional 401k)        — Roth band applied to K5 IRA only.
+     *   2b. K4 HSA fill                          — at match-threshold deferral (before K3 raise).
+     *   3. K3 continue to max                    — with HSA already filled in floor checks.
+     *   4. K5 IRA fill                           — type-split by band + Roth phase-out cap.
+     *   5. K6 = ceil(K5_annual / periods)        — funds the IRA transfer per paycheck.
+     *
+     * K2=0 rationale: Roth 401k costs the same gross deduction as traditional but provides zero
+     * withholding relief, tightening the floor constraint and reducing achievable K3. Setting K2=0
+     * lets K3 reach the same ceiling as solveTaxBurden() and satisfies the dominance invariant
+     * (§B.7: retirement contributions_delta ≥ max(take_home, tax_burden) contributions_delta).
+     * The Roth vs Traditional recommendation from rothVsTraditionalBand() is applied to K5 IRA
+     * instead — IRA contributions do not affect take-home, so the band can be fully honoured there
+     * without tightening the floor.
+     *
+     * HSA-before-K3-continue rationale: with K2=0, placing the K3 greedy search BEFORE HSA
+     * fill allows retirement to reach a higher K3 than tax_burden (which fills HSA first) — the
+     * extra trad-401k deduction then produces lower federal tax than tax_burden, violating the
+     * lowest-tax badge invariant (§C.3). Filling HSA first (matching tax_burden's ordering) ensures
+     * both solvers reach the same K3 ceiling so their trad deductions and federal tax are tied.
      */
     private function solveRetirement(array $baseline, int $year): array
     {
@@ -636,28 +653,12 @@ final class ScenarioSolverService
         $currentPct = $this->currentDeferralPct($baseline);
         $age = $baseline['age'] ?? null;
 
-        // Step 1: K3 — raise to max floor-safe deferral %.
+        // Step 1: K3 = max(current, match_threshold) — capture free match; K3 raised further in Step 3.
         $deferralPct = $has401k
             ? max($currentPct, $matchThreshold)
             : $currentPct;
 
-        if ($has401k) {
-            $maxDeferral = $this->maxDeferralPct($baseline, $year);
-            $bestPct = $deferralPct;
-            $probe = $deferralPct + self::DEFERRAL_STEP_PCT;
-            while ($probe <= $maxDeferral + 0.001) {
-                $candidate = $this->buildCandidateKnobs($w4, $probe, 0, 0, 0, 0, 0, $baseline);
-                if ($this->checkFloor($baseline, $candidate, $year)) {
-                    $bestPct = $probe;
-                } else {
-                    break;
-                }
-                $probe += self::DEFERRAL_STEP_PCT;
-            }
-            $deferralPct = $bestPct;
-        }
-
-        // Step 2: K2 — Roth vs Traditional band from marginal rate on current taxable income.
+        // Step 2: K2 = 0 (all-traditional 401k; see docblock above).
         $gross = (int) ($baseline['annual_gross_cents'] ?? 0);
         $se = (int) ($baseline['se_income_cents'] ?? 0);
         $curTrad401k = (int) ($baseline['current']['trad_401k_cents'] ?? 0);
@@ -669,13 +670,10 @@ final class ScenarioSolverService
         $margRate = $this->engine->marginalRate($curTaxable, (string) ($baseline['filing_status'] ?? 'single'), $year);
         $band = $this->engine->rothVsTraditionalBand($margRate, $year);
 
-        $rothSharePct = $this->snapToRothGrid(match ($band) {
-            'roth' => 100.0,
-            'split' => 50.0,
-            default => 0.0,   // 'traditional'
-        });
+        $rothSharePct = 0;  // K2=0; band used for K5 IRA type-split below
 
-        // Step 3: K4 HSA — fill room within floor (if HSA-eligible).
+        // Step 2b: K4 HSA — fill room at match-threshold deferral BEFORE the K3 greedy.
+        // Mirrors solveTaxBurden()'s match→HSA→K3 order; see docblock for why this matters.
         $currentHsa = (int) ($baseline['current']['hsa_cents'] ?? 0);
         $hsaCents = $currentHsa;
 
@@ -686,20 +684,37 @@ final class ScenarioSolverService
                 + $currentHsa;
 
             $bestHsa = $currentHsa;
-            $probe = $currentHsa + $hsaStep;
-            while ($probe <= $fullHsaLimit) {
+            $probeHsa = $currentHsa + $hsaStep;
+            while ($probeHsa <= $fullHsaLimit) {
                 $candidate = $this->buildCandidateKnobs(
-                    $w4, $deferralPct, $rothSharePct, $probe, 0, 0, 0, $baseline
+                    $w4, $deferralPct, $rothSharePct, $probeHsa, 0, 0, 0, $baseline
                 );
                 if ($this->checkFloor($baseline, $candidate, $year)) {
-                    $bestHsa = $probe;
+                    $bestHsa = $probeHsa;
                 }
-                $probe += $hsaStep;
+                $probeHsa += $hsaStep;
             }
             $hsaCents = $bestHsa;
         }
 
-        // Step 4: K5 IRA — fill remaining room, type-split by band + Roth phase-out cap.
+        // Step 3: K3 continue — raise deferral_pct in 1-pt steps WITH HSA already filled.
+        if ($has401k) {
+            $maxDeferral = $this->maxDeferralPct($baseline, $year);
+            $bestPct = $deferralPct;
+            $probe = $deferralPct + self::DEFERRAL_STEP_PCT;
+            while ($probe <= $maxDeferral + 0.001) {
+                $candidate = $this->buildCandidateKnobs($w4, $probe, $rothSharePct, $hsaCents, 0, 0, 0, $baseline);
+                if ($this->checkFloor($baseline, $candidate, $year)) {
+                    $bestPct = $probe;
+                } else {
+                    break;
+                }
+                $probe += self::DEFERRAL_STEP_PCT;
+            }
+            $deferralPct = $bestPct;
+        }
+
+        // Step 4: K5 IRA — fill remaining room; type-split by band + Roth phase-out cap.
         $iraTradYtd = (int) ($baseline['current']['ira_trad_ytd_cents'] ?? 0);
         $iraRothYtd = (int) ($baseline['current']['ira_roth_ytd_cents'] ?? 0);
         $remainingRoom = $this->engine->remainingIraRoomCents($iraTradYtd + $iraRothYtd, $age, $year);
