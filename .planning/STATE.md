@@ -6,14 +6,14 @@ current_phase: 14
 current_phase_name: Action Center, Scenarios & Design Elevation
 status: executing
 stopped_at: Completed 11-04 guided interview + AI-feed bridge
-last_updated: "2026-07-02T19:45:54.251Z"
+last_updated: "2026-07-02T20:11:54.339Z"
 last_activity: 2026-07-02
 last_activity_desc: Phase 14 execution started
 progress:
   total_phases: 5
   completed_phases: 3
   total_plans: 26
-  completed_plans: 25
+  completed_plans: 26
   percent: 60
 ---
 
@@ -29,7 +29,7 @@ See: .planning/PROJECT.md (updated 2026-07-01)
 ## Current Position
 
 Phase: 14 (Action Center, Scenarios & Design Elevation) — EXECUTING
-Plan: 6 of 10
+Plan: 7 of 10
 Status: Ready to execute
 Last activity: 2026-07-02 — Phase 14 execution started
 
@@ -82,6 +82,7 @@ Continuing global phase numbering from v2.0 (ended Phase 9). Granularity: coarse
 | Phase 14 P05 | 17 | 3 tasks | 14 files |
 | Phase 14 P02 | 15min | 3 tasks | 4 files |
 | Phase 14 P07 | 12m | 3 tasks | 7 files |
+| Phase 14 P06 | 120 | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -121,6 +122,8 @@ Recent decisions affecting current work:
 - [Phase ?]: D17 per-purpose Claude model resolution + daily budget Cache counters at all 4 sanctioned call sites; categorization on Haiku behind unchanged confidence-routing safety net (14-01)
 - [Phase ?]: config/optimization-objectives.php is the single readiness source (M5); bonus_election added as scenario domain for 14-09 (D15)
 - [Phase ?]: Second @theme block added after existing closing brace per Pitfall 6 (Tailwind v4 merges multiple @theme declarations)
+- [Phase ?]: Floor guard isolates now() in assembleBaseline — solve() is purely deterministic
+- [Phase ?]: diffKnobs IRA epsilon accepts optional remainingIraRoomCents for dynamic max(config, room/4) threshold
 
 ### Pending Todos
 
@@ -135,6 +138,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-07-02T19:45:54.241Z
+Last session: 2026-07-02T20:11:44.585Z
 Stopped at: Completed 11-04 guided interview + AI-feed bridge
 Resume file: None
