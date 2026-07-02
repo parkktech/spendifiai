@@ -204,6 +204,45 @@ Owner: "Make sure this is optimized to use the less expensive AI model and AI ca
 **5. Spend observability + budget caps:** per-service daily Claude-call counters (cache/DB, surfaced in the Admin drawer); config daily budget per service — jobs skip gracefully + log when over budget. The owner can SEE bill drivers.
 **6. Already-shipped levers that stay:** D13 freshness window + material-change gate + regen cooldown (report narration ≤5 calls/regen); batching (categorization 10/batch); ShouldBeUnique coalescing; no AI on page loads (jobs only).
 
+## Decision 18 — The question-quality bar (owner, 2026-07-02, BINDING on all user-facing questions)
+
+Owner (live testing, verbatim frustration): "This is another dumb question. It's in my account — of course it belongs to me. We need questions that are not this dumb. Is there something specific AI needs to know about this? And are we going to go through every transaction with these dumb questions? This system needs to add value and not waste people's time."
+
+**THE BAR — every interview/feed question MUST:**
+1. **Show the data, ask for the unknown.** Lead with the concrete facts we already have (merchant name, amount, cadence: "You pay $9.99/mo for Microsoft 365") and ask ONLY the fact the system genuinely cannot infer (use/purpose/intent: "Do you use it primarily for your business?"). Never ask whether something in their own account "applies to them."
+2. **Never leak internals.** Raw finding keys, fact keys, enum values, underscores — banned from user copy. Human labels only (merchant names via DetectionMerchant/MerchantAlias, plain-English categories). Add an automated test: no `[a-z]+_[a-z_]+` internal-key patterns render in question text.
+3. **Aggregate patterns — never per-item interrogation.** One question per PATTERN with multi-select where items share the same fact-need: "Which of these subscriptions are primarily for business? ☐ Microsoft 365 $9.99/mo ☐ Adobe $54.99/mo ☐ GitHub $4/mo ☐ None of these." One answer fans out to all selected items' facts.
+4. **Value-density rule:** if the answer would not change a finding, scenario, or checklist item, DO NOT ASK. Findings without a real, data-grounded question template are EXCLUDED from the interview queue (they remain visible in the findings list as suggested-confirm) — a contentless fallback question is worse than no question.
+5. **Volume respect:** the initial-cap stays; per-pattern aggregation keeps total questions low; the interview should feel like a sharp advisor's intake, not a survey.
+
+Applies to: interview templates (14-01 config), orchestrator fallback (14-05 — the generic findingFallbackQuestion path that produced the offending copy is DEPRECATED by this decision), monitor prompts (14-09), checklist copy (14-08/10).
+
+**D18 ADDENDUM (owner, 2026-07-02):** (6) SUCCINCTNESS BAR — questions less wordy, more succinct; the user gets REAL CLARITY on their options and exactly what's being asked (data lead ≤1 sentence, question ≤1 sentence, plain-labeled choices, education collapsed). (7) THE ESCAPE HATCH — every choice question ends with "Something else? Let's talk about it" opening a free-text box that routes to the EXISTING AI chat/interpret path (this is the CORRECT use of a Claude call per D17: genuinely bespoke input; still haiku-tiered via model_wording, activity-gated, counted). The answer interpretation writes facts through the same recordFact path. Owner note: "I'm not sure the best most simplistic approach but I think we are closing in on it" — the design language is converging; keep refining against live feedback.
+
+## Decision 19 — Structured AI output contract (owner, 2026-07-02): "the formatting might be due to how you are prompting AI and how it's told to respond — let's really make this cleaner"
+
+**The rule: NO Claude call site may request or return free prose paragraphs.** Every AI output is a STRUCTURED object with per-field length caps, validated on receipt; the UI composes the layout from fields. Prose blobs are a schema violation, not a style problem.
+
+Contracts per call site:
+1. **Finding narration (NarrationService):** `{hook: ≤120 chars — the one-line what-and-why, detail: ≤2 short sentences, action_cue: ≤1 sentence}` — findings cards render hook prominently, detail+action_cue in the expand. (Replaces the display-side first-sentence clamp with born-structured content.)
+2. **Report section narratives (OptimizationReportNarratorService):** `{summary: ≤2 sentences, bullets: ≤5 × ≤15 words}` — report sections render summary + bullet list, never paragraphs. Blade/PDF + React renderers updated to the fields.
+3. **Escape-hatch interpretation (D18.7):** already structured (fact extraction) — keep.
+4. **Any future call site:** structured contract + caps + response validation (retry once with a "shorter" instruction on violation; on second violation fall back to template/omit — never render an oversized blob).
+5. Prompts state the contract explicitly (JSON schema in the request, low max_tokens per D17 economy); banned-phrase + length checks run on the parsed FIELDS.
+Existing stored prose (current finding descriptions/report sections) re-renders under the display clamp until naturally regenerated — no mass re-narration (D17).
+
+Sequencing: dedicated executor immediately after the D18 agent lands (adjacent files, avoid collision). Binding on 14-08/09/10 renderers.
+
+## Decision 20 — Interview intelligence: eligibility gating, conversational hatch, document-sourced answers (owner, 2026-07-02)
+
+Owner live-test: was asked "Did you enroll in Medicare this year?" (he's decades under 65 — "I thought Medicare was for old people"); typed "I don't think so, what's Medicare?" into the escape hatch and the system silently advanced; noted "I have employer insurance the system should know about — or ask for my employee benefits to get all the details if I don't know."
+
+**1. ELIGIBILITY PREDICATES on every question (extends D18.4 value-density):** each template carries a `when` predicate over KNOWN facts, evaluated before queueing — Medicare-enrollment gated to age ≥64 (or disability signals), catch-up probes ≥50, senior deduction ≥65, dependents questions gated on family facts, etc. The age fact (person.birth_year / estimated_age) already exists — USE it. A question whose predicate can't be evaluated may ask; a question whose predicate is FALSE never appears.
+**2. CONVERSATIONAL ESCAPE HATCH (extends D18.7):** when the user's free text contains a QUESTION, answer it briefly (1-2 educational sentences, haiku via model_wording, D17-counted), then STATE the interpreted answer for one-tap confirmation ("Got it — recording: not enrolled. ✓ Correct / ✗ Not quite") before advancing. NEVER silently interpret-and-advance past a user's question.
+**3. "GET IT FROM MY DOCUMENTS" answer choice:** fact-questions whose authoritative source is a document (insurance coverage, benefits elections, plan features, match formula) include the choice "I'm not sure — get this from my benefits guide/paystub" → files the document request (existing DOC-05 in-flow upload + D4 confirm pipeline) → extraction materializes the answer as a confirmed fact; the question resolves as doc-pending, not re-asked. Employer-insurance specifics: infer coverage signals from paystub deduction lines where present before ever asking.
+
+Sequencing: D19+D20 ship together as one "interview intelligence + structured output" executor immediately after the D18 agent lands (same seam). Binding on 14-09 monitor prompts + 14-10 UI.
+
 ## Non-negotiables that still apply
 
 Educational-only framing on every mismatch surface; additive migrations only; no changes to existing `UserFinancialProfile` API responses or `EnhancedProfileSection` behavior (extend, don't alter); encrypted TEXT + `$hidden` for sensitive new fields; all dollar math in TaxRulesEngineService from config.
