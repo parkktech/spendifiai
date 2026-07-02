@@ -27,10 +27,9 @@
 
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, Link } from '@inertiajs/react';
-import { User, Info, ExternalLink } from 'lucide-react';
+import { User, Info, ExternalLink, ArrowRight } from 'lucide-react';
 import EnhancedProfileSection from '@/Components/SpendifiAI/EnhancedProfileSection';
 import LearnedTaxFactsSection from '@/Components/SpendifiAI/LearnedTaxFactsSection';
-import AiOnboardingUploadSection from '@/Components/SpendifiAI/AiOnboardingUploadSection';
 import FamilyHouseholdSection from '@/Components/SpendifiAI/FamilyHouseholdSection';
 import HsaShoeboxSection from '@/Components/SpendifiAI/HsaShoeboxSection';
 
@@ -102,8 +101,24 @@ export default function UserProfileIndex() {
 
           <SectionDivider />
 
-          {/* Section 3: AI Onboarding Upload (new) */}
-          <AiOnboardingUploadSection />
+          {/* Section 3: Document upload — redirects to Optimize My Income (one-journey consolidation) */}
+          <div className="flex items-center justify-between gap-4 py-3">
+            <div className="flex items-start gap-3">
+              <div className="w-8 h-8 rounded-lg bg-sw-accent/10 border border-sw-accent/20 flex items-center justify-center shrink-0">
+                <Info size={14} className="text-sw-accent" />
+              </div>
+              <div>
+                <p className="text-[13px] font-semibold text-sw-text">Add documents to your profile</p>
+                <p className="text-[11px] text-sw-dim mt-0.5">Upload pay stubs and tax documents in Optimize My Income.</p>
+              </div>
+            </div>
+            <a
+              href="/optimize"
+              className="shrink-0 inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-sw-accent text-white text-xs font-semibold hover:bg-sw-accent-hover transition"
+            >
+              Add documents <ArrowRight size={12} />
+            </a>
+          </div>
 
           <SectionDivider />
 

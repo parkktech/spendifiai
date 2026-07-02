@@ -31,7 +31,6 @@ import HouseholdSection from '@/Components/SpendifiAI/HouseholdSection';
 import DependentsSection from '@/Components/SpendifiAI/DependentsSection';
 import EnhancedProfileSection from '@/Components/SpendifiAI/EnhancedProfileSection';
 import LearnedTaxFactsSection from '@/Components/SpendifiAI/LearnedTaxFactsSection';
-import AiOnboardingUploadSection from '@/Components/SpendifiAI/AiOnboardingUploadSection';
 import FamilyHouseholdSection from '@/Components/SpendifiAI/FamilyHouseholdSection';
 import HsaShoeboxSection from '@/Components/SpendifiAI/HsaShoeboxSection';
 
@@ -435,8 +434,24 @@ export default function SettingsIndex() {
         {/* EnhancedProfileSection behavior and props are UNCHANGED — this renders after it.           */}
         <LearnedTaxFactsSection />
 
-        {/* AI Onboarding Upload (Phase 12 — fastest path to complete tax profile via document upload) */}
-        <AiOnboardingUploadSection />
+        {/* Document upload moved to Optimize My Income (one-journey consolidation) */}
+        <div className="rounded-2xl border border-sw-border bg-sw-card p-5 flex items-center justify-between gap-4">
+          <div className="flex items-start gap-3">
+            <div className="w-8 h-8 rounded-lg bg-sw-accent/10 border border-sw-accent/20 flex items-center justify-center shrink-0">
+              <Info size={15} className="text-sw-accent" />
+            </div>
+            <div>
+              <p className="text-[13px] font-semibold text-sw-text">Add documents to your profile</p>
+              <p className="text-[11px] text-sw-dim mt-0.5">Upload pay stubs and tax documents in Optimize My Income.</p>
+            </div>
+          </div>
+          <a
+            href="/optimize"
+            className="shrink-0 inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-sw-accent text-white text-xs font-semibold hover:bg-sw-accent-hover transition"
+          >
+            Optimize My Income →
+          </a>
+        </div>
 
         {/* Family & Household Summary (Phase 12 — read-only aggregate view; edit via HouseholdSection/DependentsSection above) */}
         <FamilyHouseholdSection />

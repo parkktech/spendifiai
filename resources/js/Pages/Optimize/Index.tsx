@@ -1,23 +1,34 @@
 /**
- * Optimize/Index — Phase 12-05 Task 2 (UI-01, UI-02, UI-03) + Phase 14-10 (SCEN-01).
+ * Optimize/Index — ONE-JOURNEY consolidation (14-10 corrective).
  *
- * Four-stage Optimize My Income page:
- *   Stage 1 — Findings list (ranked by severity, "what we noticed" framing)
- *   Stage 2 — Guided interview (reuses P11 InterviewCard + doc_affordance)
- *   Stage 3 — Scenario comparison + choose + mix panel (D.1–D.4)
- *   Stage 4 — Collapsible report view (OptimizationReportView)
+ * Single top-to-bottom journey (no peer tabs for sub-stages):
+ *   Overview stage (conditional inner steps):
+ *     1. Upload (DocumentUploadFlow) — only if action-center has upload_paystub item
+ *     2. Reveal ("What your paystub told us") — ProposalConfirmCard list, only if proposals exist
+ *     3. Doc follow-ups — other stage0 connectivity items as inline prompts
+ *     4. Gap questions ("A few questions we couldn't answer from your documents")
+ *        — InterviewCard inline, only if do_interview in stage0
+ *     5. Findings list (ranked by severity)
+ *     6. CTA to Choices
+ *   Choices stage — ScenarioComparisonCards + MixPanel (was 'scenarios')
+ *   Checklist stage — OptimizationChecklistView (standalone)
+ *   Report stage — OptimizationReportView (accessible via nav)
+ *
+ * Progress indicators: Overview | Choices | Checklist | Report
+ * Interview tab REMOVED — absorbed inline into Overview as a journey step.
+ * Interview machinery (endpoints, InterviewCard, DB) is UNCHANGED.
  *
  * Guards: auth.hasBankConnected → ConnectBankPrompt when false.
  *
- * DESIGN (Decision 6/7 / Decision 12 — born-premium, don't replace):
+ * DESIGN (Decision 6/7 / Decision 12 — born-premium, elevate not replace):
  *   - sw-* tokens only; Inter type stack; 4px/8px rhythm; shadow-sw-* cards
- *   - Applied: ui-ux-pro-max "Financial Dashboard — Data-Dense" for findings
+ *   - Applied: ui-ux-pro-max "Financial Dashboard — Data-Dense"
  *   - Applied: soft-skill — 16px rhythm, leading-relaxed, focus states
  *   - All copy uses may/could/consider (UI-03 educational framing)
  *   - Inline disclaimer on every surface (non-globally-dismissable)
  */
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, usePage } from '@inertiajs/react';
 import {
@@ -33,6 +44,11 @@ import {
   ChevronUp,
   Loader2,
   GitCompare,
+  Upload,
+  Sparkles,
+  RefreshCw,
+  Link2,
+  ChevronRight,
 } from 'lucide-react';
 import Badge from '@/Components/SpendifiAI/Badge';
 import ConnectBankPrompt from '@/Components/SpendifiAI/ConnectBankPrompt';
@@ -42,9 +58,18 @@ import ObjectiveReadinessPanel from '@/Components/SpendifiAI/ObjectiveReadinessP
 import ScenarioComparisonCards from '@/Components/SpendifiAI/ScenarioComparisonCards';
 import ScenarioMixPanel from '@/Components/SpendifiAI/ScenarioMixPanel';
 import OptimizationChecklistView from '@/Components/SpendifiAI/OptimizationChecklistView';
+import DocumentUploadFlow from '@/Components/SpendifiAI/DocumentUploadFlow';
+import ProposalConfirmCard from '@/Components/SpendifiAI/ProposalConfirmCard';
 import { useApi } from '@/hooks/useApi';
 import axios from 'axios';
-import type { ObjectivesResponse, ScenariosResponse } from '@/types/spendifiai';
+import type {
+  ObjectivesResponse,
+  ScenariosResponse,
+  ActionCenterResponse,
+  ActionCenterStage0Item,
+  DurableFactsResponse,
+  UserTaxFactView,
+} from '@/types/spendifiai';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -92,16 +117,15 @@ interface ReportResponse {
   report: ReportData;
 }
 
-type ViewMode = 'findings' | 'interview' | 'scenarios' | 'report';
+type ViewMode = 'overview' | 'choices' | 'checklist' | 'report';
 
 // ─── Narration truncation helper ─────────────────────────────────────────────
 
 /** Return the first sentence of `text`, clamped at `maxChars` chars with ellipsis. */
 function firstSentence(text: string, maxChars = 140): string {
-  // Try to break on sentence-ending punctuation
   const sentenceEnd = text.search(/[.!?]\s/);
   const clip = sentenceEnd !== -1 && sentenceEnd + 1 <= maxChars
-    ? text.slice(0, sentenceEnd + 1)   // keep the punctuation
+    ? text.slice(0, sentenceEnd + 1)
     : text.slice(0, maxChars);
   return clip.length < text.length ? clip + '…' : clip;
 }
@@ -142,10 +166,9 @@ function FindingSummaryCard({
         </div>
       </div>
 
-      {/* D19: Findings preview — hook from narration_structured (born-structured), or first-sentence clamp. */}
+      {/* D19: Findings preview — hook from narration_structured, or first-sentence clamp. */}
       {section.findings.slice(0, 3).map((finding) => {
         const isExpanded = expandedFindingId === finding.finding_id;
-        // D19: prefer structured hook; fall back to description with clamp.
         const structured = finding.narration_structured ?? null;
         const hook = structured?.hook ?? null;
         const desc = finding.description ?? null;
@@ -160,7 +183,6 @@ function FindingSummaryCard({
                 <p className="text-[12px] text-sw-text-secondary leading-relaxed">
                   {isExpanded && !hook ? fullText : displayText}
                 </p>
-                {/* D19: expand shows detail + action_cue from structured contract */}
                 {isExpanded && structured && (
                   <div className="mt-1.5 space-y-1">
                     <p className="text-[11px] text-sw-muted leading-relaxed">{structured.detail}</p>
@@ -193,7 +215,7 @@ function FindingSummaryCard({
         </p>
       )}
 
-      {/* D19: Narrator — compose from structured fields when present, fallback to prose clamp */}
+      {/* D19: Narrator — structured fields when present, fallback to prose clamp */}
       {(section.narrator_structured || section.narrator_prose) && (
         <div className="border-t border-sw-border/60 pt-3 space-y-1.5">
           {section.narrator_structured ? (
@@ -223,7 +245,7 @@ function FindingSummaryCard({
   );
 }
 
-// ─── Stage indicator ──────────────────────────────────────────────────────────
+// ─── Stage indicator (progress bar — not peer tabs) ───────────────────────────
 
 function StageIndicator({
   current,
@@ -233,15 +255,15 @@ function StageIndicator({
   onSelect: (m: ViewMode) => void;
 }) {
   const stages: { key: ViewMode; label: string }[] = [
-    { key: 'findings', label: 'Findings' },
-    { key: 'interview', label: 'Interview' },
-    { key: 'scenarios', label: 'Choices' },
+    { key: 'overview', label: 'Overview' },
+    { key: 'choices', label: 'Choices' },
+    { key: 'checklist', label: 'Checklist' },
     { key: 'report', label: 'Report' },
   ];
   const idx = stages.findIndex((s) => s.key === current);
 
   return (
-    <nav aria-label="Optimize stages" className="flex items-center gap-0 rounded-xl border border-sw-border bg-sw-card overflow-hidden">
+    <nav aria-label="Optimize journey stages" className="flex items-center gap-0 rounded-xl border border-sw-border bg-sw-card overflow-hidden">
       {stages.map((stage, i) => (
         <button
           key={stage.key}
@@ -259,6 +281,33 @@ function StageIndicator({
   );
 }
 
+// ─── Doc follow-up inline card ────────────────────────────────────────────────
+
+/** Inline prompt for connectivity/prerequisite items that aren't document uploads. */
+function DocFollowUpCard({ item }: { item: ActionCenterStage0Item }) {
+  const iconMap: Record<string, React.ReactNode> = {
+    link_bank: <Link2 size={14} className="text-sw-accent" />,
+    link_credit_cards: <Link2 size={14} className="text-sw-accent" />,
+    link_email: <Link2 size={14} className="text-sw-accent" />,
+  };
+
+  return (
+    <a
+      href={item.cta_url}
+      className="flex items-start gap-3 p-4 rounded-xl border border-sw-border/70 bg-gradient-to-b from-white to-slate-50/40 hover:border-sw-accent/40 hover:shadow-sw-1 transition group"
+    >
+      <div className="w-8 h-8 rounded-lg bg-sw-accent/10 ring-1 ring-sw-accent/20 flex items-center justify-center shrink-0 mt-0.5">
+        {iconMap[item.key] ?? <ChevronRight size={14} className="text-sw-accent" />}
+      </div>
+      <div className="min-w-0 flex-1">
+        <p className="text-[13px] font-semibold text-sw-text leading-snug">{item.title}</p>
+        <p className="text-[11px] text-sw-muted leading-relaxed mt-0.5">{item.description}</p>
+      </div>
+      <ArrowRight size={13} className="text-sw-dim group-hover:text-sw-accent transition shrink-0 mt-1" />
+    </a>
+  );
+}
+
 // ─── Main page ────────────────────────────────────────────────────────────────
 
 export default function OptimizeIndex() {
@@ -267,24 +316,71 @@ export default function OptimizeIndex() {
   };
 
   const currentYear = new Date().getFullYear();
-  const [viewMode, setViewMode] = useState<ViewMode>('findings');
+  const [viewMode, setViewMode] = useState<ViewMode>('overview');
   const [regenerating, setRegenerating] = useState(false);
   // Task 1: one-at-a-time expand for finding narrations (shared across all section cards)
   const [expandedFindingId, setExpandedFindingId] = useState<number | null>(null);
-  // Task 3: 429 / rate-limit state — show cached data with gentle note
+  // 429 / rate-limit state — show cached data with gentle note
   const [rateLimited, setRateLimited] = useState(false);
+  // Dismissed proposal IDs (rejected locally)
+  const [dismissedProposalIds, setDismissedProposalIds] = useState<Set<number>>(new Set());
 
-  // Phase 14-10: Scenarios stage state
+  // Phase 14-10: Scenarios/Choices stage state
   const [enqueueing, setEnqueueing] = useState(false);
   const [enqueueError, setEnqueueError] = useState<string | null>(null);
 
-  // Fetch objectives readiness (for scenarios stage)
+  // Action center — stage0 items tell us what the user still needs to do
+  const {
+    data: actionCenterData,
+    refresh: refreshActionCenter,
+  } = useApi<ActionCenterResponse>('/api/v1/optimizer/action-center', {
+    enabled: auth.hasBankConnected,
+  });
+
+  // Facts API — proposals (unconfirmed extractions from uploaded documents)
+  const {
+    data: factsData,
+    loading: factsLoading,
+    refresh: refreshFacts,
+  } = useApi<DurableFactsResponse>('/api/v1/optimizer/facts', {
+    enabled: auth.hasBankConnected,
+  });
+
+  // Derive journey state from action-center + facts
+  const stage0Items = actionCenterData?.stage0_items ?? [];
+  const needsDocUpload = stage0Items.some((i) => i.key === 'upload_paystub');
+  const needsInterview = stage0Items.some((i) => i.key === 'do_interview');
+  const followUpItems = stage0Items.filter(
+    (i) => i.key !== 'upload_paystub' && i.key !== 'do_interview'
+  );
+  const proposals = (factsData?.proposals ?? []).filter(
+    (p) => !dismissedProposalIds.has(p.id)
+  );
+  const hasPendingProposals = proposals.length > 0;
+
+  const handleUploadComplete = useCallback(() => {
+    // Give extraction job a moment, then refresh facts + action center
+    setTimeout(() => {
+      refreshFacts();
+      refreshActionCenter();
+    }, 4000);
+  }, [refreshFacts, refreshActionCenter]);
+
+  const handleProposalConfirmed = useCallback((id: number) => {
+    setTimeout(() => refreshFacts(), 500);
+  }, [refreshFacts]);
+
+  const handleProposalRejected = useCallback((id: number) => {
+    setDismissedProposalIds((prev) => new Set(prev).add(id));
+  }, []);
+
+  // Fetch objectives readiness (for choices stage)
   const {
     data: objectivesData,
     loading: objectivesLoading,
     refresh: refreshObjectives,
   } = useApi<ObjectivesResponse>(`/api/v1/optimizer/objectives/${currentYear}`, {
-    enabled: auth.hasBankConnected && viewMode === 'scenarios',
+    enabled: auth.hasBankConnected && viewMode === 'choices',
   });
 
   // Fetch scenarios (for comparison cards)
@@ -293,7 +389,7 @@ export default function OptimizeIndex() {
     loading: scenariosLoading,
     refresh: refreshScenarios,
   } = useApi<ScenariosResponse>(`/api/v1/optimizer/scenarios/${currentYear}`, {
-    enabled: auth.hasBankConnected && viewMode === 'scenarios',
+    enabled: auth.hasBankConnected && viewMode === 'choices',
   });
 
   const handleEnqueue = async () => {
@@ -318,15 +414,14 @@ export default function OptimizeIndex() {
         option_key: optionKey,
       });
       refreshScenarios();
-      // Advance to report after choosing
-      setTimeout(() => setViewMode('report'), 800);
+      // Advance to checklist after choosing
+      setTimeout(() => setViewMode('checklist'), 800);
     } catch {
       // ignore — user can retry
     }
   };
 
   // Fetch the report (includes sections/findings).
-  // Data is cached in React state — does NOT refetch on tab switches.
   const {
     data: reportResponse,
     loading: reportLoading,
@@ -341,22 +436,19 @@ export default function OptimizeIndex() {
   const highCount = allFindings.filter((f) => f.severity === 'high').length;
   const totalCount = allFindings.length;
 
-  // Task 3: Poll for ready status while report is generating (stop once ready).
-  // Polls every 8 seconds; stops automatically when status flips to 'ready'.
+  // Poll for ready status while report is generating (stop once ready).
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
     const isGenerating = report?.status === 'generating' || (!report && !reportLoading && !reportError);
 
     if (isGenerating && auth.hasBankConnected) {
-      // Start polling if not already running
       if (!pollRef.current) {
         pollRef.current = setInterval(() => {
           refreshReport();
         }, 8000);
       }
     } else {
-      // Report is ready (or errored) — stop polling
       if (pollRef.current) {
         clearInterval(pollRef.current);
         pollRef.current = null;
@@ -376,7 +468,6 @@ export default function OptimizeIndex() {
     setRateLimited(false);
     try {
       await axios.post(`/api/v1/optimizer/report/${currentYear}/regenerate`);
-      // Polling loop (above) will pick up the ready state automatically
       setTimeout(() => {
         refreshReport();
         setRegenerating(false);
@@ -384,7 +475,6 @@ export default function OptimizeIndex() {
     } catch (err: unknown) {
       const status = (err as { response?: { status?: number } })?.response?.status;
       if (status === 429) {
-        // Rate-limited on regenerate — show cached data with gentle note
         setRateLimited(true);
       }
       setRegenerating(false);
@@ -433,12 +523,12 @@ export default function OptimizeIndex() {
         </p>
       </div>
 
-      {/* Stage navigator */}
+      {/* Journey progress indicator */}
       <div className="mb-5">
         <StageIndicator current={viewMode} onSelect={setViewMode} />
       </div>
 
-      {/* Task 3: 429 / rate-limit gentle note (shows cached data, never hard error) */}
+      {/* 429 / rate-limit gentle note */}
       {rateLimited && (
         <div className="mb-4 flex items-start gap-2 rounded-xl border border-sw-warning/30 bg-sw-warning/5 px-4 py-3">
           <Info size={13} className="text-sw-warning shrink-0 mt-0.5" />
@@ -454,192 +544,252 @@ export default function OptimizeIndex() {
         </div>
       )}
 
-      {/* Summary stats (findings stage only) */}
-      {viewMode === 'findings' && !reportLoading && report && totalCount > 0 && (
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-5 stagger-children">
-          <div className="rounded-xl ring-1 ring-sw-border/70 bg-gradient-to-b from-white to-slate-50/50 shadow-sw-1 p-3.5 card-lift">
-            <p className="text-[11px] text-sw-muted font-medium">Total Findings</p>
-            <p className="text-2xl font-bold text-sw-text mt-0.5 font-tabular">{totalCount}</p>
-          </div>
-          <div className="rounded-xl ring-1 ring-sw-danger/30 bg-sw-danger/5 shadow-sw-1 p-3.5 card-lift">
-            <p className="text-[11px] text-sw-danger font-medium">High Priority</p>
-            <p className="text-2xl font-bold text-sw-text mt-0.5 font-tabular">{highCount}</p>
-          </div>
-          <div className="rounded-xl ring-1 ring-sw-border/70 bg-gradient-to-b from-white to-slate-50/50 shadow-sw-1 p-3.5 col-span-2 sm:col-span-1 card-lift">
-            <p className="text-[11px] text-sw-muted font-medium">Tax Year</p>
-            <p className="text-2xl font-bold text-sw-text mt-0.5 font-tabular">{currentYear}</p>
-          </div>
-        </div>
-      )}
+      {/* ── Overview stage ────────────────────────────────────────────────────── */}
+      {viewMode === 'overview' && (
+        <div className="space-y-6">
 
-      {/* ── Stage 1: Findings ─────────────────────────────────────────────────── */}
-      {viewMode === 'findings' && (
-        <div className="space-y-4">
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-2">
-              <TrendingUp size={16} className="text-sw-accent" />
-              <h2 className="text-sm font-semibold text-sw-text">What We Noticed</h2>
-            </div>
-            <button
-              onClick={() => setViewMode('interview')}
-              className="inline-flex items-center gap-1.5 text-xs font-medium text-sw-accent hover:text-sw-accent-hover transition"
-            >
-              Start Income Review <ArrowRight size={13} />
-            </button>
-          </div>
-
-          {/* Loading skeleton (§3.10 — replaces spinner) */}
-          {reportLoading && (
-            <div className="space-y-3 animate-pulse">
-              {[1, 2, 3].map((i) => (
-                <div key={i} className="rounded-2xl ring-1 ring-sw-border/70 bg-gradient-to-b from-white to-slate-50/40 p-5">
-                  <div className="flex items-start gap-3 mb-3">
-                    <div className="w-9 h-9 rounded-xl bg-slate-200 shrink-0" />
-                    <div className="flex-1 space-y-1.5">
-                      <div className="h-4 bg-slate-200 rounded w-3/4" />
-                      <div className="h-3 bg-slate-100 rounded w-1/2" />
-                    </div>
-                  </div>
-                  <div className="space-y-2 pl-12">
-                    <div className="h-3 bg-slate-100 rounded w-full" />
-                    <div className="h-3 bg-slate-100 rounded w-4/5" />
-                  </div>
+          {/* ── 1. Upload hero — only rendered when paystub is missing/stale ── */}
+          {needsDocUpload && (
+            <div className="rounded-2xl ring-1 ring-sw-border/70 bg-gradient-to-b from-white to-slate-50/40 shadow-sw-2 p-5 space-y-4">
+              <div className="flex items-start gap-3">
+                <div className="w-9 h-9 rounded-xl bg-sw-accent/10 ring-1 ring-sw-accent/20 flex items-center justify-center shrink-0">
+                  <Upload size={16} className="text-sw-accent" />
                 </div>
+                <div>
+                  <p className="text-[15px] font-semibold text-sw-text leading-snug">Upload a recent pay stub</p>
+                  <p className="text-[12px] text-sw-muted leading-relaxed mt-0.5">
+                    A pay stub unlocks withholding analysis and retirement contribution calibration.
+                    It only asks for things it doesn't yet have.
+                  </p>
+                </div>
+              </div>
+              <DocumentUploadFlow onComplete={handleUploadComplete} />
+            </div>
+          )}
+
+          {/* ── 2. Reveal — "What your paystub told us" (only if proposals exist) ── */}
+          {(hasPendingProposals || factsLoading) && (
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Sparkles size={15} className="text-sw-info" />
+                  <h2 className="text-[14px] font-semibold text-sw-text">What your paystub told us</h2>
+                </div>
+                <button
+                  onClick={() => refreshFacts()}
+                  disabled={factsLoading}
+                  className="inline-flex items-center gap-1.5 text-[11px] text-sw-muted hover:text-sw-text transition"
+                >
+                  <RefreshCw size={12} className={factsLoading ? 'animate-spin' : ''} />
+                  Refresh
+                </button>
+              </div>
+
+              <div className="rounded-xl border border-sw-success/20 bg-sw-success-light/40 px-4 py-2.5 flex items-center gap-2">
+                <CheckCircle size={13} className="text-sw-success shrink-0" />
+                <p className="text-[12px] text-sw-success font-medium">
+                  Review and confirm each suggestion to save it to your profile.
+                </p>
+              </div>
+
+              {factsLoading && (
+                <div className="rounded-xl border border-sw-border bg-sw-card p-5 flex items-center gap-3 animate-pulse">
+                  <Loader2 size={16} className="animate-spin text-sw-dim shrink-0" />
+                  <p className="text-[12px] text-sw-muted">Loading suggestions...</p>
+                </div>
+              )}
+
+              {proposals.map((fact: UserTaxFactView) => (
+                <ProposalConfirmCard
+                  key={fact.id}
+                  fact={fact}
+                  onConfirmed={handleProposalConfirmed}
+                  onRejected={handleProposalRejected}
+                />
               ))}
             </div>
           )}
 
-          {/* Error — but if we have cached data, show it instead of a hard error block.
-               429 specifically means rate-limited; show the gentle rate-limit note above. */}
-          {reportError && !report && (
-            <div className="rounded-2xl border border-sw-danger/30 bg-sw-danger/5 p-6 text-center">
-              <AlertTriangle size={22} className="mx-auto text-sw-danger mb-2" />
-              <p className="text-sm text-sw-text">{reportError}</p>
-            </div>
-          )}
-
-          {/* Generating state — born-premium §3.9 empty/waiting state */}
-          {!reportLoading && !reportError && (!report || report.status === 'generating') && (
-            <div className="rounded-2xl ring-1 ring-sw-border/70 bg-gradient-to-b from-white to-slate-50/40 shadow-sw-1 p-8 text-center space-y-3">
-              <div className="w-12 h-12 mx-auto rounded-2xl bg-sw-accent/10 ring-1 ring-sw-accent/20 flex items-center justify-center">
-                <Loader2 size={22} className="animate-spin text-sw-accent" />
-              </div>
-              <p className="text-sm font-semibold text-sw-text">Analyzing your financial data...</p>
-              <p className="text-xs text-sw-muted max-w-xs mx-auto leading-relaxed">
-                Your income optimization analysis may take a moment to prepare. This page updates automatically.
+          {/* ── 3. Doc follow-up items — connectivity prerequisites inline ── */}
+          {followUpItems.length > 0 && (
+            <div className="space-y-2">
+              <p className="text-[12px] font-semibold text-sw-muted uppercase tracking-wide px-1">
+                Connect more data sources
               </p>
+              {followUpItems.map((item) => (
+                <DocFollowUpCard key={item.key} item={item} />
+              ))}
             </div>
           )}
 
-          {/* Findings list — show cached data even when there's a (non-fatal) error */}
-          {!reportLoading && report && report.status === 'ready' && (
-            <>
-              {report.sections.length === 0 ? (
-                <div className="rounded-2xl ring-1 ring-sw-border/70 bg-gradient-to-b from-white to-slate-50/40 shadow-sw-1 p-8 text-center">
-                  <div className="w-12 h-12 mx-auto rounded-2xl bg-sw-success/10 ring-1 ring-sw-success/30 flex items-center justify-center mb-3">
-                    <CheckCircle size={22} className="text-sw-success" />
-                  </div>
-                  <h3 className="text-[15px] font-semibold text-sw-text mb-1">No findings yet</h3>
-                  <p className="text-xs text-sw-muted max-w-xs mx-auto leading-relaxed">
-                    Connect your bank and complete the income review to see potential optimization areas.
-                  </p>
+          {/* ── 4. Gap questions — InterviewCard inline (D18 anatomy preserved) ── */}
+          {needsInterview && (
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <Brain size={16} className="text-sw-info" />
+                <h2 className="text-[14px] font-semibold text-sw-text">
+                  A few questions we couldn't answer from your documents
+                </h2>
+              </div>
+              <p className="text-[12px] text-sw-muted leading-relaxed">
+                These are asked once, tier-ordered by what matters most to your situation.
+                Answers refine your optimization analysis.
+              </p>
+
+              {/* Reuse P11 InterviewCard unchanged — D18 anatomy preserved */}
+              <InterviewCard
+                taxYear={currentYear}
+                onAnswered={() => {
+                  // On each answer refresh action center to track do_interview completion
+                  refreshActionCenter();
+                }}
+              />
+            </div>
+          )}
+
+          {/* ── 5. Findings list ── */}
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <TrendingUp size={16} className="text-sw-accent" />
+                <h2 className="text-sm font-semibold text-sw-text">What We Noticed</h2>
+              </div>
+              <button
+                onClick={() => setViewMode('choices')}
+                className="inline-flex items-center gap-1.5 text-xs font-medium text-sw-accent hover:text-sw-accent-hover transition"
+              >
+                See your options <ArrowRight size={13} />
+              </button>
+            </div>
+
+            {/* Summary stats */}
+            {!reportLoading && report && totalCount > 0 && (
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 stagger-children">
+                <div className="rounded-xl ring-1 ring-sw-border/70 bg-gradient-to-b from-white to-slate-50/50 shadow-sw-1 p-3.5 card-lift">
+                  <p className="text-[11px] text-sw-muted font-medium">Total Findings</p>
+                  <p className="text-2xl font-bold text-sw-text mt-0.5 font-tabular">{totalCount}</p>
                 </div>
-              ) : (
-                <div className="space-y-3">
-                  {/* Sort sections: high-priority findings first */}
-                  {[...report.sections]
-                    .sort((a, b) => {
-                      const aHigh = a.findings.filter((f) => f.severity === 'high').length;
-                      const bHigh = b.findings.filter((f) => f.severity === 'high').length;
-                      return bHigh - aHigh;
-                    })
-                    .map((section) => (
-                      <FindingSummaryCard
-                        key={section.section_key}
-                        section={section}
-                        expandedFindingId={expandedFindingId}
-                        setExpandedFindingId={setExpandedFindingId}
-                      />
-                    ))}
-                  {/* CTA to start interview */}
-                  <div className="rounded-2xl border border-sw-accent/20 bg-sw-accent/5 p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                    <div className="flex items-start gap-3">
-                      <Brain size={20} className="text-sw-accent shrink-0 mt-0.5" />
-                      <div>
-                        <p className="text-[14px] font-semibold text-sw-text">Ready to dig deeper?</p>
-                        <p className="text-[12px] text-sw-muted leading-relaxed mt-0.5">
-                          Answer a few guided questions and we may be able to refine these findings for your situation.
-                        </p>
+                <div className="rounded-xl ring-1 ring-sw-danger/30 bg-sw-danger/5 shadow-sw-1 p-3.5 card-lift">
+                  <p className="text-[11px] text-sw-danger font-medium">High Priority</p>
+                  <p className="text-2xl font-bold text-sw-text mt-0.5 font-tabular">{highCount}</p>
+                </div>
+                <div className="rounded-xl ring-1 ring-sw-border/70 bg-gradient-to-b from-white to-slate-50/50 shadow-sw-1 p-3.5 col-span-2 sm:col-span-1 card-lift">
+                  <p className="text-[11px] text-sw-muted font-medium">Tax Year</p>
+                  <p className="text-2xl font-bold text-sw-text mt-0.5 font-tabular">{currentYear}</p>
+                </div>
+              </div>
+            )}
+
+            {/* Loading skeleton */}
+            {reportLoading && (
+              <div className="space-y-3 animate-pulse">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="rounded-2xl ring-1 ring-sw-border/70 bg-gradient-to-b from-white to-slate-50/40 p-5">
+                    <div className="flex items-start gap-3 mb-3">
+                      <div className="w-9 h-9 rounded-xl bg-slate-200 shrink-0" />
+                      <div className="flex-1 space-y-1.5">
+                        <div className="h-4 bg-slate-200 rounded w-3/4" />
+                        <div className="h-3 bg-slate-100 rounded w-1/2" />
                       </div>
                     </div>
-                    <button
-                      onClick={() => setViewMode('interview')}
-                      className="self-start shrink-0 inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-sw-accent text-white text-sm font-semibold hover:bg-sw-accent-hover transition shadow-sm"
-                    >
-                      Start Interview <ArrowRight size={14} />
-                    </button>
+                    <div className="space-y-2 pl-12">
+                      <div className="h-3 bg-slate-100 rounded w-full" />
+                      <div className="h-3 bg-slate-100 rounded w-4/5" />
+                    </div>
                   </div>
+                ))}
+              </div>
+            )}
+
+            {/* Error — show cached data when available */}
+            {reportError && !report && (
+              <div className="rounded-2xl border border-sw-danger/30 bg-sw-danger/5 p-6 text-center">
+                <AlertTriangle size={22} className="mx-auto text-sw-danger mb-2" />
+                <p className="text-sm text-sw-text">{reportError}</p>
+              </div>
+            )}
+
+            {/* Generating state */}
+            {!reportLoading && !reportError && (!report || report.status === 'generating') && (
+              <div className="rounded-2xl ring-1 ring-sw-border/70 bg-gradient-to-b from-white to-slate-50/40 shadow-sw-1 p-8 text-center space-y-3">
+                <div className="w-12 h-12 mx-auto rounded-2xl bg-sw-accent/10 ring-1 ring-sw-accent/20 flex items-center justify-center">
+                  <Loader2 size={22} className="animate-spin text-sw-accent" />
                 </div>
-              )}
-            </>
-          )}
+                <p className="text-sm font-semibold text-sw-text">Analyzing your financial data...</p>
+                <p className="text-xs text-sw-muted max-w-xs mx-auto leading-relaxed">
+                  Your income optimization analysis may take a moment to prepare. This page updates automatically.
+                </p>
+              </div>
+            )}
 
-          {/* Findings disclaimer (UI-03) */}
-          <div className="flex items-start gap-2 rounded-xl border border-sw-border/60 bg-sw-surface px-4 py-3">
-            <AlertCircle size={12} className="text-sw-dim shrink-0 mt-0.5" />
-            <p className="text-[10px] text-sw-dim leading-relaxed">
-              Findings are derived from transaction patterns and available documents. They may or may
-              not apply to your specific tax situation. Consider consulting a qualified tax professional
-              before acting on any of the above.
-            </p>
-          </div>
-        </div>
-      )}
+            {/* Findings list — show cached data even on non-fatal error */}
+            {!reportLoading && report && report.status === 'ready' && (
+              <>
+                {report.sections.length === 0 ? (
+                  <div className="rounded-2xl ring-1 ring-sw-border/70 bg-gradient-to-b from-white to-slate-50/40 shadow-sw-1 p-8 text-center">
+                    <div className="w-12 h-12 mx-auto rounded-2xl bg-sw-success/10 ring-1 ring-sw-success/30 flex items-center justify-center mb-3">
+                      <CheckCircle size={22} className="text-sw-success" />
+                    </div>
+                    <h3 className="text-[15px] font-semibold text-sw-text mb-1">No findings yet</h3>
+                    <p className="text-xs text-sw-muted max-w-xs mx-auto leading-relaxed">
+                      Connect your bank and complete the steps above to see potential optimization areas.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {[...report.sections]
+                      .sort((a, b) => {
+                        const aHigh = a.findings.filter((f) => f.severity === 'high').length;
+                        const bHigh = b.findings.filter((f) => f.severity === 'high').length;
+                        return bHigh - aHigh;
+                      })
+                      .map((section) => (
+                        <FindingSummaryCard
+                          key={section.section_key}
+                          section={section}
+                          expandedFindingId={expandedFindingId}
+                          setExpandedFindingId={setExpandedFindingId}
+                        />
+                      ))}
 
-      {/* ── Stage 2: Interview ────────────────────────────────────────────────── */}
-      {viewMode === 'interview' && (
-        <div className="space-y-4">
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-2">
-              <Brain size={16} className="text-sw-info" />
-              <h2 className="text-sm font-semibold text-sw-text">Income Review Interview</h2>
-              <span className="text-[11px] text-sw-dim">one question at a time</span>
+                    {/* CTA to Choices */}
+                    <div className="rounded-2xl border border-sw-accent/20 bg-sw-accent/5 p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                      <div className="flex items-start gap-3">
+                        <GitCompare size={20} className="text-sw-accent shrink-0 mt-0.5" />
+                        <div>
+                          <p className="text-[14px] font-semibold text-sw-text">Ready to see your options?</p>
+                          <p className="text-[12px] text-sw-muted leading-relaxed mt-0.5">
+                            Compare optimization scenarios and choose the path that fits your situation.
+                          </p>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => setViewMode('choices')}
+                        className="self-start shrink-0 inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-sw-accent text-white text-sm font-semibold hover:bg-sw-accent-hover transition shadow-sm"
+                      >
+                        See your options <ArrowRight size={14} />
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+
+            {/* Findings disclaimer (UI-03) */}
+            <div className="flex items-start gap-2 rounded-xl border border-sw-border/60 bg-sw-surface px-4 py-3">
+              <AlertCircle size={12} className="text-sw-dim shrink-0 mt-0.5" />
+              <p className="text-[10px] text-sw-dim leading-relaxed">
+                Findings are derived from transaction patterns and available documents. They may or may
+                not apply to your specific tax situation. Consider consulting a qualified tax professional
+                before acting on any of the above.
+              </p>
             </div>
-            <button
-              onClick={() => setViewMode('report')}
-              className="inline-flex items-center gap-1.5 text-xs font-medium text-sw-accent hover:text-sw-accent-hover transition"
-            >
-              View Full Report <ArrowRight size={13} />
-            </button>
-          </div>
-
-          {/* Reuse P11 InterviewCard unchanged */}
-          <InterviewCard
-            taxYear={currentYear}
-            onAnswered={() => {
-              // After each answer, we can auto-advance to report when complete
-            }}
-          />
-
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
-            <button
-              onClick={() => setViewMode('scenarios')}
-              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-sw-accent text-white text-sm font-semibold hover:bg-sw-accent-hover transition shadow-sw-1"
-            >
-              <GitCompare size={14} /> See your options
-            </button>
-            <button
-              onClick={() => setViewMode('report')}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-sw-border text-sm text-sw-muted hover:text-sw-text transition"
-            >
-              Skip to Report <ArrowRight size={14} />
-            </button>
           </div>
         </div>
       )}
 
-      {/* ── Stage 3: Scenarios — Choices ──────────────────────────────────────── */}
-      {viewMode === 'scenarios' && (
+      {/* ── Choices stage (was scenarios) ─────────────────────────────────────── */}
+      {viewMode === 'choices' && (
         <div className="space-y-5">
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
@@ -699,17 +849,51 @@ export default function OptimizeIndex() {
           {/* Mix panel */}
           <ScenarioMixPanel taxYear={currentYear} />
 
-          {/* Checklist (materialized after choosing a scenario) */}
+          {/* After choosing: link to Checklist */}
           {scenariosData?.chosen && (
-            <OptimizationChecklistView
-              taxYear={currentYear}
-              hasBankConnected={auth.hasBankConnected}
-            />
+            <div className="rounded-2xl border border-sw-success/20 bg-sw-success-light/40 p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div className="flex items-start gap-3">
+                <CheckCircle size={20} className="text-sw-success shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-[14px] font-semibold text-sw-text">Scenario chosen — view your action checklist</p>
+                  <p className="text-[12px] text-sw-muted mt-0.5">Step-by-step actions to implement your chosen plan.</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setViewMode('checklist')}
+                className="self-start shrink-0 inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-sw-success text-white text-sm font-semibold hover:bg-emerald-700 transition shadow-sm"
+              >
+                View Checklist <ArrowRight size={14} />
+              </button>
+            </div>
           )}
         </div>
       )}
 
-      {/* ── Stage 4: Report ───────────────────────────────────────────────────── */}
+      {/* ── Checklist stage (standalone) ──────────────────────────────────────── */}
+      {viewMode === 'checklist' && (
+        <div className="space-y-5">
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              <CheckCircle size={16} className="text-sw-success" />
+              <h2 className="text-sm font-semibold text-sw-text">Optimization Checklist</h2>
+            </div>
+            <button
+              onClick={() => setViewMode('report')}
+              className="inline-flex items-center gap-1.5 text-xs font-medium text-sw-accent hover:text-sw-accent-hover transition"
+            >
+              Full Report <ArrowRight size={13} />
+            </button>
+          </div>
+
+          <OptimizationChecklistView
+            taxYear={currentYear}
+            hasBankConnected={auth.hasBankConnected}
+          />
+        </div>
+      )}
+
+      {/* ── Report stage ──────────────────────────────────────────────────────── */}
       {viewMode === 'report' && (
         <div className="space-y-4">
           <div className="flex items-center justify-between mb-2">
