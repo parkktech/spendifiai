@@ -6,14 +6,14 @@ current_phase: 11
 current_phase_name: Red-Flag Detection, Guided Interview & AI Feed Integration
 status: executing
 stopped_at: ROADMAP.md written, REQUIREMENTS.md traceability filled (41/41 mapped)
-last_updated: "2026-07-02T03:14:54.608Z"
+last_updated: "2026-07-02T03:28:25.844Z"
 last_activity: 2026-07-02
 last_activity_desc: Phase 11 execution started
 progress:
   total_phases: 4
   completed_phases: 1
   total_plans: 11
-  completed_plans: 4
+  completed_plans: 5
   percent: 25
 ---
 
@@ -29,7 +29,7 @@ See: .planning/PROJECT.md (updated 2026-07-01)
 ## Current Position
 
 Phase: 11 (Red-Flag Detection, Guided Interview & AI Feed Integration) — EXECUTING
-Plan: 2 of 8
+Plan: 3 of 8
 Status: Ready to execute
 Last activity: 2026-07-02 — Phase 11 execution started
 
@@ -68,6 +68,7 @@ Continuing global phase numbering from v2.0 (ended Phase 9). Granularity: coarse
 | Phase 10-foundation-tax-rules-engine-cross-source-snapshot P02 | 316 | 3 tasks | 5 files |
 | Phase 10 P03 | 355 | 3 tasks | 7 files |
 | Phase 11 P01 | 45m | 3 tasks | 6 files |
+| Phase 11 P02 | 632 | 3 tasks | 12 files |
 
 ## Accumulated Context
 
@@ -90,6 +91,7 @@ Recent decisions affecting current work:
 - [Phase ?]: passesMaterialityGate auto-floor does not apply to recurring patterns; recurring gates on annual total only
 - [Phase ?]: Pest.php TestCase binding extended to Unit/ root to enable config facade in plan-11 unit tests
 - [Phase ?]: [ASSUMED] markers on 11 IRS constants in detection block — P13 sign-off gate before production
+- [Phase ?]: recordFact: flip is_current=false before insert prevents partial-unique index violation
 
 ### Pending Todos
 
@@ -104,6 +106,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-07-02T03:14:15.256Z
+Last session: 2026-07-02T03:28:20.688Z
 Stopped at: ROADMAP.md written, REQUIREMENTS.md traceability filled (41/41 mapped)
 Resume file: None — next action is `/gsd-plan-phase 10`

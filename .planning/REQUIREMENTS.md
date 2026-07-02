@@ -60,7 +60,7 @@ Requirements for this milestone. Each maps to a roadmap phase. All outputs are e
 
 - [ ] **INT-01**: `InterviewOrchestratorService` runs a persisted `InterviewSession` state machine (Claude used only to word each question)
 - [ ] **INT-02**: The interview presents one high-value question at a time with skip and back navigation
-- [ ] **INT-03**: The interview asks only high-signal questions/red flags — it does not re-ask anything derivable from the snapshot, and caps the initial pass to a small number of questions
+- [x] **INT-03**: The interview asks only high-signal questions/red flags — it does not re-ask anything derivable from the snapshot, and caps the initial pass to a small number of questions
 - [ ] **INT-04**: Deduction/eligibility probes are gated behind explicit prerequisite answers (e.g. backdoor-Roth probe gated behind an IRA-balance question to respect the pro-rata rule)
 - [ ] **INT-05**: A user can resume an in-progress interview and re-answer a prior question
 - [ ] **INT-06**: Detector questions are batched by merchant pattern, not per transaction: 40 charges at one merchant produce ONE conversation, and the answer is applied retroactively to all matched transactions (recorded in the finding's `transaction_ids[]`), mirroring the existing propagate-to-matching-merchants behavior
@@ -75,8 +75,8 @@ Requirements for this milestone. Each maps to a roadmap phase. All outputs are e
 
 ### Durable Tax Facts Store (STORE)
 
-- [ ] **STORE-01**: An ask-once durable-facts graph persists structured facts that are never re-asked — an append-only `UserTaxFact` store (namespaced fact keys; encrypted values; volatility tiers permanent/stable/annual with a config reconfirm window and one-tap re-confirmation; supersession chain with full provenance: source type/id + timestamps) plus a `TaxProfileEntity` store for vehicles, properties, and business entities (people stay on the existing Dependent/Household models) — new transactions match the graph FIRST, questions fire only on unknowns, answers arrive via the FEED-03 listener, `IncomeOptimizationProfile::answerableFields()` is extended (additively) to consult the store, and the data assembler is extended additively to also read `business_type` and `housing_status` from UserFinancialProfile. **ANCHORING (locked owner Decision 1):** the store EXTENDS the existing Enhanced Tax Profile system (`UserFinancialProfile` + `EnhancedProfileSection.tsx` on Settings) — it is NOT a disconnected parallel store: profile checkbox fields seed facts with `source_type=profile_field`, and every learned fact (interview- or document-sourced) surfaces in the user's Settings for review/correction via an additive UI hook alongside EnhancedProfileSection (additive columns/models + additive UI section only; no changes to existing fields' API shape or EnhancedProfileSection behavior). **RETIREMENT MULTI-ACCOUNT (locked owner Decision 2, correctness requirement):** the store represents simultaneous retirement account types (Roth IRA + Traditional IRA + employer 401(k) types) with per-type contribution amounts where known — the single legacy `ira_type` column stays untouched — because the IRA annual limit is SHARED across Roth+Traditional ($7,500 for 2026, +$1,100 catch-up): TaxRulesEngineService IRA-headroom inputs MUST use combined Roth+Traditional contributions, never a type label alone. **CONFIRMATION GATE (locked owner Decision 4):** facts with `source_type=document_extraction` enter as PROPOSED (with per-field confidence) and never become current, never feed skip-logic, and never supersede user-entered values until the USER CONFIRMS them
-- [ ] **STORE-02**: A per-property basis ledger accumulates capital improvements (contractor deposits, pool/landscape/solar 2026+, pre-sale work) toward future §121 gain reduction — rebates reduce basis not income, maintenance/chemicals excluded, depreciation-recapture years tracked — fed by detectors, retroactive basis reconstruction, and every "personal" answer on improvement-category spend, with each ledger entry referencing its Vault receipt
+- [x] **STORE-01**: An ask-once durable-facts graph persists structured facts that are never re-asked — an append-only `UserTaxFact` store (namespaced fact keys; encrypted values; volatility tiers permanent/stable/annual with a config reconfirm window and one-tap re-confirmation; supersession chain with full provenance: source type/id + timestamps) plus a `TaxProfileEntity` store for vehicles, properties, and business entities (people stay on the existing Dependent/Household models) — new transactions match the graph FIRST, questions fire only on unknowns, answers arrive via the FEED-03 listener, `IncomeOptimizationProfile::answerableFields()` is extended (additively) to consult the store, and the data assembler is extended additively to also read `business_type` and `housing_status` from UserFinancialProfile. **ANCHORING (locked owner Decision 1):** the store EXTENDS the existing Enhanced Tax Profile system (`UserFinancialProfile` + `EnhancedProfileSection.tsx` on Settings) — it is NOT a disconnected parallel store: profile checkbox fields seed facts with `source_type=profile_field`, and every learned fact (interview- or document-sourced) surfaces in the user's Settings for review/correction via an additive UI hook alongside EnhancedProfileSection (additive columns/models + additive UI section only; no changes to existing fields' API shape or EnhancedProfileSection behavior). **RETIREMENT MULTI-ACCOUNT (locked owner Decision 2, correctness requirement):** the store represents simultaneous retirement account types (Roth IRA + Traditional IRA + employer 401(k) types) with per-type contribution amounts where known — the single legacy `ira_type` column stays untouched — because the IRA annual limit is SHARED across Roth+Traditional ($7,500 for 2026, +$1,100 catch-up): TaxRulesEngineService IRA-headroom inputs MUST use combined Roth+Traditional contributions, never a type label alone. **CONFIRMATION GATE (locked owner Decision 4):** facts with `source_type=document_extraction` enter as PROPOSED (with per-field confidence) and never become current, never feed skip-logic, and never supersede user-entered values until the USER CONFIRMS them
+- [x] **STORE-02**: A per-property basis ledger accumulates capital improvements (contractor deposits, pool/landscape/solar 2026+, pre-sale work) toward future §121 gain reduction — rebates reduce basis not income, maintenance/chemicals excluded, depreciation-recapture years tracked — fed by detectors, retroactive basis reconstruction, and every "personal" answer on improvement-category spend, with each ledger entry referencing its Vault receipt
 - [ ] **STORE-03**: An HSA shoebox tracks out-of-pocket medical expenses even when not currently deductible (receipts in the Tax Document Vault + a tracked-expense list on the optimization profile) with accurate education copy: "expenses incurred after your HSA was opened may be reimbursable tax-free in any future year, with receipts" — never implying pre-establishment expenses qualify
 
 ### Optimization Report (RPT)
@@ -210,7 +210,7 @@ Each requirement maps to exactly one phase. Phases continue the global numbering
 | FLAG-06 | Phase 11 | Pending |
 | INT-01 | Phase 11 | Pending |
 | INT-02 | Phase 11 | Pending |
-| INT-03 | Phase 11 | Pending |
+| INT-03 | Phase 11 | Complete |
 | INT-04 | Phase 11 | Pending |
 | INT-05 | Phase 11 | Pending |
 | FEED-01 | Phase 11 | Pending |
@@ -257,8 +257,8 @@ Each requirement maps to exactly one phase. Phases continue the global numbering
 | FLAG-28 | Phase 11 | Pending |
 | INT-06 | Phase 11 | Pending |
 | INT-07 | Phase 11 | Pending |
-| STORE-01 | Phase 11 | Pending |
-| STORE-02 | Phase 11 | Pending |
+| STORE-01 | Phase 11 | Complete |
+| STORE-02 | Phase 11 | Complete |
 | STORE-03 | Phase 12 | Pending |
 | RPT-05 | Phase 12 | Pending |
 | RPT-06 | Phase 12 | Pending |
