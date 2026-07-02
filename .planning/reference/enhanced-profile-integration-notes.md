@@ -36,7 +36,17 @@ Building/completing the Enhanced Tax Profile can happen by UPLOADING documents (
 - This is the P12 doc-intake ↔ profile bridge; the interview (P11) treats confirmed-from-document facts as answered (skip-logic).
 - Framed as "AI onboarding": a new user's fastest path to a complete profile is uploading a paystub, not filling checkboxes.
 
-## Decision 5 — Rename/reshape "Settings" toward "User/Family Profile" (P12 design decision)
+## Decision 5 — SUPERSEDED 2026-07-02 by owner review: ONE merged page, pinned to nav bottom
+
+After reviewing the built P12 UI, the owner ruled: Settings and My Profile are essentially the same page — MERGE into one. Final shape:
+- ONE page (the existing /settings route + Settings/Index.tsx as the canonical surface) hosting: financial profile, Enhanced Tax Profile, learned tax facts, family/household, AI-onboarding upload flow, HSA shoebox, AND the account/security sections. The /user-profile route stays alive but redirects to /settings (never break a shipped URL).
+- Nav: REMOVE the separate "My Profile" item; the single entry is labeled "Profile & Settings" and is PINNED TO THE BOTTOM of the left nav (visually separated from the main nav group, mt-auto style).
+- The P12 components (FamilyHouseholdSection, AiOnboardingUploadSection, HsaShoeboxSection, ProposalConfirmCard, DocumentUploadFlow) are REUSED as-is — this is recomposition, not rebuild.
+- Owner-granted preservation-audit exceptions for this change: Settings page composition, the nav reorganization (bottom pin), the label rename, the /user-profile redirect.
+
+(Original option (a)/(b)/(c) analysis retained below for history.)
+
+## Decision 5 (original, superseded) — Rename/reshape "Settings" toward "User/Family Profile" (P12 design decision)
 
 Owner suggestion (tentative "maybe"): rename Settings to **User/Family Profile**. Design consideration: the current Settings page mixes profile content (financial profile, Enhanced Tax Profile) with account/security functions (password, 2FA, Google connection, delete account) — a pure rename would mislabel the security half. Options for P12:
 - (a) **Split (recommended)**: new "User/Family Profile" nav item (or a section of the Optimize My Income surface) hosting the financial + enhanced-tax + family/spouse/dependents profile with the AI-onboarding upload flow; "Settings" keeps account/security. Nav label changes are additive; route/file names unchanged (CLAUDE.md rule: never rename existing routes/files — display labels only).
@@ -72,6 +82,48 @@ Owner supplied taste-skill v2's recommended workflow. Every frontend plan/task i
 2. **Declare mode + levers:** mode is Preserve (locked); list the Section 11.D modernisation levers to apply in priority order.
 3. **Implement.** URL structure, primary nav labels, form field names, brand logo, legal copy unchanged (exceptions only where a plan explicitly grants one, e.g. the additive "Optimize My Income" nav item).
 4. **Blocking audits (in writing; any Fail blocks completion):** em-dash audit; Pre-Flight Check (Section 14); Preservation audit (list every URL/nav label/form field/anchor changed — must be empty except plan-granted additions); Brand fidelity audit (sw-* accent, type stack, logo treatment survived).
+
+## Decision 8 — Admin nav: separate, distinct, bottom-pinned, collapsed (owner, 2026-07-02)
+
+When the logged-in user is a site admin (`isAdmin` shared prop), all admin menu entries must be:
+- **Separate and distinct from the normal user nav — NEVER mixed into the user menu options.** Remove any admin items currently inline in the main nav group.
+- **Pinned to the bottom** of the left sidebar as their own group (bottom stack order: Admin group, then "Profile & Settings" at the very bottom — both visually separated from the main nav).
+- **Collapsed by default** — an expandable group header ("Admin") the owner can expand to manage admin functionality when needed; expansion state may persist in localStorage like the existing dark-mode toggle pattern.
+- **A different color** — visually distinct accent from the user nav (use an sw-* consistent distinct tone, e.g. warning/amber-toned or the sw-info violet family — pick via the design skills, ELEVATE-DON'T-REPLACE still applies; non-admins see nothing).
+- Collect ALL existing admin routes/pages into this group (cancellation-provider admin, Super Admin storage config, and any other admin surfaces found in the codebase).
+- Owner-granted preservation-audit exceptions: relocating existing admin nav entries into the new group, the group's distinct styling.
+
+## Decision 9 — Actionable checklists, not "worth reviewing" (owner, 2026-07-02)
+
+Owner (live review): "The plan just says worth reviewing. I want clear distinct instructions for the user to do. Deliver this as a checklist where needed. User Actions needed: Contact employer and change payroll form from head of household to married filing jointly; Contact employer and adjust your 401k to X% traditional / X% Roth; update your dependents from 0 to 3; set up direct deposit to savings of $500 every 2 weeks. A clear actionable set of instructions."
+
+**Design (preserves the educational-only boundary while delivering directives):**
+1. Every finding/report item carries an **Action Checklist**: numbered, imperative, concrete steps ("Contact your payroll department and...", "Log into your 401(k) portal and...", "Set up an automatic transfer of $X every pay period..."). Checkbox UI; per-item done-state persisted (reuse the response/ledger pattern; store in the durable-facts/action store with provenance).
+2. **Fact-gated directives**: steps that depend on a user fact render as directives ONLY after the user confirmed that fact (interview answer / confirmed profile / confirmed doc extraction). The framing anchors to THEIR stated facts: "...to match the filing status you confirmed (Married Filing Jointly)". Until confirmed, the checklist step IS the confirmation ask ("Confirm with your plan administrator whether X — then the next step unlocks").
+3. **All numbers from the engine** (dollar amounts, percentages, per-pay-period math) — TaxRulesEngineService computes; narration never invents figures (SAFE-03 unchanged).
+4. Filing-status/allocation items NEVER assert what the user SHOULD elect in the abstract — they operationalize what the user confirmed, or route the choice into a confirm-first step. One compact professional-review line remains only where genuinely specialist-band; not boilerplate on every card.
+5. Checklist copy tone: imperative, short, one action per step, employer/portal/form named where derivable (W-4, plan portal, payroll dept, bank auto-transfer).
+6. Rollout: content templates per detector/finding type sourced from the distillation "what to do" material; applies to findings cards, the interview wrap-up ("Your action list"), and a report "User Actions Needed" section that aggregates all unlocked steps as THE primary deliverable.
+7. **BENEFIT SUMMARY per action (owner addition, 2026-07-02):** every checklist item carries a one-line, quantified benefit — "Updating your paycheck withholding and dependents increases your take-home by ~$X/paycheck ($Y/yr)"; "This automatic transfer saves you $13,000/yr"; "These 401(k) changes add ~$X toward retirement by age Y". Rules:
+   - Deterministic arithmetic (withholding deltas from brackets/dependents, annualized transfers, match capture) → exact engine-computed figures via NEW TaxRulesEngineService benefit methods (config-driven; narrator words them, never computes).
+   - Long-horizon projections (retirement timing/growth) → clearly-labeled ILLUSTRATIONS with stated assumptions from config (e.g. illustrative growth rate), range framing ("could mean roughly $X–$Y more by 65" / "could bring retirement ~N years closer under these assumptions") — NEVER guarantee language (locked out-of-scope: guaranteed dollar savings).
+   - Checklist header aggregates: "Completing these N actions ≈ +$X/mo take-home · +$Y/yr saved · ~$Z more toward retirement (illustration)".
+
+Sequencing: runs AFTER the in-flight review-fixes executor (same files). Push on review-fixes green proceeds as ordered; checklist lands as follow-up commits to the same PR.
+
+## Decision 10 — Optimization Scenarios engine (owner, 2026-07-02)
+
+Owner: plan and think through (1) how we GET the info from the user to understand their financial picture; (2) where we can optimize for additional take-home income; (3) where we can optimize to lower tax burden; (4) where we can optimize for retirement. When objectives CONFLICT, suggest MULTIPLE APPROACHES: "Option A — Optimize for income. Option B — Optimize for retirement." Each option shows the concrete choices to make given the user's current financial picture.
+
+**Design directives:**
+1. **Objective-driven data acquisition**: for each of the three objectives, a defined fact-requirements map (what we need: W-4 status/dependents, pay frequency, gross, current withholding, pre-tax elections, employer match formula, balances, age, target age...). Sources in priority order: already-known (profile/facts/paystub extraction/bank data) → then interview asks ONLY the gaps. Show per-objective readiness ("Take-home optimization ready · answer 2 more questions to unlock Retirement optimization").
+2. **Deterministic scenario computation**: for each objective, the knob settings (W-4 alignment, trad/Roth split, HSA/FSA elections, match capture, auto-transfers) that favor that objective, with computed outcomes for ALL THREE metrics per scenario (take-home Δ, tax Δ, retirement Δ [illustration rules per Decision 9.7]) — side-by-side comparison. All math = TaxRulesEngineService extensions from config; Claude words it only.
+3. **Conflict surfacing**: knobs where options diverge get explicitly contrasted ("Option A: 0% Roth — Option B: 10% Roth") with the trade-off in one line ("A gives +$120/mo now; B adds ~$40k by 65 [illustration]").
+4. **Choice → checklist**: user picks an option (or mixes per-knob); the chosen option's steps become their Decision-9 action checklist with benefit lines. Persist the chosen scenario (facts store).
+5. Scenario count: A (income now), B (retirement), and a Balanced default when conflicts exist; single merged plan when objectives agree.
+6. Liability: scenarios are presented as "approaches to consider" grounded in user-confirmed facts + engine math; election choices remain the user's (pick-an-option IS the confirmation); illustration rules for long-horizon numbers; educational framing intact.
+
+Sequencing: SUBSUMES the Decision-9 checklist implementation — design first (spec), then implement checklist+benefits+scenarios as one coherent unit AFTER the review-fixes push. Design spec: .planning/reference/SCENARIOS-SPEC.md.
 
 ## Non-negotiables that still apply
 
