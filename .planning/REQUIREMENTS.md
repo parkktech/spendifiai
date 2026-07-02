@@ -77,7 +77,7 @@ Requirements for this milestone. Each maps to a roadmap phase. All outputs are e
 
 - [x] **STORE-01**: An ask-once durable-facts graph persists structured facts that are never re-asked — an append-only `UserTaxFact` store (namespaced fact keys; encrypted values; volatility tiers permanent/stable/annual with a config reconfirm window and one-tap re-confirmation; supersession chain with full provenance: source type/id + timestamps) plus a `TaxProfileEntity` store for vehicles, properties, and business entities (people stay on the existing Dependent/Household models) — new transactions match the graph FIRST, questions fire only on unknowns, answers arrive via the FEED-03 listener, `IncomeOptimizationProfile::answerableFields()` is extended (additively) to consult the store, and the data assembler is extended additively to also read `business_type` and `housing_status` from UserFinancialProfile. **ANCHORING (locked owner Decision 1):** the store EXTENDS the existing Enhanced Tax Profile system (`UserFinancialProfile` + `EnhancedProfileSection.tsx` on Settings) — it is NOT a disconnected parallel store: profile checkbox fields seed facts with `source_type=profile_field`, and every learned fact (interview- or document-sourced) surfaces in the user's Settings for review/correction via an additive UI hook alongside EnhancedProfileSection (additive columns/models + additive UI section only; no changes to existing fields' API shape or EnhancedProfileSection behavior). **RETIREMENT MULTI-ACCOUNT (locked owner Decision 2, correctness requirement):** the store represents simultaneous retirement account types (Roth IRA + Traditional IRA + employer 401(k) types) with per-type contribution amounts where known — the single legacy `ira_type` column stays untouched — because the IRA annual limit is SHARED across Roth+Traditional ($7,500 for 2026, +$1,100 catch-up): TaxRulesEngineService IRA-headroom inputs MUST use combined Roth+Traditional contributions, never a type label alone. **CONFIRMATION GATE (locked owner Decision 4):** facts with `source_type=document_extraction` enter as PROPOSED (with per-field confidence) and never become current, never feed skip-logic, and never supersede user-entered values until the USER CONFIRMS them
 - [x] **STORE-02**: A per-property basis ledger accumulates capital improvements (contractor deposits, pool/landscape/solar 2026+, pre-sale work) toward future §121 gain reduction — rebates reduce basis not income, maintenance/chemicals excluded, depreciation-recapture years tracked — fed by detectors, retroactive basis reconstruction, and every "personal" answer on improvement-category spend, with each ledger entry referencing its Vault receipt
-- [ ] **STORE-03**: An HSA shoebox tracks out-of-pocket medical expenses even when not currently deductible (receipts in the Tax Document Vault + a tracked-expense list on the optimization profile) with accurate education copy: "expenses incurred after your HSA was opened may be reimbursable tax-free in any future year, with receipts" — never implying pre-establishment expenses qualify
+- [x] **STORE-03**: An HSA shoebox tracks out-of-pocket medical expenses even when not currently deductible (receipts in the Tax Document Vault + a tracked-expense list on the optimization profile) with accurate education copy: "expenses incurred after your HSA was opened may be reimbursable tax-free in any future year, with receipts" — never implying pre-establishment expenses qualify
 
 ### Optimization Report (RPT)
 
@@ -94,10 +94,10 @@ Requirements for this milestone. Each maps to a roadmap phase. All outputs are e
 
 - [x] **DOC-01**: New document types (check/pay stub, employer offer letter, 401(k)/retirement statement, benefits statement, stock statement, insurance statement) are added as `TaxDocumentCategory` cases reusing the v2.0 Vault two-pass extraction pipeline
 - [x] **DOC-02**: Image-based uploads (screenshots) are extracted via the existing Claude vision pattern (base64, no new library)
-- [ ] **DOC-03**: New document extraction feeds the optimization snapshot and marks the report stale
-- [ ] **DOC-05**: During the interview/question flow a finding can proactively request specific documents or screenshots at the moment of detection (photo of a wrapped vehicle, receipt snap, prescription letter, sponsorship agreement, loan docs), and the user can upload to the Vault without leaving the interaction — reusing the v2.0 DocumentRequest + auto-fulfillment infrastructure and updating `docs_captured`/`docs_missing` on the finding
+- [x] **DOC-03**: New document extraction feeds the optimization snapshot and marks the report stale
+- [x] **DOC-05**: During the interview/question flow a finding can proactively request specific documents or screenshots at the moment of detection (photo of a wrapped vehicle, receipt snap, prescription letter, sponsorship agreement, loan docs), and the user can upload to the Vault without leaving the interaction — reusing the v2.0 DocumentRequest + auto-fulfillment infrastructure and updating `docs_captured`/`docs_missing` on the finding
 - [x] **DOC-06**: Substantiation document categories are added as TaxDocumentCategory cases beyond DOC-01's financial-statement types: sponsorship agreement, market-comp memo, marketing-output log, physician prescription/recommendation letter, before/after appraisal, gallons log, rescue-org letter, security memo, loan/financing documents, contractor invoices, mileage log, daycare license, and sponsorship vendor-payment evidence — each linkable from a finding's docs checklist
-- [ ] **DOC-07**: The paystub/benefits data plane ships: "employer benefits guide" is added as a new TaxDocumentCategory with an extraction schema covering plan availability + deferral %, match formula, after-tax 401(k) + in-plan conversion availability, HDHP/HSA status, FSA/DCFSA elections, ESPP terms, NQDC eligibility, §127 benefits, commuter benefits, group legal, and employer Trump Account contributions (the paystub state-withholding-vs-residence cross-check is recorded but its output is suppressed to STATE-01) — **CONFIRMATION GATE (locked owner Decision 4):** extracted facts NEVER write directly to the profile, snapshot, or durable-fact store; extraction produces PROPOSED profile/fact updates with per-field confidence which the USER CONFIRMS before anything is written (user-entered values are never silently overwritten); only confirmed facts land in the snapshot and durable-fact store (with per-fact provenance: source document, extraction date, tax year) so skip-logic suppresses already-answered questions — this is the "AI onboarding" path: a new user's fastest route to a complete Enhanced Tax Profile is uploading a paystub, with upload prompts at onboarding and open-enrollment season
+- [x] **DOC-07**: The paystub/benefits data plane ships: "employer benefits guide" is added as a new TaxDocumentCategory with an extraction schema covering plan availability + deferral %, match formula, after-tax 401(k) + in-plan conversion availability, HDHP/HSA status, FSA/DCFSA elections, ESPP terms, NQDC eligibility, §127 benefits, commuter benefits, group legal, and employer Trump Account contributions (the paystub state-withholding-vs-residence cross-check is recorded but its output is suppressed to STATE-01) — **CONFIRMATION GATE (locked owner Decision 4):** extracted facts NEVER write directly to the profile, snapshot, or durable-fact store; extraction produces PROPOSED profile/fact updates with per-field confidence which the USER CONFIRMS before anything is written (user-entered values are never silently overwritten); only confirmed facts land in the snapshot and durable-fact store (with per-fact provenance: source document, extraction date, tax year) so skip-logic suppresses already-answered questions — this is the "AI onboarding" path: a new user's fastest route to a complete Enhanced Tax Profile is uploading a paystub, with upload prompts at onboarding and open-enrollment season
 
 ### Feature Surface & UX (UI)
 
@@ -223,7 +223,7 @@ Each requirement maps to exactly one phase. Phases continue the global numbering
 | RPT-04 | Phase 12 | Complete |
 | DOC-01 | Phase 12 | Complete |
 | DOC-02 | Phase 12 | Complete |
-| DOC-03 | Phase 12 | Pending |
+| DOC-03 | Phase 12 | Complete |
 | UI-01 | Phase 12 | Pending |
 | UI-02 | Phase 12 | Pending |
 | UI-03 | Phase 12 | Pending |
@@ -259,14 +259,14 @@ Each requirement maps to exactly one phase. Phases continue the global numbering
 | INT-07 | Phase 11 | Complete |
 | STORE-01 | Phase 11 | Complete |
 | STORE-02 | Phase 11 | Complete |
-| STORE-03 | Phase 12 | Pending |
+| STORE-03 | Phase 12 | Complete |
 | RPT-05 | Phase 12 | Pending |
 | RPT-06 | Phase 12 | Complete |
 | RPT-07 | Phase 12 | Complete |
 | RPT-08 | Phase 12 | Complete |
-| DOC-05 | Phase 12 | Pending |
+| DOC-05 | Phase 12 | Complete |
 | DOC-06 | Phase 12 | Complete |
-| DOC-07 | Phase 12 | Pending |
+| DOC-07 | Phase 12 | Complete |
 | SAFE-06 | Phase 13 | Pending |
 | SAFE-07 | Phase 13 | Pending |
 
