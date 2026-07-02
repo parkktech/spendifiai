@@ -159,3 +159,59 @@ None. All new surface is covered by the plan's threat register: prefill pointer 
 - tests/Feature/Scenarios/{ObjectiveReadiness,PrefillPointer,ObjectiveEnqueue,InterviewSkipPersistence}Test.php — FOUND
 - commits a5560bb, 99fbcce, adb4905, 6b18f99 — FOUND
 - skipped-column migration applied — DONE (5.04ms)
+
+## D18 Hot-fix (owner question-quality bar)
+
+Owner-reported live defect: the interview rendered "We noticed something related to deductible_saas_microsoft_365 that may affect your taxes. Does this apply to you?" — an internal key leaked into user copy, asking a contentless question. Fixed per Decision 18 (all 5 rules + addenda 6/7), TDD, on `feature/v2.1-optimize-my-income`.
+
+### What changed
+
+1. **Contentless fallback KILLED** (`InterviewOrchestratorService::findingFallbackQuestion`): the generic "We noticed something related to {key}" output is permanently dead. Fallback order: question-phrased narration → FIRST sentence of the treatment + confirm ask → NULL (key skipped, never verbalized). The feed listener (`SurfaceHighPriorityRedFlags`) had the same class of leak ("...related to: {finding_key}") — also fixed.
+2. **D18 rule-4 queue gating** (`buildInitialQueue`): findings without a data-grounded question source (config template / dynamic template / question-phrased narration / treatment for auto+battery bands) are EXCLUDED from the interview queue; they remain open in the findings list as suggested-confirm.
+3. **`FindingPatternQuestionService` (new)** — dynamic, zero-Claude, data-grounded templates:
+   - `pattern.deductible_saas` (classification/multi-select): all `deductible_saas_*` findings collapse into ONE question; labels resolved from live Subscription records; fan-out writes `finding.{key}=yes/no` per item.
+   - `penalty_1099k_mismatch` (classification/choice): humanized payer names (memo reference codes stripped), aggregated lead, personal/business/mix/not-sure choices, 1099-K education in context.
+   - `category_vehicle_parts` (classification/choice): data lead + detection-spec vehicle purpose tree; mileage/fuel-credit/fraud education in context; `vehicle.usage_log_status` follow-up fans from business-flavored answers.
+   - `shape='confirmation'` (exemplar 4): ALL five life-event battery questions + four trigger questions (payroll-stop, new-mortgage, marketplace-premiums, escrow) render as evidence lead + Yes/No/escape; `battery_job_change` derives its evidence from detected employer-switch deposit patterns; battery answers dual-write the canonical `life_event.*` fact (tax-year scoped) via `also_record`. **14-09's monitor prompts must inherit this shape.**
+4. **Answer plumbing** (`recordAnswer`): `multi_select` typed conversion (exclusive `none`), per-item fan-out, `follow_ups` front-insertion (gated, one topic per question), `also_record` dual-write, escape-hatch interpretation.
+5. **Escape hatch (addendum 7)**: every choice question carries "Something else? Let's talk about it" (`__other__`); `__other__: <text>` answers are interpreted onto the choice set via wording-tier Claude (`model_wording`, `checkAndIncrementBudget('wording')` — the ONE allowed Claude call on this path per D17; genuinely bespoke input); at cap/failure it degrades to a stored `other` with raw text preserved in the encrypted transcript.
+6. **Succinctness bar (addendum 6)**: question body ≤ 240 chars and ≤ 2 sentences, enforced by the automated drain test; education lives in the collapsible `options.context` ("Why we're asking").
+7. **InterviewCard.tsx (additive)**: structured choice/multi-select rendering (sw-* tokens, checkbox/radio rows mirroring existing option buttons), escape-hatch free-text input, collapsible "Why we're asking" context. `OptimizationQuestionPayload` gains optional `answer_type/choices/none_value/context/objective_tags/doc_affordance/prefill_*`. `npm run build` clean.
+
+### Before / after (the four owner exemplars)
+
+| | Before | After |
+|---|---|---|
+| SaaS | "We noticed something related to deductible_saas_microsoft_365 that may affect your taxes. Does this apply to you?" (one per merchant) | ONE question: "Which of these software subscriptions do you use primarily for business? Select all that apply." ☐ Microsoft 365 ($9.99/mo) ☐ Adobe Creative Cloud ($54.99/mo) ☐ GitHub ($4/mo) ☐ None of these ☐ Something else? |
+| 1099-K/P2P | Dense paragraph with raw memos ("Zelle payment from RAELYN STILES 27868366380", "AMANDA DAVIS BACpz1r5pufa") + full 1099-K education + vague ask | "You've received about $896 across 4 Zelle/Venmo payments this year, including from Raelyn Stiles, Amanda Davis, and April Mayes. What best describes these payments?" ○ Mostly personal ○ Mostly business income ○ A mix ○ Not sure — education in "Why we're asking" |
+| Vehicle/powersports | One paragraph mixing mileage methods + fuel credit + fraud warning, ending "Does this reflect your situation?" | "You've made 3 purchases at Rocky Mountain ATV/MC this year (about $925 total). What are these purchases mostly for?" ○ Personal hobby ○ Business work vehicle ○ Race/show vehicles for sponsorship/advertising ○ Items I resell ○ Content I monetize ○ Off-road work equipment — education in context; log follow-up fans from business answers |
+| Job change (battery) | Four-topic paragraph (W-4s, severance, rollover, NUA) + "Does this reflect your situation?" | "It looks like you changed jobs — regular deposits from Acme Corp stopped and regular deposits from Globex Industries began. Is that right?" ○ Yes ○ No ○ Something else? — education in context; YES fans the W-4 review probes |
+
+### Seeded owner facts (user_id=1, via UserTaxFact::recordFact, source=interview_answer)
+
+For 14-08/09 executors — wire Action Center items to these keys; the interview never re-asks them:
+- `category_vehicle_parts` = `sponsorship_advertising` (Rocky Mountain ATV/MC and this merchant pattern = race vehicles used for sponsorship/advertising; yellow-band docs-needed path)
+- `vehicle.usage_log_status` = `willing_to_start` (mileage/gallons log NOT kept, owner willing to start — the CHECKLIST-able state; the gallons/mileage-log Action Center item keys off this)
+
+### Tests / gates
+
+- `tests/Feature/Scenarios/D18QuestionQualityTest.php` — 19 tests / 176 assertions: internal-key regex sweep over all rendered copy (question, context, choice labels), length+sentence ceilings, pattern aggregation, fan-out, follow-up fanning, exclusion rule, fallback-dead proofs, escape hatch (interpreted + budget-capped), confirmation shape, never-re-asks e2e.
+- D17 intact: every template path asserts `Http::assertNothingSent()`; the only Claude call on new paths is the escape-hatch interpretation (wording tier, budget-counted).
+- Full suite: zero NEW failures. Remaining failures at time of writing: DashboardFinancialBlocksTest (known pre-existing) + ScenarioSolver/ScenarioAgreement (14-06/14-02 executors' in-flight solver work, not this change's code paths).
+- Pint clean; `npm run build` clean.
+
+### D18 rule-1 template sweep (deliverable 4)
+
+Audited all `config/optimization-objectives.php` question_templates: every entry asks for a concrete fact in plain English (no "does this apply to you"-class items) — no changes needed. The two contentless fallback strings (orchestrator + feed listener) were the rule-1/2 violations and are fixed. The four dense-paragraph sources (SaaS sweep, 1099-K sweep, vehicle module, life-event battery/triggers) now render via data-grounded templates; their detector `treatment` strings are unchanged (they now serve as findings-list/context copy only).
+
+### Commits (D18 hot-fix)
+
+- 3cad80c — test: failing D18 question-quality tests (key-leak regex, aggregation, fallback kill)
+- e837a35 — feat: kill contentless fallback, SaaS multi-select aggregation, queue gating, feed-listener fix
+- 8e0e801 — test: failing exemplar-2 tests (1099-K/P2P)
+- 3b261e5 — test: failing exemplar-3 tests (vehicle/powersports)
+- 2c77acf — test: failing addendum-6/7 tests (succinctness + escape hatch)
+- 0f4a3fc — feat: exemplars 2+3, succinctness bar, escape hatch
+- f648510 — feat: InterviewCard multi-select/choice rendering, escape hatch, context collapsible
+- e669894 — test: failing exemplar-4 tests (job-change confirmation shape)
+- 29036f1 — feat: confirmation shape for life-event battery + triggers, also_record, employer-switch evidence
