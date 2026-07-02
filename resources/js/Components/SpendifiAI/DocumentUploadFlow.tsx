@@ -116,10 +116,10 @@ export default function DocumentUploadFlow({ onComplete, compact = false }: Docu
     <div className="space-y-4">
       {/* Step indicator */}
       {!compact && (
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 min-w-0 overflow-hidden">
           {stepLabels.map((s, i) => (
-            <div key={s.key} className="flex items-center gap-2">
-              <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold transition-colors ${
+            <div key={s.key} className="flex items-center gap-2 shrink-0">
+              <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold transition-colors shrink-0 ${
                 i < stepIdx
                   ? 'bg-sw-success text-white'
                   : i === stepIdx
@@ -128,8 +128,8 @@ export default function DocumentUploadFlow({ onComplete, compact = false }: Docu
               }`}>
                 {i < stepIdx ? <CheckCircle size={12} /> : i + 1}
               </div>
-              {!compact && <span className={`text-[11px] ${i === stepIdx ? 'text-sw-text font-medium' : 'text-sw-dim'}`}>{s.label}</span>}
-              {i < stepLabels.length - 1 && <ChevronRight size={12} className="text-sw-dim mx-1" />}
+              <span className={`text-[11px] ${i === stepIdx ? 'inline text-sw-text font-medium' : 'hidden sm:inline text-sw-dim'}`}>{s.label}</span>
+              {i < stepLabels.length - 1 && <ChevronRight size={12} className="text-sw-dim mx-0.5 sm:mx-1 shrink-0" />}
             </div>
           ))}
         </div>
