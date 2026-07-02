@@ -101,9 +101,9 @@ Requirements for this milestone. Each maps to a roadmap phase. All outputs are e
 
 ### Feature Surface & UX (UI)
 
-- [ ] **UI-01**: An "Optimize My Income" nav item is added to AuthenticatedLayout (with a badge for pending red-flag questions)
-- [ ] **UI-02**: A dedicated Optimize My Income page presents the flow: findings → guided interview → optimization report
-- [ ] **UI-03**: Every user-facing optimization surface uses educational modal framing ("may," "could," "consider") and shows an inline disclaimer
+- [x] **UI-01**: An "Optimize My Income" nav item is added to AuthenticatedLayout (with a badge for pending red-flag questions)
+- [x] **UI-02**: A dedicated Optimize My Income page presents the flow: findings → guided interview → optimization report
+- [x] **UI-03**: Every user-facing optimization surface uses educational modal framing ("may," "could," "consider") and shows an inline disclaimer
 
 ### Safety & Liability Boundary (SAFE)
 
@@ -224,9 +224,9 @@ Each requirement maps to exactly one phase. Phases continue the global numbering
 | DOC-01 | Phase 12 | Complete |
 | DOC-02 | Phase 12 | Complete |
 | DOC-03 | Phase 12 | Complete |
-| UI-01 | Phase 12 | Pending |
-| UI-02 | Phase 12 | Pending |
-| UI-03 | Phase 12 | Pending |
+| UI-01 | Phase 12 | Complete |
+| UI-02 | Phase 12 | Complete |
+| UI-03 | Phase 12 | Complete |
 | SAFE-01 | Phase 13 | Pending |
 | SAFE-02 | Phase 13 | Pending |
 | SAFE-03 | Phase 13 | Pending |
