@@ -186,7 +186,12 @@ Owner: bonus alerts should pop up in a TODO LIST along with tax review strategy 
 - Purchase-timing items are GATED on confirmed business/personal context and keyed to THEIR confirmed business type: §179/bonus-depreciation equipment for the categories they actually operate (work truck >6,000 lbs GVWR [config constant exists], computer, tractor for a confirmed farm, salon products for a confirmed salon, motorsport equipment ONLY for a confirmed motorsport business per the gray-area gating), charitable bunching education.
 - **HONESTY GUARDRAIL (binding copy rule):** never "spend to save" naked framing. Every purchase-timing item carries the net-cost truth: "Buying reduces taxes only if you needed it anyway — a $10,000 purchase in the 24% bracket saves ~$2,400 in tax and costs ~$7,600 net cash. If it was already planned for your business, completing it before Dec 31 may let it count this year." Educational, timing-focused, professional-review routing on big-ticket items.
 
-Sequencing: the Action Center IS the primary UI deliverable of the scenarios+checklist implementation unit (D9/D10/D13.5/D14/D15/D16 all converge there). Year-end items = a scenario/content domain within it.
+**3. Lifecycle-adaptive list (owner addendum, 2026-07-02):** the Action Center drives the ENTIRE user journey, adapting to state through the year:
+- **Stage 0 — first-run onboarding items (a new user's very first to-dos):** ① Link your bank account ② Link your credit cards ③ Link your emails ④ Do the onboarding interview (+ ⑤ Upload a pay stub — the AI-onboarding fast path). Generated from connection state (hasBankConnected, account types incl. credit cards, email connections, interview/profile completeness) — each disappears as completed, replaced by what it unlocks.
+- **Adaptive generation (deterministic, rule-driven):** items derive from live state — readiness scores per objective (D10: "answer 2 questions to unlock Retirement"), detected changes (D14), calendar events (D15 bonus windows, D16 year-end season), verification watches (D13.5), doc requests. The list a user sees in February ≠ August ≠ December.
+- The empty-list state is an achievement moment ("You're fully optimized for now — we're watching for changes"), not a dead end.
+
+Sequencing: the Action Center IS the primary UI deliverable of the scenarios+checklist implementation unit (D9/D10/D13.5/D14/D15/D16 all converge there). Year-end items = a scenario/content domain within it. The Stage-0 onboarding items make it the app's default landing surface for incomplete accounts.
 
 ## Non-negotiables that still apply
 
