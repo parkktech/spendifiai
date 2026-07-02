@@ -193,6 +193,17 @@ Owner: bonus alerts should pop up in a TODO LIST along with tax review strategy 
 
 Sequencing: the Action Center IS the primary UI deliverable of the scenarios+checklist implementation unit (D9/D10/D13.5/D14/D15/D16 all converge there). Year-end items = a scenario/content domain within it. The Stage-0 onboarding items make it the app's default landing surface for incomplete accounts.
 
+## Decision 17 — AI cost discipline (owner, 2026-07-02, BINDING on Phase 14 and all future work)
+
+Owner: "Make sure this is optimized to use the less expensive AI model and AI calls are as few as possible — for users and especially stale users — so this website isn't racking up AI bills when I'm not actually making money."
+
+**1. Template-first, Claude-last (the biggest lever):** deterministic template copy for every STANDARD output — gap questions (already decided SCN-03: no Claude), standard probe wording (the distillations contain verbatim question trees — use them), standard finding narrations (finding type + engine numbers → templated sentence; Claude ONLY for genuinely bespoke narrative). Target: the common path costs ZERO AI calls.
+**2. Model tiering per call site (config-driven):** per-service model keys (`services.anthropic.model_<purpose>` with global default) — narration/question wording/short structured tasks → `claude-haiku-4-5` (cheapest capable); document extraction stays `claude-sonnet-4-6` (accuracy-critical); transaction categorization (the volume king) → evaluate Haiku behind the EXISTING confidence-threshold safety net (low confidence already routes to review/questions — degradation is graceful by design). Tunable without code changes.
+**3. Activity gating everywhere:** extend the existing 28-day activity gate (commit 4e75c46 precedent) to ALL AI-triggering paths — categorization, narration, detectors, report regen: NO AI calls for users inactive ≥ threshold; lazy re-warm on their next login/visit. Stale users cost $0.
+**4. No mass backfills ever automatic:** owner-triggered only (the 2,461-txn backfill precedent).
+**5. Spend observability + budget caps:** per-service daily Claude-call counters (cache/DB, surfaced in the Admin drawer); config daily budget per service — jobs skip gracefully + log when over budget. The owner can SEE bill drivers.
+**6. Already-shipped levers that stay:** D13 freshness window + material-change gate + regen cooldown (report narration ≤5 calls/regen); batching (categorization 10/batch); ShouldBeUnique coalescing; no AI on page loads (jobs only).
+
 ## Non-negotiables that still apply
 
 Educational-only framing on every mismatch surface; additive migrations only; no changes to existing `UserFinancialProfile` API responses or `EnhancedProfileSection` behavior (extend, don't alter); encrypted TEXT + `$hidden` for sensitive new fields; all dollar math in TaxRulesEngineService from config.
