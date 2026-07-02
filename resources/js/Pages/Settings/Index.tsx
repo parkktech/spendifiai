@@ -18,6 +18,7 @@ import {
   Plus,
   X as XIcon,
   Check,
+  Info,
 } from 'lucide-react';
 import ConfirmDialog from '@/Components/SpendifiAI/ConfirmDialog';
 import Badge from '@/Components/SpendifiAI/Badge';
@@ -30,6 +31,9 @@ import HouseholdSection from '@/Components/SpendifiAI/HouseholdSection';
 import DependentsSection from '@/Components/SpendifiAI/DependentsSection';
 import EnhancedProfileSection from '@/Components/SpendifiAI/EnhancedProfileSection';
 import LearnedTaxFactsSection from '@/Components/SpendifiAI/LearnedTaxFactsSection';
+import AiOnboardingUploadSection from '@/Components/SpendifiAI/AiOnboardingUploadSection';
+import FamilyHouseholdSection from '@/Components/SpendifiAI/FamilyHouseholdSection';
+import HsaShoeboxSection from '@/Components/SpendifiAI/HsaShoeboxSection';
 
 function SuccessToast({ message }: { message: string }) {
   return (
@@ -289,14 +293,25 @@ export default function SettingsIndex() {
     <AuthenticatedLayout
       header={
         <div>
-          <h1 className="text-xl font-bold text-sw-text tracking-tight">Settings</h1>
-          <p className="text-xs text-sw-dim mt-0.5">Manage your profile, security, and preferences</p>
+          <h1 className="text-xl font-bold text-sw-text tracking-tight">Profile &amp; Settings</h1>
+          <p className="text-xs text-sw-dim mt-0.5">Manage your tax profile, household, AI onboarding, security, and preferences</p>
         </div>
       }
     >
-      <Head title="Settings" />
+      <Head title="Profile & Settings" />
 
       <div className="max-w-2xl space-y-6">
+
+        {/* Page-level educational disclaimer (UI-03 — informational, non-blocking) */}
+        <div className="flex items-start gap-2.5 rounded-xl border border-sw-info/20 bg-sw-info-light/40 px-4 py-3">
+          <Info size={14} className="text-sw-info shrink-0 mt-0.5" />
+          <p className="text-[12px] text-sw-text-secondary leading-relaxed">
+            <span className="font-semibold text-sw-text">For informational purposes.</span>{' '}
+            Profile information helps surface potential tax opportunities for your review.
+            Consider consulting a qualified tax professional before making financial decisions based on your profile.
+          </p>
+        </div>
+
         {/* Section 1: Financial Profile */}
         <div className="rounded-2xl border border-sw-border bg-sw-card p-6">
           <div className="flex items-center gap-3 mb-5">
@@ -419,6 +434,15 @@ export default function SettingsIndex() {
         {/* AI-Learned Tax Facts (Phase 11-05 STORE-01 anchor — additive alongside EnhancedProfileSection) */}
         {/* EnhancedProfileSection behavior and props are UNCHANGED — this renders after it.           */}
         <LearnedTaxFactsSection />
+
+        {/* AI Onboarding Upload (Phase 12 — fastest path to complete tax profile via document upload) */}
+        <AiOnboardingUploadSection />
+
+        {/* Family & Household Summary (Phase 12 — read-only aggregate view; edit via HouseholdSection/DependentsSection above) */}
+        <FamilyHouseholdSection />
+
+        {/* HSA Shoebox (Phase 12 — STORE-03 receipt tracking) */}
+        <HsaShoeboxSection />
 
         {/* Section 2: My Accountants (for personal users) */}
         {!isAccountant && (

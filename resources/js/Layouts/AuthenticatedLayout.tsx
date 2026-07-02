@@ -23,7 +23,10 @@ import {
   ChevronUp,
   Users,
   TrendingUp,
-  User,
+  Building2,
+  Heart,
+  HardDrive,
+  Cookie,
 } from 'lucide-react';
 
 interface NavItemDef {
@@ -38,16 +41,25 @@ function NavItem({
   item,
   active,
   collapsed,
+  variant = 'default',
 }: {
   item: NavItemDef;
   active: boolean;
   collapsed: boolean;
+  variant?: 'default' | 'admin';
 }) {
+  const adminActive = variant === 'admin' && active;
+  const adminInactive = variant === 'admin' && !active;
+
   return (
     <Link
       href={item.href}
       className={`relative flex items-center gap-3 w-full px-4 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-        active
+        adminActive
+          ? 'bg-sw-warning/15 text-sw-warning border-l-2 border-sw-warning'
+          : adminInactive
+          ? 'text-amber-700/70 hover:text-amber-800 hover:bg-sw-warning/10 border-l-2 border-transparent'
+          : active
           ? 'bg-sw-accent/10 text-sw-accent border-l-2 border-sw-accent'
           : 'text-sw-muted hover:text-sw-text hover:bg-sw-card border-l-2 border-transparent'
       }`}
@@ -83,10 +95,19 @@ export default function AuthenticatedLayout({
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [emailBannerDismissed, setEmailBannerDismissed] = useState(true);
   const [emailBannerExpanded, setEmailBannerExpanded] = useState(false);
+  const [adminExpanded, setAdminExpanded] = useState(false);
 
   useEffect(() => {
     setEmailBannerDismissed(localStorage.getItem('emailBannerDismissed') === '1');
+    // Persist admin group expansion like dark-mode toggle pattern
+    setAdminExpanded(localStorage.getItem('adminNavExpanded') === '1');
   }, []);
+
+  const toggleAdminExpanded = () => {
+    const next = !adminExpanded;
+    setAdminExpanded(next);
+    localStorage.setItem('adminNavExpanded', next ? '1' : '0');
+  };
 
   const showEmailBanner = hasBankConnected && !hasEmailConnected && !emailBannerDismissed;
 
@@ -95,7 +116,9 @@ export default function AuthenticatedLayout({
     setEmailBannerDismissed(true);
   };
 
-  const navItems: NavItemDef[] = [
+  // Main nav items — Settings and My Profile are NOT here; they are in the bottom-pinned group.
+  // Admin items are NOT here; they are in the collapsible admin group below.
+  const mainNavItems: NavItemDef[] = [
     { label: 'Dashboard', href: '/dashboard', routeName: 'dashboard', icon: <LayoutDashboard size={18} /> },
     { label: 'Transactions', href: '/transactions', routeName: 'transactions', icon: <Receipt size={18} /> },
     { label: 'Subscriptions', href: '/subscriptions', routeName: 'subscriptions', icon: <CreditCard size={18} /> },
@@ -103,18 +126,29 @@ export default function AuthenticatedLayout({
     { label: 'Tax', href: '/tax', routeName: 'tax', icon: <FileText size={18} /> },
     { label: 'Tax Vault', href: '/vault', routeName: 'vault', icon: <Archive size={18} /> },
     { label: 'Connect', href: '/connect', routeName: 'connect', icon: <Link2 size={18} /> },
-    { label: 'Settings', href: '/settings', routeName: 'settings', icon: <Settings size={18} /> },
     { label: 'AI Questions', href: '/questions', routeName: 'questions', icon: <HelpCircle size={18} /> },
     { label: 'Optimize My Income', href: '/optimize', routeName: 'optimize', icon: <TrendingUp size={18} />, badge: (auth.pendingOptimizationCount as number) || undefined },
-    { label: 'My Profile', href: '/user-profile', routeName: 'user-profile', icon: <User size={18} /> },
     ...(isAccountant ? [
       { label: 'Clients', href: '/accountant/clients', routeName: 'accountant.clients', icon: <Users size={18} /> },
     ] : []),
-    ...(isAdmin ? [
-      { label: 'Admin', href: '/admin', routeName: 'admin.dashboard', icon: <ShieldCheck size={18} /> },
-      { label: 'Consent', href: '/admin/consent', routeName: 'admin.consent', icon: <ShieldCheck size={18} /> },
-    ] : []),
   ];
+
+  // Admin nav items — all admin routes collected here, never mixed into user nav.
+  const adminNavItems: NavItemDef[] = [
+    { label: 'Admin Dashboard', href: '/admin', routeName: 'admin.dashboard', icon: <ShieldCheck size={16} /> },
+    { label: 'Providers', href: '/admin/providers', routeName: 'admin.providers', icon: <Building2 size={16} /> },
+    { label: 'Charities', href: '/admin/charities', routeName: 'admin.charities', icon: <Heart size={16} /> },
+    { label: 'Storage', href: '/admin/storage', routeName: 'admin.storage', icon: <HardDrive size={16} /> },
+    { label: 'Consent', href: '/admin/consent', routeName: 'admin.consent', icon: <Cookie size={16} /> },
+  ];
+
+  // Profile & Settings — pinned to very bottom of sidebar (below admin group).
+  const profileSettingsItem: NavItemDef = {
+    label: 'Profile & Settings',
+    href: '/settings',
+    routeName: 'settings',
+    icon: <Settings size={18} />,
+  };
 
   const isActive = (routeName: string) => {
     try {
@@ -123,6 +157,9 @@ export default function AuthenticatedLayout({
       return currentRoute === routeName;
     }
   };
+
+  // Check if any admin route is currently active (for collapsed indicator)
+  const isAnyAdminActive = adminNavItems.some(item => !!isActive(item.routeName));
 
   const sidebarContent = (
     <>
@@ -155,9 +192,9 @@ export default function AuthenticatedLayout({
         </Link>
       </div>
 
-      {/* Nav */}
+      {/* Main Nav */}
       <nav aria-label="Main navigation" className="flex-1 flex flex-col gap-1 px-3 py-4 overflow-y-auto">
-        {navItems.map((item) => (
+        {mainNavItems.map((item) => (
           <NavItem
             key={item.routeName}
             item={item}
@@ -166,6 +203,78 @@ export default function AuthenticatedLayout({
           />
         ))}
       </nav>
+
+      {/* Bottom-pinned section: Admin group (admins only) + Profile & Settings */}
+      <div className="px-3 pt-2 pb-1 border-t border-sw-border space-y-1">
+
+        {/* Admin group — rendered ONLY for admins, visually distinct, collapsible */}
+        {isAdmin && (
+          <div className="mb-1">
+            {/* Admin group header — collapsed by default, amber/warning tone */}
+            <button
+              onClick={toggleAdminExpanded}
+              aria-expanded={adminExpanded}
+              className={`relative flex items-center gap-3 w-full px-4 py-2.5 rounded-lg text-xs font-semibold tracking-wide transition-colors ${
+                isAnyAdminActive && !adminExpanded
+                  ? 'bg-sw-warning/15 text-sw-warning'
+                  : adminExpanded
+                  ? 'bg-sw-warning/10 text-amber-700'
+                  : 'text-amber-700/70 hover:bg-sw-warning/10 hover:text-amber-800'
+              }`}
+            >
+              <span className="shrink-0">
+                <ShieldCheck size={collapsed ? 18 : 16} />
+              </span>
+              {!collapsed && (
+                <>
+                  <span className="flex-1 text-left uppercase tracking-widest text-[10px]">Admin</span>
+                  {adminExpanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+                </>
+              )}
+              {/* Collapsed indicator dot when admin route is active */}
+              {collapsed && isAnyAdminActive && (
+                <span className="absolute top-2 right-2 w-1.5 h-1.5 rounded-full bg-sw-warning" />
+              )}
+            </button>
+
+            {/* Admin items — shown when expanded (or when sidebar is collapsed and we show icon-only) */}
+            {adminExpanded && !collapsed && (
+              <div className="mt-0.5 space-y-0.5 pl-2">
+                {adminNavItems.map((item) => (
+                  <NavItem
+                    key={item.routeName}
+                    item={item}
+                    active={!!isActive(item.routeName)}
+                    collapsed={false}
+                    variant="admin"
+                  />
+                ))}
+              </div>
+            )}
+            {/* Collapsed sidebar: show admin items icon-only when expanded */}
+            {adminExpanded && collapsed && (
+              <div className="mt-0.5 space-y-0.5">
+                {adminNavItems.map((item) => (
+                  <NavItem
+                    key={item.routeName}
+                    item={item}
+                    active={!!isActive(item.routeName)}
+                    collapsed={true}
+                    variant="admin"
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Profile & Settings — pinned at the very bottom, separated from user nav */}
+        <NavItem
+          item={profileSettingsItem}
+          active={!!isActive(profileSettingsItem.routeName)}
+          collapsed={collapsed}
+        />
+      </div>
 
       {/* Collapse toggle (desktop only) */}
       <div className="hidden sm:block border-t border-sw-border p-3">
@@ -257,7 +366,7 @@ export default function AuthenticatedLayout({
                       role="menuitem"
                       className="flex items-center gap-2 px-4 py-2 text-sm text-sw-muted hover:text-sw-text hover:bg-sw-card-hover transition"
                     >
-                      <Settings size={14} /> Settings
+                      <Settings size={14} /> Profile &amp; Settings
                     </Link>
                     <button
                       onClick={() => {
