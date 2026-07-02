@@ -54,14 +54,14 @@ function NavItem({
   return (
     <Link
       href={item.href}
-      className={`relative flex items-center gap-3 w-full px-4 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+      className={`relative flex items-center gap-3 w-full px-4 py-2.5 rounded-lg text-sm font-medium ${
         adminActive
-          ? 'bg-sw-warning/15 text-sw-warning border-l-2 border-sw-warning'
+          ? "bg-sw-warning/15 text-sw-warning before:content-[''] before:absolute before:left-0 before:top-1/2 before:-translate-y-1/2 before:h-5 before:w-[3px] before:rounded-full before:bg-gradient-to-b before:from-sw-warning before:to-amber-500"
           : adminInactive
-          ? 'text-amber-700/70 hover:text-amber-800 hover:bg-sw-warning/10 border-l-2 border-transparent'
+          ? 'text-amber-700/70 hover:text-amber-800 hover:bg-sw-warning/10 transition-all [transition-duration:150ms] [transition-timing-function:cubic-bezier(0.25,0.46,0.45,0.94)]'
           : active
-          ? 'bg-sw-accent/10 text-sw-accent border-l-2 border-sw-accent'
-          : 'text-sw-muted hover:text-sw-text hover:bg-sw-card border-l-2 border-transparent'
+          ? "bg-gradient-to-r from-sw-accent/12 to-transparent text-sw-accent before:content-[''] before:absolute before:left-0 before:top-1/2 before:-translate-y-1/2 before:h-5 before:w-[3px] before:rounded-full before:bg-gradient-to-b before:from-sw-accent before:to-violet-600"
+          : 'text-sw-muted hover:text-sw-text hover:bg-sw-surface/80 transition-all [transition-duration:150ms] [transition-timing-function:cubic-bezier(0.25,0.46,0.45,0.94)]'
       }`}
     >
       <span className="shrink-0">{item.icon}</span>
@@ -294,7 +294,7 @@ export default function AuthenticatedLayout({
     <div className="flex h-screen bg-sw-bg overflow-hidden">
       {/* Desktop sidebar */}
       <aside
-        className={`hidden sm:flex flex-col bg-sw-sidebar border-r border-sw-border shrink-0 transition-all duration-300 ${
+        className={`hidden sm:flex flex-col bg-sw-sidebar border-r border-sw-card-frame shrink-0 [transition:width_220ms_cubic-bezier(0.32,0.72,0,1)] shadow-[1px_0_0_rgba(15,23,42,0.04)] ${
           collapsed ? 'w-[68px]' : 'w-64'
         }`}
       >
@@ -321,7 +321,7 @@ export default function AuthenticatedLayout({
       {/* Main content area */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Top bar */}
-        <header className="shrink-0 h-16 flex items-center justify-between px-6 border-b border-sw-border bg-sw-card shadow-sm">
+        <header className="shrink-0 h-14 flex items-center justify-between px-6 border-b border-sw-border/60 bg-sw-card/90 backdrop-blur-sm shadow-[0_1px_0_rgba(15,23,42,0.06),0_2px_8px_rgba(15,23,42,0.04)]">
           <div className="flex items-center gap-4">
             {/* Mobile hamburger */}
             <button
@@ -338,7 +338,7 @@ export default function AuthenticatedLayout({
 
           <div className="flex items-center gap-3">
             {/* Notification bell */}
-            <button aria-label="Notifications" className="relative w-9 h-9 rounded-lg border border-sw-border bg-transparent flex items-center justify-center text-sw-muted hover:text-sw-text transition">
+            <button aria-label="Notifications" className="relative w-9 h-9 rounded-xl border border-sw-border/80 bg-sw-surface/60 flex items-center justify-center text-sw-muted hover:text-sw-text hover:border-sw-border-strong hover:bg-sw-surface hover:shadow-sw-1 transition-all [transition-duration:150ms] [transition-timing-function:cubic-bezier(0.25,0.46,0.45,0.94)] active:scale-95">
               <Bell size={16} />
             </button>
 
@@ -348,7 +348,7 @@ export default function AuthenticatedLayout({
                 onClick={() => setUserMenuOpen(!userMenuOpen)}
                 aria-expanded={userMenuOpen}
                 aria-haspopup="true"
-                className="w-9 h-9 rounded-lg bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center text-white text-sm font-bold cursor-pointer"
+                className="w-9 h-9 rounded-xl bg-gradient-to-br from-sw-accent to-violet-600 flex items-center justify-center text-white text-sm font-bold cursor-pointer ring-2 ring-sw-accent/20 ring-offset-1 transition-all [transition-duration:150ms] hover:ring-sw-accent/40 hover:shadow-sw-accent active:scale-95"
               >
                 {user.name?.charAt(0)?.toUpperCase() || 'U'}
               </button>
