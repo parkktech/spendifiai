@@ -128,7 +128,7 @@ function UpcomingPaymentsCarousel({ bills }: { bills: RecurringBill[] }) {
   }
 
   return (
-    <div className="rounded-2xl border border-sw-border bg-sw-card p-6">
+    <div className="rounded-2xl bg-gradient-to-b from-white to-slate-50/50 ring-1 ring-sw-border/70 shadow-sw-1 p-6">
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-4">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-violet-50 border border-violet-200 flex items-center justify-center">
@@ -223,7 +223,7 @@ function BudgetWaterfallSection({ waterfall, displayMode = 'dollars', pl = DEFAU
   const pctOf = (amount: number) => `${Math.round((amount / waterfall.monthly_income) * 100)}%`;
 
   return (
-    <div className="rounded-2xl border border-sw-border bg-sw-card p-6">
+    <div className="rounded-2xl bg-gradient-to-b from-white to-slate-50/50 ring-1 ring-sw-border/70 shadow-sw-1 p-6">
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 mb-5">
         <div className="flex items-center gap-3">
           <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${canSave ? 'bg-emerald-50 border border-emerald-200' : 'bg-red-50 border border-red-200'}`}>
@@ -292,7 +292,7 @@ function BudgetWaterfallSection({ waterfall, displayMode = 'dollars', pl = DEFAU
             <div className="w-3 h-3 rounded-sm bg-emerald-500" />
             <span className="text-sm text-sw-text">{pl.incomeLabel}</span>
           </div>
-          <span className="text-sm font-bold text-emerald-700">{showPct ? '100%' : fmt.format(waterfall.monthly_income)}</span>
+          <span className="text-sm font-bold text-emerald-700 font-tabular">{showPct ? '100%' : fmt.format(waterfall.monthly_income)}</span>
         </div>
         <div className="flex items-center justify-between py-1.5">
           <div className="flex items-center gap-2.5">
@@ -318,7 +318,7 @@ function BudgetWaterfallSection({ waterfall, displayMode = 'dollars', pl = DEFAU
         <div className="border-t border-sw-border pt-2.5 flex items-center justify-between">
           <span className="text-sm font-bold text-sw-text">{canSave ? pl.surplusLabel : pl.deficitLabel}</span>
           <span className={`text-lg font-bold ${canSave ? 'text-emerald-700' : 'text-red-600'}`}>
-            {canSave ? '+' : ''}{showPct ? `${Math.abs(rate)}%` : fmt.format(surplus)}
+            <span className="font-tabular">{canSave ? '+' : ''}{showPct ? `${Math.abs(rate)}%` : fmt.format(surplus)}</span>
           </span>
         </div>
       </div>
@@ -350,7 +350,7 @@ function MonthlyBillsSection({ bills: allBills, totalMonthly, monthlyIncome, dis
   const displayBills = showAll ? bills : bills.slice(0, 8);
 
   return (
-    <div className="rounded-2xl border border-sw-border bg-sw-card p-6">
+    <div className="rounded-2xl bg-gradient-to-b from-white to-slate-50/50 ring-1 ring-sw-border/70 shadow-sw-1 p-6">
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 mb-5">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-blue-50 border border-blue-200 flex items-center justify-center">
@@ -362,7 +362,7 @@ function MonthlyBillsSection({ bills: allBills, totalMonthly, monthlyIncome, dis
           </div>
         </div>
         <div className="text-left sm:text-right pl-[52px] sm:pl-0">
-          <div className="text-lg font-bold text-sw-text">
+          <div className="text-lg font-bold text-sw-text font-tabular">
             {showPct ? `${Math.round((totalMonthly / monthlyIncome!) * 100)}% of income` : `${fmt.format(totalMonthly)}/mo`}
           </div>
           <div className="text-[11px] text-sw-dim">
@@ -453,7 +453,7 @@ function HomeAffordabilitySection({ affordability }: { affordability: HomeAfford
   const hasIncome = affordability.monthly_income > 0;
 
   return (
-    <div className="rounded-2xl border border-sw-border bg-sw-card p-6">
+    <div className="rounded-2xl bg-gradient-to-b from-white to-slate-50/50 ring-1 ring-sw-border/70 shadow-sw-1 p-6">
       <div className="flex items-center gap-3 mb-5">
         <div className="w-10 h-10 rounded-xl bg-violet-50 border border-violet-200 flex items-center justify-center">
           <Home size={20} className="text-violet-600" />
@@ -469,7 +469,7 @@ function HomeAffordabilitySection({ affordability }: { affordability: HomeAfford
           {/* Hero number */}
           <div className="text-center mb-5">
             <div className="text-xs text-sw-muted font-medium uppercase tracking-wider mb-1">Max Home Price</div>
-            <div className="text-3xl font-bold text-sw-text">{fmt.format(affordability.max_home_price)}</div>
+            <div className="text-3xl font-bold text-sw-text font-tabular">{fmt.format(affordability.max_home_price)}</div>
             <div className="text-xs text-sw-dim mt-1">
               {fmt.format(affordability.max_loan_amount)} loan + {fmt.format(affordability.down_payment)} down
             </div>
@@ -675,7 +675,7 @@ function ResolvedCardDisplay({ item, responded }: { item: ActionItem; responded:
   const { Icon } = config;
 
   return (
-    <div className={`rounded-xl border border-sw-border bg-sw-card p-4 ${responded.type === 'kept' ? 'opacity-60' : ''}`}>
+    <div className={`rounded-xl bg-gradient-to-b from-white to-slate-50/50 ring-1 ring-sw-border/70 shadow-sw-1 p-4 ${responded.type === 'kept' ? 'opacity-60' : ''}`}>
       <div className="flex items-center gap-3">
         <div className={`w-9 h-9 rounded-lg border flex items-center justify-center shrink-0 ${config.bg}`}>
           <Icon size={16} className={config.color} />
@@ -744,7 +744,7 @@ function ActionCard({
   const color = colorMap[item.type];
 
   return (
-    <div className="rounded-xl border border-sw-border bg-sw-card p-4 hover:shadow-sm transition">
+    <div className="rounded-xl bg-gradient-to-b from-white to-slate-50/50 ring-1 ring-sw-border/70 shadow-sw-1 p-4 card-lift">
       <div className="flex items-start gap-3">
         <div className={`w-9 h-9 rounded-lg border flex items-center justify-center shrink-0 ${color}`}>
           <Icon size={16} />
@@ -1153,12 +1153,12 @@ export default function Dashboard() {
               <div className="flex items-center gap-1.5">
                 <ArrowDownLeft size={14} className="text-emerald-500" />
                 <span className="text-sw-dim">In:</span>
-                <span className="font-semibold text-sw-text">{formatCurrency(data.summary.this_month_income)}</span>
+                <span className="font-semibold text-sw-text font-tabular">{formatCurrency(data.summary.this_month_income)}</span>
               </div>
               <div className="flex items-center gap-1.5">
                 <ArrowUpRight size={14} className="text-red-500" />
                 <span className="text-sw-dim">Out:</span>
-                <span className="font-semibold text-sw-text">{formatCurrency(data.summary.this_month_spending)}</span>
+                <span className="font-semibold text-sw-text font-tabular">{formatCurrency(data.summary.this_month_spending)}</span>
               </div>
               <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${
                 data.budget_waterfall.can_save
@@ -1166,7 +1166,7 @@ export default function Dashboard() {
                   : 'bg-red-50 text-red-700 border border-red-200'
               }`}>
                 <Wallet size={13} />
-                {data.budget_waterfall.can_save ? '+' : ''}{formatCurrency(data.budget_waterfall.monthly_surplus)}
+                <span className="font-tabular">{data.budget_waterfall.can_save ? '+' : ''}{formatCurrency(data.budget_waterfall.monthly_surplus)}</span>
               </div>
             </div>
           </div>
@@ -1190,7 +1190,7 @@ export default function Dashboard() {
           )}
 
           {/* SECTION B: Budget Reality Check + Home Affordability (side by side) */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 stagger-children">
             <BudgetWaterfallSection waterfall={data.budget_waterfall} displayMode={displayMode} pl={pl} />
             <HomeAffordabilitySection affordability={data.home_affordability} />
           </div>
@@ -1238,7 +1238,7 @@ export default function Dashboard() {
           )}
 
           {/* SECTION D: Your Money Moves — Action Feed */}
-          <div className="rounded-2xl border border-sw-border bg-sw-card p-6">
+          <div className="rounded-2xl bg-gradient-to-b from-white to-slate-50/50 ring-1 ring-sw-border/70 shadow-sw-1 p-6">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-5">
               <div>
                 <h2 className="text-[15px] font-semibold text-sw-text">Where to Cut</h2>
@@ -1340,7 +1340,7 @@ export default function Dashboard() {
                 projectedMonthly={data.projected_savings?.projected_monthly_savings ?? 0}
               />
             ) : (
-              <div className="rounded-2xl border border-sw-border bg-sw-card p-6">
+              <div className="rounded-2xl bg-gradient-to-b from-white to-slate-50/50 ring-1 ring-sw-border/70 shadow-sw-1 p-6">
                 <div className="flex items-center gap-3 mb-4">
                   <div className="w-9 h-9 rounded-lg bg-emerald-50 border border-emerald-200 flex items-center justify-center">
                     <CheckCircle2 size={18} className="text-emerald-600" />
@@ -1376,7 +1376,7 @@ export default function Dashboard() {
             )}
 
             {/* Savings Goal */}
-            <div className="rounded-2xl border border-sw-border bg-sw-card p-6">
+            <div className="rounded-2xl bg-gradient-to-b from-white to-slate-50/50 ring-1 ring-sw-border/70 shadow-sw-1 p-6">
               <div className="flex items-center gap-3 mb-4">
                 <div className="w-9 h-9 rounded-lg bg-blue-50 border border-blue-200 flex items-center justify-center">
                   <Target size={18} className="text-blue-600" />
@@ -1459,7 +1459,7 @@ export default function Dashboard() {
 
           {/* SECTION H: Recent Transactions (compact) */}
           {data.recent && data.recent.length > 0 && (
-            <div className="rounded-2xl border border-sw-border bg-sw-card p-6">
+            <div className="rounded-2xl bg-gradient-to-b from-white to-slate-50/50 ring-1 ring-sw-border/70 shadow-sw-1 p-6">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-[15px] font-semibold text-sw-text">Recent Activity</h3>
                 <Link
