@@ -10,7 +10,7 @@ return [
     'ai' => [
         'model' => env('ANTHROPIC_MODEL', 'claude-sonnet-4-6'),
         'api_key' => env('ANTHROPIC_API_KEY'),
-        'batch_size' => 25,
+        'batch_size' => 10,
         'rate_limit_ms' => 500,
         'confidence_thresholds' => [
             'auto_accept' => 0.85,  // Auto-categorize silently

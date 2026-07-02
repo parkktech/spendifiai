@@ -171,7 +171,7 @@ SYS;
                     'x-api-key' => $this->apiKey,
                     'anthropic-version' => '2023-06-01',
                     'content-type' => 'application/json',
-                ])->timeout(45)->post('https://api.anthropic.com/v1/messages', [
+                ])->timeout(150)->post('https://api.anthropic.com/v1/messages', [
                     'model' => $this->model,
                     'max_tokens' => 256,
                     'system' => $systemPrompt,
