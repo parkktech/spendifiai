@@ -13,6 +13,15 @@
 
 return [
 
+    // ── ACA Cliff Constants (FLAG-22, TAX-08 equivalent) ─────────────────────
+    // FPL 400% thresholds for premium credit cliff (2026, continental US).
+    // Used by AcaCliffMonitor to gate cliff proximity warnings.
+    // Verify annually: healthcare.gov FPL charts published each fall.
+    'aca_cliff_cents' => [
+        'single_2026' => 6_260_000,    // ~$62,600 single (continental US, 2026)
+        'family4_2026' => 12_860_000,  // ~$128,600 family-4 (continental US, 2026)
+    ],
+
     // ── Materiality Gates (D2 / FLAG-08) ─────────────────────────────────────
     // Read by TaxRulesEngineService::passesMaterialityGate() — NEVER hardcode in service code.
     'materiality' => [
@@ -903,6 +912,82 @@ return [
 
         // Battery answers don't need a rule_id in the tax rules registry
         // (they're stored as UserTaxFacts, not OptimizationFindings).
+
+        // ── FLAG-22: ACA Subsidy Cliff Monitor ───────────────────────────────
+        // 400%-FPL thresholds for premium credit cliff (2026, continental US)
+        // 2B.1 binding: MAGI-management BEFORE Trad-vs-Roth for marketplace enrollees
+        // Awareness only: never compute a subsidy or clawback amount
+
+        'aca_cliff_awareness' => [
+            'rule_id' => 'aca_cliff_awareness',
+            'authority' => 'IRC §36B(b)(3)(A) (400% FPL cliff); OBBBA (removes excess-APTC repayment cap post-2025)',
+            'effective_start' => '2026-01-01',
+            'effective_end' => null,
+            'phaseouts' => [],
+            'fpl_400pct_single_cents' => 6_260_000,   // ~$62,600 single (continental US 2026)
+            'fpl_400pct_family4_cents' => 12_860_000,  // ~$128,600 family-4 (continental US 2026)
+            'inflation_adjusted' => true,
+            'source_url' => 'https://www.irs.gov/affordable-care-act/individuals-and-families/premium-tax-credit-the-basics',
+            'last_verified' => '2026-07-01',
+            'status' => 'verified',
+            // BINDING T-11-08-02: finding must never present user-specific subsidy/clawback
+            'band' => 'conditional',
+        ],
+
+        // ── FLAG-23: Refundable Credit Scanner ───────────────────────────────
+        // "may be eligible" framing only (never "you qualify").
+        // Saver's Match date-gated to 2027 (SECURE 2.0 §103).
+        // State credits → STATE-01 deferred (not surfaced here).
+
+        'refundable_credit_eitc' => [
+            'rule_id' => 'refundable_credit_eitc',
+            'authority' => 'IRC §32 (EITC); §32(i) (investment income disqualifier ~$11,950/2026)',
+            'effective_start' => '2025-01-01',
+            'effective_end' => null,
+            'phaseouts' => [
+                'investment_income_limit_cents' => 1_195_000, // ~$11,950 2026; verify annually
+            ],
+            'inflation_adjusted' => true,
+            'source_url' => 'https://www.irs.gov/credits-deductions/individuals/earned-income-tax-credit',
+            'last_verified' => '2026-07-01',
+            'status' => 'verified',
+            // BINDING: investment-income-limit caveat mandatory in every EITC finding
+            'band' => 'conditional',
+        ],
+
+        'refundable_credit_ctc' => [
+            'rule_id' => 'refundable_credit_ctc',
+            'authority' => 'IRC §24 (CTC, $2,000/child); §24(d) (ACTC refundable up to $1,700)',
+            'effective_start' => '2025-01-01',
+            'effective_end' => null,
+            'phaseouts' => [
+                'magi_single' => 200_000,  // phaseout starts ($200K single)
+                'magi_mfj' => 400_000,     // phaseout starts ($400K MFJ)
+            ],
+            'inflation_adjusted' => false,
+            'source_url' => 'https://www.irs.gov/credits-deductions/individuals/child-tax-credit',
+            'last_verified' => '2026-07-01',
+            'status' => 'verified',
+            'band' => 'conditional',
+        ],
+
+        'refundable_credit_savers' => [
+            'rule_id' => 'refundable_credit_savers',
+            'authority' => 'IRC §25B (Saver\'s Credit 10%/20%/50% of $2K); SECURE 2.0 §103 (Saver\'s Match, eff. 2027)',
+            'effective_start' => '2025-01-01',
+            'effective_end' => null,
+            'phaseouts' => [
+                'magi_single_max' => 23_000,  // ~2026 approximate; verify annually
+                'magi_mfj_max' => 46_000,
+            ],
+            'savers_match_effective_year' => 2027,  // TAX-09 date gate
+            'inflation_adjusted' => true,
+            'source_url' => 'https://www.irs.gov/retirement-plans/plan-participant-employee/retirement-savings-contributions-savers-credit',
+            'last_verified' => '2026-07-01',
+            'status' => 'verified',
+            // BINDING TAX-09: Saver's Match content date-gated to 2027
+            'band' => 'conditional',
+        ],
 
         // ── FLAG-17: Signal→Question→Strategy Probe Matrix ───────────────────
         // Probes fire only on verified prerequisite signals (FLAG-05 pattern).
