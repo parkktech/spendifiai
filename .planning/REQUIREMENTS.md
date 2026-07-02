@@ -141,7 +141,7 @@ Requirements for this milestone. Each maps to a roadmap phase. All outputs are e
 
 ### Design Elevation (ELEV)
 
-- [ ] **ELEV-01**: DESIGN-ELEVATION-SPEC.md Wave 1 is applied: the 41 additive `sw-*` elevation tokens (shadow scale, motion tokens, display type scale, gradient recipes, surface colors) are added to `resources/css/app.css`; `AuthenticatedLayout.tsx` receives the spring-cubic-bezier sidebar transition, premium top header (backdrop-blur, 2-layer shadow, h-14), pill-indicator active nav state, and the `btn-press` / `card-lift` CSS utilities; Wave 1 preservation audit (§6 template) passes
+- [x] **ELEV-01**: DESIGN-ELEVATION-SPEC.md Wave 1 is applied: the 41 additive `sw-*` elevation tokens (shadow scale, motion tokens, display type scale, gradient recipes, surface colors) are added to `resources/css/app.css`; `AuthenticatedLayout.tsx` receives the spring-cubic-bezier sidebar transition, premium top header (backdrop-blur, 2-layer shadow, h-14), pill-indicator active nav state, and the `btn-press` / `card-lift` CSS utilities; Wave 1 preservation audit (§6 template) passes
 - [ ] **ELEV-02**: DESIGN-ELEVATION-SPEC.md Wave 2 is applied: `StatCard` gains the double-bezel anatomy (outer gradient frame, inner core, value at `text-[28px] font-[800]`, sentence-case label, semantic icon container variants); `SubscriptionCard`, `Badge`, and generic content cards gain `ring-1`/gradient/`shadow-sw-1` treatment and `card-lift` hover; Dashboard stat grid uses `stagger-children`; transaction row hover uses the gradient-fade pattern; Wave 2 preservation + tests audit passes
 - [ ] **ELEV-03**: All new Phase-14 UI components (Action Center widget, scenario comparison cards, checklist items, ChangeMonitor doc-request cards) are born to DESIGN-ELEVATION-SPEC canonical recipes (§3.11 scenario/checklist action card, §3.9 premium empty state, §3.10 skeleton) from their initial commit — no retrofitting required
 
@@ -314,7 +314,7 @@ Each requirement maps to exactly one phase. Phases continue the global numbering
 | SCN-08 | Phase 14 | Pending |
 | MON-01 | Phase 14 | Pending |
 | MON-02 | Phase 14 | Pending |
-| ELEV-01 | Phase 14 | Pending |
+| ELEV-01 | Phase 14 | Complete |
 | ELEV-02 | Phase 14 | Pending |
 | ELEV-03 | Phase 14 | Pending |
 
