@@ -154,3 +154,43 @@ None. ScenarioSolverService makes zero network calls, reads no user-controlled i
 - [x] Commit `9c7bfea` (RED test files) — FOUND
 - [x] Commit `733fee4` (GREEN implementation) — FOUND
 - [x] 0 new test failures introduced
+
+---
+
+## Solver reconciliation fix
+
+**Commit:** `f5896a7`  
+**Context:** 5 tests that passed in the 14-06 GREEN run began failing after interleaved commits
+(14-02 engine bug-fixes + D18 concurrent work) altered the ground under them.
+
+### Per-failure root cause and disposition
+
+| # | Test | Classification | Root cause | Fix |
+|---|------|----------------|------------|-----|
+| 1 | `objective dominance` (retirement 790k < tax_burden 1540k) | Solver bug | K3 greedy used K2=0 in floor checks; K2=50 set AFTER search. K3=13%+K2=50% violated 90% floor so IRA loop never fired, leaving retirement with only the bare 401k amount. | K2=0 permanently for retirement 401k; Roth/Trad band applied to K5 IRA only. |
+| 2 | `take-home floor` (221899 < 224999) | Solver bug | Same K2 mismatch — Roth 401k provides no withholding relief; final K3=13%/K2=50% vector pushed per-paycheck TH below the 90% floor. | K2=0 for retirement 401k; floor checks now reflect actual take-home cost. |
+| 3 | `take-home floor` cash-constrained (173807 < 174599) | Solver bug | Same K2 mismatch under the tighter 97% cash-constrained floor. | Same fix as #2; at K2=0, K3=5% (match threshold) passes the 97% floor. |
+| 4 | `knob vector structure` (retirement roth_share_pct float 50.0 not on int grid) | Solver bug (cascading engine type issue) | Engine line 956 divides `roth401k / deferralCents * 100` → float 50.0 when roth401k is non-zero. PHP strict `in_array(50.0, [0,25,50,75,100], true)` = false (float ≠ int). With K2=0, roth401k=0 → PHP integer division returns int 0, passing the strict check. No engine change required. | Fixed as a consequence of #1–3 fix (K2=0). Engine line 956 preserved as-is to maintain ACA-guard and mandatory-Roth-catchup precision. |
+| 5 | `agreement detection` (diffKnobs TH vs R non-empty on converged baseline) | Stale test expectation | `convergingBaseline.ira_trad_ytd_cents = 700_000` ($7,000) was written against the 2025 IRA limit; the 2026 config limit is $7,500 (750,000 cents). The $500 residual room caused retirement to add a Roth IRA that take_home skips, producing a diff exactly at the epsilon boundary. Additionally, at the post-max-401k taxable income of $9,400 (marginal rate 10%), the band = 'roth' would diverge K2 from take_home's K2=0. | Updated fixture to `ira_trad_ytd_cents = 750_000` (actual 2026 limit). With K2=0 and no IRA room, all three objectives produce identical vectors. |
+
+### Additional invariant discovered and fixed
+
+**Lowest-tax badge invariant (§C.3) — discovered during reconciliation:**
+With K2=0 for retirement on the high-income divergingBaseline ($120k), the K3-first greedy
+allowed retirement to reach K3=14% (vs tax_burden K3=11%) because retirement filled K3 to
+maximum BEFORE HSA, leaving less floor room for HSA. The higher K3 produced $100 more in
+trad-401k deductions than tax_burden, making retirement's federal tax delta more negative —
+violating the lowest-tax badge invariant.
+
+**Fix:** Mirror `solveTaxBurden()`'s `match → HSA → K3-continue` ordering in `solveRetirement()`.
+With HSA filled at the match-threshold deferral BEFORE the K3 greedy continuation, both solvers
+face the same combined (HSA + 401k) floor constraint and converge to the same K3 ceiling.
+Retirement's trad deductions = tax_burden's trad deductions (tied), so the badge invariant holds.
+
+**Dominance still satisfied after HSA-ordering change:** Retirement still adds Roth IRA (K5,
+from band recommendation) that tax_burden does not (tax_burden only adds trad IRA, which is
+fully phased out at $102k MAGI). Retirement contributions_delta ≥ tax_burden contributions_delta.
+
+### Final suite result
+- **Before fix:** 971 passing, 6 failing (5 solver + 1 pre-existing DashboardFinancialBlocksTest)
+- **After fix:** 971 passing, 1 failing (pre-existing DashboardFinancialBlocksTest only)
