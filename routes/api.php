@@ -13,6 +13,7 @@ use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\DependentController;
 use App\Http\Controllers\Api\DocumentAnnotationController;
 use App\Http\Controllers\Api\DocumentRequestController;
+use App\Http\Controllers\Api\DurableFactsController;
 use App\Http\Controllers\Api\EmailConnectionController;
 use App\Http\Controllers\Api\HouseholdController;
 use App\Http\Controllers\Api\ImpersonationController;
@@ -333,6 +334,16 @@ Route::middleware(['auth:sanctum'])->group(function () {
             Route::post('/start', [InterviewController::class, 'start']);
             Route::get('/{interview}/next', [InterviewController::class, 'next']);
             Route::post('/{interview}/questions/{question}/answer', [InterviewController::class, 'answer']);
+        });
+
+        // ── Phase 11-05: Durable Facts API (STORE-01 anchor UI) ──
+        // GET  /api/v1/optimizer/facts           — list confirmed + proposals (value $hidden)
+        // POST /api/v1/optimizer/facts/{fact}/confirm   — D4 gate: confirm a doc-extraction proposal
+        // POST /api/v1/optimizer/facts/{fact}/supersede — user-edit re-answer (creates new row)
+        Route::prefix('optimizer/facts')->group(function () {
+            Route::get('/', [DurableFactsController::class, 'index']);
+            Route::post('/{fact}/confirm', [DurableFactsController::class, 'confirm']);
+            Route::post('/{fact}/supersede', [DurableFactsController::class, 'supersede']);
         });
 
         // Email Connections

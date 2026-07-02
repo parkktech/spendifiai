@@ -645,6 +645,69 @@ export interface BatchTransactionsResponse {
   files_included: number;
 }
 
+// ─── Phase 11-05: Interview + Durable Facts types (INT-02, STORE-01) ─────────
+
+/** Summary view of a persisted interview session (11-04 state machine). */
+export interface InterviewSessionInfo {
+  id: number;
+  tax_year: number;
+  status: 'created' | 'in_progress' | 'paused' | 'completed';
+  initial_cap: number;
+  created_at: string;
+}
+
+/**
+ * The payload returned by GET /{interview}/next.
+ * Carries the AIQuestion data plus interview-specific metadata.
+ * `value` is never present — it is $hidden on UserTaxFact.
+ */
+export interface OptimizationQuestionPayload {
+  id: number;
+  question: string;
+  question_type: string;
+  options: string[] | null;
+  ai_confidence: number | null;
+  ai_best_guess: string | null;
+  /** The band from the originating OptimizationFinding rule. */
+  band: 'auto' | 'conditional' | 'specialist' | null;
+  /**
+   * Pre-filled treatment for auto-band findings (INT-07 suggested-confirm).
+   * Shown as non-committed highlighted text in SuggestedConfirmCard.
+   * null for conditional/specialist band questions.
+   */
+  suggested_treatment: string | null;
+  /** How many transactions are associated with this finding. */
+  transaction_count: number;
+}
+
+/**
+ * A durable tax fact as returned by GET /api/v1/optimizer/facts.
+ * The encrypted `value` column is always excluded from API responses.
+ * `metadata` (JSONB) carries extraction_confidence for document_extraction source.
+ */
+export interface UserTaxFactView {
+  id: number;
+  fact_key: string;
+  /** Human-readable non-PII label for display. */
+  label: string;
+  volatility: 'permanent' | 'stable' | 'annual';
+  tax_year: number | null;
+  source_type: 'interview_answer' | 'document_extraction' | 'detector' | 'profile_field' | 'user_edit';
+  is_current: boolean;
+  confirmed_at: string | null;
+  asserted_at: string | null;
+  /** Non-PII confidence metadata (e.g. { extraction_confidence: 0.82 }). */
+  metadata: Record<string, unknown> | null;
+  created_at: string;
+}
+
+export interface DurableFactsResponse {
+  /** Current confirmed facts (is_current=true). */
+  confirmed: UserTaxFactView[];
+  /** Pending proposals (source_type='document_extraction', not yet confirmed). */
+  proposals: UserTaxFactView[];
+}
+
 // --- Recurring Bills & Budget Analysis ---
 
 export interface RecurringBill {

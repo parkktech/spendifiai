@@ -10,8 +10,10 @@ import {
   ToggleLeft,
   ToggleRight,
   Send,
+  Brain,
 } from 'lucide-react';
 import QuestionCard from '@/Components/SpendifiAI/QuestionCard';
+import InterviewCard from '@/Components/SpendifiAI/InterviewCard';
 import Badge from '@/Components/SpendifiAI/Badge';
 import ConnectBankPrompt from '@/Components/SpendifiAI/ConnectBankPrompt';
 import { useApi, useApiPost } from '@/hooks/useApi';
@@ -26,7 +28,14 @@ export default function QuestionsIndex() {
   const [bulkSubmitting, setBulkSubmitting] = useState(false);
   const [answeredIds, setAnsweredIds] = useState<Set<number>>(new Set());
 
-  const questions = (data || []).filter((q) => !answeredIds.has(q.id));
+  const allPending = (data || []).filter((q) => !answeredIds.has(q.id));
+
+  // ── Phase 11-05: Route optimization questions to InterviewCard (INT-02) ──
+  // Optimization questions are one-at-a-time via the guided interview.
+  // Transaction questions keep rendering through the existing QuestionCard (no change).
+  const optimizationQuestions = allPending.filter((q) => q.question_type === 'optimization');
+  const questions = allPending.filter((q) => q.question_type !== 'optimization');
+  const hasOptimizationQuestions = optimizationQuestions.length > 0;
 
   const handleAnswer = useCallback(
     async (id: number, answer: string) => {
@@ -81,17 +90,47 @@ export default function QuestionsIndex() {
         <div className="flex items-center gap-3">
           <HelpCircle size={20} className="text-sw-info" />
           <span className="text-sm font-medium text-sw-text">
-            {questions.length} question{questions.length !== 1 ? 's' : ''} need{questions.length === 1 ? 's' : ''} your attention
+            {questions.length + optimizationQuestions.length} question{(questions.length + optimizationQuestions.length) !== 1 ? 's' : ''} need{(questions.length + optimizationQuestions.length) === 1 ? 's' : ''} your attention
           </span>
+          {hasOptimizationQuestions && (
+            <Badge variant="info">
+              <Brain size={10} />
+              {optimizationQuestions.length} income review
+            </Badge>
+          )}
         </div>
-        <button
-          onClick={() => setBulkMode(!bulkMode)}
-          className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-sw-border text-xs font-medium text-sw-muted hover:text-sw-text transition"
-        >
-          {bulkMode ? <ToggleRight size={16} className="text-sw-accent" /> : <ToggleLeft size={16} />}
-          {bulkMode ? 'Single Mode' : 'Bulk Mode'}
-        </button>
+        {questions.length > 0 && (
+          <button
+            onClick={() => setBulkMode(!bulkMode)}
+            className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-sw-border text-xs font-medium text-sw-muted hover:text-sw-text transition"
+          >
+            {bulkMode ? <ToggleRight size={16} className="text-sw-accent" /> : <ToggleLeft size={16} />}
+            {bulkMode ? 'Single Mode' : 'Bulk Mode'}
+          </button>
+        )}
       </div>
+
+      {/* ── Income Review (optimization questions — one at a time via InterviewCard) ── */}
+      {/* This section is additive: optimization questions are routed here; transaction */}
+      {/* questions continue through the existing QuestionCard flow below (unchanged).  */}
+      {(hasOptimizationQuestions || auth.hasBankConnected) && !loading && !error && (
+        <div className="mb-6">
+          <div className="flex items-center gap-2 mb-3">
+            <Brain size={15} className="text-sw-info" />
+            <h2 className="text-sm font-semibold text-sw-text">Income Optimization Review</h2>
+            <span className="text-[11px] text-sw-dim">
+              — one question at a time, educational only
+            </span>
+          </div>
+          <InterviewCard
+            taxYear={new Date().getFullYear()}
+            onAnswered={(questionId) => {
+              // Remove from our local pending set when answered via the interview API
+              setAnsweredIds((prev) => new Set(prev).add(questionId));
+            }}
+          />
+        </div>
+      )}
 
       {/* Connect Bank Prompt */}
       {!loading && !error && !data && (
@@ -122,12 +161,12 @@ export default function QuestionsIndex() {
         </div>
       )}
 
-      {/* Empty state */}
+      {/* Empty state — only show when NO transaction questions remain */}
       {!loading && !error && data && questions.length === 0 && (
-        <div className="rounded-2xl border border-sw-border bg-sw-card p-12 text-center">
-          <CheckCircle size={40} className="mx-auto text-sw-accent mb-3" />
-          <h3 className="text-sm font-semibold text-sw-text mb-1">All caught up!</h3>
-          <p className="text-xs text-sw-muted">No questions pending. Your transactions are well categorized.</p>
+        <div className="rounded-2xl border border-sw-border bg-sw-card p-8 text-center">
+          <CheckCircle size={32} className="mx-auto text-sw-accent mb-3" />
+          <h3 className="text-sm font-semibold text-sw-text mb-1">Transaction questions caught up!</h3>
+          <p className="text-xs text-sw-muted">No categorization questions pending. Your transactions are well organized.</p>
         </div>
       )}
 
