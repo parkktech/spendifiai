@@ -753,7 +753,515 @@ class TaxRulesEngineService
         return (int) round($annualGrossCents * ($effectivePct / 100) * ($matchPct / 100));
     }
 
+    /**
+     * SCN-04 — Long-horizon illustration (D9.7): ordinary-annuity future value at the config
+     * growth-rate LOW and HIGH bounds. Returns a labeled RANGE with an assumptions array —
+     * NEVER a single guaranteed figure. Zero/negative horizon → zeros with horizon_years=0
+     * (the UI omits the illustration block).
+     *
+     * @return array{low_cents:int, high_cents:int, horizon_years:int,
+     *               growth_rate_low:float, growth_rate_high:float, assumptions:string[]}
+     */
+    public function futureValueRangeCents(int $annualContribCents, int $horizonYears, int $year = 2026): array
+    {
+        $growthLow = config('optimizer-scenarios.assumptions.illustrative_growth_rate_low');
+        $growthHigh = config('optimizer-scenarios.assumptions.illustrative_growth_rate_high');
+
+        $assumptions = [
+            'Illustration only — not a guarantee or projection of actual returns.',
+            'Assumes a constant annual contribution at the amount shown for the full horizon.',
+            'Growth is shown as a range from '.($growthLow * 100).'% to '.($growthHigh * 100).'% per year, compounded annually.',
+            'Actual results vary with markets, fees, timing, and future contribution changes.',
+        ];
+
+        if ($horizonYears <= 0) {
+            return [
+                'low_cents' => 0,
+                'high_cents' => 0,
+                'horizon_years' => 0,
+                'growth_rate_low' => $growthLow,
+                'growth_rate_high' => $growthHigh,
+                'assumptions' => $assumptions,
+            ];
+        }
+
+        $a = $this->annuityFutureValueCents($annualContribCents, $growthLow, $horizonYears);
+        $b = $this->annuityFutureValueCents($annualContribCents, $growthHigh, $horizonYears);
+
+        return [
+            'low_cents' => min($a, $b),
+            'high_cents' => max($a, $b),
+            'horizon_years' => $horizonYears,
+            'growth_rate_low' => $growthLow,
+            'growth_rate_high' => $growthHigh,
+            'assumptions' => $assumptions,
+        ];
+    }
+
+    /**
+     * SCN-05 — Projected MAGI under a knob vector (educational approximation).
+     * MAGI ≈ gross + SE income − trad401k − HSA − deductible traditional IRA (partial-cap aware).
+     * Roth contributions do NOT reduce MAGI. Standard deduction is NOT applied (MAGI ≈ AGI).
+     */
+    public function projectedMagiCents(array $baseline, array $knobs, int $year = 2026): int
+    {
+        $a = $this->deriveKnobAmounts($baseline, $this->normalizeKnobs($knobs));
+
+        $gross = (int) ($baseline['annual_gross_cents'] ?? 0);
+        $se = (int) ($baseline['se_income_cents'] ?? 0);
+
+        $magiBeforeIra = max(0, $gross + $se - $a['trad401k'] - $a['hsa']);
+        $deductibleIra = $this->deductibleTradIraCents($baseline, $a['iraTrad'], $a['trad401k'], $magiBeforeIra, $year);
+
+        return max(0, $magiBeforeIra - $deductibleIra);
+    }
+
+    /**
+     * SCN-06 — ACA cliff headroom. Positive = MAGI room below the 400%-FPL cliff; negative = over.
+     * Threshold selection mirrors AcaCliffMonitor: married_joint → family-of-4 threshold, else single.
+     *
+     * @throws InvalidArgumentException
+     */
+    public function acaCliffHeadroomCents(int $projectedMagiCents, string $filingStatus, int $year = 2026): int
+    {
+        $this->validateYear($year);
+
+        $cfg = config("tax-rules.{$year}.detection");
+        $thresholdDollars = $filingStatus === 'married_joint'
+            ? $cfg['aca_fpl_threshold_family4']
+            : $cfg['aca_fpl_threshold_single'];
+
+        return ($thresholdDollars * 100) - $projectedMagiCents;
+    }
+
+    /**
+     * SCN-07 — The core: one knob vector → three outcome metrics (§B.4 algorithm, §B.6 shape).
+     *
+     * Clamps a COPY of the knob vector (never trusts/mutates input — Pitfall 4 / security boundary),
+     * runs the ACA cliff-before-Roth guard AFTER limit clamps and BEFORE tax math, then computes
+     * annual federal tax on the CONFIRMED filing status, per-paycheck take-home on the W-4 status,
+     * and retirement deltas. Subsidy/clawback dollars are NEVER computed (FLAG-22 rail).
+     *
+     * @return array §B.6 outcome shape (includes the clamped/guarded knob vector + guards.clamps[])
+     *
+     * @throws InvalidArgumentException
+     */
+    public function computeScenarioOutcome(array $baseline, array $knobs, int $year = 2026): array
+    {
+        $this->validateYear($year);
+
+        $status = $baseline['filing_status'];
+        $this->validateFilingStatus($status, $year);
+
+        $age = $baseline['age'] ?? null;
+        $gross = (int) ($baseline['annual_gross_cents'] ?? 0);
+        $se = (int) ($baseline['se_income_cents'] ?? 0);
+        $periods = max(1, (int) ($baseline['pay_periods_per_year'] ?? 0));
+
+        $clamps = [];
+        $guards = [
+            'aca_cliff_applied' => false,
+            'aca_need_remaining_cents' => 0,
+            'mandatory_roth_catchup_applied' => false,
+            'medicare_hsa_guard' => false,
+            'safe_harbor_floor_applied' => false,
+            'clamps' => [],
+        ];
+
+        // Work exclusively on a normalized COPY — hostile input never leaks into the math.
+        $v = $this->normalizeKnobs($knobs);
+
+        // ── Step 1: ordered clamps ─────────────────────────────────────────
+        // 1a. 401(k) full-year deferral limit incl. catch-ups.
+        $deferralCents = (int) round($gross * $v['k401']['deferral_pct'] / 100);
+        $limit401k = $this->full401kLimitCents($age, $year);
+        if ($deferralCents > $limit401k) {
+            $deferralCents = $limit401k;
+            $v['k401']['deferral_pct'] = $gross > 0 ? $deferralCents / $gross * 100 : 0;
+            $clamps[] = '401k_annual_limit';
+        }
+        $roth401k = (int) round($deferralCents * $v['k401']['roth_share_pct'] / 100);
+        $trad401k = $deferralCents - $roth401k;
+
+        // 1b. Mandatory Roth catch-up (SECURE 2.0 §603): force the catch-up excess to Roth.
+        $baseDeferralLimit = config("tax-rules.{$year}.401k.employee_deferral") * 100;
+        $priorFica = $baseline['prior_year_fica_wages_cents'] ?? null;
+        if ($priorFica !== null
+            && $this->requiresMandatoryRothCatchup($priorFica, $year)
+            && $deferralCents > $baseDeferralLimit
+        ) {
+            $excess = $deferralCents - $baseDeferralLimit;
+            if ($roth401k < $excess) {
+                $roth401k = $excess;
+                $trad401k = $deferralCents - $roth401k;
+                $guards['mandatory_roth_catchup_applied'] = true;
+                $clamps[] = 'mandatory_roth_catchup';
+            }
+        }
+
+        // 1c. HSA coverage-limit clamp + Medicare lookback hard stop.
+        $hsaLimit = $this->fullHsaLimitCents($baseline['hsa_coverage_type'] ?? 'self_only', $age, $year);
+        $hsa = (int) $v['hsa']['annual_election_cents'];
+        if ($hsa > $hsaLimit) {
+            $hsa = $hsaLimit;
+            $clamps[] = 'hsa_annual_limit';
+        }
+        if ($this->medicareHsaBlocked($baseline, $age, $year)) {
+            $hsa = (int) ($baseline['current']['hsa_cents'] ?? 0);
+            $guards['medicare_hsa_guard'] = true;
+            $clamps[] = 'medicare_hsa_lookback';
+        }
+        $v['hsa']['annual_election_cents'] = $hsa;
+
+        // 1d. IRA: Roth phase-out cap, trad deductibility cap, then combined shared-room clamp.
+        $iraTradYtd = (int) ($baseline['current']['ira_trad_ytd_cents'] ?? 0);
+        $iraRothYtd = (int) ($baseline['current']['ira_roth_ytd_cents'] ?? 0);
+        $iraRoom = $this->remainingIraRoomCents($iraTradYtd + $iraRothYtd, $age, $year);
+        $iraTrad = (int) $v['ira']['traditional_cents'];
+        $iraRoth = (int) $v['ira']['roth_cents'];
+        $magiBeforeIra = max(0, $gross + $se - $trad401k - $hsa);
+
+        $rothElig = $this->rothIraEligibility($magiBeforeIra, $status, $year);
+        $rothAllowed = max(0, $rothElig['limit_cents'] - $iraRothYtd);
+        if ($iraRoth > $rothAllowed) {
+            $iraRoth = $rothAllowed;
+            $clamps[] = 'roth_ira_phaseout';
+        }
+
+        $covered = $this->coveredByPlan($baseline, $trad401k);
+        $dedCap = $this->tradIraDeductibleCapCents($baseline, $magiBeforeIra, $covered, $year);
+        if ($iraTrad > $dedCap) {
+            $iraTrad = $dedCap;
+            $clamps[] = 'trad_ira_deductibility';
+        }
+
+        if ($iraTrad + $iraRoth > $iraRoom) {
+            $iraTrad = min($iraTrad, $iraRoom);
+            $iraRoth = min($iraRoth, max(0, $iraRoom - $iraTrad));
+            $clamps[] = 'ira_shared_limit';
+        }
+        $v['ira']['traditional_cents'] = $iraTrad;
+        $v['ira']['roth_cents'] = $iraRoth;
+
+        // 1e. Auto-transfer surplus cap (K6).
+        $transferCap = $this->perPeriodSurplusCapCents($baseline, $periods);
+        $transfer = (int) $v['transfer']['per_period_cents'];
+        if ($transfer > $transferCap) {
+            $transfer = max(0, $transferCap);
+            $clamps[] = 'transfer_surplus_cap';
+        }
+        $v['transfer']['per_period_cents'] = $transfer;
+
+        // Persist the clamped 401(k) split back onto the vector.
+        $v['k401']['roth_share_pct'] = $deferralCents > 0 ? $roth401k / $deferralCents * 100 : $v['k401']['roth_share_pct'];
+
+        // ── Step 2: ACA cliff guard (cliff-before-Roth; AFTER limits, BEFORE tax math) ──
+        if ($baseline['is_marketplace_enrollee'] ?? false) {
+            $buffer = config('optimizer-scenarios.assumptions.aca_cliff_buffer_cents');
+            // iraTrad is already deductible-capped in Step 1d, so it reduces MAGI dollar-for-dollar.
+            $magi = max(0, $gross + $se - $trad401k - $hsa - $iraTrad);
+            $need = $buffer - $this->acaCliffHeadroomCents($magi, $status, $year);
+
+            if ($need > 0) {
+                // (a) Roth 401(k) → Traditional (dollar-for-dollar MAGI reducer).
+                $shift = min($need, $roth401k);
+                $roth401k -= $shift;
+                $trad401k += $shift;
+                $need -= $shift;
+
+                // (b) Roth IRA → Traditional IRA, up to the deductible headroom.
+                if ($need > 0 && $iraRoth > 0) {
+                    $magiAfterA = max(0, $gross + $se - $trad401k - $hsa);
+                    $dedCapA = $this->tradIraDeductibleCapCents($baseline, $magiAfterA, $covered, $year);
+                    $dedHeadroom = max(0, $dedCapA - $iraTrad);
+                    $shift2 = min($need, $iraRoth, $dedHeadroom);
+                    $iraRoth -= $shift2;
+                    $iraTrad += $shift2;
+                    $need -= $shift2;
+                }
+
+                // (c) Still short → drop any remaining Roth allocations entirely (invariant §B.5:
+                //     both Roth knobs at 0 when flagged) and flag the residual need.
+                if ($need > 0) {
+                    $roth401k = 0;
+                    $iraRoth = 0;
+                    $guards['aca_need_remaining_cents'] = $need;
+                }
+
+                $v['k401']['roth_share_pct'] = $deferralCents > 0 ? $roth401k / $deferralCents * 100 : 0;
+                $v['ira']['traditional_cents'] = $iraTrad;
+                $v['ira']['roth_cents'] = $iraRoth;
+                $guards['aca_cliff_applied'] = true;
+                $clamps[] = 'aca_cliff_guard';
+            }
+        }
+
+        // ── Step 3: annual federal tax (CONFIRMED status) ──────────────────
+        $curTrad401k = (int) ($baseline['current']['trad_401k_cents'] ?? 0);
+        $curRoth401k = (int) ($baseline['current']['roth_401k_cents'] ?? 0);
+        $curHsa = (int) ($baseline['current']['hsa_cents'] ?? 0);
+        $curIraTrad = $iraTradYtd;
+        $curIraRoth = $iraRothYtd;
+
+        $stdDeduction = $this->standardDeductionCents($status, $age, $year);
+
+        $curMagiBeforeIra = max(0, $gross + $se - $curTrad401k - $curHsa);
+        $curDedIra = $this->deductibleTradIraCents($baseline, $curIraTrad, $curTrad401k, $curMagiBeforeIra, $year);
+        $curPretax = $curTrad401k + $curHsa + $curDedIra;
+        $curTaxable = max(0, $gross + $se - $curPretax - $stdDeduction);
+        $curTax = $this->computeTax($curTaxable, $status, $year);
+
+        $scnDedIra = $iraTrad; // already capped at the deductible amount in Step 1d.
+        $scnPretax = $trad401k + $hsa + $scnDedIra;
+        $scnTaxable = max(0, $gross + $se - $scnPretax - $stdDeduction);
+        $scnTax = $this->computeTax($scnTaxable, $status, $year);
+
+        $federalTaxAnnualDelta = $scnTax - $curTax;
+
+        // ── Step 4: per-paycheck take-home ─────────────────────────────────
+        $periodGross = (int) round($gross / $periods);
+
+        $scnWH = $this->estimatePeriodWithholdingCents(
+            $periodGross,
+            (int) round(($trad401k + $hsa) / $periods),
+            $v['w4']['filing_status'],
+            (int) $v['w4']['dependents_under_17'],
+            (int) $v['w4']['other_dependents'],
+            $periods,
+            $year,
+        );
+        $scnFica = (int) round($this->employeeFicaCents(max(0, $gross - $hsa), $year)['total_cents'] / $periods);
+        $scnTakeHome = $periodGross - (int) round(($trad401k + $roth401k + $hsa) / $periods) - $scnWH - $scnFica;
+
+        $w4OnFile = $baseline['w4_on_file'] ?? [];
+        $w4Known = ! empty($w4OnFile['filing_status']);
+        if ($w4Known) {
+            $curWH = $this->estimatePeriodWithholdingCents(
+                $periodGross,
+                (int) round(($curTrad401k + $curHsa) / $periods),
+                $w4OnFile['filing_status'],
+                (int) ($w4OnFile['dependents_claimed'] ?? 0),
+                0,
+                $periods,
+                $year,
+            );
+            $w4DeltaIncluded = true;
+        } elseif (($baseline['annual_withholding_cents'] ?? null) !== null) {
+            $curWH = (int) round($baseline['annual_withholding_cents'] / $periods);
+            $w4DeltaIncluded = false;
+        } else {
+            // No W-4 evidence: align baseline withholding to the scenario W-4 (K1 delta = 0).
+            $curWH = $this->estimatePeriodWithholdingCents(
+                $periodGross,
+                (int) round(($curTrad401k + $curHsa) / $periods),
+                $v['w4']['filing_status'],
+                (int) $v['w4']['dependents_under_17'],
+                (int) $v['w4']['other_dependents'],
+                $periods,
+                $year,
+            );
+            $w4DeltaIncluded = false;
+        }
+        $curFica = (int) round($this->employeeFicaCents(max(0, $gross - $curHsa), $year)['total_cents'] / $periods);
+        $curTakeHome = $periodGross - (int) round(($curTrad401k + $curRoth401k + $curHsa) / $periods) - $curWH - $curFica;
+
+        $perPaycheckDelta = $scnTakeHome - $curTakeHome;
+
+        // Safe-harbor guardrail (T8): absent prior-year liability, never propose withholding
+        // below current-year computed tax — flag the conservative floor.
+        if (($baseline['prior_year_federal_liability_cents'] ?? null) === null) {
+            $floorPerPeriod = (int) ceil($scnTax / $periods);
+            if ($scnWH < $floorPerPeriod) {
+                $guards['safe_harbor_floor_applied'] = true;
+            }
+        }
+
+        // ── Step 5: retirement deltas + illustration ───────────────────────
+        $scnContrib = $trad401k + $roth401k + $iraTrad + $iraRoth;
+        $curContrib = $curTrad401k + $curRoth401k + $curIraTrad + $curIraRoth;
+        $contribDelta = $scnContrib - $curContrib;
+
+        $matchPct = (float) ($baseline['employer']['match_pct'] ?? 0);
+        $threshPct = (float) ($baseline['employer']['match_threshold_pct'] ?? 0);
+        $scnMatch = $this->matchCaptureCents($gross, (float) $v['k401']['deferral_pct'], $matchPct, $threshPct);
+        $curMatch = $this->matchCaptureCents($gross, (float) ($baseline['current']['deferral_pct'] ?? 0), $matchPct, $threshPct);
+        $matchDelta = $scnMatch - $curMatch;
+
+        $hsaDelta = $hsa - $curHsa;
+
+        $targetAge = (int) ($baseline['target_retirement_age'] ?? config('optimizer-scenarios.assumptions.default_retirement_age'));
+        $horizon = $age !== null ? max(0, $targetAge - $age) : 0;
+        $illustration = ($age !== null && $horizon > 0)
+            ? $this->futureValueRangeCents(max(0, $contribDelta + $matchDelta), $horizon, $year)
+            : null;
+
+        $guards['clamps'] = $clamps;
+
+        return [
+            'knobs' => $v,
+            'take_home' => [
+                'per_paycheck_delta_cents' => $perPaycheckDelta,
+                'annual_delta_cents' => $perPaycheckDelta * $periods,
+                'w4_delta_included' => $w4DeltaIncluded,
+            ],
+            'federal_tax' => ['annual_delta_cents' => $federalTaxAnnualDelta],
+            'retirement' => [
+                'annual_contributions_delta_cents' => $contribDelta,
+                'employer_match_delta_cents' => $matchDelta,
+                'hsa_annual_delta_cents' => $hsaDelta,
+                'illustration' => $illustration,
+            ],
+            'guards' => $guards,
+        ];
+    }
+
     // ── Private Helpers ───────────────────────────────────────────────────
+
+    /**
+     * Ordinary-annuity future value in cents: P × ((1+g)^n − 1) / g. Structural math helper
+     * (outside the no-literal-guarded SCN method bodies).
+     */
+    private function annuityFutureValueCents(int $paymentCents, float $growthRate, int $years): int
+    {
+        if ($growthRate == 0.0) {
+            return $paymentCents * $years;
+        }
+
+        $factor = (pow(1 + $growthRate, $years) - 1) / $growthRate;
+
+        return (int) round($paymentCents * $factor);
+    }
+
+    /**
+     * Normalize an untrusted knob vector into a full, well-typed COPY with all keys present.
+     * The engine never mutates or trusts caller input (Pitfall 4 / security boundary T-14-02-01).
+     */
+    private function normalizeKnobs(array $knobs): array
+    {
+        return [
+            'w4' => [
+                'filing_status' => $knobs['w4']['filing_status'] ?? 'single_or_mfs',
+                'dependents_under_17' => max(0, (int) ($knobs['w4']['dependents_under_17'] ?? 0)),
+                'other_dependents' => max(0, (int) ($knobs['w4']['other_dependents'] ?? 0)),
+            ],
+            'k401' => [
+                'deferral_pct' => max(0, (float) ($knobs['k401']['deferral_pct'] ?? 0)),
+                'roth_share_pct' => max(0, (float) ($knobs['k401']['roth_share_pct'] ?? 0)),
+            ],
+            'hsa' => [
+                'annual_election_cents' => max(0, (int) ($knobs['hsa']['annual_election_cents'] ?? 0)),
+            ],
+            'ira' => [
+                'traditional_cents' => max(0, (int) ($knobs['ira']['traditional_cents'] ?? 0)),
+                'roth_cents' => max(0, (int) ($knobs['ira']['roth_cents'] ?? 0)),
+            ],
+            'transfer' => [
+                'per_period_cents' => max(0, (int) ($knobs['transfer']['per_period_cents'] ?? 0)),
+            ],
+        ];
+    }
+
+    /**
+     * Derive absolute cent amounts (401k trad/roth split, HSA, IRA) from a normalized knob vector.
+     *
+     * @return array{gross:int, deferralCents:int, roth401k:int, trad401k:int, hsa:int, iraTrad:int, iraRoth:int}
+     */
+    private function deriveKnobAmounts(array $baseline, array $normalizedKnobs): array
+    {
+        $gross = (int) ($baseline['annual_gross_cents'] ?? 0);
+        $deferralCents = (int) round($gross * $normalizedKnobs['k401']['deferral_pct'] / 100);
+        $roth401k = (int) round($deferralCents * $normalizedKnobs['k401']['roth_share_pct'] / 100);
+
+        return [
+            'gross' => $gross,
+            'deferralCents' => $deferralCents,
+            'roth401k' => $roth401k,
+            'trad401k' => $deferralCents - $roth401k,
+            'hsa' => (int) $normalizedKnobs['hsa']['annual_election_cents'],
+            'iraTrad' => (int) $normalizedKnobs['ira']['traditional_cents'],
+            'iraRoth' => (int) $normalizedKnobs['ira']['roth_cents'],
+        ];
+    }
+
+    /** Full-year 401(k) employee-deferral limit incl. catch-ups (reuses the shipped headroom helper). */
+    private function full401kLimitCents(?int $age, int $year): int
+    {
+        return $this->remaining401kRoomCents(0, $age, $year);
+    }
+
+    /** Full-year HSA limit for the coverage type incl. 55+ catch-up (reuses the shipped helper). */
+    private function fullHsaLimitCents(string $coverageType, ?int $age, int $year): int
+    {
+        return $this->remainingHsaRoomCents(0, $coverageType, $age, $year);
+    }
+
+    /** Is the taxpayer an active workplace-plan participant (for IRA deductibility)? */
+    private function coveredByPlan(array $baseline, int $scenarioTrad401k): bool
+    {
+        return $scenarioTrad401k > 0
+            || (int) ($baseline['current']['trad_401k_cents'] ?? 0) > 0
+            || (int) ($baseline['current']['roth_401k_cents'] ?? 0) > 0
+            || (bool) ($baseline['employer']['has_401k'] ?? false);
+    }
+
+    /**
+     * Deductible-contribution cap for a traditional IRA at a given MAGI. Returns the max deductible
+     * cents (0 when fully non-deductible; the shared annual limit when fully deductible).
+     */
+    private function tradIraDeductibleCapCents(array $baseline, int $magiBeforeIra, bool $covered, int $year): int
+    {
+        $status = $baseline['filing_status'];
+        $spouseCovered = (bool) ($baseline['spouse_covered_by_plan'] ?? false);
+
+        $ded = $this->traditionalIraDeductibility($magiBeforeIra, $status, $covered, $spouseCovered, $year);
+
+        if (! $ded['deductible']) {
+            return 0;
+        }
+
+        // Fully deductible (null partial limit) → cap at the shared annual limit incl. catch-up.
+        return $ded['partial_limit_cents'] ?? $this->remainingIraRoomCents(0, $baseline['age'] ?? null, $year);
+    }
+
+    /** Deductible portion of a traditional IRA contribution, capped at the deductible amount. */
+    private function deductibleTradIraCents(array $baseline, int $iraTrad, int $scenarioTrad401k, int $magiBeforeIra, int $year): int
+    {
+        $covered = $this->coveredByPlan($baseline, $scenarioTrad401k);
+        $cap = $this->tradIraDeductibleCapCents($baseline, $magiBeforeIra, $covered, $year);
+
+        return min($iraTrad, $cap);
+    }
+
+    /**
+     * Medicare/HSA hard stop: enrollment within the lookback window (or age 65+ with unknown
+     * enrollment, or already enrolled) blocks new HSA contributions (IRS Notice 2004-2 Q&A 28).
+     * Age 65 is the statutory Medicare eligibility age (structural constant, out of SCN scope).
+     */
+    private function medicareHsaBlocked(array $baseline, ?int $age, int $year): bool
+    {
+        $lookbackMonths = config("tax-rules.{$year}.detection.medicare_hsa_lookback_months");
+        $enrollDate = $baseline['medicare_enrollment_date'] ?? null;
+
+        if ($enrollDate === null) {
+            return $age !== null && $age >= 65;
+        }
+
+        $enroll = Carbon::parse($enrollDate);
+
+        // Already enrolled, or enrollment within the lookback window of now.
+        return $enroll->lessThanOrEqualTo(now())
+            || now()->diffInMonths($enroll, true) <= $lookbackMonths;
+    }
+
+    /** Per-period auto-transfer cap: max-surplus-share × annualized monthly surplus ÷ periods. */
+    private function perPeriodSurplusCapCents(array $baseline, int $periods): int
+    {
+        $monthsPerYear = 12;
+        $annualSurplus = (int) ($baseline['monthly_surplus_cents'] ?? 0) * $monthsPerYear;
+        $maxShare = config('optimizer-scenarios.assumptions.auto_transfer_max_surplus_share');
+
+        return max(0, (int) round($annualSurplus / $periods * $maxShare));
+    }
 
     /**
      * Map a W-4 Step 1(c) status to the withholding-table filing status.
