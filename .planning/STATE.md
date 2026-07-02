@@ -6,14 +6,14 @@ current_phase: 11
 current_phase_name: Red-Flag Detection, Guided Interview & AI Feed Integration
 status: executing
 stopped_at: Completed 11-04 guided interview + AI-feed bridge
-last_updated: "2026-07-02T04:15:31.295Z"
+last_updated: "2026-07-02T04:35:14.791Z"
 last_activity: 2026-07-02
 last_activity_desc: Phase 11 execution started
 progress:
   total_phases: 4
   completed_phases: 1
   total_plans: 11
-  completed_plans: 8
+  completed_plans: 9
   percent: 25
 ---
 
@@ -29,7 +29,7 @@ See: .planning/PROJECT.md (updated 2026-07-01)
 ## Current Position
 
 Phase: 11 (Red-Flag Detection, Guided Interview & AI Feed Integration) — EXECUTING
-Plan: 6 of 8
+Plan: 7 of 8
 Status: Ready to execute
 Last activity: 2026-07-02 — Phase 11 execution started
 
@@ -97,6 +97,9 @@ Recent decisions affecting current work:
 - [Phase ?]: FEED-04 guard at TOP of UpdateTransactionCategory::handle() for Optimization questions
 - [Phase ?]: QuestionType::Optimization additive enum case; no migration needed (VARCHAR column)
 - [Phase ?]: InterviewOrchestratorService: Claude wording-only; payload excludes estimated_value_cents (SAFE-03)
+- [Phase ?]: FLAG-03 gap computed by engine; detector only decides emit/skip
+- [Phase ?]: score_threshold=2; no numeric probability in treatment
+- [Phase ?]: FLAG-28 D13 locked; test-enforced no-write assertion
 
 ### Pending Todos
 
@@ -111,6 +114,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-07-02T04:15:31.286Z
+Last session: 2026-07-02T04:34:54.867Z
 Stopped at: Completed 11-04 guided interview + AI-feed bridge
 Resume file: None
