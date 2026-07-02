@@ -4,6 +4,7 @@ namespace App\Jobs;
 
 use App\Enums\DocumentStatus;
 use App\Enums\TaxDocumentCategory;
+use App\Events\TaxDocumentExtracted;
 use App\Models\TaxDocument;
 use App\Services\AI\TaxDocumentExtractorService;
 use App\Services\TaxVaultAuditService;
@@ -155,6 +156,19 @@ class ExtractTaxDocument implements ShouldQueue
             'confidence' => $confidence,
             'fields_extracted' => count($extraction['fields'] ?? []),
         ]);
+
+        // [P12 DOC-03] Fire TaxDocumentExtracted for staleness wiring and profile-fact extraction.
+        // Only fires on the successful terminal (Ready) path — never on error/splitter/below-gate.
+        event(new TaxDocumentExtracted($document));
+
+        // [P12 DOC-07] For pay-stub and benefits-guide documents, dispatch the proposal-creation job.
+        // ExtractProfileFacts reads extracted_data and creates UserTaxFact proposals (is_current=false).
+        if (in_array($document->category, [
+            TaxDocumentCategory::PayStub,
+            TaxDocumentCategory::BenefitsGuide,
+        ], true)) {
+            ExtractProfileFacts::dispatch($document->id);
+        }
     }
 
     /**
