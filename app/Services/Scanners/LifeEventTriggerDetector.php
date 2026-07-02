@@ -66,6 +66,14 @@ class LifeEventTriggerDetector
         $marketplaceKeys = $this->detectMarketplacePremiums($userId, $taxYear, $service, $electionFacts);
         $emitted = array_merge($emitted, $marketplaceKeys);
 
+        // ── Trigger 4: Escrow / title company inflow ──────────────────────────
+        $escrowKeys = $this->detectEscrowInflow($userId, $taxYear, $service, $electionFacts);
+        $emitted = array_merge($emitted, $escrowKeys);
+
+        // ── Annual battery: surface unanswered life-event questions ───────────
+        $batteryKeys = $this->surfaceBatteryQuestions($userId, $taxYear, $service, $electionFacts);
+        $emitted = array_merge($emitted, $batteryKeys);
+
         return array_values(array_unique($emitted));
     }
 
@@ -262,6 +270,210 @@ class LifeEventTriggerDetector
         );
 
         return $key !== null ? [$key] : [];
+    }
+
+    // ── Trigger 4: Escrow / title company inflow ─────────────────────────────
+
+    /**
+     * Detect escrow/title company inflows (home sale proceeds) → §121 education.
+     *
+     * A large credit from an escrow or title company is a strong signal of a home sale.
+     * Strategy window: §121 gain exclusion (up to $250K/$500K MFJ), basis-ledger settlement,
+     * capital-gain harvesting in low-income year if exclusion is unavailable.
+     *
+     * TD-v2Δ §7: "Escrow/title company inflow → Home sale → §121 exclusion + basis-ledger settlement"
+     * SAFE-03: estimated_value_cents never assigned.
+     */
+    protected function detectEscrowInflow(
+        int $userId,
+        int $taxYear,
+        RedFlagDetectorService $service,
+        array $electionFacts
+    ): array {
+        /** Minimum inflow to consider as potential home sale proceeds */
+        $minInflowDollars = 10_000;
+
+        $escrowPatterns = [
+            'escrow', 'title company', 'title co', 'first american title', 'fidelity national title',
+            'old republic title', 'chicago title', 'stewart title', 'land title',
+            'attorney trust', 'closing proceeds', 'settlement proceeds',
+        ];
+
+        $yearStart = "{$taxYear}-01-01";
+        $yearEnd = "{$taxYear}-12-31";
+
+        $escrowQuery = Transaction::where('user_id', $userId)
+            ->where('amount', '<', 0)                          // credits / inflows
+            ->where('amount', '<=', -$minInflowDollars)        // significant inflow
+            ->whereBetween('transaction_date', [$yearStart, $yearEnd])
+            ->where(function ($q) use ($escrowPatterns) {
+                foreach ($escrowPatterns as $pattern) {
+                    $q->orWhere('merchant_normalized', 'ILIKE', "%{$pattern}%")
+                        ->orWhere('merchant_name', 'ILIKE', "%{$pattern}%");
+                }
+            });
+
+        $escrowTxs = $escrowQuery->get(['id', 'amount', 'transaction_date', 'merchant_name']);
+
+        if ($escrowTxs->isEmpty()) {
+            return [];
+        }
+
+        $totalInflowCents = (int) round(abs($escrowTxs->sum('amount')) * 100);
+
+        $key = $service->registerFinding(
+            userId: $userId,
+            taxYear: $taxYear,
+            findingKey: 'life_event_escrow_inflow',
+            findingType: 'life_event_trigger',
+            band: 'conditional',
+            treatment: 'We detected what may be a significant inflow from a title company or escrow. '
+                .'This often signals a home sale. If you sold a home, you may want to be aware of '
+                .'the §121 exclusion — which can allow you to exclude up to $250,000 of gain '
+                .'($500,000 if married filing jointly) from the sale of your primary residence, '
+                .'provided you met the ownership and use tests (2 of the last 5 years). '
+                .'If you operated a home office or had any rental use of the home, '
+                .'depreciation recapture and a partial §121 exclusion may apply. '
+                .'A tax professional could review your closing documents and basis records '
+                .'to determine your net gain and applicable exclusions.',
+            legalBasis: 'IRC §121 (§121 primary-home gain exclusion, $250K/$500K); IRC §1250 (depreciation recapture)',
+            ruleId: 'life_event_escrow_inflow',
+            annualTotalCents: $totalInflowCents,
+            transactionIds: $escrowTxs->pluck('id')->toArray(),
+            electionFacts: $electionFacts,
+        );
+
+        return $key !== null ? [$key] : [];
+    }
+
+    // ── Annual Battery: life-event interview questions ────────────────────────
+
+    /**
+     * Battery question definitions: [finding_key, fact_key, question_label, treatment, legal_basis].
+     *
+     * Each entry represents one annual battery question. The detector checks whether the user
+     * has already answered (fact exists in UserTaxFact) and skips if so. Otherwise, the question
+     * surfaces as an OptimizationFinding, which the existing SurfaceHighPriorityRedFlags listener
+     * converts to an AIQuestion in the feed — satisfying the "interview/feed bridge" requirement.
+     *
+     * Answers are persisted via recordBatteryAnswer() → UserTaxFact (source_type='interview_answer').
+     */
+    protected const ANNUAL_BATTERY = [
+        [
+            'finding_key' => 'battery_marriage_status',
+            'fact_key' => 'life_event.marital_status_changed',
+            'label' => 'Did your marital status change this year?',
+            'treatment' => 'A change in marital status (marriage, divorce, or separation) can '
+                .'significantly affect your filing status, standard deduction, tax brackets, '
+                .'and eligibility for certain credits. '
+                .'Marriage may allow "married filing jointly" (often more advantageous) or trigger '
+                .'the "marriage penalty" for dual high-income earners. '
+                .'Divorce changes your dependency deductions and may affect alimony taxation (pre-2019 '
+                .'agreements), QDRO division of retirement accounts, and filing-status eligibility. '
+                .'A tax professional could review the tax implications of your specific situation.',
+            'legal_basis' => 'IRC §2 (filing status); IRC §1 (tax tables); IRC §71 (alimony — pre-TCJA agreements)',
+        ],
+        [
+            'finding_key' => 'battery_birth_adoption',
+            'fact_key' => 'life_event.birth_or_adoption',
+            'label' => 'Did you have or adopt a child this year?',
+            'treatment' => 'Adding a dependent through birth or adoption may qualify you for '
+                .'the Child Tax Credit (up to $2,200 per child under current law), '
+                .'the Child and Dependent Care Credit if you incur childcare costs, '
+                .'and potentially a higher Earned Income Tax Credit. '
+                .'Adoption expenses may also qualify for the Adoption Tax Credit (up to $17,280 in 2026). '
+                .'A tax professional could review your new dependent qualifications and applicable credits.',
+            'legal_basis' => 'IRC §24 (Child Tax Credit); IRC §21 (Dependent Care Credit); IRC §23 (Adoption Credit)',
+        ],
+        [
+            'finding_key' => 'battery_job_change',
+            'fact_key' => 'life_event.job_change',
+            'label' => 'Did you start, leave, or change a job this year?',
+            'treatment' => 'A job change can trigger several tax planning considerations: '
+                .'multiple W-4s in one year may result in under-withholding (check your combined withholding), '
+                .'severance pay is taxable income (often with higher withholding), '
+                .'retirement plan rollovers from a prior employer should be handled carefully '
+                .'to avoid taxable distributions, '
+                .'and net unrealized appreciation (NUA) on employer stock may be worth preserving before a rollover. '
+                .'A tax professional could review your transition and identify any withholding adjustments needed.',
+            'legal_basis' => 'IRC §402 (rollover); IRC §402(e)(4) (NUA); IRC §3405 (withholding on distributions)',
+        ],
+        [
+            'finding_key' => 'battery_inheritance',
+            'fact_key' => 'life_event.inherited_assets_this_year',
+            'label' => 'Did you inherit assets or receive assets from an estate this year?',
+            'treatment' => 'If you inherited assets this year, documenting the step-up in cost basis NOW '
+                .'is critically important — date-of-death valuations are straightforward today but '
+                .'expensive to reconstruct years later when you eventually sell the inherited asset. '
+                .'Inherited assets generally receive a stepped-up basis to the fair market value at '
+                .'the date of the decedent\'s death, which can significantly reduce or eliminate capital gain. '
+                .'IRAs inherited from non-spouse beneficiaries are subject to the 10-year distribution rule '
+                .'(post-SECURE Act). '
+                .'A tax professional could help you document the basis and plan distributions.',
+            'legal_basis' => 'IRC §1014 (step-up in basis at death); IRC §401(a)(9)(H) (10-year rule, SECURE Act)',
+        ],
+        [
+            'finding_key' => 'battery_medicare_enrollment',
+            'fact_key' => 'life_event.medicare_enrollment_this_year',
+            'label' => 'Did you or a spouse enroll in Medicare this year?',
+            'treatment' => 'Enrolling in Medicare Part A triggers an important HSA contribution rule: '
+                .'you can no longer contribute to an HSA once you are enrolled in any part of Medicare. '
+                .'Additionally, Medicare Part A applies a 6-month lookback — contributions made in '
+                .'the 6 months before your Medicare effective date may be considered excess contributions '
+                .'(subject to a 6% excise tax). '
+                .'You may want to stop HSA contributions and plan any remaining balance for qualified expenses. '
+                .'A tax professional could review the timing and help you avoid excess-contribution penalties.',
+            'legal_basis' => 'IRC §223(b)(7) (HSA ineligibility on Medicare enrollment); IRC §4973(d) (6% excise)',
+        ],
+    ];
+
+    /**
+     * Surface unanswered annual battery questions as interview/feed findings.
+     *
+     * For each battery question defined in ANNUAL_BATTERY:
+     *  1. Check if the user has already answered via UserTaxFact (skip if answered).
+     *  2. If not answered, register a finding — which the existing SurfaceHighPriorityRedFlags
+     *     listener converts to an AIQuestion in the feed (no framework changes required).
+     *
+     * Answers are persisted by recordBatteryAnswer() after the user responds.
+     *
+     * @param  array<string, string>  $electionFacts
+     * @return string[] Finding keys emitted
+     */
+    public function surfaceBatteryQuestions(
+        int $userId,
+        int $taxYear,
+        RedFlagDetectorService $service,
+        array $electionFacts
+    ): array {
+        $emitted = [];
+
+        foreach (self::ANNUAL_BATTERY as $battery) {
+            // Skip if already answered for this tax year
+            $existingFact = UserTaxFact::currentFact($userId, $battery['fact_key'], null, $taxYear);
+            if ($existingFact !== null) {
+                continue;
+            }
+
+            // Surface as finding → SurfaceHighPriorityRedFlags converts to AIQuestion in feed
+            $key = $service->registerFinding(
+                userId: $userId,
+                taxYear: $taxYear,
+                findingKey: $battery['finding_key'],
+                findingType: 'battery_question',
+                band: 'conditional',
+                treatment: $battery['treatment'],
+                legalBasis: $battery['legal_basis'],
+                ruleId: null,  // battery questions have no expiring rule; bypass validateRule()
+                electionFacts: $electionFacts,
+            );
+
+            if ($key !== null) {
+                $emitted[] = $key;
+            }
+        }
+
+        return $emitted;
     }
 
     // ── Battery answer persistence ────────────────────────────────────────────

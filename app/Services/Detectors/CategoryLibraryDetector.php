@@ -178,12 +178,33 @@ class CategoryLibraryDetector
             'home_improvement' => $this->homeImprovementParams($dm),
             'animals_security' => $this->animalsParams($dm),
             'medical' => $this->medicalParams($dm),
+            'travel_cluster' => $this->travelClusterParams($dm),
+            'rv_boat' => $this->rvBoatParams($dm),
+            'masters_14_day' => $this->masters14DayParams($dm),
             default => $this->genericParams($dm),
         };
     }
 
     private function vehicleParams(DetectionMerchant $dm): array
     {
+        // Auto-loan interest sub-detector (TD-v1 §1): captive lender recurring payments
+        // IRC §163(h) deduction up to $10,000; US-assembled vehicles; 2025–2028 window only.
+        if ($dm->subdetector_key === 'auto_loan_interest') {
+            return [
+                'auto_loan_interest',
+                'category_library',
+                'conditional',
+                'Recurring payments to '.$dm->company_name.' may be for an auto loan. '
+                    .'If the vehicle was purchased in 2025 or later and assembled in the United States, '
+                    .'the interest on that loan may be deductible up to $10,000 per year '
+                    .'(tax years 2025–2028 under current law). '
+                    .'You may want to ask your lender for a year-end statement showing the interest paid. '
+                    .'A tax professional could help confirm eligibility and the US-assembly requirement.',
+                'IRC §163(h) (auto-loan interest deduction; up to $10,000; 2025–2028; US-assembled vehicles)',
+                ['auto_loan_year_end_statement', 'vehicle_assembly_confirmation'],
+            ];
+        }
+
         $isOffRoad = $dm->subdetector_key === 'offroad_vehicle';
 
         $treatment = 'Purchases at '.$dm->company_name.' may relate to a business vehicle. '
@@ -321,6 +342,85 @@ class CategoryLibraryDetector
                 .'may be deductible. Tracking these expenses now preserves your options.',
             'IRC §223 (HSA); IRC §213 (medical deduction, 7.5% AGI floor)',
             [],
+        ];
+    }
+
+    // ── FLAG-10 Gap Closure: travel_cluster, rv_boat, masters_14_day ────────────
+
+    /**
+     * Travel Cluster Correlator (TD-v1 §8).
+     *
+     * Airline + hotel + (conference or client-city match) within a date window → "Business trip?"
+     * Per-diem vs actual comparison; airfare full-deduction test; spouse-travel warning.
+     * All numbers (per-diem rates, IRS city caps) from config/tax-rules.php via TaxRulesEngineService.
+     */
+    private function travelClusterParams(DetectionMerchant $dm): array
+    {
+        return [
+            'category_travel_cluster',
+            'category_library',
+            'conditional',
+            'Transactions at '.$dm->company_name.' may relate to business travel. '
+                .'If you traveled primarily for business, airfare, lodging, and transportation '
+                .'may be deductible. Two approaches may apply: actual expenses (receipts required) '
+                .'or the IRS per-diem rates for lodging and meals. '
+                .'Travel for a spouse is generally not deductible unless they have a genuine business purpose. '
+                .'A tax professional could compare the actual-expense and per-diem methods for your situation '
+                .'and identify any sandwich-day optimization opportunities.',
+            'IRC §162 (ordinary and necessary business travel); Rev. Proc. 2025-33 (per-diem); IRC §274(m)(3) (spouse exclusion)',
+            ['travel_receipts', 'business_purpose_log'],
+        ];
+    }
+
+    /**
+     * RV / Boat as Second Home (TD-v1 §1, §163(h)(4)(A)).
+     *
+     * Loan servicer recurring payments for RV or boat → probe for second-home mortgage interest.
+     * A qualified residence can include an RV, boat, or mobile home if it has sleeping,
+     * cooking, and toilet facilities — qualifying for Schedule A mortgage interest deduction.
+     */
+    private function rvBoatParams(DetectionMerchant $dm): array
+    {
+        return [
+            'category_rv_boat_second_home',
+            'category_library',
+            'conditional',
+            'Recurring payments to '.$dm->company_name.' may be for an RV or boat loan. '
+                .'If the RV or boat has sleeping, cooking, and toilet facilities, '
+                .'it may qualify as a "second home" under IRC §163(h)(4)(A), '
+                .'making the loan interest potentially deductible on Schedule A '
+                .'(subject to the SALT/$750K mortgage-debt cap). '
+                .'A tax professional could review your loan documents and confirm whether '
+                .'the vessel or vehicle meets the qualified-residence requirements.',
+            'IRC §163(h)(4)(A) (RV/boat as qualified residence); IRC §163(h)(3) ($750K debt limit)',
+            ['loan_statement', 'rv_or_boat_specifications'],
+        ];
+    }
+
+    /**
+     * Masters / 14-Day Short-Term Rental Rule (TD-v1 §3.6; IRC §280A(g)).
+     *
+     * STR platform charges → surface the 14-day rental income exclusion.
+     * If a primary home is rented for ≤14 days per year, rental income is entirely tax-free
+     * and not reported on Schedule E (the "Augusta Rule" or "Masters Exception").
+     * Rental expenses are also non-deductible in this scenario.
+     */
+    private function masters14DayParams(DetectionMerchant $dm): array
+    {
+        return [
+            'category_masters_14_day',
+            'category_library',
+            'conditional',
+            'Transactions with '.$dm->company_name.' may indicate you are renting your home short-term. '
+                .'Under IRC §280A(g) — often called the "Augusta Rule" or "Masters Exception" — '
+                .'if you rent your primary residence for 14 days or fewer per year, '
+                .'the rental income may be completely excluded from your gross income '
+                .'and does not need to be reported on Schedule E. '
+                .'Rental expenses would also not be deductible under this scenario. '
+                .'A tax professional could help you determine how many rental days you had '
+                .'and whether the exclusion applies to your situation.',
+            'IRC §280A(g) (14-day personal-residence rental exclusion — "Augusta Rule")',
+            ['rental_day_log', 'rental_agreements'],
         ];
     }
 

@@ -2,6 +2,7 @@
 
 namespace App\Services\Sweeps;
 
+use App\Models\Transaction;
 use App\Models\UserTaxFact;
 use App\Services\RedFlagDetectorService;
 use App\Services\TaxRulesEngineService;
@@ -51,6 +52,10 @@ class PenaltyPreventionSweep
         // ── Sweep 3: HSA-near-Medicare 6-month lookback heuristic ────────────
         $hsaMedicareKeys = $this->checkHsaMedicareLookback($userId, $taxYear, $service, $electionFacts);
         $emitted = array_merge($emitted, $hsaMedicareKeys);
+
+        // ── Sweep 4: 1099-K / deposit mismatch awareness ─────────────────────
+        $k1099Keys = $this->checkKForm1099KMismatch($userId, $taxYear, $service, $electionFacts);
+        $emitted = array_merge($emitted, $k1099Keys);
 
         return array_values(array_unique($emitted));
     }
@@ -185,6 +190,97 @@ class PenaltyPreventionSweep
         }
 
         return [];
+    }
+
+    // ── Sweep 4: 1099-K / deposit mismatch awareness ─────────────────────────
+
+    /**
+     * Sweep 4: 1099-K / deposit mismatch awareness (FLAG-26, TD-v2Δ §8.4).
+     *
+     * Detects third-party payment platform inflows (PayPal, Venmo, Stripe, Square, Zelle-business,
+     * Cash App, etc.) that collectively may exceed the IRS 1099-K reporting threshold.
+     * From 2025+, the threshold is $600 aggregate per platform (IRS Notice 2024-85).
+     *
+     * Educational surfacing only: warn-and-educate framing ("may want to review with a professional").
+     * The 1099-K threshold is config-driven (config/tax-detection.php penalty_1099k_mismatch.threshold_cents).
+     * SAFE-03: estimated_value_cents is never assigned here.
+     *
+     * Deterministic comparison: sum of all credits (negative amounts) from known payment platforms
+     * within the tax year vs the config threshold.
+     */
+    protected function checkKForm1099KMismatch(
+        int $userId,
+        int $taxYear,
+        RedFlagDetectorService $service,
+        array $electionFacts
+    ): array {
+        // Threshold from config — $600 aggregate per platform (2025+)
+        $thresholdCents = (int) config('tax-detection.rules.penalty_1099k_mismatch.threshold_cents', 60_000);
+
+        // Known third-party payment platform merchant patterns (IRC §6050W reporting entities)
+        $platformPatterns = [
+            'paypal', 'venmo', 'stripe', 'square', 'cash app', 'cashapp',
+            'zelle', 'shopify payments', 'amazon pay', 'google pay', 'apple pay',
+            'etsy payments', 'ebay', 'facebook marketplace', 'mercari', 'poshmark',
+        ];
+
+        $yearStart = "{$taxYear}-01-01";
+        $yearEnd = "{$taxYear}-12-31";
+
+        // Scan for credits (inflows, negative amounts in debit-positive convention) from platforms
+        $query = Transaction::where('user_id', $userId)
+            ->where('amount', '<', 0)   // credits only (inflows)
+            ->whereBetween('transaction_date', [$yearStart, $yearEnd]);
+
+        $patternQuery = function ($q) use ($platformPatterns) {
+            foreach ($platformPatterns as $pattern) {
+                $q->orWhere('merchant_normalized', 'ILIKE', "%{$pattern}%")
+                    ->orWhere('merchant_name', 'ILIKE', "%{$pattern}%");
+            }
+        };
+
+        $platformInflows = $query->where($patternQuery)->get(['id', 'amount', 'merchant_name']);
+
+        if ($platformInflows->isEmpty()) {
+            return [];
+        }
+
+        // Sum absolute values (credits are negative; abs() gives total received)
+        $totalInflowCents = (int) round(abs($platformInflows->sum('amount')) * 100);
+
+        if ($totalInflowCents < $thresholdCents) {
+            return [];
+        }
+
+        $platformNames = $platformInflows
+            ->pluck('merchant_name')
+            ->unique()
+            ->take(3)
+            ->implode(', ');
+
+        $key = $service->registerFinding(
+            userId: $userId,
+            taxYear: $taxYear,
+            findingKey: 'penalty_1099k_mismatch',
+            findingType: 'penalty_prevention',
+            band: 'conditional',
+            treatment: 'Deposits detected from third-party payment platforms ('.$platformNames.' and others) '
+                .'may meet the IRS Form 1099-K reporting threshold. '
+                .'Starting in 2025, payment platforms are required to issue Form 1099-K when '
+                .'aggregate payments to you exceed $600 in a year (down from $20,000 previously). '
+                .'If you received a 1099-K, you may want to review your reported income to ensure '
+                .'it matches your actual income — especially if personal transactions (selling used items, '
+                .'splitting expenses) are included. '
+                .'A tax professional could help you reconcile any 1099-K amounts with your actual income '
+                .'and document any non-taxable items.',
+            legalBasis: 'IRC §6050W (1099-K reporting); IRS Notice 2024-85 ($600 threshold effective 2025)',
+            ruleId: 'penalty_1099k_mismatch',
+            annualTotalCents: $totalInflowCents,
+            transactionIds: $platformInflows->pluck('id')->toArray(),
+            electionFacts: $electionFacts,
+        );
+
+        return $key !== null ? [$key] : [];
     }
 
     // ── Sweep 3: HSA-near-Medicare 6-month lookback heuristic ────────────────

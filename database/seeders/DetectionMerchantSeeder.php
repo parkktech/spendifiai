@@ -335,6 +335,217 @@ class DetectionMerchantSeeder extends Seeder
                 'rule_id' => 'category_medical',
             ],
 
+            // ── Travel Cluster (TD-v1 §8) ─────────────────────────────────────────
+            // airline + hotel + (conference or client-city) within date window → business trip?
+            // Per-diem vs actual comparison; airfare full-deduction check; spouse-travel warning.
+            [
+                'company_name' => 'Delta Air Lines',
+                'aliases' => ['DELTA', 'DELTA AIR LINES', 'DELTA AIRLINES', 'DL', 'DELTA.COM'],
+                'category' => 'travel_cluster',
+                'subdetector_key' => 'travel_cluster',
+                'defensibility_rating' => 'conditional',
+                'gray_area' => false,
+                'notes' => 'Airline — business trip correlator; per-diem vs actual comparison',
+                'rule_id' => 'category_travel_cluster',
+            ],
+            [
+                'company_name' => 'American Airlines',
+                'aliases' => ['AMERICAN AIRLINES', 'AMERICAN AIR', 'AA.COM', 'AAENVSVC'],
+                'category' => 'travel_cluster',
+                'subdetector_key' => 'travel_cluster',
+                'defensibility_rating' => 'conditional',
+                'gray_area' => false,
+                'notes' => 'Airline — business trip correlator',
+                'rule_id' => 'category_travel_cluster',
+            ],
+            [
+                'company_name' => 'United Airlines',
+                'aliases' => ['UNITED', 'UNITED AIRLINES', 'UAL', 'UNITED.COM'],
+                'category' => 'travel_cluster',
+                'subdetector_key' => 'travel_cluster',
+                'defensibility_rating' => 'conditional',
+                'gray_area' => false,
+                'notes' => 'Airline',
+                'rule_id' => 'category_travel_cluster',
+            ],
+            [
+                'company_name' => 'Southwest Airlines',
+                'aliases' => ['SOUTHWEST', 'SOUTHWEST AIRLINES', 'SOUTHWEST.COM'],
+                'category' => 'travel_cluster',
+                'subdetector_key' => 'travel_cluster',
+                'defensibility_rating' => 'conditional',
+                'gray_area' => false,
+                'notes' => 'Airline',
+                'rule_id' => 'category_travel_cluster',
+            ],
+            [
+                'company_name' => 'Marriott',
+                'aliases' => ['MARRIOTT', 'MARRIOTT HOTELS', 'MARRIOTT INTL', 'MARRIOTT.COM', 'COURTYARD MARRIOTT'],
+                'category' => 'travel_cluster',
+                'subdetector_key' => 'travel_cluster',
+                'defensibility_rating' => 'conditional',
+                'gray_area' => false,
+                'notes' => 'Hotel — business trip correlator; sandwich-day optimization',
+                'rule_id' => 'category_travel_cluster',
+            ],
+            [
+                'company_name' => 'Hilton',
+                'aliases' => ['HILTON', 'HILTON HOTELS', 'HILTON GARDEN INN', 'HILTON.COM', 'HILTON WORLDWIDE'],
+                'category' => 'travel_cluster',
+                'subdetector_key' => 'travel_cluster',
+                'defensibility_rating' => 'conditional',
+                'gray_area' => false,
+                'notes' => 'Hotel',
+                'rule_id' => 'category_travel_cluster',
+            ],
+            [
+                'company_name' => 'Hertz',
+                'aliases' => ['HERTZ', 'HERTZ.COM', 'HERTZ CAR RENTAL', 'HERTZ #'],
+                'category' => 'travel_cluster',
+                'subdetector_key' => 'travel_cluster',
+                'defensibility_rating' => 'conditional',
+                'gray_area' => false,
+                'notes' => 'Car rental — business trip correlator',
+                'rule_id' => 'category_travel_cluster',
+            ],
+            [
+                'company_name' => 'Enterprise Rent-A-Car',
+                'aliases' => ['ENTERPRISE', 'ENTERPRISE RENT A CAR', 'ENTERPRISE RENTACAR', 'ENTERPRISE.COM'],
+                'category' => 'travel_cluster',
+                'subdetector_key' => 'travel_cluster',
+                'defensibility_rating' => 'conditional',
+                'gray_area' => false,
+                'notes' => 'Car rental',
+                'rule_id' => 'category_travel_cluster',
+            ],
+
+            // ── RV / Boat as Second Home (TD-v1 §1, sub-detector: second-home loan) ─
+            // RV or boat loans qualify for mortgage interest deduction if the vehicle has
+            // sleeping, cooking, and toilet facilities (IRC §163(h)(4)(A) — "qualified residence").
+            [
+                'company_name' => 'Good Sam Finance',
+                'aliases' => ['GOOD SAM FINANCE', 'GOOD SAM FINANCIAL', 'GOODSAM FINANCE', 'GOOD SAM'],
+                'category' => 'rv_boat',
+                'subdetector_key' => 'rv_boat_loan',
+                'defensibility_rating' => 'conditional',
+                'gray_area' => false,
+                'notes' => 'RV/boat loan servicer — IRC §163(h)(4)(A) second-home interest probe',
+                'rule_id' => 'category_rv_boat',
+            ],
+            [
+                'company_name' => 'Essex Credit',
+                'aliases' => ['ESSEX CREDIT', 'ESSEX BANK', 'ESSEX CREDIT CORP'],
+                'category' => 'rv_boat',
+                'subdetector_key' => 'rv_boat_loan',
+                'defensibility_rating' => 'conditional',
+                'gray_area' => false,
+                'notes' => 'Marine/RV lending specialist — second-home mortgage interest probe',
+                'rule_id' => 'category_rv_boat',
+            ],
+            [
+                'company_name' => 'Southeast Financial',
+                'aliases' => ['SOUTHEAST FINANCIAL', 'SOUTHEAST FINANCIAL CREDIT UNION', 'SEFCU BOAT'],
+                'category' => 'rv_boat',
+                'subdetector_key' => 'rv_boat_loan',
+                'defensibility_rating' => 'conditional',
+                'gray_area' => false,
+                'notes' => 'Marine/RV lender',
+                'rule_id' => 'category_rv_boat',
+            ],
+            [
+                'company_name' => 'Trident Funding',
+                'aliases' => ['TRIDENT FUNDING', 'TRIDENT BOAT LOANS', 'TRIDENTFUNDING'],
+                'category' => 'rv_boat',
+                'subdetector_key' => 'rv_boat_loan',
+                'defensibility_rating' => 'conditional',
+                'gray_area' => false,
+                'notes' => 'Marine lender',
+                'rule_id' => 'category_rv_boat',
+            ],
+
+            // ── Auto-Loan Interest (TD-v1 §1 sub-detector) ───────────────────────────
+            // Recurring payments to captive auto lenders → ask "US-assembled? Purchased 2025+?"
+            // IRC §163(h) auto-loan interest deduction: up to $10,000, tax years 2025–2028.
+            // Dollar cap and year window in config/tax-rules.php (TAX-08).
+            [
+                'company_name' => 'Ford Motor Credit',
+                'aliases' => ['FORD MOTOR CREDIT', 'FORD CREDIT', 'FORD MOTOR CREDIT CO', 'FORD MOTOR CREDIT C'],
+                'category' => 'vehicle',
+                'subdetector_key' => 'auto_loan_interest',
+                'defensibility_rating' => 'conditional',
+                'gray_area' => false,
+                'notes' => 'Captive auto lender — §163(h) auto-loan interest probe (2025–2028, US-assembled)',
+                'rule_id' => 'auto_loan_interest',
+            ],
+            [
+                'company_name' => 'GM Financial',
+                'aliases' => ['GM FINANCIAL', 'GENERAL MOTORS FINANCIAL', 'GMFINANCIAL'],
+                'category' => 'vehicle',
+                'subdetector_key' => 'auto_loan_interest',
+                'defensibility_rating' => 'conditional',
+                'gray_area' => false,
+                'notes' => 'Captive auto lender — §163(h) auto-loan interest probe',
+                'rule_id' => 'auto_loan_interest',
+            ],
+            [
+                'company_name' => 'Toyota Financial Services',
+                'aliases' => ['TOYOTA FINANCIAL', 'TOYOTA FINANCIAL SERVICES', 'TFS', 'TOYOTA FINANCE'],
+                'category' => 'vehicle',
+                'subdetector_key' => 'auto_loan_interest',
+                'defensibility_rating' => 'conditional',
+                'gray_area' => false,
+                'notes' => 'Captive auto lender',
+                'rule_id' => 'auto_loan_interest',
+            ],
+            [
+                'company_name' => 'Honda Financial Services',
+                'aliases' => ['HONDA FINANCIAL', 'HONDA FINANCIAL SERVICES', 'AMERICAN HONDA FINANCE'],
+                'category' => 'vehicle',
+                'subdetector_key' => 'auto_loan_interest',
+                'defensibility_rating' => 'conditional',
+                'gray_area' => false,
+                'notes' => 'Captive auto lender',
+                'rule_id' => 'auto_loan_interest',
+            ],
+            [
+                'company_name' => 'Ally Financial Auto',
+                'aliases' => ['ALLY FINANCIAL', 'ALLY AUTO', 'ALLY BANK AUTO', 'ALLY'],
+                'category' => 'vehicle',
+                'subdetector_key' => 'auto_loan_interest',
+                'defensibility_rating' => 'conditional',
+                'gray_area' => false,
+                'notes' => 'Auto lender — §163(h) probe',
+                'rule_id' => 'auto_loan_interest',
+            ],
+
+            // ── Masters / 14-Day Short-Term Rental (TD-v1 §3.6) ──────────────────────
+            // IRC §280A(g): renting primary home for ≤14 days per year → rental income is tax-free.
+            // The Masters Tournament in Augusta, GA is the canonical example (property owners
+            // near Augusta National routinely rent homes during Masters week for large sums
+            // without reporting rental income if ≤14 days).
+            // Signal: payments to STR platforms (host service fees, cleaning fees).
+            // Detection question: "How many days did you rent your home this year?" → if ≤14, educate.
+            [
+                'company_name' => 'Airbnb',
+                'aliases' => ['AIRBNB', 'AIRBNB.COM', 'AIRBNB INC', 'AIRBNB PAYMENTS', 'AIRBNB HOST'],
+                'category' => 'masters_14_day',
+                'subdetector_key' => 'masters_14_day',
+                'defensibility_rating' => 'conditional',
+                'gray_area' => false,
+                'notes' => 'STR platform — 14-day Augusta/Masters rule probe; ask days-rented per year',
+                'rule_id' => 'category_masters_14_day',
+            ],
+            [
+                'company_name' => 'VRBO',
+                'aliases' => ['VRBO', 'VRBO.COM', 'HOMEAWAY', 'HOME AWAY', 'VRBO OWNER'],
+                'category' => 'masters_14_day',
+                'subdetector_key' => 'masters_14_day',
+                'defensibility_rating' => 'conditional',
+                'gray_area' => false,
+                'notes' => 'STR platform — 14-day rule probe',
+                'rule_id' => 'category_masters_14_day',
+            ],
+
             // ── Gambling Signals (TD-v2Δ §13) ────────────────────────────────
             // Registered as SIGNAL ONLY — band=suppress via gambling_losses_fully_deductible rule.
             // From 2026: only 90% of losses deductible (OBBBA §70250) → break-even bettors owe tax.

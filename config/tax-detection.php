@@ -575,6 +575,47 @@ return [
             'band' => 'conditional',
         ],
 
+        // ── FLAG-10 Gap Closure: travel_cluster, rv_boat, masters_14_day ─────────
+
+        'category_travel_cluster' => [
+            'rule_id' => 'category_travel_cluster',
+            'authority' => 'IRC §162 (ordinary/necessary business travel); Rev. Proc. 2025-33 (per-diem); IRC §274(m)(3)',
+            'effective_start' => '2025-01-01',
+            'effective_end' => null,
+            'phaseouts' => [],
+            'inflation_adjusted' => false,
+            'source_url' => 'https://www.irs.gov/publications/p463',
+            'last_verified' => '2026-07-02',
+            'status' => 'verified',
+            'band' => 'conditional',  // primarily-business test required
+        ],
+
+        'category_rv_boat' => [
+            'rule_id' => 'category_rv_boat',
+            'authority' => 'IRC §163(h)(4)(A) (RV/boat as qualified second home); IRC §163(h)(3) ($750K debt cap)',
+            'effective_start' => '2025-01-01',
+            'effective_end' => null,
+            'phaseouts' => [],
+            'inflation_adjusted' => false,
+            'source_url' => 'https://www.irs.gov/publications/p936',
+            'last_verified' => '2026-07-02',
+            'status' => 'verified',
+            'band' => 'conditional',  // qualified-residence test required
+        ],
+
+        'category_masters_14_day' => [
+            'rule_id' => 'category_masters_14_day',
+            'authority' => 'IRC §280A(g) (14-day personal-residence rental exclusion — "Augusta Rule")',
+            'effective_start' => '2025-01-01',
+            'effective_end' => null,
+            'phaseouts' => [],
+            'inflation_adjusted' => false,
+            'source_url' => 'https://www.irs.gov/publications/p527',
+            'last_verified' => '2026-07-02',
+            'status' => 'verified',
+            'band' => 'conditional',  // days-rented question gates eligibility
+        ],
+
         // ── FLAG-07: Deductible SaaS Sweep ───────────────────────────────────
 
         'deductible_saas_sweep' => [
@@ -782,6 +823,23 @@ return [
             'band' => 'conditional',
         ],
 
+        // Sweep 4: 1099-K / deposit mismatch awareness (educational only)
+        // From 2025+: Form 1099-K threshold lowered to $600 (down from $20K/200 txns).
+        // Detects third-party payment platform inflows that may trigger 1099-K reporting.
+        'penalty_1099k_mismatch' => [
+            'rule_id' => 'penalty_1099k_mismatch',
+            'authority' => 'IRC §6050W (1099-K reporting); IRS Notice 2023-74; IRS Notice 2024-85',
+            'effective_start' => '2025-01-01',
+            'effective_end' => null,
+            'phaseouts' => [],
+            'threshold_cents' => 60_000,   // $600 aggregate threshold per platform (2025+ IRS rules)
+            'inflation_adjusted' => false,
+            'source_url' => 'https://www.irs.gov/businesses/understanding-your-form-1099-k',
+            'last_verified' => '2026-07-02',
+            'status' => 'verified',
+            'band' => 'conditional',  // educational awareness only
+        ],
+
         // ── FLAG-27: Life-Event Trigger Detector ──────────────────────────────
 
         'life_event_payroll_stop' => [
@@ -819,6 +877,21 @@ return [
             'inflation_adjusted' => false,
             'source_url' => 'https://www.irs.gov/affordable-care-act/individuals-and-families',
             'last_verified' => '2026-07-01',
+            'status' => 'verified',
+            'band' => 'conditional',
+        ],
+
+        // ── FLAG-27 Gap Closure: escrow inflow + annual battery ──────────────
+
+        'life_event_escrow_inflow' => [
+            'rule_id' => 'life_event_escrow_inflow',
+            'authority' => 'IRC §121 (primary-home gain exclusion, $250K/$500K MFJ); IRC §1250 (depreciation recapture)',
+            'effective_start' => '2025-01-01',
+            'effective_end' => null,
+            'phaseouts' => [],
+            'inflation_adjusted' => false,
+            'source_url' => 'https://www.irs.gov/publications/p523',
+            'last_verified' => '2026-07-02',
             'status' => 'verified',
             'band' => 'conditional',
         ],
