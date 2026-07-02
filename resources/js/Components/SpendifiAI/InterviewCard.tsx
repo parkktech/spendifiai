@@ -183,11 +183,18 @@ export default function InterviewCard({ taxYear = CURRENT_YEAR, onAnswered }: In
     }
   }, [session, currentQuestion, fetchNextQuestion, onAnswered]);
 
-  /** Skip the current question (advance without answering). */
+  /**
+   * Skip the current question (advance without answering).
+   *
+   * DEFECT 2 fix: POST to the durable skip endpoint so the skip is persisted
+   * server-side. This prevents the stale-queue self-heal from re-inserting the
+   * skipped item at position 1 on reload (the reported "skip just refreshes" loop).
+   * The endpoint returns the next question in the same shape as /next.
+   */
   const handleSkip = useCallback(async () => {
     if (!session || !currentQuestion) return;
 
-    // Track as skipped in history
+    // Track as skipped in local history (enables Back navigation).
     setHistory((prev) => {
       const entry: HistoryEntry = { question: currentQuestion, answer: null };
       const updated = [...prev, entry];
@@ -195,8 +202,26 @@ export default function InterviewCard({ taxYear = CURRENT_YEAR, onAnswered }: In
       return updated;
     });
 
-    await fetchNextQuestion(session.id);
-  }, [session, currentQuestion, fetchNextQuestion]);
+    setCardState('loading-question');
+    try {
+      const res = await axios.post<{
+        question: OptimizationQuestionPayload | null;
+        session_status: string;
+      }>(`/api/v1/optimizer/interview/${session.id}/questions/${currentQuestion.id}/skip`);
+
+      if (!res.data.question) {
+        setCardState(res.data.session_status === 'completed' ? 'complete' : 'no-questions');
+        return;
+      }
+
+      setCurrentQuestion(res.data.question);
+      setCardState('question');
+      resetInputState();
+    } catch {
+      setCardState('error');
+      setErrorMessage('Could not skip this question. Please try again.');
+    }
+  }, [session, currentQuestion, resetInputState]);
 
   /** Navigate back to a previously shown question. */
   const handleBack = useCallback(() => {

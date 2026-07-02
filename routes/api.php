@@ -20,6 +20,7 @@ use App\Http\Controllers\Api\HouseholdController;
 use App\Http\Controllers\Api\ImpersonationController;
 use App\Http\Controllers\Api\InterviewController;
 use App\Http\Controllers\Api\OnboardingController;
+use App\Http\Controllers\Api\OptimizationObjectiveController;
 use App\Http\Controllers\Api\OptimizationReportController;
 use App\Http\Controllers\Api\OrderItemController;
 use App\Http\Controllers\Api\PlaidController;
@@ -336,6 +337,18 @@ Route::middleware(['auth:sanctum'])->group(function () {
             Route::post('/start', [InterviewController::class, 'start']);
             Route::get('/{interview}/next', [InterviewController::class, 'next']);
             Route::post('/{interview}/questions/{question}/answer', [InterviewController::class, 'answer']);
+            // DEFECT 2: durable skip — persists the skip so it never re-surfaces.
+            Route::post('/{interview}/questions/{question}/skip', [InterviewController::class, 'skip']);
+        });
+
+        // ── Phase 14-05: Objective readiness + gap enqueue (SCN-01 / §E) ──
+        // Keys/labels/states only (no money values). NO bank.connected requirement —
+        // mirrors the shipped optimizer groups so statement-upload-only users participate.
+        Route::prefix('optimizer/objectives')->group(function () {
+            Route::get('/{year}', [OptimizationObjectiveController::class, 'show'])
+                ->middleware('throttle:60,1');
+            Route::post('/{year}/{objective}/enqueue', [OptimizationObjectiveController::class, 'enqueue'])
+                ->middleware('throttle:10,1');
         });
 
         // ── Phase 11-05: Durable Facts API (STORE-01 anchor UI) ──

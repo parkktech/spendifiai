@@ -7,6 +7,7 @@ use App\Http\Requests\AnswerOptimizationQuestionRequest;
 use App\Models\AIQuestion;
 use App\Models\InterviewSession;
 use App\Services\InterviewOrchestratorService;
+use App\Services\ScenarioFactResolverService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -26,6 +27,7 @@ class InterviewController extends Controller
 {
     public function __construct(
         private readonly InterviewOrchestratorService $orchestrator,
+        private readonly ScenarioFactResolverService $resolver,
     ) {}
 
     /**
@@ -80,6 +82,24 @@ class InterviewController extends Controller
             ]);
         }
 
+        // §A.5.5 / §E: resolve the prefill_source POINTER transiently at read time.
+        // prefill_display/prefill_value are computed per-request over the authed API
+        // and are NEVER stored (the options JSON only carries the pointer).
+        $prefillDisplay = null;
+        $prefillValue = null;
+        $pointer = $question->options['prefill_source'] ?? null;
+        if ($pointer !== null) {
+            $resolved = $this->resolver->resolve(
+                $interview->user,
+                (int) $interview->tax_year,
+                $question->ai_best_guess,
+            );
+            if ($resolved !== null && ($resolved['value'] ?? null) !== null) {
+                $prefillValue = (string) $resolved['value'];
+                $prefillDisplay = $this->formatPrefill($prefillValue, $resolved['value_type'] ?? null);
+            }
+        }
+
         return response()->json([
             'question' => [
                 'id' => $question->id,
@@ -91,9 +111,50 @@ class InterviewController extends Controller
                 'band' => $question->options['band'] ?? null,
                 'suggested_treatment' => $question->options['suggested_treatment'] ?? null,
                 'transaction_count' => count($question->options['transaction_ids'] ?? []),
+                // ── Phase-14 additive fields (§E) — existing keys above untouched ──
+                'objective_tags' => $question->options['objective_tags'] ?? [],
+                'answer_type' => $question->options['answer_type'] ?? null,
+                'choices' => $question->options['choices'] ?? null,
+                'doc_affordance' => $question->options['doc_affordance'] ?? null,
+                'prefill_display' => $prefillDisplay, // transient — never stored
+                'prefill_value' => $prefillValue,     // transient — never stored
             ],
             'session_status' => $interview->fresh()->status,
         ]);
+    }
+
+    /**
+     * Skip the current question without answering (DEFECT 2 — durable skip).
+     *
+     * Persists the skip in the session so the stale-queue self-heal never re-inserts
+     * it at the head of the queue on reload. Returns the next question (same shape as
+     * next()) so the frontend can advance in one round-trip.
+     */
+    public function skip(
+        Request $request,
+        InterviewSession $interview,
+        AIQuestion $question
+    ): JsonResponse {
+        $this->authorize('update', $interview);
+
+        // Use ai_best_guess — it is the QUEUE key (finding_key or canonical fact key),
+        // whereas options.fact_key may be the 'finding.'-prefixed durable key.
+        $this->orchestrator->skip($interview, $question->ai_best_guess);
+
+        // Advance to the next question (or completion).
+        return $this->next($request, $interview);
+    }
+
+    /**
+     * Format a resolved prefill value for display (§A.5.5). Money cents → "$72,500".
+     */
+    private function formatPrefill(string $value, ?string $valueType): string
+    {
+        if ($valueType === 'money_cents' && ctype_digit($value)) {
+            return '$'.number_format((int) $value / 100);
+        }
+
+        return $value;
     }
 
     /**
