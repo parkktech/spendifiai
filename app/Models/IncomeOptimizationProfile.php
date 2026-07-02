@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\UserTaxFact;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -54,6 +55,8 @@ class IncomeOptimizationProfile extends Model
         'has_ira',
         'ira_type',
         'employment_type',
+        'business_type',
+        'housing_status',
         'estimated_age',
         // Metadata
         'data_sources',
@@ -145,11 +148,19 @@ class IncomeOptimizationProfile extends Model
      * Returns an array where each key is the skip-logic description and the
      * value is whether that fact is already answerable from this profile.
      *
+     * ADDITIVE EXTENSION (INT-03, Phase 11-02): accepts an optional UserTaxFact proxy
+     * to merge confirmed durable facts into the answerable map. Unconfirmed
+     * document_extraction proposals are EXCLUDED (confirm gate — D3/Decision 4).
+     * If no proxy is passed, falls back to the original 9-key base map.
+     *
+     * @param  UserTaxFact|null  $factsProxy  A (possibly empty) UserTaxFact instance used
+     *                                         to call currentFactKeys($this->user_id).
+     *                                         Pass null (default) to use base map only.
      * @return array<string, bool>
      */
-    public function answerableFields(): array
+    public function answerableFields(?UserTaxFact $factsProxy = null): array
     {
-        return [
+        $base = [
             'filing_status' => $this->filing_status !== null,
             'has_hsa_eligible_plan' => $this->has_hsa_eligible_plan === true,
             'has_ira' => $this->has_ira === true,
@@ -160,6 +171,17 @@ class IncomeOptimizationProfile extends Model
             'has_hsa_contributions' => $this->hsa_ytd !== null && (int) $this->hsa_ytd > 0,
             'employment_type' => $this->employment_type !== null,
         ];
+
+        // Merge confirmed durable facts from UserTaxFact store.
+        // currentFactKeys() EXCLUDES unconfirmed document_extraction proposals (confirm gate).
+        // This is an additive merge — no existing key is ever removed or overwritten to false.
+        if ($factsProxy !== null && $this->user_id !== null) {
+            foreach (UserTaxFact::currentFactKeys($this->user_id) as $factKey) {
+                $base[$factKey] = true;
+            }
+        }
+
+        return $base;
     }
 
     // ─── Float accessors for encrypted cent fields ───────────────────────────

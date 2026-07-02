@@ -17,7 +17,9 @@ use App\Models\OrderItem;
 use App\Models\SavingsPlanAction;
 use App\Models\SavingsRecommendation;
 use App\Models\Subscription;
+use App\Models\TaxProfileEntity;
 use App\Models\Transaction;
+use App\Models\UserTaxFact;
 use App\Policies\AIQuestionPolicy;
 use App\Policies\BankAccountPolicy;
 use App\Policies\BankConnectionPolicy;
@@ -28,7 +30,9 @@ use App\Policies\OrderItemPolicy;
 use App\Policies\SavingsPlanActionPolicy;
 use App\Policies\SavingsRecommendationPolicy;
 use App\Policies\SubscriptionPolicy;
+use App\Policies\TaxProfileEntityPolicy;
 use App\Policies\TransactionPolicy;
+use App\Policies\UserTaxFactPolicy;
 use Illuminate\Mail\Events\MailFailed;
 use Illuminate\Mail\Events\MessageSending;
 use Illuminate\Mail\Events\MessageSent;
@@ -73,6 +77,9 @@ class AppServiceProvider extends ServiceProvider
         Route::model('provider', CancellationProvider::class);
         Route::model('dependent', Dependent::class);
         Route::model('deduction', \App\Models\TaxDeduction::class);
+        // Phase 11-02: durable-facts store bindings (InterviewSession binding in 11-04)
+        Route::model('tax-fact', UserTaxFact::class);
+        Route::model('tax-entity', TaxProfileEntity::class);
 
         // ── Middleware Aliases ──
         Route::aliasMiddleware('bank.connected', EnsureBankConnected::class);
@@ -92,6 +99,9 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(CancellationProvider::class, CancellationProviderPolicy::class);
         Gate::policy(Dependent::class, DependentPolicy::class);
         Gate::policy(Household::class, HouseholdPolicy::class);
+        // Phase 11-02: durable-facts store policies (InterviewSession policy in 11-04)
+        Gate::policy(UserTaxFact::class, UserTaxFactPolicy::class);
+        Gate::policy(TaxProfileEntity::class, TaxProfileEntityPolicy::class);
 
         // ── Vite Prefetch (from Breeze starter kit) ──
         Vite::prefetch(concurrency: 3);

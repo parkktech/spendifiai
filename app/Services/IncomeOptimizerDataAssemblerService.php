@@ -105,6 +105,10 @@ class IncomeOptimizerDataAssemblerService
                 'has_home_office' => false,
                 'has_self_employment' => false,
                 'employment_type' => null,
+                // FACT-CHECK FIX (INT-03): entity/housing gates in Phase 11b detectors need these.
+                // Previously omitted — added additively; no existing key shape changes.
+                'business_type' => null,
+                'housing_status' => null,
             ];
         }
 
@@ -124,6 +128,10 @@ class IncomeOptimizerDataAssemblerService
             'has_home_office' => (bool) ($profile->has_home_office ?? false),
             'has_self_employment' => $hasSelfEmployment,
             'employment_type' => $profile->employment_type ?? null,
+            // FACT-CHECK FIX (INT-03): additively added; no existing key shape changes.
+            // These gate entity/housing detectors in wave 11b (D3/CONTEXT.md).
+            'business_type' => $profile->business_type ?? null,
+            'housing_status' => $profile->housing_status ?? null,
         ];
     }
 
