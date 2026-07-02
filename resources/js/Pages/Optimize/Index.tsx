@@ -1,26 +1,20 @@
 /**
- * Optimize/Index — Phase 12-05 Task 2 (UI-01, UI-02, UI-03).
+ * Optimize/Index — Phase 12-05 Task 2 (UI-01, UI-02, UI-03) + Phase 14-10 (SCEN-01).
  *
- * Three-stage Optimize My Income page:
+ * Four-stage Optimize My Income page:
  *   Stage 1 — Findings list (ranked by severity, "what we noticed" framing)
- *   Stage 2 — Guided interview (reuses P11 InterviewCard unchanged)
- *   Stage 3 — Collapsible report view (OptimizationReportView)
+ *   Stage 2 — Guided interview (reuses P11 InterviewCard + doc_affordance)
+ *   Stage 3 — Scenario comparison + choose + mix panel (D.1–D.4)
+ *   Stage 4 — Collapsible report view (OptimizationReportView)
  *
  * Guards: auth.hasBankConnected → ConnectBankPrompt when false.
  *
- * DESIGN (Decision 6/7 — elevate, don't replace):
- *   - sw-* tokens only; Inter type stack; 4px/8px rhythm; shadow-sm cards
+ * DESIGN (Decision 6/7 / Decision 12 — born-premium, don't replace):
+ *   - sw-* tokens only; Inter type stack; 4px/8px rhythm; shadow-sw-* cards
  *   - Applied: ui-ux-pro-max "Financial Dashboard — Data-Dense" for findings
  *   - Applied: soft-skill — 16px rhythm, leading-relaxed, focus states
  *   - All copy uses may/could/consider (UI-03 educational framing)
  *   - Inline disclaimer on every surface (non-globally-dismissable)
- *
- * SKILL USAGE:
- *   - ui-ux-pro-max query: "collapsible report sections layout" → Feature-Rich
- *     Showcase / Editorial Grid patterns applied (section cards with grid layout)
- *   - ui-ux-pro-max query: "tax dashboard report card priority severity" →
- *     Financial Dashboard style: Data-Dense, red/green severity indicators
- *   - soft-skill: 16px rhythm, shadow-sm depth, 1.6 leading for prose
  */
 
 import { useState, useEffect, useRef } from 'react';
@@ -38,13 +32,18 @@ import {
   ChevronDown,
   ChevronUp,
   Loader2,
+  GitCompare,
 } from 'lucide-react';
 import Badge from '@/Components/SpendifiAI/Badge';
 import ConnectBankPrompt from '@/Components/SpendifiAI/ConnectBankPrompt';
 import InterviewCard from '@/Components/SpendifiAI/InterviewCard';
 import OptimizationReportView from '@/Components/SpendifiAI/OptimizationReportView';
+import ObjectiveReadinessPanel from '@/Components/SpendifiAI/ObjectiveReadinessPanel';
+import ScenarioComparisonCards from '@/Components/SpendifiAI/ScenarioComparisonCards';
+import ScenarioMixPanel from '@/Components/SpendifiAI/ScenarioMixPanel';
 import { useApi, useApiPost } from '@/hooks/useApi';
 import axios from 'axios';
+import type { ObjectivesResponse, ScenariosResponse } from '@/types/spendifiai';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -92,7 +91,7 @@ interface ReportResponse {
   report: ReportData;
 }
 
-type ViewMode = 'findings' | 'interview' | 'report';
+type ViewMode = 'findings' | 'interview' | 'scenarios' | 'report';
 
 // ─── Narration truncation helper ─────────────────────────────────────────────
 
@@ -235,6 +234,7 @@ function StageIndicator({
   const stages: { key: ViewMode; label: string }[] = [
     { key: 'findings', label: 'Findings' },
     { key: 'interview', label: 'Interview' },
+    { key: 'scenarios', label: 'Choices' },
     { key: 'report', label: 'Report' },
   ];
   const idx = stages.findIndex((s) => s.key === current);
@@ -272,6 +272,57 @@ export default function OptimizeIndex() {
   const [expandedFindingId, setExpandedFindingId] = useState<number | null>(null);
   // Task 3: 429 / rate-limit state — show cached data with gentle note
   const [rateLimited, setRateLimited] = useState(false);
+
+  // Phase 14-10: Scenarios stage state
+  const [enqueueing, setEnqueueing] = useState(false);
+  const [enqueueError, setEnqueueError] = useState<string | null>(null);
+
+  // Fetch objectives readiness (for scenarios stage)
+  const {
+    data: objectivesData,
+    loading: objectivesLoading,
+    refresh: refreshObjectives,
+  } = useApi<ObjectivesResponse>(`/api/v1/optimizer/objectives/${currentYear}`, {
+    enabled: auth.hasBankConnected && viewMode === 'scenarios',
+  });
+
+  // Fetch scenarios (for comparison cards)
+  const {
+    data: scenariosData,
+    loading: scenariosLoading,
+    refresh: refreshScenarios,
+  } = useApi<ScenariosResponse>(`/api/v1/optimizer/scenarios/${currentYear}`, {
+    enabled: auth.hasBankConnected && viewMode === 'scenarios',
+  });
+
+  const handleEnqueue = async () => {
+    setEnqueueing(true);
+    setEnqueueError(null);
+    try {
+      await axios.post(`/api/v1/optimizer/objectives/${currentYear}/enqueue`);
+      refreshScenarios();
+    } catch (err) {
+      const msg =
+        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ??
+        'Could not start scenario computation';
+      setEnqueueError(msg);
+    } finally {
+      setEnqueueing(false);
+    }
+  };
+
+  const handleChooseScenario = async (optionKey: string) => {
+    try {
+      await axios.post(`/api/v1/optimizer/scenarios/${currentYear}/choose`, {
+        option_key: optionKey,
+      });
+      refreshScenarios();
+      // Advance to report after choosing
+      setTimeout(() => setViewMode('report'), 800);
+    } catch {
+      // ignore — user can retry
+    }
+  };
 
   // Fetch the report (includes sections/findings).
   // Data is cached in React state — does NOT refetch on tab switches.
@@ -551,7 +602,13 @@ export default function OptimizeIndex() {
             }}
           />
 
-          <div className="flex justify-center pt-2">
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
+            <button
+              onClick={() => setViewMode('scenarios')}
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-sw-accent text-white text-sm font-semibold hover:bg-sw-accent-hover transition shadow-sw-1"
+            >
+              <GitCompare size={14} /> See your options
+            </button>
             <button
               onClick={() => setViewMode('report')}
               className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-sw-border text-sm text-sw-muted hover:text-sw-text transition"
@@ -562,7 +619,70 @@ export default function OptimizeIndex() {
         </div>
       )}
 
-      {/* ── Stage 3: Report ───────────────────────────────────────────────────── */}
+      {/* ── Stage 3: Scenarios — Choices ──────────────────────────────────────── */}
+      {viewMode === 'scenarios' && (
+        <div className="space-y-5">
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              <GitCompare size={16} className="text-sw-accent" />
+              <h2 className="text-sm font-semibold text-sw-text">Your Optimization Options</h2>
+            </div>
+            <button
+              onClick={() => setViewMode('report')}
+              className="inline-flex items-center gap-1.5 text-xs font-medium text-sw-accent hover:text-sw-accent-hover transition"
+            >
+              Full Report <ArrowRight size={13} />
+            </button>
+          </div>
+
+          {/* Objectives readiness */}
+          {objectivesLoading && (
+            <div className="rounded-2xl ring-1 ring-sw-border/70 bg-gradient-to-b from-white to-slate-50/40 shadow-sw-1 p-5 animate-pulse">
+              <div className="h-4 w-40 bg-slate-200 rounded mb-3" />
+              <div className="space-y-2">
+                {[1, 2, 3].map((i) => <div key={i} className="h-12 bg-slate-100 rounded-xl" />)}
+              </div>
+            </div>
+          )}
+          {!objectivesLoading && objectivesData && (
+            <ObjectiveReadinessPanel
+              data={objectivesData}
+              onEnqueue={handleEnqueue}
+              enqueueing={enqueueing}
+              enqueueError={enqueueError}
+            />
+          )}
+
+          {/* Scenario comparison cards */}
+          {scenariosLoading && (
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 animate-pulse">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="h-48 bg-slate-100 rounded-xl" />
+              ))}
+            </div>
+          )}
+          {!scenariosLoading && scenariosData && scenariosData.options.length > 0 && (
+            <ScenarioComparisonCards
+              data={scenariosData}
+              onChoose={handleChooseScenario}
+            />
+          )}
+          {!scenariosLoading && scenariosData && scenariosData.options.length === 0 && (
+            <div className="rounded-2xl ring-1 ring-sw-border/70 bg-gradient-to-b from-white to-slate-50/40 shadow-sw-1 p-6 text-center">
+              <GitCompare size={24} className="mx-auto text-sw-dim mb-2" />
+              <p className="text-sm font-medium text-sw-text mb-1">Scenarios not yet computed</p>
+              <p className="text-xs text-sw-muted max-w-xs mx-auto">
+                Complete the readiness check above and click "See your optimization options" to generate scenario comparisons.
+              </p>
+            </div>
+          )}
+
+          {/* Mix panel */}
+          <ScenarioMixPanel taxYear={currentYear} />
+        </div>
+      )}
+
+      {/* ── Stage 4: Report ───────────────────────────────────────────────────── */}
       {viewMode === 'report' && (
         <div className="space-y-4">
           <div className="flex items-center justify-between mb-2">

@@ -45,6 +45,7 @@ import {
   HelpCircle,
   Info,
   AlertCircle,
+  Upload,
 } from 'lucide-react';
 import SuggestedConfirmCard from './SuggestedConfirmCard';
 import Badge from './Badge';
@@ -471,6 +472,21 @@ export default function InterviewCard({ taxYear = CURRENT_YEAR, onAnswered }: In
                 </p>
               )}
             </div>
+          )}
+
+          {/* D18: doc_affordance — additive upload shortcut when a document could resolve this question */}
+          {currentQuestion.doc_affordance && (
+            <a
+              href="/connect"
+              className="inline-flex items-center gap-1.5 text-[11px] font-medium text-sw-accent hover:text-sw-accent-hover transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sw-accent/50 rounded"
+            >
+              <Upload size={11} />
+              {currentQuestion.doc_affordance === 'pay_stub'
+                ? 'Upload a pay stub for more precise results'
+                : currentQuestion.doc_affordance === 'retirement_statement'
+                  ? 'Upload a retirement statement instead'
+                  : 'Upload a document instead'}
+            </a>
           )}
         </div>
 
