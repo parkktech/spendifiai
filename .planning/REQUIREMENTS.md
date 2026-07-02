@@ -92,11 +92,11 @@ Requirements for this milestone. Each maps to a roadmap phase. All outputs are e
 
 ### Document Intake (DOC)
 
-- [ ] **DOC-01**: New document types (check/pay stub, employer offer letter, 401(k)/retirement statement, benefits statement, stock statement, insurance statement) are added as `TaxDocumentCategory` cases reusing the v2.0 Vault two-pass extraction pipeline
-- [ ] **DOC-02**: Image-based uploads (screenshots) are extracted via the existing Claude vision pattern (base64, no new library)
+- [x] **DOC-01**: New document types (check/pay stub, employer offer letter, 401(k)/retirement statement, benefits statement, stock statement, insurance statement) are added as `TaxDocumentCategory` cases reusing the v2.0 Vault two-pass extraction pipeline
+- [x] **DOC-02**: Image-based uploads (screenshots) are extracted via the existing Claude vision pattern (base64, no new library)
 - [ ] **DOC-03**: New document extraction feeds the optimization snapshot and marks the report stale
 - [ ] **DOC-05**: During the interview/question flow a finding can proactively request specific documents or screenshots at the moment of detection (photo of a wrapped vehicle, receipt snap, prescription letter, sponsorship agreement, loan docs), and the user can upload to the Vault without leaving the interaction — reusing the v2.0 DocumentRequest + auto-fulfillment infrastructure and updating `docs_captured`/`docs_missing` on the finding
-- [ ] **DOC-06**: Substantiation document categories are added as TaxDocumentCategory cases beyond DOC-01's financial-statement types: sponsorship agreement, market-comp memo, marketing-output log, physician prescription/recommendation letter, before/after appraisal, gallons log, rescue-org letter, security memo, loan/financing documents, contractor invoices, mileage log, daycare license, and sponsorship vendor-payment evidence — each linkable from a finding's docs checklist
+- [x] **DOC-06**: Substantiation document categories are added as TaxDocumentCategory cases beyond DOC-01's financial-statement types: sponsorship agreement, market-comp memo, marketing-output log, physician prescription/recommendation letter, before/after appraisal, gallons log, rescue-org letter, security memo, loan/financing documents, contractor invoices, mileage log, daycare license, and sponsorship vendor-payment evidence — each linkable from a finding's docs checklist
 - [ ] **DOC-07**: The paystub/benefits data plane ships: "employer benefits guide" is added as a new TaxDocumentCategory with an extraction schema covering plan availability + deferral %, match formula, after-tax 401(k) + in-plan conversion availability, HDHP/HSA status, FSA/DCFSA elections, ESPP terms, NQDC eligibility, §127 benefits, commuter benefits, group legal, and employer Trump Account contributions (the paystub state-withholding-vs-residence cross-check is recorded but its output is suppressed to STATE-01) — **CONFIRMATION GATE (locked owner Decision 4):** extracted facts NEVER write directly to the profile, snapshot, or durable-fact store; extraction produces PROPOSED profile/fact updates with per-field confidence which the USER CONFIRMS before anything is written (user-entered values are never silently overwritten); only confirmed facts land in the snapshot and durable-fact store (with per-fact provenance: source document, extraction date, tax year) so skip-logic suppresses already-answered questions — this is the "AI onboarding" path: a new user's fastest route to a complete Enhanced Tax Profile is uploading a paystub, with upload prompts at onboarding and open-enrollment season
 
 ### Feature Surface & UX (UI)
@@ -221,8 +221,8 @@ Each requirement maps to exactly one phase. Phases continue the global numbering
 | RPT-02 | Phase 12 | Pending |
 | RPT-03 | Phase 12 | Pending |
 | RPT-04 | Phase 12 | Pending |
-| DOC-01 | Phase 12 | Pending |
-| DOC-02 | Phase 12 | Pending |
+| DOC-01 | Phase 12 | Complete |
+| DOC-02 | Phase 12 | Complete |
 | DOC-03 | Phase 12 | Pending |
 | UI-01 | Phase 12 | Pending |
 | UI-02 | Phase 12 | Pending |
@@ -265,7 +265,7 @@ Each requirement maps to exactly one phase. Phases continue the global numbering
 | RPT-07 | Phase 12 | Pending |
 | RPT-08 | Phase 12 | Pending |
 | DOC-05 | Phase 12 | Pending |
-| DOC-06 | Phase 12 | Pending |
+| DOC-06 | Phase 12 | Complete |
 | DOC-07 | Phase 12 | Pending |
 | SAFE-06 | Phase 13 | Pending |
 | SAFE-07 | Phase 13 | Pending |

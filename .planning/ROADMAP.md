@@ -191,14 +191,14 @@ Plans:
   3. A user navigates via a new "Optimize My Income" nav item (badged with pending red-flag questions) through the flow findings → guided interview → report.
   4. Persistent, non-globally-dismissable educational disclaimers render on every section, every surface uses modal framing ("may/could/consider"), and the report exports to PDF via the existing dompdf pipeline.
 
-**Plans**: 5 plans
+**Plans**: 1/5 plans executed
 **UI hint**: yes
 > Includes Settings→'User/Family Profile' reshape option (a) [default ruling — owner review pending] and AI-onboarding document→profile flow with user-confirm gate.
 > Wave order: W1 = 12-01 (doc-intake enum/schemas) ∥ 12-03 (report engine); W2 = 12-02 (proposal bridge + staleness event); W3 = 12-04 (staleness wiring + report API + pro-export + badge); W4 = 12-05 (frontend surface).
 
 Plans:
 
-- [ ] 12-01-PLAN.md — Document intake: 18 additive TaxDocumentCategory cases + extraction schemas + vision branch (DOC-01, DOC-02, DOC-06)
+- [x] 12-01-PLAN.md — Document intake: 18 additive TaxDocumentCategory cases + extraction schemas + vision branch (DOC-01, DOC-02, DOC-06)
 - [ ] 12-02-PLAN.md — Proposal bridge (D4 gate) + TaxDocumentExtracted staleness event + assembler feed + HSA shoebox + in-flow upload (DOC-03, DOC-05, DOC-07, STORE-03)
 - [ ] 12-03-PLAN.md — Report engine: OptimizationReport model + generator + narrator (3rd Claude call site) + job + dompdf export + glossary + year-end (RPT-01/02/03/04/06/07/08)
 - [ ] 12-04-PLAN.md — Staleness wiring + report API (GET/regenerate/download) + pro-review export + nav badge prop (RPT-05, UI-01 support)
@@ -236,5 +236,5 @@ Phases execute in numeric order: 10 → 11 → 12 → 13
 | 9. Intelligence Layer & Final Validation | v2.0 | 3/3 | Complete | 2026-03-31 |
 | 10. Foundation — Tax Rules Engine & Cross-Source Snapshot | v2.1 | 3/3 | Complete   | 2026-07-02 |
 | 11. Red-Flag Detection, Guided Interview & AI Feed Integration | v2.1 | 8/8 | Complete   | 2026-07-02 |
-| 12. Optimization Report, Document Intake & Feature Surface | v2.1 | 0/5 | Not started | - |
+| 12. Optimization Report, Document Intake & Feature Surface | v2.1 | 1/5 | In Progress|  |
 | 13. Safety, Validation & Hardening | v2.1 | 0/TBD | Not started | - |

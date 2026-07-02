@@ -2,18 +2,18 @@
 gsd_state_version: 1.0
 milestone: v2.1
 milestone_name: Optimize My Income
-current_phase: 11
-current_phase_name: Red-Flag Detection, Guided Interview & AI Feed Integration
-status: verifying
+current_phase: 12
+current_phase_name: Optimization Report, Document Intake & Feature Surface
+status: executing
 stopped_at: Completed 11-04 guided interview + AI-feed bridge
-last_updated: "2026-07-02T05:28:51.145Z"
+last_updated: "2026-07-02T07:06:00.062Z"
 last_activity: 2026-07-02
-last_activity_desc: Phase 11 execution started
+last_activity_desc: Phase 12 execution started
 progress:
   total_phases: 4
   completed_phases: 2
-  total_plans: 11
-  completed_plans: 11
+  total_plans: 16
+  completed_plans: 12
   percent: 50
 ---
 
@@ -24,14 +24,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-01)
 
 **Core value:** AI-powered personal finance platform bridging taxpayers and their accountants
-**Current focus:** Phase 11 — Red-Flag Detection, Guided Interview & AI Feed Integration
+**Current focus:** Phase 12 — Optimization Report, Document Intake & Feature Surface
 
 ## Current Position
 
-Phase: 11 (Red-Flag Detection, Guided Interview & AI Feed Integration) — EXECUTING
-Plan: 8 of 8
-Status: Phase complete — ready for verification
-Last activity: 2026-07-02 — Phase 11 execution started
+Phase: 12 (Optimization Report, Document Intake & Feature Surface) — EXECUTING
+Plan: 2 of 5
+Status: Ready to execute
+Last activity: 2026-07-02 — Phase 12 execution started
 
 ## v2.1 Roadmap Summary
 
@@ -72,6 +72,7 @@ Continuing global phase numbering from v2.0 (ended Phase 9). Granularity: coarse
 | Phase 11 P04 | 180 | 3 tasks | 22 files |
 | Phase 11 P05 | 440s | 2 tasks | 8 files |
 | Phase 11 P07 | 90min | 3 tasks | 13 files |
+| Phase 12 P01 | 192 | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -102,6 +103,9 @@ Recent decisions affecting current work:
 - [Phase ?]: score_threshold=2; no numeric probability in treatment
 - [Phase ?]: FLAG-28 D13 locked; test-enforced no-write assertion
 - [Phase 11]: FLAG-18 REFRAMED: SafeHarborBenchmark uses penalty-avoidance benchmark framing only; business inflows excluded from computation by construction (Threat T-11-07-01 mitigated)
+- [Phase ?]: 18 additive TaxDocumentCategory enum cases — zero existing cases altered
+- [Phase ?]: 6 extraction FIELDS const arrays (PAY_STUB, BENEFITS_GUIDE, OFFER_LETTER, RETIREMENT_STATEMENT, STOCK_STATEMENT, INSURANCE) — DOC-06 substantiation falls through to TIER2_FIELDS
+- [Phase ?]: DOC-02: existing buildDocumentContent() vision branch confirmed for JPEG/PNG — no new library required
 
 ### Pending Todos
 
@@ -116,6 +120,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-07-02T05:28:51.135Z
+Last session: 2026-07-02T07:05:36.242Z
 Stopped at: Completed 11-04 guided interview + AI-feed bridge
 Resume file: None
