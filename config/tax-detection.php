@@ -817,6 +817,111 @@ return [
         // Battery answers don't need a rule_id in the tax rules registry
         // (they're stored as UserTaxFacts, not OptimizationFindings).
 
+        // ── FLAG-17: Signal→Question→Strategy Probe Matrix ───────────────────
+        // Probes fire only on verified prerequisite signals (FLAG-05 pattern).
+        // Rule entries used for harness validation; probes with ruleId=null skip validation.
+
+        'probe_deferral_gap' => [
+            'rule_id' => 'probe_deferral_gap',
+            'authority' => 'IRC §401(k); IRC §402(g) (annual deferral limit)',
+            'effective_start' => '2025-01-01',
+            'effective_end' => null,
+            'phaseouts' => [],
+            'inflation_adjusted' => true,  // limits adjust annually
+            'source_url' => 'https://www.irs.gov/retirement-plans/401k-plans',
+            'last_verified' => '2026-07-01',
+            'status' => 'verified',
+            'band' => 'auto',
+        ],
+
+        'probe_se_income' => [
+            'rule_id' => 'probe_se_income',
+            'authority' => 'IRC §1401 (SE tax); IRC §162(l); IRC §280A; IRC §199A',
+            'effective_start' => '2025-01-01',
+            'effective_end' => null,
+            'phaseouts' => [],
+            'inflation_adjusted' => false,
+            'source_url' => 'https://www.irs.gov/businesses/small-businesses-self-employed/self-employment-tax',
+            'last_verified' => '2026-07-01',
+            'status' => 'verified',
+            'band' => 'conditional',
+        ],
+
+        'probe_solo_401k' => [
+            'rule_id' => 'probe_solo_401k',
+            'authority' => 'IRC §401(k); IRC §415(c) (~$72,000 DC limit 2026); IRS Publication 560',
+            'effective_start' => '2025-01-01',
+            'effective_end' => null,
+            'phaseouts' => [],
+            'cap_cents' => 7_200_000,   // ~$72,000 total DC limit (415(c)) — verify annually
+            'inflation_adjusted' => true,
+            'source_url' => 'https://www.irs.gov/retirement-plans/one-participant-401k-plans',
+            'last_verified' => '2026-07-01',
+            'status' => 'verified',
+            'band' => 'conditional',
+        ],
+
+        'probe_entity_analysis' => [
+            'rule_id' => 'probe_entity_analysis',
+            'authority' => 'IRC §1361 (S-corp election); IRC §1402 (SE tax); 60-month lock (§1362(d))',
+            'effective_start' => '2025-01-01',
+            'effective_end' => null,
+            'phaseouts' => [],
+            'inflation_adjusted' => false,
+            'source_url' => 'https://www.irs.gov/businesses/small-businesses-self-employed/s-corporations',
+            'last_verified' => '2026-07-01',
+            'status' => 'verified',
+            // BINDING: 60-month lock warning leads; no recommendation form (D10)
+            'band' => 'conditional',
+        ],
+
+        'probe_qbi_high_income' => [
+            'rule_id' => 'probe_qbi_high_income',
+            'authority' => 'IRC §199A; Rev. Proc. 2019-38 (QBI safe harbor)',
+            'effective_start' => '2025-01-01',
+            'effective_end' => null,
+            'phaseouts' => [
+                'magi_single' => 201_750,  // 2026 phaseout start (single)
+                'magi_mfj' => 403_500,     // 2026 phaseout start (MFJ)
+            ],
+            'inflation_adjusted' => true,
+            'source_url' => 'https://www.irs.gov/newsroom/qualified-business-income-deduction',
+            'last_verified' => '2026-07-01',
+            'status' => 'verified',
+            // BINDING D11: specialist sentinel only — no W-2/UBIA implementation
+            'band' => 'specialist',
+        ],
+
+        // ── FLAG-16: Time-Critical Alarms ────────────────────────────────────
+        // All alarms: band=time_critical → severity=critical; professional framing mandatory
+
+        'alarm_83b_election' => [
+            'rule_id' => 'alarm_83b_election',
+            'authority' => 'IRC §83(b); Reg. §1.83-2 (30-day election period, non-waivable)',
+            'effective_start' => '2025-01-01',
+            'effective_end' => null,
+            'phaseouts' => [],
+            'inflation_adjusted' => false,
+            'source_url' => 'https://www.irs.gov/publications/p525',
+            'last_verified' => '2026-07-01',
+            'status' => 'verified',
+            'band' => 'time_critical',  // highest severity; 30-day hard deadline
+        ],
+
+        'alarm_qsbs_eligibility' => [
+            'rule_id' => 'alarm_qsbs_eligibility',
+            'authority' => 'IRC §1202 (QSBS, $15M cap, $75M gross-asset test); IRC §1244 (ordinary loss)',
+            'effective_start' => '2025-01-01',
+            'effective_end' => null,
+            'phaseouts' => [],
+            'cap_cents' => 1_500_000_000,  // $15M per taxpayer per issuer
+            'inflation_adjusted' => false,
+            'source_url' => 'https://www.irs.gov/publications/p550',
+            'last_verified' => '2026-07-01',
+            'status' => 'verified',
+            'band' => 'time_critical',  // eligibility determined at formation
+        ],
+
     ],
 
     // ── Retroactive Scanner Range Config (FLAG-12) ───────────────────────────

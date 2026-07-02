@@ -642,8 +642,10 @@ class TaxRulesEngineService
             'specialist' => 'medium',
             'suppress' => 'suppressed',
             'hard_block' => 'blocked',
+            // FLAG-16: time-critical alarms (83b, QOF, QSBS) route at highest severity
+            'time_critical' => 'critical',
             default => throw new InvalidArgumentException(
-                "Unknown band: {$band}. Allowed: auto, conditional, specialist, suppress, hard_block."
+                "Unknown band: {$band}. Allowed: auto, conditional, specialist, suppress, hard_block, time_critical."
             ),
         };
     }
