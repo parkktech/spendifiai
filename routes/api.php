@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Admin\AiUsageController;
 use App\Http\Controllers\Admin\CancellationProviderController;
 use App\Http\Controllers\Admin\CharitableOrganizationController;
 use App\Http\Controllers\Admin\ConsentAdminController;
@@ -440,6 +441,9 @@ Route::middleware(['auth:sanctum'])->group(function () {
     // ─── Admin Routes ───
     Route::prefix('admin')->middleware('admin')->group(function () {
         Route::get('/stats', [CancellationProviderController::class, 'stats']);
+
+        // D17 AI Cost Discipline — per-purpose daily Claude call counters
+        Route::get('/ai-usage', [AiUsageController::class, 'index']);
 
         // User stats
         Route::get('/user-stats', function () {
