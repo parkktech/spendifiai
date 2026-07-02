@@ -81,8 +81,8 @@ export default function SpendingChart({ data, categories }: SpendingChartProps) 
       {categories && categories.length > 0 && (
         <div className="rounded-2xl border border-sw-border bg-sw-card p-6">
           <h3 className="text-[15px] font-semibold text-sw-text mb-4">Where Your Money Goes</h3>
-          <div className="flex items-start gap-4">
-            <div className="w-[140px] shrink-0">
+          <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4">
+            <div className="w-[140px] shrink-0 mx-auto sm:mx-0">
               <ResponsiveContainer width="100%" height={140}>
                 <PieChart>
                   <Pie
@@ -113,7 +113,7 @@ export default function SpendingChart({ data, categories }: SpendingChartProps) 
                 </PieChart>
               </ResponsiveContainer>
             </div>
-            <div className="flex-1 flex flex-col gap-1.5 max-h-[200px] overflow-y-auto">
+            <div className="w-full flex-1 flex flex-col gap-1.5 max-h-[200px] overflow-y-auto">
               {categories.map((cat, i) => {
                 const maxTotal = categories[0]?.total || 1;
                 const pct = (cat.total / maxTotal) * 100;

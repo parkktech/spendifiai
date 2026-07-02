@@ -180,13 +180,10 @@ export default function CharitableGivingSection({ data }: CharitableGivingSectio
                         <span className="text-[11px] text-sw-dim">
                           {r.count} donation{r.count !== 1 ? 's' : ''}
                         </span>
-                        {r.note && (
-                          <>
-                            <span className="text-sw-dim text-[11px]">·</span>
-                            <span className="text-[11px] text-sw-muted truncate">{r.note}</span>
-                          </>
-                        )}
                       </div>
+                      {r.note && (
+                        <div className="text-[11px] text-sw-muted mt-0.5 break-words">{r.note}</div>
+                      )}
                     </div>
                     <div className="text-right shrink-0">
                       <div className="text-sm font-bold text-emerald-700">{fmt.format(Number(r.total))}</div>
@@ -234,16 +231,13 @@ export default function CharitableGivingSection({ data }: CharitableGivingSectio
                         <div className="text-[12px] font-medium text-sw-text truncate">{d.merchant}</div>
                         <div className="flex items-center gap-2 mt-0.5">
                           <span className="text-[10px] text-sw-dim">{formatDate(d.date, tz)}</span>
-                          {d.note && (
-                            <>
-                              <span className="text-sw-dim text-[10px]">·</span>
-                              <span className="text-[10px] text-sw-muted flex items-center gap-1 truncate">
-                                <FileText size={8} className="shrink-0" />
-                                {d.note}
-                              </span>
-                            </>
-                          )}
                         </div>
+                        {d.note && (
+                          <div className="text-[10px] text-sw-muted mt-0.5 break-words flex items-start gap-1">
+                            <FileText size={8} className="shrink-0 mt-0.5" />
+                            {d.note}
+                          </div>
+                        )}
                       </div>
                       <div className="text-sm font-semibold text-sw-text shrink-0">
                         {fmt.format(Number(d.amount))}

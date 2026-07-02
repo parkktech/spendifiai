@@ -124,7 +124,7 @@ export default function StatementGapAlert({ onUploadStatement }: StatementGapAle
 
       {/* Gaps grouped by account */}
       {gaps.length > 0 && (
-        <div className="space-y-3 ml-12">
+        <div className="space-y-3 ml-0 sm:ml-12">
           {Array.from(gapsByAccount.entries()).map(([accountId, { name, gaps: accountGaps }]) => {
             // Filter to only visible gaps for this account
             const visibleAccountGaps = accountGaps.filter(g => visibleGapKeys.has(g.gap_key));
@@ -146,7 +146,7 @@ export default function StatementGapAlert({ onUploadStatement }: StatementGapAle
                   {visibleAccountGaps.map((gap) => (
                     <div
                       key={gap.gap_key}
-                      className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl border transition ${
+                      className={`flex flex-wrap items-center gap-3 px-3.5 py-2.5 rounded-xl border transition ${
                         gap.severity === 'critical'
                           ? 'bg-white/80 border-amber-200/80'
                           : 'bg-white/60 border-amber-100/80'
@@ -157,7 +157,7 @@ export default function StatementGapAlert({ onUploadStatement }: StatementGapAle
                         className={gap.severity === 'critical' ? 'text-amber-500 shrink-0' : 'text-amber-400 shrink-0'}
                       />
 
-                      <div className="flex-1 min-w-0">
+                      <div className="flex-1 min-w-0 basis-full sm:basis-0">
                         {gapsByAccount.size <= 1 && (
                           <span className="text-[13px] font-semibold text-sw-text">
                             {gap.month_label}
@@ -203,7 +203,7 @@ export default function StatementGapAlert({ onUploadStatement }: StatementGapAle
       {hasMore && (
         <button
           onClick={() => setExpanded(!expanded)}
-          className="flex items-center gap-1.5 ml-12 mt-2 text-[11px] font-medium text-amber-600 hover:text-amber-800 transition"
+          className="flex items-center gap-1.5 ml-0 sm:ml-12 mt-2 text-[11px] font-medium text-amber-600 hover:text-amber-800 transition"
         >
           {expanded ? (
             <>

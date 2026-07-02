@@ -23,12 +23,12 @@ export default function DocumentRequestCard({ request, onUpload }: DocumentReque
 
     return (
         <div className={`rounded-lg border border-sw-border bg-sw-card p-4 border-l-4 ${config.borderColor}`}>
-            <div className="flex items-start justify-between gap-3">
+            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
                 <div className="flex-1 min-w-0">
                     {/* Header with status */}
-                    <div className="flex items-center gap-2 mb-1.5">
-                        <StatusIcon size={14} className={request.status === 'pending' ? 'text-amber-500' : request.status === 'uploaded' ? 'text-emerald-500' : 'text-slate-400'} />
-                        <span className="text-sm font-medium text-sw-text truncate">{request.description}</span>
+                    <div className="flex items-start gap-2 mb-1.5">
+                        <StatusIcon size={14} className={`shrink-0 mt-0.5 ${request.status === 'pending' ? 'text-amber-500' : request.status === 'uploaded' ? 'text-emerald-500' : 'text-slate-400'}`} />
+                        <span className="flex-1 min-w-0 text-sm font-medium text-sw-text break-words">{request.description}</span>
                         <Badge variant={config.variant}>{config.label}</Badge>
                     </div>
 
@@ -55,7 +55,7 @@ export default function DocumentRequestCard({ request, onUpload }: DocumentReque
                 {request.status === 'pending' && onUpload && (
                     <button
                         onClick={onUpload}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-sw-accent text-white text-xs font-semibold hover:bg-sw-accent-hover transition shrink-0"
+                        className="self-start inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-sw-accent text-white text-xs font-semibold hover:bg-sw-accent-hover transition shrink-0"
                     >
                         <Upload size={12} /> Upload Document
                     </button>

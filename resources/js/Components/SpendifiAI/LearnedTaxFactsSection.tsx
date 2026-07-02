@@ -114,7 +114,7 @@ function FactRow({ fact, onConfirm, onSupersede }: FactRowProps) {
     <div className={`px-4 py-3 border-b border-sw-border/60 last:border-b-0 ${
       isProposal ? 'bg-amber-50/40' : ''
     }`}>
-      <div className="flex items-start justify-between gap-3">
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
         <div className="flex-1 min-w-0">
           {/* Label */}
           <p className="text-[13px] font-medium text-sw-text leading-snug">
@@ -179,7 +179,7 @@ function FactRow({ fact, onConfirm, onSupersede }: FactRowProps) {
         </div>
 
         {/* Action buttons */}
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex items-center gap-2 shrink-0 self-start">
           {isProposal && !localConfirmed && (
             <button
               onClick={handleConfirm}

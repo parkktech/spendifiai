@@ -40,13 +40,13 @@ function ShoeboxItem({ fact }: { fact: UserTaxFactView }) {
   const description = (meta.description as string | null) ?? null;
 
   return (
-    <div className="flex items-center gap-3 py-2.5 px-3 rounded-lg border border-sw-border bg-sw-card">
+    <div className="flex items-start gap-3 py-2.5 px-3 rounded-lg border border-sw-border bg-sw-card">
       <div className="w-8 h-8 rounded-lg bg-sw-success-light border border-sw-success/20 flex items-center justify-center shrink-0">
         <Archive size={14} className="text-sw-success" />
       </div>
       <div className="flex-1 min-w-0">
         {description && (
-          <p className="text-[13px] font-medium text-sw-text truncate">{description}</p>
+          <p className="text-[13px] font-medium text-sw-text break-words">{description}</p>
         )}
         {incurredOn && (
           <p className="text-[11px] text-sw-dim">{incurredOn}</p>
