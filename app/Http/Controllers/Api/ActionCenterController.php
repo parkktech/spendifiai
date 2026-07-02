@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Api;
 
+use App\Enums\AccountPurpose;
 use App\Enums\DocumentStatus;
+use App\Enums\ExpenseType;
 use App\Enums\TaxDocumentCategory;
 use App\Models\BankAccount;
 use App\Models\InterviewSession;
@@ -12,6 +14,8 @@ use App\Models\OptimizationCalendarEvent;
 use App\Models\OptimizationChecklistItem;
 use App\Models\OptimizationFinding;
 use App\Models\TaxDocument;
+use App\Models\Transaction;
+use App\Services\QuestionRetirementService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
@@ -56,19 +60,32 @@ class ActionCenterController extends Controller
         $checklistItems = $this->getChecklistItems($userId, $taxYear);
         $monitorPrompts = $this->getMonitorPrompts($userId, $taxYear);
         $calendarItems = $this->getCalendarItems($userId, $taxYear);
+        $organizationItems = $this->getOrganizationItems($userId, $taxYear);
+
+        // ── D22 / P5 question-retirement counter ──────────────────────────────
+        // "This document answered N questions for you" — deterministic, zero Claude.
+        $retirementService = app(QuestionRetirementService::class);
+        $retirement = $retirementService->countByUser($userId);
 
         $totalOpen = count($stage0Items)
             + count($checklistItems)
             + count($monitorPrompts)
-            + count($calendarItems);
+            + count($calendarItems)
+            + count($organizationItems);
 
         return response()->json([
             'stage0_items' => $stage0Items,
             'checklist_items' => $checklistItems,
             'monitor_prompts' => $monitorPrompts,
             'calendar_items' => $calendarItems,
+            'organization_items' => $organizationItems,
             'total_open' => $totalOpen,
             'is_empty' => $totalOpen === 0,
+            // D22 / P5 question-retirement payoff
+            'questions_retired' => $retirement['count'],
+            'questions_retired_summary' => $retirement['count'] > 0
+                ? $retirementService->summaryLine($retirement['count'])
+                : null,
         ]);
     }
 
@@ -249,5 +266,98 @@ class ActionCenterController extends Controller
                 'due_date' => $event->expected_at?->toDateString(),
             ])
             ->toArray();
+    }
+
+    /**
+     * D22 organization items — structural hygiene guidance (14-11).
+     *
+     * Evidence-gated: emitted ONLY when commingling evidence exists (business-type
+     * transactions in personal/mixed accounts). Template copy is static; no Claude
+     * call. Benefit framed as record-cleanliness + audit defensibility (not cost
+     * savings — SAFE-03: no dollar estimates).
+     *
+     * Owner account ground truth (D21 addendum): Personal Checking ...7300 is MIXED
+     * with ≈90% business activity; Parkk Technologies ...9111 + AirBnB ...9958 are
+     * business-purpose accounts. Suggestions surface for any user matching the pattern.
+     *
+     * SECURITY (T-14-09-04): all queries scoped to $userId.
+     */
+    private function getOrganizationItems(int $userId, int $taxYear): array
+    {
+        $items = [];
+
+        // ── Evidence gate: detect business-classified transactions in personal/mixed accounts ──
+        // "Label ≠ behavior" (D21 addendum): account purpose label is a hint; observed
+        // transactions are the evidence. We look for business expense_type in non-business accounts.
+        $personalAccounts = BankAccount::where('user_id', $userId)
+            ->whereIn('purpose', [AccountPurpose::Personal->value, AccountPurpose::Mixed->value])
+            ->get();
+
+        if ($personalAccounts->isEmpty()) {
+            return $items;
+        }
+
+        $personalAccountIds = $personalAccounts->pluck('id');
+
+        // Check for business-type spending on personal/mixed accounts during the tax year
+        $hasBusinessInPersonal = Transaction::where('user_id', $userId)
+            ->whereIn('bank_account_id', $personalAccountIds)
+            ->where('expense_type', ExpenseType::Business->value)
+            ->whereYear('transaction_date', $taxYear)
+            ->exists();
+
+        if (! $hasBusinessInPersonal) {
+            return $items;
+        }
+
+        // ── Generate organization items (template-driven, deterministic, zero Claude) ──
+
+        // Find business-purpose accounts the user could route through
+        $businessAccounts = BankAccount::where('user_id', $userId)
+            ->where('purpose', AccountPurpose::Business->value)
+            ->get();
+
+        if ($businessAccounts->isNotEmpty()) {
+            // Suggest routing through the primary business account
+            $primaryBusiness = $businessAccounts->first();
+            $accountLabel = $primaryBusiness->nickname
+                ?? ('Account ending in '.substr((string) $primaryBusiness->id, -4));
+
+            $items[] = [
+                'type' => 'organization',
+                'key' => 'route_business_purchases',
+                'priority' => 10,
+                'title' => 'Route business purchases through your business account',
+                'description' => 'We see business-classified spending in personal accounts this year. '
+                    .'Routing business purchases through '.$accountLabel
+                    .' keeps your records clean, makes tax prep faster, '
+                    .'and strengthens your position in any audit.',
+                'benefit_line' => 'Cleaner records · faster tax prep · stronger audit trail',
+                'evidence_basis' => 'business_in_personal_account',
+                'cta_label' => 'Review your accounts',
+                'cta_url' => '/connect',
+            ];
+        }
+
+        // Count mixed-classified accounts for a consolidation suggestion
+        $mixedAccounts = $personalAccounts->where('purpose', AccountPurpose::Mixed->value);
+        if ($mixedAccounts->count() > 0) {
+            $items[] = [
+                'type' => 'organization',
+                'key' => 'clarify_mixed_accounts',
+                'priority' => 11,
+                'title' => 'Clarify which accounts are for business',
+                'description' => 'You have '.($mixedAccounts->count() === 1 ? '1 account' : $mixedAccounts->count().' accounts')
+                    .' marked "mixed" — a classification that can blur your Schedule C picture. '
+                    .'Telling us how each account is really used makes your business deductions '
+                    .'more defensible and your records easier to hand to a tax preparer.',
+                'benefit_line' => 'Accurate Schedule C · clear deduction evidence · no preparer guesswork',
+                'evidence_basis' => 'mixed_purpose_accounts',
+                'cta_label' => 'Update account purpose',
+                'cta_url' => '/connect',
+            ];
+        }
+
+        return $items;
     }
 }
