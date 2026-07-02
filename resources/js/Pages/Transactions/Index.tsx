@@ -174,7 +174,7 @@ export default function TransactionsIndex() {
 
       {/* Summary stats */}
       {meta && (
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6 stagger-children">
           <StatCard
             title="Total Transactions"
             value={meta.total.toLocaleString()}
@@ -268,7 +268,7 @@ export default function TransactionsIndex() {
 
       {/* Transaction list */}
       {!loading && !error && data && transactions.length > 0 && (
-        <div aria-live="polite" className="rounded-2xl border border-sw-border bg-sw-card p-6">
+        <div aria-live="polite" className="rounded-2xl bg-gradient-to-b from-white to-slate-50/50 ring-1 ring-sw-border/70 shadow-sw-1 p-6">
           {transactions.map((tx) => (
             <TransactionRow
               key={tx.id}

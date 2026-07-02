@@ -82,7 +82,7 @@ export default function TransactionRow({
   return (
     <div className={`border-b border-sw-border last:border-b-0 ${needsReview ? 'bg-amber-50/50 -mx-2 px-2 rounded-lg' : ''}`}>
       {/* Main row */}
-      <div className="flex items-center gap-3.5 py-3">
+      <div className="flex items-center gap-3.5 py-3 hover:bg-gradient-to-r hover:from-sw-accent-light/30 hover:to-transparent transition-colors [transition-duration:100ms] [transition-timing-function:cubic-bezier(0.25,0.46,0.45,0.94)] rounded-lg -mx-1 px-1">
         {/* Icon */}
         <div
           className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${

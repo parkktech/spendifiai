@@ -103,13 +103,13 @@ export default function SubscriptionsIndex() {
       {/* Loading skeleton */}
       {loading && !data && (
         <div className="space-y-4">
-          <div className="rounded-2xl border border-sw-border bg-sw-card p-8 animate-pulse">
+          <div className="rounded-2xl bg-gradient-to-b from-white to-slate-50/50 ring-1 ring-sw-border/60 shadow-sw-1 p-8 animate-pulse">
             <div className="h-8 bg-sw-border rounded w-48 mb-2" />
             <div className="h-5 bg-sw-border rounded w-32" />
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
             {Array.from({ length: 6 }).map((_, i) => (
-              <div key={i} className="rounded-xl border border-sw-border bg-sw-card p-4 animate-pulse">
+              <div key={i} className="rounded-xl ring-1 ring-sw-border/60 bg-gradient-to-b from-white to-slate-50/50 shadow-sw-1 p-4 animate-pulse">
                 <div className="h-4 bg-sw-border rounded w-2/3 mb-3" />
                 <div className="h-6 bg-sw-border rounded w-1/3 mb-2" />
                 <div className="h-3 bg-sw-border rounded w-1/2" />
@@ -143,11 +143,11 @@ export default function SubscriptionsIndex() {
         <div className="space-y-8">
 
           {/* ── Hero: spending summary ── */}
-          <div className="rounded-2xl border border-sw-border bg-sw-card overflow-hidden">
+          <div className="rounded-2xl bg-gradient-to-b from-white to-slate-50/50 ring-1 ring-sw-border/70 shadow-sw-1 overflow-hidden">
             <div className="p-6 pb-5">
-              <div className="text-xs font-medium text-sw-muted uppercase tracking-wider mb-1">Monthly recurring charges</div>
+              <div className="text-[11px] font-medium text-sw-muted tracking-[0.02em] mb-1">Monthly recurring charges</div>
               <div className="flex items-baseline gap-3 flex-wrap">
-                <span className="text-3xl font-extrabold text-sw-text tracking-tight">{fmt.format(totalMonthly)}</span>
+                <span className="text-3xl font-extrabold text-sw-text tracking-tight font-tabular">{fmt.format(totalMonthly)}</span>
                 <span className="text-sm text-sw-dim">{fmt.format(totalAnnual)}/yr across {activeItems.length} subscription{activeItems.length !== 1 ? 's' : ''}</span>
               </div>
             </div>
@@ -240,9 +240,9 @@ export default function SubscriptionsIndex() {
           {/* ── Active subscriptions ── */}
           <section>
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-sm font-bold text-sw-text uppercase tracking-wider">
-                {activeFilter === 'essential' ? 'Essential Bills' : activeFilter === 'non-essential' ? 'Non-Essential' : 'Active'}
-                <span className="ml-2 text-sw-dim font-normal normal-case tracking-normal">
+              <h2 className="text-sm font-bold text-sw-text">
+                {activeFilter === 'essential' ? 'Essential bills' : activeFilter === 'non-essential' ? 'Non-essential' : 'Active subscriptions'}
+                <span className="ml-2 text-sw-dim font-normal">
                   {sortedActive.length} subscription{sortedActive.length !== 1 ? 's' : ''}
                   {activeFilter !== 'all' && ` — ${fmt.format(sortedActive.reduce((s, i) => s + Number(i.amount), 0))}/mo`}
                 </span>
@@ -276,8 +276,8 @@ export default function SubscriptionsIndex() {
                 onClick={() => setShowCancelled(!showCancelled)}
                 className="w-full flex items-center justify-between mb-4 group"
               >
-                <h2 className="text-sm font-bold text-sw-text uppercase tracking-wider flex items-center gap-2">
-                  Cancelled
+                <h2 className="text-sm font-bold text-sw-text flex items-center gap-2">
+                  Cancelled subscriptions
                   <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-sw-success-light text-sw-success border border-emerald-200">
                     {cancelledItems.length} cancelled
                   </span>

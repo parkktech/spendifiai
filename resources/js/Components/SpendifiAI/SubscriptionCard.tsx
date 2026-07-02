@@ -110,17 +110,17 @@ export default function SubscriptionCard({ subscription, onUpdate }: Subscriptio
   const merchantName = subscription.merchant_normalized || subscription.merchant_name;
   const displayNote = subscription.user_notes;
 
-  // Card border/background based on state
+  // Card ring/background/shadow based on state — §3.4 ring-1 + gradient recipe
   const cardClasses = isRecharged
-    ? 'border-amber-300 bg-amber-50/30'
+    ? 'ring-1 ring-amber-300 bg-gradient-to-b from-amber-50/40 to-white shadow-[0_2px_8px_rgba(217,119,6,0.12)]'
     : isConfirmedSaved
-      ? 'border-emerald-200/60 bg-sw-card/60'
+      ? 'ring-1 ring-emerald-200 bg-gradient-to-b from-white to-emerald-50/30 shadow-sw-success'
       : isMissedCharge
-        ? 'border-slate-300 bg-slate-50/40'
-        : 'border-sw-border bg-sw-card hover:border-sw-border-strong';
+        ? 'ring-1 ring-slate-200 bg-gradient-to-b from-slate-50/50 to-white shadow-sw-1'
+        : 'ring-1 ring-sw-border/70 bg-gradient-to-b from-white to-slate-50/50 shadow-sw-1 card-lift';
 
   return (
-    <div className={`rounded-xl border p-4 transition-colors ${cardClasses}`}>
+    <div className={`rounded-xl p-4 ${cardClasses}`}>
 
       {/* Re-charge warning banner */}
       {isRecharged && (
@@ -178,9 +178,9 @@ export default function SubscriptionCard({ subscription, onUpdate }: Subscriptio
         </div>
         <div className="text-right shrink-0">
           {isCancelled ? (
-            <div className="text-base font-bold text-sw-dim line-through">{fmt.format(Number(subscription.previous_amount ?? subscription.amount))}</div>
+            <div className="text-base font-bold text-sw-dim line-through font-tabular">{fmt.format(Number(subscription.previous_amount ?? subscription.amount))}</div>
           ) : (
-            <div className="text-base font-bold text-sw-text">{fmt.format(Number(subscription.amount))}</div>
+            <div className="text-base font-bold text-sw-text font-tabular">{fmt.format(Number(subscription.amount))}</div>
           )}
           <div className="text-[11px] text-sw-dim">/{subscription.frequency}</div>
         </div>
@@ -259,7 +259,7 @@ export default function SubscriptionCard({ subscription, onUpdate }: Subscriptio
           {!actionsOpen ? (
             <button
               onClick={() => setActionsOpen(true)}
-              className="w-full mt-2 py-1.5 rounded-lg text-[11px] font-medium transition text-sw-dim hover:text-sw-muted border border-transparent hover:border-sw-border"
+              className="w-full mt-2 py-1.5 rounded-lg text-[11px] font-medium transition-all [transition-duration:150ms] text-sw-dim hover:text-sw-muted border border-transparent hover:border-sw-border hover:bg-sw-surface/60 active:scale-[0.98]"
             >
               Review &middot; Edit &middot; Cancel
             </button>
@@ -300,7 +300,7 @@ export default function SubscriptionCard({ subscription, onUpdate }: Subscriptio
                 <button
                   onClick={handleSave}
                   disabled={loading !== null}
-                  className="w-full inline-flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-medium bg-sw-accent/10 border border-sw-accent/30 text-sw-accent hover:bg-sw-accent/20 transition disabled:opacity-50"
+                  className="w-full inline-flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-medium bg-sw-accent/10 border border-sw-accent/30 text-sw-accent hover:bg-sw-accent/20 hover:border-sw-accent/50 active:scale-[0.98] transition-all [transition-duration:150ms] [transition-timing-function:cubic-bezier(0.25,0.46,0.45,0.94)] disabled:opacity-50"
                 >
                   {loading === 'save' ? <Loader2 size={12} className="animate-spin" /> : <Check size={12} />}
                   Save
@@ -312,7 +312,7 @@ export default function SubscriptionCard({ subscription, onUpdate }: Subscriptio
                 <button
                   onClick={handleCancel}
                   disabled={loading !== null}
-                  className="flex-1 inline-flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-medium bg-sw-danger/10 border border-sw-danger/30 text-sw-danger hover:bg-sw-danger/20 transition disabled:opacity-50"
+                  className="flex-1 inline-flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-medium bg-sw-danger/10 border border-sw-danger/30 text-sw-danger hover:bg-sw-danger/20 hover:border-sw-danger/50 hover:shadow-[0_2px_8px_rgba(220,38,38,0.16)] active:scale-[0.98] transition-all [transition-duration:150ms] [transition-timing-function:cubic-bezier(0.25,0.46,0.45,0.94)] disabled:opacity-50"
                 >
                   {loading === 'cancel' ? <Loader2 size={12} className="animate-spin" /> : <X size={12} />}
                   Mark Cancelled
@@ -320,7 +320,7 @@ export default function SubscriptionCard({ subscription, onUpdate }: Subscriptio
                 <button
                   onClick={handleDismiss}
                   disabled={loading !== null}
-                  className="flex-1 inline-flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-medium bg-sw-card border border-sw-border text-sw-muted hover:text-sw-text hover:border-sw-muted transition disabled:opacity-50"
+                  className="flex-1 inline-flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-medium border border-sw-border/80 bg-sw-surface/60 text-sw-muted hover:text-sw-text hover:border-sw-border-strong hover:bg-sw-surface hover:shadow-sw-1 active:scale-[0.98] transition-all [transition-duration:150ms] [transition-timing-function:cubic-bezier(0.25,0.46,0.45,0.94)] disabled:opacity-50"
                 >
                   {loading === 'dismiss' ? <Loader2 size={12} className="animate-spin" /> : <Ban size={12} />}
                   Not a Sub
