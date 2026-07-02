@@ -98,6 +98,52 @@ class TaxDocumentExtractorService
         'federal_tax_withheld', 'state_tax_withheld',
     ];
 
+    // ── DOC-01 financial schemas (Phase 12) ──────────────────────────────────
+
+    const PAY_STUB_FIELDS = [
+        'employer_name', 'employer_ein', 'employee_name', 'ssn_last4',
+        'pay_period_start', 'pay_period_end', 'pay_date', 'gross_pay',
+        'federal_tax_withheld', 'state_tax_withheld', 'fica_withheld',
+        'medicare_withheld', 'hsa_deduction', 'traditional_401k_deduction',
+        'roth_401k_deduction', 'fsa_deduction', 'health_insurance_premium',
+        'dental_vision_premium', 'ytd_gross', 'ytd_federal_tax', 'tax_year',
+    ];
+
+    // ── DOC-07 benefits guide schema (Phase 12) ───────────────────────────────
+
+    const BENEFITS_GUIDE_FIELDS = [
+        'employer_name', 'plan_year',
+        'has_401k', 'employer_match_formula', 'after_tax_401k_available',
+        'in_plan_roth_conversion_available', 'hdhp_hsa_available',
+        'fsa_available', 'dependent_care_fsa_available',
+        'espp_available', 'espp_terms', 'nqdc_available',
+        'section_127_available', 'commuter_benefits_available',
+        'group_legal_available', 'trump_account_available',
+        'employer_trump_account_contribution',
+    ];
+
+    // ── DOC-01 additional financial schemas (Phase 12) ────────────────────────
+
+    const OFFER_LETTER_FIELDS = [
+        'employer_name', 'start_date', 'annual_salary', 'signing_bonus',
+        'equity_type', 'equity_amount', 'vesting_schedule',
+    ];
+
+    const RETIREMENT_STATEMENT_FIELDS = [
+        'institution_name', 'account_type', 'account_balance',
+        'ytd_contributions', 'ytd_employer_contributions',
+        'plan_year', 'vesting_percentage',
+    ];
+
+    const STOCK_STATEMENT_FIELDS = [
+        'institution_name', 'account_type', 'total_value',
+        'realized_gains_ytd', 'unrealized_gains', 'tax_year',
+    ];
+
+    const INSURANCE_FIELDS = [
+        'provider_name', 'policy_type', 'annual_premium', 'coverage_amount',
+    ];
+
     public function __construct()
     {
         $this->apiKey = config('spendifiai.ai.api_key') ?? '';
@@ -389,6 +435,14 @@ PROMPT;
             TaxDocumentCategory::G_1099 => self::G_1099_FIELDS,
             TaxDocumentCategory::B_1099 => self::B_1099_FIELDS,
             TaxDocumentCategory::Mortgage_1098 => self::MORTGAGE_1098_FIELDS,
+            // Phase 12 DOC-01 financial schemas
+            TaxDocumentCategory::PayStub => self::PAY_STUB_FIELDS,
+            TaxDocumentCategory::BenefitsGuide => self::BENEFITS_GUIDE_FIELDS,
+            TaxDocumentCategory::OfferLetter => self::OFFER_LETTER_FIELDS,
+            TaxDocumentCategory::RetirementStatement => self::RETIREMENT_STATEMENT_FIELDS,
+            TaxDocumentCategory::StockStatement => self::STOCK_STATEMENT_FIELDS,
+            TaxDocumentCategory::InsuranceDoc => self::INSURANCE_FIELDS,
+            // DOC-06 substantiation types fall through to TIER2_FIELDS (freeform extraction)
             default => self::TIER2_FIELDS,
         };
     }
