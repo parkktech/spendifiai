@@ -153,6 +153,129 @@
             <div class="question-box">{{ $professional_question }}</div>
         </div>
 
+        {{-- 7. D22 Cross-Account Business-Activity Map --}}
+        {{-- SAFE-03: counts and categories only — no dollar amounts --}}
+        @if(!empty($cross_account_map))
+        <div class="section">
+            <div class="section-title">7. Business Activity by Account (Schedule C Transactions)</div>
+            <div class="section-body" style="font-size:9px; color:#64748b; margin-bottom:6px;">
+                Business-classified transactions found across your accounts this tax year.
+                This map helps your preparer see where Schedule C activity originates.
+                Transaction counts only — no dollar values are included.
+            </div>
+            @foreach($cross_account_map as $entry)
+            <div style="margin-bottom:10px; padding:8px 10px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:4px;">
+                <div style="font-size:10px; font-weight:bold; color:#0f172a;">
+                    {{ $entry['account_label'] }}
+                    <span style="font-size:8px; font-weight:normal; color:#64748b; margin-left:6px;">
+                        purpose: {{ $entry['account_purpose'] }} &nbsp;|&nbsp;
+                        {{ $entry['business_count'] }} business transaction{{ $entry['business_count'] === 1 ? '' : 's' }}
+                    </span>
+                </div>
+                @if(!empty($entry['categories']))
+                <table style="width:100%; border-collapse:collapse; font-size:8.5px; margin-top:6px;">
+                    <thead>
+                        <tr>
+                            <th style="text-align:left; padding:3px 6px; background:#f1f5f9; color:#334155;">Category</th>
+                            <th style="text-align:right; padding:3px 6px; background:#f1f5f9; color:#334155;">Count</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach($entry['categories'] as $cat)
+                        <tr>
+                            <td style="padding:3px 6px; border-bottom:1px solid #e2e8f0;">{{ $cat['category'] }}</td>
+                            <td style="padding:3px 6px; border-bottom:1px solid #e2e8f0; text-align:right;">{{ $cat['count'] }}</td>
+                        </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+                @endif
+            </div>
+            @endforeach
+        </div>
+        @endif
+
+        {{-- 8. D22 Commingling Picture --}}
+        @if(!empty($commingling_picture) && $commingling_picture['has_commingling'])
+        <div class="section">
+            <div class="section-title">8. Account-Separation Picture</div>
+            <div class="section-body" style="font-size:9px; color:#64748b; margin-bottom:6px;">
+                Mixed personal and business activity detected in the same accounts.
+                Clean separation makes deduction substantiation easier and reduces preparer time.
+                This is a record-quality observation — not a compliance finding.
+            </div>
+            @if($commingling_picture['business_in_personal'] > 0)
+            <div style="padding:6px 10px; margin-bottom:6px; background:#fef3c7; border-left:3px solid #d97706; font-size:9px;">
+                <strong>{{ $commingling_picture['business_in_personal'] }} business transaction{{ $commingling_picture['business_in_personal'] === 1 ? '' : 's' }}</strong>
+                found in personal or mixed accounts this year.
+                Moving these to a dedicated business account in future years improves your audit trail.
+            </div>
+            @endif
+            @if($commingling_picture['personal_in_business'] > 0)
+            <div style="padding:6px 10px; margin-bottom:6px; background:#fef3c7; border-left:3px solid #d97706; font-size:9px;">
+                <strong>{{ $commingling_picture['personal_in_business'] }} personal transaction{{ $commingling_picture['personal_in_business'] === 1 ? '' : 's' }}</strong>
+                found in business accounts this year.
+                Keeping personal spending out of business accounts simplifies Schedule C preparation.
+            </div>
+            @endif
+            @if(!empty($commingling_picture['mixed_accounts']))
+            <div style="font-size:9px; color:#334155; margin-top:6px;">
+                <strong>Accounts with mixed activity:</strong>
+                @foreach($commingling_picture['mixed_accounts'] as $acct)
+                <div style="margin-top:4px; padding:4px 8px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:3px;">
+                    {{ $acct['account_label'] }}
+                    (purpose: {{ $acct['account_purpose'] }}) —
+                    {{ $acct['business_count'] }} business, {{ $acct['personal_count'] }} personal
+                </div>
+                @endforeach
+            </div>
+            @endif
+        </div>
+        @endif
+
+        {{-- 9. D22 Documentation Status --}}
+        @if(!empty($documentation_status) && !empty($documentation_status['required']))
+        <div class="section">
+            <div class="section-title">9. Documentation Status</div>
+            <div class="section-body" style="font-size:9px; color:#64748b; margin-bottom:6px;">
+                Required documents for this deduction type and their current status.
+            </div>
+            <table style="width:100%; border-collapse:collapse; font-size:9px;">
+                <thead>
+                    <tr>
+                        <th style="text-align:left; padding:4px 8px; background:#f1f5f9; color:#334155;">Document</th>
+                        <th style="text-align:center; padding:4px 8px; background:#f1f5f9; color:#334155;">Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach($documentation_status['required'] as $req)
+                    @php
+                        $captured = $documentation_status['captured'] ?? [];
+                        $capturedLower = array_map('strtolower', $captured);
+                        $isPresent = in_array(strtolower($req), $capturedLower);
+                    @endphp
+                    <tr>
+                        <td style="padding:4px 8px; border-bottom:1px solid #e2e8f0;">{{ $req }}</td>
+                        <td style="padding:4px 8px; border-bottom:1px solid #e2e8f0; text-align:center;">
+                            @if($isPresent)
+                            <span style="color:#059669; font-weight:bold;">On file</span>
+                            @else
+                            <span style="color:#dc2626; font-weight:bold;">Not uploaded</span>
+                            @endif
+                        </td>
+                    </tr>
+                    @endforeach
+                </tbody>
+            </table>
+            @if(!$documentation_status['complete'])
+            <div style="margin-top:8px; padding:6px 10px; background:#fee2e2; border-left:3px solid #dc2626; font-size:8.5px; color:#7f1d1d;">
+                One or more required documents have not been uploaded.
+                Your tax professional may need these before advising on this item.
+            </div>
+            @endif
+        </div>
+        @endif
+
     </div>
 
     {{-- Footer — persistent disclaimer (RPT-05) --}}

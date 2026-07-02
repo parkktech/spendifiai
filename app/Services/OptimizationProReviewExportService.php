@@ -2,7 +2,12 @@
 
 namespace App\Services;
 
+use App\Enums\AccountPurpose;
+use App\Enums\ExpenseType;
+use App\Models\BankAccount;
 use App\Models\OptimizationFinding;
+use App\Models\Transaction;
+use App\Models\User;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
@@ -125,10 +130,22 @@ class OptimizationProReviewExportService
             'EDUCATIONAL MATERIAL ONLY — NOT TAX ADVICE. This packet was prepared from information self-asserted by the user and has not been independently verified.'
         );
 
+        // D22 — cross-account business-activity map + commingling picture
+        // SAFE-03: no dollar amounts — counts and categories only
+        $user = $finding->user;
+        $taxYear = $finding->tax_year ?? (int) date('Y');
+        $crossAccountMap = $user
+            ? $this->buildCrossAccountBusinessMap($user, $taxYear)
+            : [];
+        $comminglingPicture = $user
+            ? $this->buildComminglingPicture($user, $taxYear)
+            : [];
+        $documentationStatus = $this->buildDocumentationStatus($finding);
+
         return [
             'user_name' => $finding->user?->name ?? 'User',
             'user_email' => $finding->user?->email ?? '',
-            'tax_year' => $finding->tax_year,
+            'tax_year' => $taxYear,
             'generated_at' => now()->format('F j, Y'),
             'finding_type_label' => $this->humanizeFindingType($finding->finding_type),
             'severity' => $finding->severity ?? 'medium',
@@ -142,6 +159,10 @@ class OptimizationProReviewExportService
             'defensibility_description' => $defensibilityDescription,
             'professional_question' => $professionalQuestion,
             'pro_review_disclaimer' => $disclaimer,
+            // D22 additive sections (14-11)
+            'cross_account_map' => $crossAccountMap,
+            'commingling_picture' => $comminglingPicture,
+            'documentation_status' => $documentationStatus,
         ];
     }
 
@@ -233,6 +254,208 @@ class OptimizationProReviewExportService
             str_contains($findingType, 'hsa') || str_contains($findingType, 'benefit') => 'Based on the benefit-related information in this packet, am I taking full advantage of tax-advantaged accounts available to me?',
             default => 'Given the information in this packet, what are the key tax considerations I should discuss with you for my specific situation?',
         };
+    }
+
+    /**
+     * D22 — Cross-account business-activity map (14-11 additive section).
+     *
+     * Aggregates Schedule C (business expense_type) transactions by bank account
+     * for the tax year. Grouped by account then category.
+     *
+     * SAFE-03: Returns COUNTS and CATEGORIES — never dollar amounts.
+     *
+     * @return array<int, array{account_label: string, account_purpose: string, business_count: int, categories: array}>
+     */
+    public function buildCrossAccountBusinessMap(User $user, int $taxYear): array
+    {
+        $accounts = BankAccount::where('user_id', $user->id)->get()->keyBy('id');
+
+        if ($accounts->isEmpty()) {
+            return [];
+        }
+
+        // Load all business-type transactions for the year, grouped by account + category
+        $rows = Transaction::where('user_id', $user->id)
+            ->where('expense_type', ExpenseType::Business->value)
+            ->whereYear('transaction_date', $taxYear)
+            ->whereNotNull('bank_account_id')
+            ->selectRaw('bank_account_id, COALESCE(user_category, ai_category, \'Uncategorized\') AS category, COUNT(*) AS cnt')
+            ->groupBy('bank_account_id', 'category')
+            ->get();
+
+        if ($rows->isEmpty()) {
+            return [];
+        }
+
+        // Group by account
+        $byAccount = [];
+        foreach ($rows as $row) {
+            $acctId = $row->bank_account_id;
+            $account = $accounts->get($acctId);
+            if (! $account) {
+                continue;
+            }
+
+            $label = $account->nickname
+                ?? ($account->name ?? ('Account ending in '.substr((string) $acctId, -4)));
+            $purpose = $account->purpose instanceof AccountPurpose
+                ? $account->purpose->value
+                : (string) $account->purpose;
+
+            if (! isset($byAccount[$acctId])) {
+                $byAccount[$acctId] = [
+                    'account_label' => $label,
+                    'account_purpose' => $purpose,
+                    'business_count' => 0,
+                    'categories' => [],
+                ];
+            }
+
+            $byAccount[$acctId]['business_count'] += (int) $row->cnt;
+            $byAccount[$acctId]['categories'][] = [
+                'category' => (string) $row->category,
+                'count' => (int) $row->cnt,
+            ];
+        }
+
+        // Sort categories by count desc within each account
+        foreach ($byAccount as &$entry) {
+            usort($entry['categories'], fn ($a, $b) => $b['count'] <=> $a['count']);
+        }
+
+        // Sort accounts by total business count desc
+        $result = array_values($byAccount);
+        usort($result, fn ($a, $b) => $b['business_count'] <=> $a['business_count']);
+
+        return $result;
+    }
+
+    /**
+     * D22 — Commingling picture (14-11 additive section).
+     *
+     * Shows which accounts have mixed personal/business activity.
+     * "Label ≠ behavior" (D21 addendum): we check observed expense_type values,
+     * not the account purpose label.
+     *
+     * SAFE-03: Returns COUNTS — never dollar amounts.
+     *
+     * @return array{
+     *   mixed_accounts: array,
+     *   business_in_personal: int,
+     *   personal_in_business: int,
+     *   has_commingling: bool,
+     * }
+     */
+    public function buildComminglingPicture(User $user, int $taxYear): array
+    {
+        $accounts = BankAccount::where('user_id', $user->id)->get();
+
+        if ($accounts->isEmpty()) {
+            return ['mixed_accounts' => [], 'business_in_personal' => 0, 'personal_in_business' => 0, 'has_commingling' => false];
+        }
+
+        $accountIds = $accounts->pluck('id');
+        $accountMap = $accounts->keyBy('id');
+
+        // Count by (account_id, expense_type)
+        $counts = Transaction::where('user_id', $user->id)
+            ->whereIn('bank_account_id', $accountIds)
+            ->whereYear('transaction_date', $taxYear)
+            ->whereIn('expense_type', [ExpenseType::Business->value, ExpenseType::Personal->value])
+            ->selectRaw('bank_account_id, expense_type, COUNT(*) AS cnt')
+            ->groupBy('bank_account_id', 'expense_type')
+            ->get();
+
+        // Build per-account summary
+        $perAccount = [];
+        foreach ($counts as $row) {
+            $id = $row->bank_account_id;
+            if (! isset($perAccount[$id])) {
+                $perAccount[$id] = ['business' => 0, 'personal' => 0];
+            }
+            if ($row->expense_type === ExpenseType::Business->value) {
+                $perAccount[$id]['business'] = (int) $row->cnt;
+            } else {
+                $perAccount[$id]['personal'] = (int) $row->cnt;
+            }
+        }
+
+        $mixedAccounts = [];
+        $businessInPersonal = 0;
+        $personalInBusiness = 0;
+
+        foreach ($perAccount as $acctId => $typeCounts) {
+            $account = $accountMap->get($acctId);
+            if (! $account) {
+                continue;
+            }
+
+            $purpose = $account->purpose instanceof AccountPurpose
+                ? $account->purpose->value
+                : (string) $account->purpose;
+
+            $hasBusinessTxns = $typeCounts['business'] > 0;
+            $hasPersonalTxns = $typeCounts['personal'] > 0;
+
+            if ($hasBusinessTxns && $hasPersonalTxns) {
+                $label = $account->nickname
+                    ?? ($account->name ?? ('Account ending in '.substr((string) $acctId, -4)));
+                $mixedAccounts[] = [
+                    'account_label' => $label,
+                    'account_purpose' => $purpose,
+                    'business_count' => $typeCounts['business'],
+                    'personal_count' => $typeCounts['personal'],
+                ];
+            }
+
+            // "business in personal" = business txns on personal/mixed accounts
+            if (in_array($purpose, [AccountPurpose::Personal->value, AccountPurpose::Mixed->value], true)) {
+                $businessInPersonal += $typeCounts['business'];
+            }
+            // "personal in business" = personal txns on business accounts
+            if ($purpose === AccountPurpose::Business->value) {
+                $personalInBusiness += $typeCounts['personal'];
+            }
+        }
+
+        return [
+            'mixed_accounts' => $mixedAccounts,
+            'business_in_personal' => $businessInPersonal,
+            'personal_in_business' => $personalInBusiness,
+            'has_commingling' => $businessInPersonal > 0 || $personalInBusiness > 0,
+        ];
+    }
+
+    /**
+     * D22 — Documentation status per deduction (14-11 additive section).
+     *
+     * Returns a map of docs_captured vs docs_required for the finding.
+     * All determinations are static: required doc types come from config;
+     * captured doc types come from finding.docs_captured.
+     *
+     * @return array{required: string[], captured: string[], missing: string[], complete: bool}
+     */
+    public function buildDocumentationStatus(OptimizationFinding $finding): array
+    {
+        $required = config(
+            "optimization-report.required_docs.{$finding->finding_type}",
+            config('optimization-report.required_docs.default', [])
+        );
+
+        $captured = $finding->docs_captured ?? [];
+        $capturedLower = array_map('strtolower', $captured);
+
+        $missing = array_values(array_filter(
+            $required,
+            fn ($req) => ! in_array(strtolower($req), $capturedLower, true)
+        ));
+
+        return [
+            'required' => $required,
+            'captured' => $captured,
+            'missing' => $missing,
+            'complete' => empty($missing),
+        ];
     }
 
     /**
