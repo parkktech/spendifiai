@@ -24,6 +24,7 @@ use App\Models\Subscription;
 use App\Models\Transaction;
 use App\Models\User;
 use App\Models\UserTaxFact;
+use App\Services\InterviewOrchestratorService;
 use App\Services\RedFlagDetectorService;
 use App\Services\Scanners\LifeEventTriggerDetector;
 use App\Services\Scanners\RetroactiveScanner;
@@ -504,20 +505,47 @@ it('LifeEventTriggerDetector fires escrow inflow trigger from title company cred
     expect(method_exists(LifeEventTriggerDetector::class, 'detectEscrowInflow'))->toBeTrue();
 });
 
-// FLAG-27: annual battery questions surface as interview/feed findings
+// FLAG-27: annual battery questions bridge into the interview queue (not just the feed listener)
 
-it('LifeEventTriggerDetector surfaces marriage battery question as finding when unanswered', function () {
-    // No existing fact about marriage = question should surface
+it('battery questions appear in interview queue after auto-band items (FLAG-27 end-to-end bridge)', function () {
+    // Create one auto-band finding — verifies ordering guarantee (auto BEFORE battery)
+    OptimizationFinding::factory()->create([
+        'user_id' => $this->user->id,
+        'tax_year' => $this->taxYear,
+        'finding_key' => 'auto_test_sentinel',
+        'finding_type' => 'income_discrepancy',
+        'band' => 'auto',
+        'status' => 'open',
+    ]);
+
+    // Run detector with no UserTaxFacts seeded — battery questions must be emitted
+    // (band='conditional', finding_type='battery_question')
     $detector = app(LifeEventTriggerDetector::class);
-    $result = $detector->run($this->user->id, $this->taxYear, $this->service, []);
+    $detector->run($this->user->id, $this->taxYear, $this->service, []);
 
-    // Battery questions should surface as findings when no facts are present
-    $batteryFinding = OptimizationFinding::where('user_id', $this->user->id)
-        ->where('finding_key', 'LIKE', '%battery%')
-        ->first();
+    $batteryFindings = OptimizationFinding::where('user_id', $this->user->id)
+        ->where('finding_type', 'battery_question')
+        ->pluck('finding_key')
+        ->toArray();
 
-    // At minimum, the surfaceBatteryQuestions method must exist
-    expect(method_exists(LifeEventTriggerDetector::class, 'surfaceBatteryQuestions'))->toBeTrue();
+    expect($batteryFindings)->not->toBeEmpty('detector must emit battery findings when no facts are seeded');
+
+    // Build the interview queue via startOrResume — battery keys must be in the queue
+    $orchestrator = app(InterviewOrchestratorService::class);
+    $session = $orchestrator->startOrResume($this->user->id, $this->taxYear);
+    $queue = $session->queue ?? [];
+
+    // Every battery finding emitted by the detector must appear in the interview queue
+    foreach ($batteryFindings as $batteryKey) {
+        expect(in_array($batteryKey, $queue, true))
+            ->toBeTrue("Battery key '{$batteryKey}' must appear in the interview queue");
+    }
+
+    // Ordering: auto-band sentinel must come BEFORE any battery key
+    $autoPos = array_search('auto_test_sentinel', $queue, true);
+    $batteryPositions = array_map(fn($k) => array_search($k, $queue, true), $batteryFindings);
+
+    expect($autoPos)->toBeLessThan(min($batteryPositions));
 });
 
 it('LifeEventTriggerDetector battery suppresses marriage question once answer is recorded', function () {
@@ -546,21 +574,19 @@ it('LifeEventTriggerDetector battery suppresses marriage question once answer is
     expect($countAfter)->toBe($countBefore);
 });
 
-it('LifeEventTriggerDetector battery inheritance prompt surfaces step-up-now language', function () {
+it('battery_inheritance finding unconditionally surfaces with step-up-now language', function () {
+    // Run with no UserTaxFacts — inheritance battery must always fire
     $detector = app(LifeEventTriggerDetector::class);
-
-    // Force inheritance battery to surface by running with no facts
-    $result = $detector->run($this->user->id, $this->taxYear, $this->service, []);
+    $detector->run($this->user->id, $this->taxYear, $this->service, []);
 
     $inheritanceFinding = OptimizationFinding::where('user_id', $this->user->id)
         ->where('finding_key', 'battery_inheritance')
         ->first();
 
-    if ($inheritanceFinding) {
-        // Inheritance must include step-up-documentation-now language
-        expect($inheritanceFinding->treatment)->toContain('step-up')
-            ->and($inheritanceFinding->treatment)->not->toContain('you will receive');
-    }
+    // Finding must exist unconditionally (no guard required — no fact was seeded)
+    expect($inheritanceFinding)->not->toBeNull();
 
-    expect(method_exists(LifeEventTriggerDetector::class, 'surfaceBatteryQuestions'))->toBeTrue();
+    // Inheritance treatment must include step-up documentation language (SAFE-03 framing)
+    expect($inheritanceFinding->treatment)->toContain('step-up')
+        ->and($inheritanceFinding->treatment)->not->toContain('you will receive');
 });
