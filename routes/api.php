@@ -361,6 +361,29 @@ Route::middleware(['auth:sanctum'])->group(function () {
             Route::post('/{fact}/supersede', [DurableFactsController::class, 'supersede']);
         });
 
+        // ── Phase 14-08: Scenario comparison + choose + checklist (SCN-06/07/08 / §E) ──
+        // GET  /optimizer/scenarios/{year}         — objective readiness + pre-solved options
+        // POST /optimizer/scenarios/{year}/compute — mix-panel outcome (ZERO Claude)
+        // POST /optimizer/scenarios/{year}/choose  — record plan choice, snapshot facts, materialize checklist
+        // GET  /optimizer/checklist/{year}         — list action checklist for the year
+        // PATCH /optimizer/checklist/items/{checklistItem}  — toggle done ('checklistItem' avoids collision with OrderItem)
+        //
+        // Throttle split: reads 60/min; choose (writes) 5/min; compute (engine calls) 30/min.
+        Route::prefix('optimizer/scenarios')->group(function () {
+            Route::get('/{year}', [\App\Http\Controllers\Api\ScenarioController::class, 'show'])
+                ->middleware('throttle:60,1');
+            Route::post('/{year}/compute', [\App\Http\Controllers\Api\ScenarioController::class, 'compute'])
+                ->middleware('throttle:30,1');
+            Route::post('/{year}/choose', [\App\Http\Controllers\Api\ScenarioController::class, 'choose'])
+                ->middleware('throttle:5,1');
+        });
+        Route::prefix('optimizer/checklist')->group(function () {
+            Route::get('/{year}', [\App\Http\Controllers\Api\OptimizationChecklistController::class, 'show'])
+                ->middleware('throttle:60,1');
+            Route::patch('/items/{checklistItem}', [\App\Http\Controllers\Api\OptimizationChecklistController::class, 'update'])
+                ->middleware('throttle:60,1');
+        });
+
         // ── Phase 12-04: Optimization Report API (RPT-02/RPT-05) ──
         // GET  /api/v1/optimizer/report/{year}                          — show/auto-init (status: ready|generating)
         // POST /api/v1/optimizer/report/{year}/regenerate               — explicit regeneration (rate-limited)
