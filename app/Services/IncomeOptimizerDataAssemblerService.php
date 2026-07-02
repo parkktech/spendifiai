@@ -182,6 +182,7 @@ class IncomeOptimizerDataAssemblerService
             'student_loan_interest' => 0,
             'charitable_contributions' => 0,
             'traditional_401k_ytd' => 0,
+            'roth_401k_ytd' => 0,      // [P12] added for PayStub arm
             'ira_ytd' => 0,
             'hsa_ytd' => 0,
         ];
@@ -290,6 +291,54 @@ class IncomeOptimizerDataAssemblerService
                         $totals['ira_ytd'] += $this->dollarsToCents($data['contributions_made']);
                         $hasValue['ira_ytd'] = true;
                     }
+                    break;
+
+                // [P12 DOC-03] PayStub arm — accumulates YTD deduction signals into profile.
+                //
+                // PLAN-CHECK FIX (per 12-RESEARCH.md Pitfall 2, lines 328-347):
+                // Use the DEFENSIVE NESTED-WITH-FALLBACK pattern, NOT the legacy flat access
+                // of the W2/1099 arms above. Runtime shape is:
+                //   extracted_data['fields']['field_name']['value'] (nested with confidence)
+                // but we fall back gracefully if a flat value is stored.
+                // DO NOT copy the legacy flat-access pattern ($data['wages']) into these new arms.
+                case TaxDocumentCategory::PayStub:
+                    // Defensive nested-with-fallback read (Pitfall 2):
+                    // Prefers $data['fields']['field_name']['value']; falls back to flat.
+                    $fields = $data['fields'] ?? $data;
+                    if (isset($fields['traditional_401k_deduction'])) {
+                        $totals['traditional_401k_ytd'] += $this->dollarsToCents(
+                            $fields['traditional_401k_deduction']['value'] ?? $fields['traditional_401k_deduction']
+                        );
+                        $hasValue['traditional_401k_ytd'] = true;
+                    }
+                    if (isset($fields['roth_401k_deduction'])) {
+                        $totals['roth_401k_ytd'] += $this->dollarsToCents(
+                            $fields['roth_401k_deduction']['value'] ?? $fields['roth_401k_deduction']
+                        );
+                        $hasValue['roth_401k_ytd'] = true;
+                    }
+                    if (isset($fields['hsa_deduction'])) {
+                        $totals['hsa_ytd'] += $this->dollarsToCents(
+                            $fields['hsa_deduction']['value'] ?? $fields['hsa_deduction']
+                        );
+                        $hasValue['hsa_ytd'] = true;
+                    }
+                    if (isset($fields['gross_pay'])) {
+                        $totals['w2_wages'] += $this->dollarsToCents(
+                            $fields['gross_pay']['value'] ?? $fields['gross_pay']
+                        );
+                        $hasValue['w2_wages'] = true;
+                    }
+                    break;
+
+                // [P12 DOC-07] BenefitsGuide arm — availability metadata only, no dollar accumulation.
+                // The guide informs the snapshot that certain plan types exist (HDHP, 401k, etc.)
+                // but does not contribute dollar totals. The D4 UserTaxFact proposals carry the
+                // per-field data — the assembler does not duplicate that into cent columns.
+                case TaxDocumentCategory::BenefitsGuide:
+                    // Intentional no-op: BenefitsGuide facts flow via the UserTaxFact proposal path
+                    // (ExtractProfileFacts → PaystubFactExtractorService → BENEFITS_FACT_MAP).
+                    // The assembler does not accumulate dollar values from benefits guides.
                     break;
             }
         }

@@ -273,17 +273,22 @@ class UserTaxFact extends Model
                 ->lockForUpdate()
                 ->first();
 
-            // Flip proposal to current
+            // IMPORTANT: flip the existing current row to is_current=false FIRST,
+            // THEN flip the proposal to is_current=true. This avoids a unique index
+            // violation on idx_tax_facts_current (mirrors the recordFact() ordering).
+            if ($existing !== null) {
+                $existing->update(['is_current' => false]);
+            }
+
+            // Now safe: no competing is_current=true row for this key tuple.
             $proposal->update([
                 'is_current' => true,
                 'confirmed_at' => now(),
             ]);
 
+            // Set superseded_by_id now that we have the proposal's confirmed id.
             if ($existing !== null) {
-                $existing->update([
-                    'is_current' => false,
-                    'superseded_by_id' => $proposal->id,
-                ]);
+                $existing->update(['superseded_by_id' => $proposal->id]);
             }
 
             return $proposal->fresh();
