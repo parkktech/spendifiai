@@ -371,3 +371,96 @@ it('transfer-type bank transactions are excluded from bank_deposit_total', funct
     // Only $5,000 income; $2,000 transfer excluded → 500,000 cents
     expect((int) $profile->bank_deposit_total)->toBe(500_000);
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// INT-03: answerableFields() durable-fact extension (Task 2 / 11-02)
+// ─────────────────────────────────────────────────────────────────────────────
+
+it('INT-03: answerableFields() returns true for a confirmed durable fact key', function () {
+    $user = User::factory()->create();
+
+    $profile = $this->service->buildProfile($user, $this->taxYear);
+
+    // Record a confirmed interview_answer fact for 'employer.match_pct'
+    \App\Models\UserTaxFact::recordFact(
+        userId: $user->id,
+        factKey: 'employer.match_pct',
+        value: '50',
+        sourceType: 'interview_answer',
+    );
+
+    $answerable = $profile->answerableFields(new \App\Models\UserTaxFact());
+
+    // The confirmed durable fact must make the key answerable
+    expect($answerable['employer.match_pct'])->toBeTrue();
+});
+
+it('INT-03: answerableFields() returns false for an unconfirmed document_extraction proposal', function () {
+    $user = User::factory()->create();
+
+    $profile = $this->service->buildProfile($user, $this->taxYear);
+
+    // Write an unconfirmed document_extraction proposal (is_current=false)
+    \App\Models\UserTaxFact::recordFact(
+        userId: $user->id,
+        factKey: 'employer.match_pct',
+        value: '50',
+        sourceType: 'document_extraction',
+    );
+
+    $answerable = $profile->answerableFields(new \App\Models\UserTaxFact());
+
+    // Unconfirmed proposal must NOT count as answerable (confirm gate)
+    expect($answerable['employer.match_pct'] ?? false)->toBeFalse();
+});
+
+it('INT-03: answerableFields() with no proxy still returns base 9 keys', function () {
+    $user = User::factory()->create();
+
+    $profile = $this->service->buildProfile($user, $this->taxYear);
+
+    // Without proxy, existing 9 base keys must still be present
+    $answerable = $profile->answerableFields();
+
+    expect($answerable)->toHaveKey('filing_status')
+        ->toHaveKey('has_hsa_eligible_plan')
+        ->toHaveKey('has_ira')
+        ->toHaveKey('ira_type')
+        ->toHaveKey('has_home_office')
+        ->toHaveKey('has_self_employment')
+        ->toHaveKey('has_401k_contributions')
+        ->toHaveKey('has_hsa_contributions')
+        ->toHaveKey('employment_type');
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// FACT-CHECK FIX (INT-03): readProfileFlags() must expose business_type + housing_status
+// ─────────────────────────────────────────────────────────────────────────────
+
+it('FACT-CHECK-FIX: readProfileFlags returns business_type and housing_status when profile exists', function () {
+    $user = User::factory()->create();
+
+    UserFinancialProfile::factory()->create([
+        'user_id' => $user->id,
+        'business_type' => 'sole_proprietor',
+        'housing_status' => 'own',
+    ]);
+
+    $profile = $this->service->buildProfile($user, $this->taxYear);
+
+    // These keys must be present on the built profile
+    // (They are plain string columns, not encrypted)
+    // We verify via the snapshot object's fillable/readable columns
+    expect($profile->business_type)->toBe('sole_proprietor');
+    expect($profile->housing_status)->toBe('own');
+});
+
+it('FACT-CHECK-FIX: readProfileFlags includes business_type=null when no profile exists', function () {
+    $user = User::factory()->create();
+    // No UserFinancialProfile — defaults must include the two new keys as null
+
+    $profile = $this->service->buildProfile($user, $this->taxYear);
+
+    expect($profile->business_type)->toBeNull();
+    expect($profile->housing_status)->toBeNull();
+});
