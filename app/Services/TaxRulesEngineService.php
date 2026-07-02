@@ -650,7 +650,130 @@ class TaxRulesEngineService
         };
     }
 
+    // ══════════════════════════════════════════════════════════════════════
+    // SCENARIOS-SPEC §B.3 — Optimize-My-Income scenario math (SCN-01…SCN-07)
+    //
+    // Pure, integer-cents, config-only. Zero Claude / zero HTTP. Every threshold
+    // traces to config/tax-rules.php or config/optimizer-scenarios.php — a Pest
+    // grep guard (NoLiteralGuardTest) fails if any raw IRS literal appears in the
+    // method bodies below. Small structural constants (0/1/2 bounds, the /100 pct
+    // divisor, the *100 cents converter) are the only permitted literals.
+    // ══════════════════════════════════════════════════════════════════════
+
+    /** W-4 Step 1(c) statuses. 'single_or_mfs' maps to the 'single' tables (Pub 15-T column). */
+    protected array $allowedW4Statuses = ['single_or_mfs', 'married_joint', 'head_of_household'];
+
+    /**
+     * SCN-01 — Per-paycheck federal withholding approximation (Pub 15-T percentage method).
+     *
+     * DECISION-SUPPORT ESTIMATE (labeled as such in UI copy). W-4 Step 2 unchecked;
+     * extra withholding beyond the explicit knob is handled by callers.
+     *
+     * Note [M11]: 'single_or_mfs' is computed with the 'single' bracket + standard-deduction
+     * tables per the Pub 15-T "Single or Married filing separately" column convention. The
+     * config single/MFS tables diverge only at the 37% threshold ($640,600 vs $384,350) —
+     * immaterial to withholding at the wage levels this feature operates. Annual-tax math
+     * (computeScenarioOutcome Step 3) always uses the true CONFIRMED filing status.
+     *
+     * @throws InvalidArgumentException
+     */
+    public function estimatePeriodWithholdingCents(
+        int $periodGrossCents,
+        int $periodPreTaxCents,
+        string $w4FilingStatus,
+        int $dependentsUnder17,
+        int $otherDependents,
+        int $payPeriodsPerYear,
+        int $year = 2026,
+    ): int {
+        $this->validateYear($year);
+        $status = $this->mapW4ToTableStatus($w4FilingStatus);
+
+        $annualWages = ($periodGrossCents - $periodPreTaxCents) * $payPeriodsPerYear;
+        $adjusted = max(0, $annualWages - $this->standardDeductionCents($status, null, $year));
+
+        $brackets = config("tax-rules.{$year}.brackets.{$status}");
+        $tentative = $this->computeBracketTax($adjusted, $brackets);
+
+        $ctcCents = config("tax-rules.{$year}.detection.ctc_amount") * 100;
+        $odcCents = config("tax-rules.{$year}.detection.odc_amount") * 100;
+        $credits = $dependentsUnder17 * $ctcCents + $otherDependents * $odcCents;
+
+        return max(0, (int) round(($tentative - $credits) / $payPeriodsPerYear));
+    }
+
+    /**
+     * SCN-02 — Employee-share FICA on annual FICA wages.
+     *
+     * Employee pays half of the combined FICA rate (ss_rate/2 + medicare_rate/2). Social
+     * Security is capped at ss_wage_base; Medicare is uncapped. The Additional Medicare
+     * surtax (0.9%) is INTENTIONALLY EXCLUDED from per-paycheck estimates (documented
+     * assumption; high earners get a caution line elsewhere — never silent wrongness).
+     *
+     * Callers pass wages already net of §125 cafeteria reducers (payroll HSA is FICA-exempt;
+     * 401(k) deferrals are NOT — they still incur FICA).
+     *
+     * @return array{social_security_cents:int, medicare_cents:int, total_cents:int}
+     *
+     * @throws InvalidArgumentException
+     */
+    public function employeeFicaCents(int $annualFicaWagesCents, int $year = 2026): array
+    {
+        $this->validateYear($year);
+
+        $cfg = config("tax-rules.{$year}.se_tax");
+        $wageBaseCents = $cfg['ss_wage_base'] * 100;
+
+        $ssWages = min($annualFicaWagesCents, $wageBaseCents);
+        $ss = (int) round($ssWages * ($cfg['ss_rate'] / 2));
+        $medicare = (int) round($annualFicaWagesCents * ($cfg['medicare_rate'] / 2));
+
+        return [
+            'social_security_cents' => $ss,
+            'medicare_cents' => $medicare,
+            'total_cents' => $ss + $medicare,
+        ];
+    }
+
+    /**
+     * SCN-03 — Employer match capture.
+     *
+     * match = gross × min(contributionPct, thresholdPct) × matchPct, with percentages
+     * expressed as 0–100 floats. Contribution below the threshold yields the reduced
+     * capture; at/above the threshold yields the full match.
+     */
+    public function matchCaptureCents(
+        int $annualGrossCents,
+        float $contributionPct,
+        float $matchPct,
+        float $matchThresholdPct,
+    ): int {
+        $effectivePct = min($contributionPct, $matchThresholdPct);
+
+        return (int) round($annualGrossCents * ($effectivePct / 100) * ($matchPct / 100));
+    }
+
     // ── Private Helpers ───────────────────────────────────────────────────
+
+    /**
+     * Map a W-4 Step 1(c) status to the withholding-table filing status.
+     * 'single_or_mfs' → 'single' (Pub 15-T column convention, §B.1 K1 [M11]).
+     * Also tolerates the confirmed-status vocabulary ('single'/'married_separate') so
+     * callers passing a W-4-on-file value in either form resolve consistently.
+     *
+     * @throws InvalidArgumentException
+     */
+    private function mapW4ToTableStatus(string $w4FilingStatus): string
+    {
+        return match ($w4FilingStatus) {
+            'single_or_mfs', 'single', 'married_separate' => 'single',
+            'married_joint' => 'married_joint',
+            'head_of_household' => 'head_of_household',
+            default => throw new InvalidArgumentException(
+                "Unknown W-4 filing status: {$w4FilingStatus}. Allowed: ".implode(', ', $this->allowedW4Statuses)
+            ),
+        };
+    }
 
     /**
      * Iterate over bracket array to compute tax. Config values are in dollars; converts internally.
