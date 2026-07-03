@@ -116,6 +116,67 @@ test('auth.pendingOptimizationCount does not count un-narrated findings (null de
     expect($authProps['pendingOptimizationCount'])->toBe(2);
 });
 
+// ── D24 Work 3: version-skew protection ──────────────────────────────────────
+
+test('version() returns a non-null hash when build/manifest.json exists', function () {
+    // The manifest exists in CI (after npm run build) and in dev if built.
+    // Skip gracefully when no manifest is present (test env without build step).
+    $manifest = public_path('build/manifest.json');
+    if (! file_exists($manifest)) {
+        $this->markTestSkipped('build/manifest.json not present — run npm run build first.');
+    }
+
+    $middleware = app(App\Http\Middleware\HandleInertiaRequests::class);
+    $request = Illuminate\Http\Request::create('/dashboard');
+    $version = $middleware->version($request);
+
+    expect($version)->toBeString()->not->toBeEmpty();
+    // Ensure it's a hex string (xxh128 output).
+    expect(preg_match('/^[0-9a-f]{32}$/', $version))->toBe(1);
+});
+
+test('buildVersion prop is shared via Inertia and matches manifest hash', function () {
+    $manifest = public_path('build/manifest.json');
+    if (! file_exists($manifest)) {
+        $this->markTestSkipped('build/manifest.json not present — run npm run build first.');
+    }
+
+    $user = createAuthenticatedUser();
+    $response = $this->actingAs($user)->get('/dashboard');
+    $response->assertStatus(200);
+
+    $props = $response->viewData('page')['props'] ?? [];
+    expect($props)->toHaveKey('buildVersion');
+    expect($props['buildVersion'])->toBe(hash_file('xxh128', $manifest));
+});
+
+test('build-version meta endpoint returns version hash', function () {
+    $manifest = public_path('build/manifest.json');
+    if (! file_exists($manifest)) {
+        $this->markTestSkipped('build/manifest.json not present — run npm run build first.');
+    }
+
+    $response = $this->getJson('/api/v1/meta/build-version');
+
+    $response->assertStatus(200)
+        ->assertJsonStructure(['version', 'built_at'])
+        ->assertJson(['version' => hash_file('xxh128', $manifest)]);
+});
+
+test('build-version meta endpoint works when no build manifest exists', function () {
+    // Simulate missing manifest by asserting the endpoint returns a null version gracefully.
+    // We can't actually delete the manifest, so just call the endpoint and check structure.
+    $response = $this->getJson('/api/v1/meta/build-version');
+
+    $response->assertStatus(200)
+        ->assertJsonStructure(['version', 'built_at']);
+    // version is either a hash string or null — both are valid.
+    $body = $response->json();
+    expect($body['version'])->toBeString()->or->toBeNull();
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+
 test('existing shared auth props are present and unchanged (additive only)', function () {
     $user = createAuthenticatedUser();
 

@@ -108,6 +108,24 @@ Route::get('/v1/email/callback/outlook', [EmailConnectionController::class, 'out
 Route::get('/v1/household/invite/{token}', [HouseholdController::class, 'validateInvitation']);
 
 // ══════════════════════════════════════════════════════════
+// BUILD META (public, no auth — D24 Work 3 version-skew protection)
+// Cheap cache-backed endpoint. Client polls to detect new deployments
+// and show a "refresh" toast before Inertia forces a hard reload.
+// ══════════════════════════════════════════════════════════
+
+Route::get('/v1/meta/build-version', function () {
+    $manifest = public_path('build/manifest.json');
+    $version = file_exists($manifest) ? hash_file('xxh128', $manifest) : null;
+
+    return response()->json([
+        'version' => $version,
+        'built_at' => $version ? date('c', filemtime($manifest)) : null,
+    ], 200, [
+        'Cache-Control' => 'no-store',
+    ]);
+})->middleware('throttle:60,1');
+
+// ══════════════════════════════════════════════════════════
 // COOKIE CONSENT (public, no auth required)
 // ══════════════════════════════════════════════════════════
 

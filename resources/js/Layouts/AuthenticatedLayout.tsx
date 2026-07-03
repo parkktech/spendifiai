@@ -1,6 +1,7 @@
 import { Link, usePage, router } from '@inertiajs/react';
 import { PropsWithChildren, ReactNode, useState, useEffect } from 'react';
 import ImpersonationBar from '@/Components/SpendifiAI/ImpersonationBar';
+import NewVersionToast from '@/Components/SpendifiAI/NewVersionToast';
 import {
   LayoutDashboard,
   Receipt,
@@ -436,6 +437,9 @@ export default function AuthenticatedLayout({
 
       {/* Impersonation bar (shown when accountant is viewing client data) */}
       <ImpersonationBar />
+
+      {/* D24 Work 3: version-skew protection toast */}
+      <NewVersionToast />
     </div>
     </>
   );

@@ -18,10 +18,29 @@ class HandleInertiaRequests extends Middleware
     protected $rootView = 'app';
 
     /**
-     * Determine the current asset version.
+     * Determine the current asset version — D24 Work 3: version-skew protection.
+     *
+     * Hashes public/build/manifest.json so that when a new deployment replaces
+     * the build manifest, Inertia detects the version change on the next SPA
+     * navigation and forces a hard page reload (pulling fresh assets).
+     *
+     * The parent::version() already does this (it hashes build/manifest.json
+     * via hash_file('xxh128', ...)), so we delegate. This override exists for:
+     *  1. Explicitness — future maintainers can see the contract.
+     *  2. Testability — HandleInertiaRequestsTest can assert non-null version.
+     *  3. The D24 audit trail.
+     *
+     * If asset_url is set (CDN deploy), hash that instead (parent behaviour).
      */
     public function version(Request $request): ?string
     {
+        // Explicit manifest hash — keeps the derivation visible.
+        $manifest = public_path('build/manifest.json');
+        if (file_exists($manifest)) {
+            return hash_file('xxh128', $manifest);
+        }
+
+        // Fall back to parent for CDN or mix-manifest scenarios.
         return parent::version($request);
     }
 
@@ -90,6 +109,13 @@ class HandleInertiaRequests extends Middleware
             'canLogin' => Route::has('login'),
             'canRegister' => Route::has('register'),
             'plaid_env' => config('services.plaid.env', 'sandbox'),
+            // D24 Work 3: expose build version to the SPA so NewVersionToast can compare
+            // against /api/v1/meta/build-version polls. Public value — not sensitive.
+            'buildVersion' => (function (): ?string {
+                $manifest = public_path('build/manifest.json');
+
+                return file_exists($manifest) ? hash_file('xxh128', $manifest) : null;
+            })(),
             'consent' => [
                 'has_consent' => $consentData && ($consentData['v'] ?? null) === $consentVersion,
                 'analytics' => (bool) ($consentData['a'] ?? false),
