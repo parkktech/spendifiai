@@ -1,9 +1,12 @@
 /**
- * DocumentUploadFlow — Phase 12-05 Task 3 + owner UX fix cluster (Fix 2, 3, 4 surface).
+ * DocumentUploadFlow — Phase 12-05 Task 3 + owner UX fix cluster (Fix 2, 3, 4 surface)
+ *                      + Item 1: "Not applicable" per-type exclusion.
  *
  * Multi-step document upload wizard:
  *   Step 1 — Choose document type (financial / substantiation categories from 12-01)
  *             Green-check inventory badges overlay each type that already has a ready doc.
+ *             "Not applicable" action per card → muted check "Not applicable — marked by you",
+ *             one-click reversible.
  *   Step 2 — Drop/select file (FileDropZone; pdf/png/jpg/jpeg accepted)
  *   Step 3 — Processing indicator (polling document status until ready/failed)
  *   Step 4 — Done: explicit outcome ("Parsed — N fields extracted") or honest failure copy.
@@ -11,6 +14,8 @@
  *
  * Fix 2: type grid overlays green check + "Received ✓ · date" for types with ready docs.
  * Fix 3: HTTP 409 duplicate_of response → rendered as "Already on file" (success, not error).
+ * Item 1: excluded types show muted "Not applicable — marked by you" state; count as populated
+ *         for the accordion tri-state; the parent receives onExclusionsChange when they toggle.
  *
  * DESIGN (Decision 6/7 — elevate, don't replace):
  *   sw-* tokens; Inter; shadow-sm cards; 4px/8px rhythm
@@ -25,20 +30,22 @@ import {
   Upload,
   FileText,
   Check,
+  MinusCircle,
 } from 'lucide-react';
 import FileDropZone from './FileDropZone';
 import axios from 'axios';
 
 // ─── Document type catalogue ───────────────────────────────────────────────────
 
-const DOC_TYPES: { value: string; label: string; description: string }[] = [
-  { value: 'paystub', label: 'Pay Stub', description: 'Recent paycheck stub with YTD figures' },
-  { value: 'w2', label: 'W-2', description: 'Annual wage and tax statement' },
-  { value: 'benefits_guide', label: 'Benefits Guide', description: 'Employer benefits enrollment document' },
-  { value: 'hsa_statement', label: 'HSA Statement', description: 'Health Savings Account statement' },
-  { value: 'retirement_statement', label: 'Retirement Statement', description: '401(k) / IRA account statement' },
-  { value: 'medical_receipt', label: 'Medical Receipt', description: 'Out-of-pocket medical expense receipt' },
-  { value: 'other', label: 'Other', description: 'Any other financial document' },
+// paystub is not excludable — it is always required by Stage-0.
+const DOC_TYPES: { value: string; label: string; description: string; excludable: boolean }[] = [
+  { value: 'paystub', label: 'Pay Stub', description: 'Recent paycheck stub with YTD figures', excludable: false },
+  { value: 'w2', label: 'W-2', description: 'Annual wage and tax statement', excludable: true },
+  { value: 'benefits_guide', label: 'Benefits Guide', description: 'Employer benefits enrollment document', excludable: true },
+  { value: 'hsa_statement', label: 'HSA Statement', description: 'Health Savings Account statement', excludable: true },
+  { value: 'retirement_statement', label: 'Retirement Statement', description: '401(k) / IRA account statement', excludable: true },
+  { value: 'medical_receipt', label: 'Medical Receipt', description: 'Out-of-pocket medical expense receipt', excludable: true },
+  { value: 'other', label: 'Other', description: 'Any other financial document', excludable: true },
 ];
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
@@ -48,10 +55,12 @@ interface DocTypeStatus {
   latest_uploaded_at: string | null;
   ready_count: number;
   extracted_fields_count: number;
+  is_excluded: boolean;
 }
 
 interface TypeStatusResponse {
   types: Record<string, DocTypeStatus>;
+  exclusions: string[];
 }
 
 interface DuplicateDocInfo {
@@ -68,6 +77,8 @@ export interface DocumentUploadFlowProps {
   onComplete?: (documentId: number) => void;
   /** Compact mode for inline use (hides step labels). */
   compact?: boolean;
+  /** Called when a type's exclusion state changes — parent should refresh typeStatus. */
+  onExclusionsChange?: (exclusions: string[]) => void;
 }
 
 // ─── Helpers ───────────────────────────────────────────────────────────────────
@@ -81,7 +92,7 @@ function formatDate(iso: string | null): string {
   }
 }
 
-export default function DocumentUploadFlow({ onComplete, compact = false }: DocumentUploadFlowProps) {
+export default function DocumentUploadFlow({ onComplete, compact = false, onExclusionsChange }: DocumentUploadFlowProps) {
   const [step, setStep] = useState<FlowStep>('type');
   const [docType, setDocType] = useState('');
   const [file, setFile] = useState<File | null>(null);
@@ -89,16 +100,18 @@ export default function DocumentUploadFlow({ onComplete, compact = false }: Docu
   const [error, setError] = useState<string | null>(null);
   const [docId, setDocId] = useState<number | null>(null);
 
-  // Fix 2: type inventory for the type-picker grid
+  // Fix 2: type inventory for the type-picker grid (includes is_excluded per Item 1)
   const [typeStatus, setTypeStatus] = useState<Record<string, DocTypeStatus>>({});
   const [typeStatusLoaded, setTypeStatusLoaded] = useState(false);
+  // Optimistic exclusion toggle (local state mirrors server response immediately)
+  const [togglingExclusion, setTogglingExclusion] = useState<string | null>(null);
 
   // Done step state
   const [doneVariant, setDoneVariant] = useState<DoneVariant>('success');
   const [extractedFieldsCount, setExtractedFieldsCount] = useState<number | null>(null);
   const [duplicateDoc, setDuplicateDoc] = useState<DuplicateDocInfo | null>(null);
 
-  // Fetch type inventory on mount (for the green-check grid)
+  // Fetch type inventory on mount (for the green-check grid + exclusion state)
   useEffect(() => {
     axios.get<TypeStatusResponse>('/api/v1/tax-vault/type-status')
       .then((res) => {
@@ -110,6 +123,40 @@ export default function DocumentUploadFlow({ onComplete, compact = false }: Docu
         setTypeStatusLoaded(true);
       });
   }, []);
+
+  // ── "Not applicable" exclusion toggle (Item 1) ────────────────────────────────
+  const handleToggleExclusion = async (type: string, exclude: boolean) => {
+    setTogglingExclusion(type);
+    // Optimistic update
+    setTypeStatus((prev) => ({
+      ...prev,
+      [type]: { ...(prev[type] ?? { has_ready_doc: false, latest_uploaded_at: null, ready_count: 0, extracted_fields_count: 0 }), is_excluded: exclude },
+    }));
+    try {
+      const res = await axios.post<{ exclusions: string[] }>('/api/v1/tax-vault/type-exclusions', {
+        type,
+        excluded: exclude,
+      });
+      // Sync server state back into typeStatus (source of truth)
+      const exclusions = res.data.exclusions ?? [];
+      setTypeStatus((prev) => {
+        const updated = { ...prev };
+        Object.keys(updated).forEach((k) => {
+          updated[k] = { ...updated[k], is_excluded: exclusions.includes(k) };
+        });
+        return updated;
+      });
+      onExclusionsChange?.(exclusions);
+    } catch {
+      // Revert optimistic update on error
+      setTypeStatus((prev) => ({
+        ...prev,
+        [type]: { ...(prev[type] ?? { has_ready_doc: false, latest_uploaded_at: null, ready_count: 0, extracted_fields_count: 0 }), is_excluded: !exclude },
+      }));
+    } finally {
+      setTogglingExclusion(null);
+    }
+  };
 
   // ── Step 1: Document type ──────────────────────────────────────────────────────
   const handleTypeSelect = (type: string) => {
@@ -217,9 +264,14 @@ export default function DocumentUploadFlow({ onComplete, compact = false }: Docu
     setDoneVariant('success');
     setExtractedFieldsCount(null);
     setDuplicateDoc(null);
-    // Refresh type inventory after a successful upload
+    // Refresh type inventory after a successful upload (includes is_excluded state)
     axios.get<TypeStatusResponse>('/api/v1/tax-vault/type-status')
-      .then((res) => setTypeStatus(res.data.types ?? {}))
+      .then((res) => {
+        setTypeStatus(res.data.types ?? {});
+        if (res.data.exclusions) {
+          onExclusionsChange?.(res.data.exclusions);
+        }
+      })
       .catch(() => {});
   };
 
@@ -255,7 +307,7 @@ export default function DocumentUploadFlow({ onComplete, compact = false }: Docu
         </div>
       )}
 
-      {/* ── Step 1: Type selection (Fix 2: green-check inventory overlay) ──────── */}
+      {/* ── Step 1: Type selection (Fix 2: green-check + Item 1: not-applicable) ── */}
       {step === 'type' && (
         <div className="space-y-2">
           <p className="text-[12px] text-sw-muted mb-3">
@@ -265,48 +317,98 @@ export default function DocumentUploadFlow({ onComplete, compact = false }: Docu
             {DOC_TYPES.map((dt) => {
               const status = typeStatus[dt.value];
               const hasReady = status?.has_ready_doc === true;
+              const isExcluded = status?.is_excluded === true;
               const date = hasReady && status.latest_uploaded_at
                 ? formatDate(status.latest_uploaded_at)
                 : null;
               const count = status?.ready_count ?? 0;
+              const isToggling = togglingExclusion === dt.value;
 
-              return (
-                <button
-                  key={dt.value}
-                  onClick={() => handleTypeSelect(dt.value)}
-                  className={`text-left p-3.5 rounded-xl border transition group ${
-                    hasReady
-                      ? 'border-sw-success/40 bg-sw-success-light/30 hover:border-sw-success/60 hover:bg-sw-success-light/50'
-                      : 'border-sw-border bg-sw-card hover:border-sw-accent hover:bg-sw-accent/5'
-                  }`}
-                >
-                  <div className="flex items-start gap-2.5">
-                    {hasReady ? (
-                      <div className="w-7 h-7 rounded-full bg-sw-success flex items-center justify-center shrink-0 mt-0.5">
-                        <Check size={13} className="text-white" />
+              // Excluded state: muted "not applicable" card — still clickable to upload if needed
+              if (isExcluded) {
+                return (
+                  <div
+                    key={dt.value}
+                    className="text-left p-3.5 rounded-xl border border-sw-border/50 bg-sw-surface/40 relative"
+                  >
+                    <div className="flex items-start gap-2.5">
+                      <MinusCircle size={16} className="text-sw-dim shrink-0 mt-0.5" />
+                      <div className="min-w-0 flex-1">
+                        <p className="text-[13px] font-semibold text-sw-muted">{dt.label}</p>
+                        <p className="text-[11px] text-sw-dim leading-snug mt-0.5">Not applicable — marked by you</p>
                       </div>
-                    ) : (
-                      <FileText size={16} className="text-sw-muted group-hover:text-sw-accent shrink-0 mt-0.5 transition-colors" />
-                    )}
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-1.5">
-                        <p className="text-[13px] font-semibold text-sw-text">{dt.label}</p>
-                        {count > 1 && (
-                          <span className="text-[10px] text-sw-success font-semibold bg-sw-success/10 px-1.5 py-0.5 rounded-full">
-                            ×{count}
-                          </span>
-                        )}
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <button
+                          onClick={() => handleToggleExclusion(dt.value, false)}
+                          disabled={isToggling}
+                          className="text-[10px] text-sw-accent hover:text-sw-accent-hover underline-offset-2 hover:underline disabled:opacity-50 transition-colors"
+                          title="Remove 'Not applicable' — restore this document type"
+                        >
+                          {isToggling ? 'Updating…' : 'Undo'}
+                        </button>
+                        <span className="text-sw-border text-[10px]">·</span>
+                        <button
+                          onClick={() => handleTypeSelect(dt.value)}
+                          className="text-[10px] text-sw-muted hover:text-sw-text underline-offset-2 hover:underline transition-colors"
+                          title="Upload this type anyway"
+                        >
+                          Upload anyway
+                        </button>
                       </div>
-                      {hasReady && date ? (
-                        <p className="text-[11px] text-sw-success leading-snug mt-0.5">
-                          Received ✓ · {date}
-                        </p>
-                      ) : (
-                        <p className="text-[11px] text-sw-dim leading-snug mt-0.5">{dt.description}</p>
-                      )}
                     </div>
                   </div>
-                </button>
+                );
+              }
+
+              return (
+                <div key={dt.value} className="relative group">
+                  <button
+                    onClick={() => handleTypeSelect(dt.value)}
+                    className={`w-full text-left p-3.5 rounded-xl border transition ${
+                      hasReady
+                        ? 'border-sw-success/40 bg-sw-success-light/30 hover:border-sw-success/60 hover:bg-sw-success-light/50'
+                        : 'border-sw-border bg-sw-card hover:border-sw-accent hover:bg-sw-accent/5'
+                    }`}
+                  >
+                    <div className="flex items-start gap-2.5">
+                      {hasReady ? (
+                        <div className="w-7 h-7 rounded-full bg-sw-success flex items-center justify-center shrink-0 mt-0.5">
+                          <Check size={13} className="text-white" />
+                        </div>
+                      ) : (
+                        <FileText size={16} className="text-sw-muted group-hover:text-sw-accent shrink-0 mt-0.5 transition-colors" />
+                      )}
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-1.5">
+                          <p className="text-[13px] font-semibold text-sw-text">{dt.label}</p>
+                          {count > 1 && (
+                            <span className="text-[10px] text-sw-success font-semibold bg-sw-success/10 px-1.5 py-0.5 rounded-full">
+                              ×{count}
+                            </span>
+                          )}
+                        </div>
+                        {hasReady && date ? (
+                          <p className="text-[11px] text-sw-success leading-snug mt-0.5">
+                            Received ✓ · {date}
+                          </p>
+                        ) : (
+                          <p className="text-[11px] text-sw-dim leading-snug mt-0.5">{dt.description}</p>
+                        )}
+                      </div>
+                    </div>
+                  </button>
+                  {/* "Not applicable" action — visible on hover for excludable types */}
+                  {dt.excludable && !hasReady && (
+                    <button
+                      onClick={(e) => { e.stopPropagation(); handleToggleExclusion(dt.value, true); }}
+                      disabled={isToggling}
+                      className="absolute top-2 right-2 text-[10px] text-sw-dim hover:text-sw-muted opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-50 px-1.5 py-0.5 rounded bg-sw-surface border border-sw-border"
+                      title="Mark as not applicable — you don't have this type of document"
+                    >
+                      {isToggling ? '…' : 'Not applicable'}
+                    </button>
+                  )}
+                </div>
               );
             })}
           </div>

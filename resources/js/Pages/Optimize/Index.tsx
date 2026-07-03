@@ -80,6 +80,8 @@ interface DocTypeStatus {
   latest_uploaded_at: string | null;
   ready_count: number;
   extracted_fields_count: number;
+  /** true when user marked this type "Not applicable" (Item 1). */
+  is_excluded?: boolean;
 }
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -258,36 +260,51 @@ function FindingSummaryCard({
 
 // ─── Stage indicator (progress bar — not peer tabs) ───────────────────────────
 
+/**
+ * Fix 3: when isRegenerating=true, Choices and Checklist stages are locked —
+ * shown muted with a title tooltip explaining they're available when the report is ready.
+ * This prevents users from computing scenarios against stale facts.
+ */
 function StageIndicator({
   current,
   onSelect,
+  isRegenerating = false,
 }: {
   current: ViewMode;
   onSelect: (m: ViewMode) => void;
+  isRegenerating?: boolean;
 }) {
-  const stages: { key: ViewMode; label: string }[] = [
-    { key: 'overview', label: 'Overview' },
-    { key: 'choices', label: 'Choices' },
-    { key: 'checklist', label: 'Checklist' },
-    { key: 'report', label: 'Report' },
+  const stages: { key: ViewMode; label: string; lockWhenRegenerating?: boolean }[] = [
+    { key: 'overview',  label: 'Overview' },
+    { key: 'choices',   label: 'Choices',   lockWhenRegenerating: true },
+    { key: 'checklist', label: 'Checklist', lockWhenRegenerating: true },
+    { key: 'report',    label: 'Report' },
   ];
   const idx = stages.findIndex((s) => s.key === current);
 
   return (
     <nav aria-label="Optimize journey stages" className="flex items-center gap-0 rounded-xl border border-sw-border bg-sw-card overflow-hidden">
-      {stages.map((stage, i) => (
-        <button
-          key={stage.key}
-          onClick={() => onSelect(stage.key)}
-          className={`flex-1 px-4 py-2.5 text-xs font-semibold transition-colors border-r border-sw-border last:border-r-0 ${
-            i <= idx
-              ? 'bg-sw-accent text-white'
-              : 'text-sw-muted hover:text-sw-text hover:bg-sw-surface'
-          }`}
-        >
-          {stage.label}
-        </button>
-      ))}
+      {stages.map((stage, i) => {
+        const isLocked = isRegenerating && stage.lockWhenRegenerating;
+        return (
+          <button
+            key={stage.key}
+            onClick={() => !isLocked && onSelect(stage.key)}
+            disabled={isLocked}
+            title={isLocked ? 'Available when your updated report is ready' : undefined}
+            aria-disabled={isLocked}
+            className={`flex-1 px-4 py-2.5 text-xs font-semibold transition-colors border-r border-sw-border last:border-r-0 ${
+              isLocked
+                ? 'text-sw-dim bg-sw-surface/50 cursor-not-allowed opacity-60'
+                : i <= idx
+                  ? 'bg-sw-accent text-white'
+                  : 'text-sw-muted hover:text-sw-text hover:bg-sw-surface'
+            }`}
+          >
+            {stage.label}
+          </button>
+        );
+      })}
     </nav>
   );
 }
@@ -421,9 +438,11 @@ export default function OptimizeIndex() {
 
   // ── Type-status fetch (page-level, for accordion default) ────────────────────
   // Also fetched inside DocumentUploadFlow on mount; both are cheap and cached.
+  // Response now includes `exclusions: string[]` (Item 1) which is baked into
+  // each type's `is_excluded` flag — we just use the `types` map directly.
   const fetchTypeStatus = useCallback(() => {
     if (!auth.hasBankConnected) return;
-    axios.get<{ types: Record<string, DocTypeStatus> }>('/api/v1/tax-vault/type-status')
+    axios.get<{ types: Record<string, DocTypeStatus>; exclusions: string[] }>('/api/v1/tax-vault/type-status')
       .then((res) => setTypeStatus(res.data.types ?? {}))
       .catch(() => { /* silently ignore — accordion falls back to expanded */ });
   }, [auth.hasBankConnected]);
@@ -520,6 +539,15 @@ export default function OptimizeIndex() {
   const allFindings = (report?.sections ?? []).flatMap((s) => s.findings);
   const highCount = allFindings.filter((f) => f.severity === 'high').length;
   const totalCount = allFindings.length;
+
+  // Fix 3: isRegenerating = stale OR first-time generating.
+  // When true: full overlay on report area, "See your options" CTA + Choices/Checklist nav
+  // are disabled. D13 Fix 1 ensures is_stale=true always has a job queued — safe to use
+  // as proxy for "rebuild in flight".
+  const isRegenerating =
+    report?.is_stale === true ||
+    report?.status === 'generating' ||
+    (!report && !reportLoading && !reportError);
 
   // Poll for ready status while report is generating (stop once ready).
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -649,12 +677,13 @@ export default function OptimizeIndex() {
                   </p>
                 </div>
               </div>
-              <DocumentUploadFlow onComplete={handleUploadComplete} />
+              <DocumentUploadFlow onComplete={handleUploadComplete} onExclusionsChange={fetchTypeStatus} />
             </div>
           ) : (
             /* "Add more documents" accordion — Fix 3: expanded by default while any
-               doc type lacks a ready doc; auto-collapses when all types filled;
-               user's manual collapse/expand persists via localStorage. */
+               doc type lacks a ready doc (or not excluded); auto-collapses when all
+               types filled or excluded; user's manual collapse/expand persists in
+               localStorage. Item 1: excluded types count as covered. */
             <div className="rounded-2xl ring-1 ring-sw-border/70 bg-gradient-to-b from-white to-slate-50/40 shadow-sw-2 overflow-hidden">
               <button
                 onClick={handleAccordionToggle}
@@ -674,7 +703,7 @@ export default function OptimizeIndex() {
               </button>
               {addMoreExpanded && (
                 <div className="px-5 pb-5 pt-1 border-t border-sw-border/60">
-                  <DocumentUploadFlow onComplete={handleUploadComplete} />
+                  <DocumentUploadFlow onComplete={handleUploadComplete} onExclusionsChange={fetchTypeStatus} />
                 </div>
               )}
             </div>

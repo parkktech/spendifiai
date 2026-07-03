@@ -294,6 +294,8 @@ Route::middleware(['auth:sanctum'])->group(function () {
             Route::get('/documents', [TaxDocumentController::class, 'index']);
             // Upload-grid inventory: per doc-type status (Fix 2 — green-check grid)
             Route::get('/type-status', [TaxDocumentController::class, 'typeStatus']);
+            // "Not applicable" per-type exclusion toggle (Item 1)
+            Route::post('/type-exclusions', [TaxDocumentController::class, 'toggleTypeExclusion']);
             Route::get('/documents/download-year/{year}', [TaxDocumentController::class, 'downloadYear']);
             Route::post('/documents', [TaxDocumentController::class, 'store']);
             Route::get('/documents/{document}', [TaxDocumentController::class, 'show']);

@@ -12,6 +12,8 @@ use App\Models\AccountantClient;
 use App\Models\DocumentRequest;
 use App\Models\TaxDocument;
 use App\Models\Transaction;
+use App\Models\UserDocumentTypeExclusion;
+use App\Models\UserTaxFact;
 use App\Services\AI\TaxDocumentIntelligenceService;
 use App\Services\TaxVaultAuditService;
 use App\Services\TaxVaultStorageService;
@@ -34,9 +36,11 @@ class TaxDocumentController extends Controller
      *
      * Returns status for each type the DocumentUploadFlow grid displays so the
      * frontend can overlay green-check badges without a separate vault page visit.
+     * Also includes per-type exclusion state (user-declared "Not applicable").
      *
-     * Response shape: { types: { [docTypeValue]: DocTypeStatus } }
-     * DocTypeStatus: { has_ready_doc, latest_uploaded_at, ready_count, extracted_fields_count }
+     * Response shape: { types: { [docTypeValue]: DocTypeStatus }, exclusions: string[] }
+     * DocTypeStatus: { has_ready_doc, latest_uploaded_at, ready_count, extracted_fields_count,
+     *                  is_excluded }
      *
      * SECURITY: scoped to auth user only; no cross-user leakage.
      */
@@ -61,6 +65,9 @@ class TaxDocumentController extends Controller
             ->selectRaw('id, category, status, created_at, extracted_data')
             ->get();
 
+        // Load per-user type exclusions once (avoid N+1)
+        $excludedTypes = UserDocumentTypeExclusion::exclusionsForUser($user->id);
+
         $result = [];
         foreach ($typeMap as $frontendType => $dbCategories) {
             $matching = $docs->filter(
@@ -78,15 +85,115 @@ class TaxDocumentController extends Controller
                 ));
             }
 
+            $isExcluded = in_array($frontendType, $excludedTypes, true);
+
             $result[$frontendType] = [
                 'has_ready_doc' => $ready->isNotEmpty(),
                 'latest_uploaded_at' => $latestDoc?->created_at?->toIso8601String(),
                 'ready_count' => $ready->count(),
                 'extracted_fields_count' => $extractedFieldsCount,
+                // "Not applicable — marked by you": counts as populated for accordion.
+                'is_excluded' => $isExcluded,
             ];
         }
 
-        return response()->json(['types' => $result]);
+        return response()->json([
+            'types' => $result,
+            'exclusions' => $excludedTypes,
+        ]);
+    }
+
+    /**
+     * Toggle "Not applicable" exclusion for a document type (Item 1).
+     *
+     * POST /api/v1/tax-vault/type-exclusions { type, excluded }
+     *
+     * excluded=true  → mark as "Not applicable" (upsert exclusion row).
+     *                  For hsa_statement: also records finance.has_hsa=no via
+     *                  UserTaxFact::recordFact(source_type=user_edit) so HSA
+     *                  interview questions are gated downstream.
+     *                  For medical_receipt: preference-only, no semantic fact.
+     * excluded=false → remove exclusion (soft-reverse).
+     *
+     * Idempotent: toggling the same state twice is safe.
+     *
+     * SECURITY: scoped to authenticated user only (auth:sanctum outer group).
+     */
+    public function toggleTypeExclusion(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'type' => 'required|string|max:64',
+            'excluded' => 'required|boolean',
+        ]);
+
+        $user = $request->user();
+        $type = $validated['type'];
+        $excluded = (bool) $validated['excluded'];
+
+        // Allowlist: only the 7 types shown in the UI grid are excludable.
+        $allowedTypes = ['paystub', 'w2', 'benefits_guide', 'hsa_statement',
+            'retirement_statement', 'medical_receipt', 'other'];
+
+        if (! in_array($type, $allowedTypes, true)) {
+            return response()->json(['message' => 'Unknown document type.'], 422);
+        }
+
+        // paystub exclusion is not allowed — it is always required by Stage-0.
+        if ($type === 'paystub') {
+            return response()->json(['message' => 'Pay stub is always required and cannot be excluded.'], 422);
+        }
+
+        if ($excluded) {
+            UserDocumentTypeExclusion::updateOrCreate(
+                ['user_id' => $user->id, 'document_type' => $type],
+                ['excluded_at' => now()],
+            );
+
+            // Semantic fact bonus: excluding hsa_statement declares finance.has_hsa=no.
+            // This gates HSA interview questions without the user needing to answer them
+            // explicitly (source_type=user_edit → confirmed at write time per Item 2 fix).
+            if ($type === 'hsa_statement') {
+                UserTaxFact::recordFact(
+                    userId: $user->id,
+                    factKey: 'finance.has_hsa',
+                    value: 'no',
+                    sourceType: 'user_edit',
+                    label: 'Has HSA (user declared not applicable)',
+                    volatility: 'stable',
+                );
+            }
+
+            // medical_receipt exclusion: preference-only — no semantic fact emitted.
+        } else {
+            // Remove the exclusion (reverse "Not applicable").
+            UserDocumentTypeExclusion::where('user_id', $user->id)
+                ->where('document_type', $type)
+                ->delete();
+
+            // HSA reversal: if the user un-excludes hsa_statement, supersede the has_hsa=no
+            // fact with 'unknown' so HSA questions resurface in the interview.
+            if ($type === 'hsa_statement') {
+                $existing = UserTaxFact::currentFact($user->id, 'finance.has_hsa');
+                if ($existing !== null && $existing->value === 'no' && $existing->source_type === 'user_edit') {
+                    UserTaxFact::recordFact(
+                        userId: $user->id,
+                        factKey: 'finance.has_hsa',
+                        value: null,
+                        sourceType: 'user_edit',
+                        label: 'Has HSA (restored — re-evaluate)',
+                        volatility: 'stable',
+                    );
+                }
+            }
+        }
+
+        $exclusions = UserDocumentTypeExclusion::exclusionsForUser($user->id);
+
+        return response()->json([
+            'excluded' => $excluded,
+            'type' => $type,
+            'exclusions' => $exclusions,
+        ]);
     }
 
     /**

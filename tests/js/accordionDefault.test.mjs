@@ -7,8 +7,10 @@
  *
  * Tri-state priority:
  *   1. User's manual preference (localStorage) — always wins over auto-defaults.
- *   2. All doc types have a ready doc → auto-collapse.
- *   3. Any doc type is missing → auto-expand (show remaining work).
+ *   2. All doc types are covered (ready doc OR user-excluded) → auto-collapse.
+ *   3. Any doc type is missing and not excluded → auto-expand (show remaining work).
+ *
+ * "Not applicable" exclusions count as covered (Item 1).
  *
  * @see resources/js/utils/accordionDefault.ts (TypeScript source)
  */
@@ -20,7 +22,7 @@ import assert from 'node:assert/strict';
 /**
  * Compute the default expanded state for the "Add more documents" accordion.
  *
- * @param {Record<string, {has_ready_doc: boolean}>} typeStatus — per-type inventory
+ * @param {Record<string, {has_ready_doc: boolean, is_excluded?: boolean}>} typeStatus
  * @param {boolean | null} userPreference — stored in localStorage, or null if unset
  * @returns {boolean} true = expanded, false = collapsed
  */
@@ -37,8 +39,8 @@ function computeAccordionDefault(typeStatus, userPreference) {
     return true;
   }
 
-  // State 2: all types have a ready doc → auto-collapse; else expand
-  return !types.every((s) => s.has_ready_doc);
+  // State 2: all types are covered (ready doc OR excluded) → auto-collapse; else expand
+  return !types.every((s) => s.has_ready_doc || s.is_excluded === true);
 }
 
 // ── Test cases ─────────────────────────────────────────────────────────────────
@@ -130,6 +132,66 @@ test('user preference null is not confused with false', () => {
   assert.equal(computeAccordionDefault(status, false), false);
   // true → user pinned open despite all filled
   assert.equal(computeAccordionDefault(status, true), true);
+});
+
+// ── Item 1: excluded types count as covered ───────────────────────────────────
+
+test('excluded type counts as covered — all excluded → collapse', () => {
+  const status = {
+    paystub:              { has_ready_doc: true  },
+    w2:                   { has_ready_doc: true  },
+    benefits_guide:       { has_ready_doc: false, is_excluded: true },
+    hsa_statement:        { has_ready_doc: false, is_excluded: true },
+    retirement_statement: { has_ready_doc: true  },
+    medical_receipt:      { has_ready_doc: false, is_excluded: true },
+    other:                { has_ready_doc: true  },
+  };
+  assert.equal(computeAccordionDefault(status, null), false,
+    'all types either ready or excluded → auto-collapse');
+});
+
+test('one type missing and not excluded → still expand', () => {
+  const status = {
+    paystub:        { has_ready_doc: true },
+    w2:             { has_ready_doc: false }, // missing, not excluded
+    hsa_statement:  { has_ready_doc: false, is_excluded: true },
+  };
+  assert.equal(computeAccordionDefault(status, null), true,
+    'w2 missing and not excluded → must stay expanded');
+});
+
+test('is_excluded false is not treated as excluded', () => {
+  const status = {
+    paystub: { has_ready_doc: false, is_excluded: false },
+  };
+  assert.equal(computeAccordionDefault(status, null), true,
+    'is_excluded:false is not a covered type — still expands');
+});
+
+test('is_excluded absent is not treated as excluded', () => {
+  const status = {
+    paystub: { has_ready_doc: false },
+  };
+  assert.equal(computeAccordionDefault(status, null), true,
+    'missing is_excluded field is not a covered type — still expands');
+});
+
+test('user preference overrides even when some types excluded', () => {
+  const status = {
+    paystub:       { has_ready_doc: true  },
+    hsa_statement: { has_ready_doc: false, is_excluded: true },
+    w2:            { has_ready_doc: false },  // not excluded
+  };
+  // user pinned collapsed → wins even though w2 is missing
+  assert.equal(computeAccordionDefault(status, false), false,
+    'user preference=false wins over expanded default');
+  // user pinned open → wins even though all covered
+  const allCovered = {
+    paystub:       { has_ready_doc: true },
+    hsa_statement: { has_ready_doc: false, is_excluded: true },
+  };
+  assert.equal(computeAccordionDefault(allCovered, true), true,
+    'user preference=true wins over collapsed default');
 });
 
 // ── Summary ───────────────────────────────────────────────────────────────────
