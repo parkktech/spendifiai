@@ -63,6 +63,7 @@ import DocumentUploadFlow from '@/Components/SpendifiAI/DocumentUploadFlow';
 import ProposalConfirmCard from '@/Components/SpendifiAI/ProposalConfirmCard';
 import { useApi } from '@/hooks/useApi';
 import axios from 'axios';
+import { computeAccordionDefault } from '@/utils/accordionDefault';
 import type {
   ObjectivesResponse,
   ScenariosResponse,
@@ -71,6 +72,15 @@ import type {
   DurableFactsResponse,
   UserTaxFactView,
 } from '@/types/spendifiai';
+
+// ─── Type-status shape (mirrors DocumentUploadFlow.DocTypeStatus) ─────────────
+
+interface DocTypeStatus {
+  has_ready_doc: boolean;
+  latest_uploaded_at: string | null;
+  ready_count: number;
+  extracted_fields_count: number;
+}
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -313,10 +323,72 @@ function DocFollowUpCard({ item }: { item: ActionCenterStage0Item }) {
 
 export default function OptimizeIndex() {
   const { auth } = usePage().props as unknown as {
-    auth: { hasBankConnected: boolean; pendingOptimizationCount?: number };
+    auth: {
+      hasBankConnected: boolean;
+      pendingOptimizationCount?: number;
+      user?: { id: number };
+    };
   };
 
   const currentYear = new Date().getFullYear();
+
+  // ── localStorage key for the "Add more documents" accordion preference ─────────
+  // Scoped to the user so different users on the same browser don't share state.
+  const accordionStorageKey = `sw_upload_accordion_${auth.user?.id ?? 'anon'}`;
+
+  // ── Type-status inventory (fetched at the page level for accordion default) ───
+  const [typeStatus, setTypeStatus] = useState<Record<string, DocTypeStatus>>({});
+
+  // ── "Add more documents" accordion — Fix-3 tri-state ───────────────────────
+  //
+  // Priority:
+  //   1. User's manual preference (localStorage key) — wins over auto-defaults.
+  //   2. All doc types populated → auto-collapse.
+  //   3. Any type missing → auto-expand (show remaining work).
+  //
+  // On first mount we read the localStorage preference (null if unset) and
+  // compute the initial state from the persisted preference + current typeStatus
+  // (empty on mount = loading state → expand until we know otherwise).
+  const readStoredPreference = (): boolean | null => {
+    try {
+      const raw = localStorage.getItem(accordionStorageKey);
+      if (raw === 'true') return true;
+      if (raw === 'false') return false;
+    } catch {
+      // localStorage unavailable (private mode, etc.) — fall through to auto logic
+    }
+    return null;
+  };
+
+  const [addMoreExpanded, setAddMoreExpanded] = useState<boolean>(() =>
+    computeAccordionDefault({}, readStoredPreference()),
+  );
+
+  // ── Sync accordion default when type-status loads ────────────────────────────
+  // If the user has NOT set a manual preference, recompute and auto-collapse
+  // once we discover all types are populated. This handles the case where the
+  // user finishes uploading all types in the current session.
+  useEffect(() => {
+    if (Object.keys(typeStatus).length === 0) return; // still loading
+    const pref = readStoredPreference();
+    if (pref !== null) return; // user's explicit choice wins — don't override
+    setAddMoreExpanded(computeAccordionDefault(typeStatus, null));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [typeStatus]);
+
+  // ── Toggle handler — persists the user's manual choice to localStorage ────────
+  const handleAccordionToggle = () => {
+    setAddMoreExpanded((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem(accordionStorageKey, String(next));
+      } catch {
+        // localStorage unavailable — still update in-memory state
+      }
+      return next;
+    });
+  };
+
   const [viewMode, setViewMode] = useState<ViewMode>('overview');
   const [regenerating, setRegenerating] = useState(false);
   // Task 1: one-at-a-time expand for finding narrations (shared across all section cards)
@@ -325,8 +397,6 @@ export default function OptimizeIndex() {
   const [rateLimited, setRateLimited] = useState(false);
   // Dismissed proposal IDs (rejected locally)
   const [dismissedProposalIds, setDismissedProposalIds] = useState<Set<number>>(new Set());
-  // Fix 4: "Add more documents" collapsed section (visible when upload not required)
-  const [addMoreExpanded, setAddMoreExpanded] = useState(false);
 
   // Phase 14-10: Scenarios/Choices stage state
   const [enqueueing, setEnqueueing] = useState(false);
@@ -349,6 +419,17 @@ export default function OptimizeIndex() {
     enabled: auth.hasBankConnected,
   });
 
+  // ── Type-status fetch (page-level, for accordion default) ────────────────────
+  // Also fetched inside DocumentUploadFlow on mount; both are cheap and cached.
+  const fetchTypeStatus = useCallback(() => {
+    if (!auth.hasBankConnected) return;
+    axios.get<{ types: Record<string, DocTypeStatus> }>('/api/v1/tax-vault/type-status')
+      .then((res) => setTypeStatus(res.data.types ?? {}))
+      .catch(() => { /* silently ignore — accordion falls back to expanded */ });
+  }, [auth.hasBankConnected]);
+
+  useEffect(() => { fetchTypeStatus(); }, [fetchTypeStatus]);
+
   // Derive journey state from action-center + facts
   const stage0Items = actionCenterData?.stage0_items ?? [];
   const needsDocUpload = stage0Items.some((i) => i.key === 'upload_paystub');
@@ -362,12 +443,13 @@ export default function OptimizeIndex() {
   const hasPendingProposals = proposals.length > 0;
 
   const handleUploadComplete = useCallback(() => {
-    // Give extraction job a moment, then refresh facts + action center
+    // Give extraction job a moment, then refresh facts + action center + type-status
     setTimeout(() => {
       refreshFacts();
       refreshActionCenter();
+      fetchTypeStatus();
     }, 4000);
-  }, [refreshFacts, refreshActionCenter]);
+  }, [refreshFacts, refreshActionCenter, fetchTypeStatus]);
 
   const handleProposalConfirmed = useCallback((id: number) => {
     setTimeout(() => refreshFacts(), 500);
@@ -570,10 +652,12 @@ export default function OptimizeIndex() {
               <DocumentUploadFlow onComplete={handleUploadComplete} />
             </div>
           ) : (
-            /* Collapsed "Add more documents" — always available, voluntary uploads (Fix 4) */
+            /* "Add more documents" accordion — Fix 3: expanded by default while any
+               doc type lacks a ready doc; auto-collapses when all types filled;
+               user's manual collapse/expand persists via localStorage. */
             <div className="rounded-2xl ring-1 ring-sw-border/70 bg-gradient-to-b from-white to-slate-50/40 shadow-sw-2 overflow-hidden">
               <button
-                onClick={() => setAddMoreExpanded((v) => !v)}
+                onClick={handleAccordionToggle}
                 className="w-full flex items-center justify-between px-5 py-3.5 text-left hover:bg-sw-surface/40 transition group"
                 aria-expanded={addMoreExpanded}
               >
