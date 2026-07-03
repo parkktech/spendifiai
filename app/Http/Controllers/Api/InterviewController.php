@@ -72,13 +72,33 @@ class InterviewController extends Controller
     {
         $this->authorize('update', $interview);
 
+        // Phase 1: finding-backed / battery questions from session queue
         $question = $this->orchestrator->nextQuestion($interview);
 
+        // Phase 2: stateless gap serving — COMPLETE-CANNOT-LIE invariant (Coordinator).
+        // If the queue drained (nextQuestion returned null), derive gap questions
+        // directly from readiness(). Completion is only permitted when all objectives
+        // are confirmed ready; otherwise the card MUST receive a question or a
+        // still-needed payload, never a 'completed' terminal state.
+        $allReady = true;
         if ($question === null) {
+            $gap = $this->orchestrator->nextGapQuestion($interview);
+            $question = $gap['question'];
+            $allReady = $gap['all_ready'];
+        }
+
+        if ($question === null) {
+            $freshSession = $interview->fresh();
+            // COMPLETE-CANNOT-LIE: if objectives still locked, return 'in_progress'
+            // so the frontend shows "Loading..." instead of the terminal complete state.
+            $status = $allReady ? $freshSession->status : 'in_progress';
+
             return response()->json([
                 'question' => null,
-                'session_status' => $interview->fresh()->status,
-                'message' => 'Interview complete — no more questions in this session.',
+                'session_status' => $status,
+                'message' => $allReady
+                    ? 'Interview complete — all objectives ready.'
+                    : 'Objectives still locked — re-check readiness and re-enqueue gaps.',
             ]);
         }
 
@@ -87,6 +107,7 @@ class InterviewController extends Controller
         // and are NEVER stored (the options JSON only carries the pointer).
         $prefillDisplay = null;
         $prefillValue = null;
+        $prefillApproximate = false;
         $pointer = $question->options['prefill_source'] ?? null;
         if ($pointer !== null) {
             $resolved = $this->resolver->resolve(
@@ -97,8 +118,22 @@ class InterviewController extends Controller
             if ($resolved !== null && ($resolved['value'] ?? null) !== null) {
                 $prefillValue = (string) $resolved['value'];
                 $prefillDisplay = $this->formatPrefill($prefillValue, $resolved['value_type'] ?? null);
+                // derived/snapshot sources carry estimation uncertainty; fact/profile are exact.
+                $prefillApproximate = in_array($resolved['source'] ?? null, ['derived', 'snapshot'], true);
             }
         }
+
+        // Morning polish Item 1: derived-value confirm shape.
+        // A typed question whose fact has a KNOWN/DERIVED (unconfirmed) value gets
+        // the confirm shape: "We estimate X — does that sound right?" with three
+        // choices ([Yes, about right] [Higher] [Lower]).  Choice questions use their
+        // own structured-choice UI and never get this overlay.
+        $isTypedAnswerType = in_array(
+            $question->options['answer_type'] ?? null,
+            ['money_dollars', 'integer', 'year', 'pct'],
+            true
+        );
+        $derivedConfirm = $prefillDisplay !== null && $isTypedAnswerType;
 
         return response()->json([
             'question' => [
@@ -120,6 +155,9 @@ class InterviewController extends Controller
                 'doc_affordance' => $question->options['doc_affordance'] ?? null,
                 'prefill_display' => $prefillDisplay, // transient — never stored
                 'prefill_value' => $prefillValue,     // transient — never stored
+                // Morning polish Item 1: derived-value confirm shape fields
+                'derived_confirm' => $derivedConfirm,
+                'prefill_approximate' => $prefillApproximate,
             ],
             'session_status' => $interview->fresh()->status,
         ]);

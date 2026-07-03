@@ -104,6 +104,12 @@ export default function InterviewCard({ taxYear = CURRENT_YEAR, onAnswered, onQu
   const [submitting, setSubmitting] = useState(false);
   const [showEditMode, setShowEditMode] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  /**
+   * Morning polish Item 1 — derived-value confirm state machine.
+   * null / 'confirm' → show the "we estimate $X — does that sound right?" card.
+   * 'adjust' → reveal typed input pre-filled with the known value (Higher / Lower path).
+   */
+  const [derivedConfirmMode, setDerivedConfirmMode] = useState<'confirm' | 'adjust' | null>(null);
 
   /** Reset per-question input state when question changes. */
   const resetInputState = useCallback(() => {
@@ -113,6 +119,7 @@ export default function InterviewCard({ taxYear = CURRENT_YEAR, onAnswered, onQu
     setEscapeText('');
     setShowContext(false);
     setShowEditMode(false);
+    setDerivedConfirmMode(null); // Item 1: reset confirm mode on each new question
   }, []);
 
   /** Start or resume interview session, then fetch the first question. */
@@ -313,6 +320,13 @@ export default function InterviewCard({ taxYear = CURRENT_YEAR, onAnswered, onQu
     currentQuestion?.answer_type === 'multi_select' && !!templateChoices?.length;
   const isChoiceSelect =
     currentQuestion?.answer_type === 'choice' && !!templateChoices?.length;
+
+  // ── Morning polish Item 1: derived-value confirm shape ────────────────────
+  // True when the question has a KNOWN/DERIVED value AND is a typed (non-choice) field.
+  const isDerivedConfirmActive =
+    !!(currentQuestion?.derived_confirm) &&
+    (derivedConfirmMode === null || derivedConfirmMode === 'confirm') &&
+    !showEditMode;
   const escapeActive =
     (isMultiSelect && selectedMulti.includes(ESCAPE_VALUE)) ||
     (isChoiceSelect && selectedOption === ESCAPE_VALUE);
@@ -534,7 +548,56 @@ export default function InterviewCard({ taxYear = CURRENT_YEAR, onAnswered, onQu
         </div>
 
         {/* Answer area */}
-        {isAutoSuggest && currentQuestion.suggested_treatment ? (
+        {isDerivedConfirmActive && currentQuestion.prefill_display ? (
+          /* Morning polish Item 1: derived-value confirm card */
+          <div className="rounded-xl border border-sw-accent/30 bg-sw-accent-light p-4 space-y-3">
+            <p className="text-[13px] text-sw-text leading-relaxed">
+              {currentQuestion.prefill_approximate
+                ? <>Based on your data, we estimate this at about <span className="font-semibold">{currentQuestion.prefill_display}</span>. Does that sound right?</>
+                : <>Based on your records, we have this as <span className="font-semibold">{currentQuestion.prefill_display}</span>. Does that sound right?</>
+              }
+            </p>
+            <div className="flex flex-wrap gap-2">
+              <button
+                onClick={() => (alreadyAnswered ? handleReAnswer : handleAnswer)('confirm')}
+                disabled={submitting}
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-sw-accent text-white text-sm font-semibold hover:bg-sw-accent-hover transition disabled:opacity-50"
+              >
+                {submitting ? <Loader2 size={13} className="animate-spin" /> : <Check size={13} />}
+                Yes, about right
+              </button>
+              <button
+                onClick={() => {
+                  // Pre-fill input with dollar value for money fields; raw otherwise
+                  const raw = currentQuestion.prefill_value ?? '';
+                  const preFilled = currentQuestion.answer_type === 'money_dollars' && raw
+                    ? String(Number(raw) / 100)
+                    : raw;
+                  setFreeText(preFilled);
+                  setDerivedConfirmMode('adjust');
+                }}
+                disabled={submitting}
+                className="px-3.5 py-2 rounded-lg border border-sw-border text-sm text-sw-muted hover:text-sw-text hover:border-sw-border-strong transition disabled:opacity-50"
+              >
+                Higher
+              </button>
+              <button
+                onClick={() => {
+                  const raw = currentQuestion.prefill_value ?? '';
+                  const preFilled = currentQuestion.answer_type === 'money_dollars' && raw
+                    ? String(Number(raw) / 100)
+                    : raw;
+                  setFreeText(preFilled);
+                  setDerivedConfirmMode('adjust');
+                }}
+                disabled={submitting}
+                className="px-3.5 py-2 rounded-lg border border-sw-border text-sm text-sw-muted hover:text-sw-text hover:border-sw-border-strong transition disabled:opacity-50"
+              >
+                Lower — let me adjust
+              </button>
+            </div>
+          </div>
+        ) : isAutoSuggest && currentQuestion.suggested_treatment ? (
           <SuggestedConfirmCard
             suggestedTreatment={currentQuestion.suggested_treatment}
             questionText={currentQuestion.question}

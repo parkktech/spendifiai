@@ -716,6 +716,18 @@ export interface OptimizationQuestionPayload {
   /** Transient suggested-confirm prefill (never stored). */
   prefill_display?: string | null;
   prefill_value?: string | null;
+  /**
+   * Morning polish Item 1: when true, this typed question has a KNOWN/DERIVED
+   * (unconfirmed) value — render the derived-value confirm shape instead of a
+   * bare input.  Choice / multi-select questions are never flagged (they use
+   * their own structured-choice UI).
+   */
+  derived_confirm?: boolean;
+  /**
+   * True when the prefill source is 'derived' or 'snapshot' (estimation
+   * uncertainty).  Used to show "about $X" vs exact "$X" in the confirm card.
+   */
+  prefill_approximate?: boolean;
 }
 
 /**
