@@ -44,6 +44,66 @@ metrics:
   suite_count_after: 1387
 ---
 
+# DELTA-CONSISTENCY FIX — Post-Execution Addendum (2026-07-03)
+
+**Appended by continuation agent after owner-reported defect.**
+
+## Root Cause (Two Layers)
+
+**Layer 1 — no-W4-on-file path (original fix)**
+In `TaxRulesEngineService::computeScenarioOutcome`, the `annual_withholding_cents` branch
+set `$curWH` from the observed paystub figure while `$scnWH` always used `estimatePeriodWithholdingCents`.
+Fix: `$curWH` in that branch now uses the model estimator; the observed figure is stored in
+`observed_per_period_take_home_cents` for context display only.
+
+**Layer 2 — W4-on-file path (true fix for User 1)**
+Even when a W4 is on file (`$w4Known = true`), `$scnWH` was computed before `$w4OnFile` was
+resolved, so `step3_credits_cents` (User 1: $3,200) was passed to `$curWH` but NOT to `$scnWH`.
+The step3 credits reduce withholding by $3,200 / 26 = ~$123/check. The count-based fallback
+for the scenario estimated $1,000 → $84/check asymmetry swamped the true +$33 roth→trad benefit.
+
+Fix: `$w4OnFile` / `$w4Step3Credits` resolved BEFORE `$scnWH`. Both sides now receive the
+same step3 credits: `$scnStep3Credits = $w4Known ? $w4Step3Credits : 0`.
+
+**User 1 live-verified corrected banner:**
+```
+Before (model):  $5,559.88/check est.
+After (model):   $5,593.36/check est.
+Delta:           +$33.48/check ✓
+Annual tax delta: -$870/yr ✓ (mathematically consistent: 26 × $33.48 ≈ $870)
+```
+
+## Additional Owner Additions Implemented
+
+| Addition | What | Files |
+|----------|------|-------|
+| 6 | YOUR PLAN header above banner; ScenarioController persists `chosen_option_label` fact; checklist API returns label | ScenarioController.php, OptimizationChecklistController.php, OptimizationChecklistView.tsx, fact-registry.php |
+| 7 | Float percent precision fix at PHP source (k3 `(int)round()`) + display law (Math.round) + PercentPrecisionDisplayTest | ScenarioChecklistService.php, OptimizationChecklistView.tsx, PercentPrecisionDisplayTest.php |
+| 8 | Back buttons: checklist "← Back to your options" + choices "← Back to overview" | OptimizationChecklistView.tsx, Index.tsx |
+
+Also fixed:
+- Dangling "0" JSX falsy-render: `hasIllustration` guard uses `> 0` (backend + frontend both)
+- Retirement equal-range note: "Traditional vs Roth changes when you pay tax, not the balance"
+- Banner labels: "est. per paycheck" (satisfies unit-discipline test)
+- Observed context note when model differs from observed by >$25/check
+
+## Test Evidence
+
+| Test file | Assertions | What |
+|-----------|-----------|------|
+| DeltaConsistencyPropertyTest.php | 12 | DC-01 model vs observed isolation; DC-02 monotonicity over 50 baselines |
+| PercentPrecisionDisplayTest.php | 14 | PP-01/02/03 float percent static gates |
+
+**Suite:** 1406 passed, 0 failures (baseline 1387 + 19 new)
+**Build:** npm run build clean (5.90s)
+**Pint:** pass
+
+## Commit
+
+`b65ce85` — `fix(13-04): delta-consistency law — scnWH/curWH symmetry + additions 6-8`
+
+---
+
 # Phase 13 Plan 04: SAFE-03 Consolidation + SAFE-05 Hardening Report Summary
 
 One-liner: Payload-exclusion consolidation test over all three Claude call-site services and SAFE-05 hardening report binding SAFE-01..07 evidence for the v2.1 Optimize My Income milestone.
