@@ -837,3 +837,139 @@ Four defects fixed + D23 done-for-you Choices stage shipped on branch `feature/v
 | User 1 interview: no confirmed-fact question served | Verified — only `life_event_marketplace_premium` + `penalty_1099k_mismatch` remain |
 
 **Commits:** `88b832b` (Fix 1+2), `46aa11e` (Fix 3 + test suite), `a3d6dce` (Fix 4 D18 copy), `33d17ec` (Fix 5 dual-scope)
+
+---
+
+## Clarity Pass
+
+Executed as a follow-on session against `OptimizationReportView.tsx`, `Optimize/Index.tsx`, and `ObjectiveReadinessPanel.tsx`. All 5 fixes implemented and verified.
+
+### Fix 1 — Semantic Section Zero-States
+
+| Section | Before | After |
+|---------|--------|-------|
+| Documents That Would Strengthen | "0 areas to consider" (count subtitle) | Green "You've provided everything we'd ask for" card |
+| What This Report Did Not Recommend | Empty section card rendered | Returns null — section hidden when no refused recs |
+| Year-End Tax Awareness | Empty section card rendered | Returns null — collapsed into CollapsedSectionsRow |
+| Educational Glossary | Count subtitle (wrong per spec) | "Key terms referenced in this report — educational context only" (no count) |
+| Topical zero-finding section in Overview | "0 areas to consider" | Green "Nothing notable found in this area — looking good" |
+
+RED/YELLOW/GREEN/ANALYZING scale preserved for analytic sections. `FindingSummaryCard` icon changes color (accent → success) when a topical section has 0 findings.
+
+### Fix 2 — Kill the "Analysis in Progress" Lie
+
+- New utility: `resources/js/utils/findingTypeLabel.ts` — `findingTypeLabel(type)` maps 12 snake_case prefix families to plain English labels (D18 compliant)
+- New function: `renderFindingDescription(desc, type, isGenerating)` — the ONLY legal use of "Analysis in progress..." is when `isGenerating=true` AND `desc` is null
+- `FindingRow` (in OptimizationReportView) and `FindingSummaryCard` (in Index.tsx Overview) both use this function
+- TDD: 15 unit tests in `tests/js/findingTypeLabel.test.mjs` — all pass. Fix 2 gate test: `null description + isGenerating=false → NOT 'Analysis in progress...'`
+
+### Fix 3 — Empty-Section Presentation
+
+- New `CollapsedSectionsRow` component in `OptimizationReportView.tsx`
+- Empty sections (year_end with no items, what_we_refused with no entries) collapse into a single muted footer row: "Nothing needed in these areas — Year-End · Did-Not-Recommend · …"
+- Expandable to per-section semantic empty copy
+- Full-height empty cards no longer compete visually with real findings
+
+### Fix 4 — Journey Stage-Completion Checklist
+
+- New `JourneyProgressChecklist` component in `Optimize/Index.tsx`
+- Three stage rows: Documents / Suggestions / Questions
+- Tri-state per row: green (done) / amber+count (pending) / muted lock (loading)
+- Documents: green when all `typeStatus` entries have `has_ready_doc || is_excluded`; `typeStatusLoaded` flag tracks first successful load
+- Suggestions: green when `proposals.length === 0` and not `factsLoading`
+- Questions: green when `!needsInterview` and action center loaded
+- Advance CTA affirmative (`bg-sw-success` color, checkmark prefix): "Everything's ready — See your options" when all three stages green and not regenerating
+- Old bottom CTA card removed — JourneyProgressChecklist owns the CTA
+- Respects existing `isRegenerating` gating (CTA disabled but visible)
+
+### Fix 5 — Locked Cards Clickable (Owner Live-Testing, HIGH)
+
+Coordinator relayed owner live-testing finding: "A few quick questions below will unlock your options" rendered tiny; three locked option cards dead-ended on click.
+
+- New `LockedScenariosOverlay` component in `Optimize/Index.tsx`:
+  - Replaces dead-end loading skeleton when `scenarios.options.length === 0`
+  - 3 blurred ghost cards (blur-[3px], opacity-40) beneath an elevated overlay card
+  - Overlay: `Lock` icon + large headline (`text-[22px] font-bold`): "{N} quick questions unlock your options"
+  - Count-down: `questionsToUnlock` summed from `objectivesData.objectives` — updates after each answer as `refreshObjectives()` is called on `onAnswered`
+  - Clicking overlay OR any ghost card scrolls to InterviewCard below with smooth scroll + 1.6s ring pulse (`ring-4 ring-sw-accent ring-offset-2`)
+  - When last gap closes (`options.length > 0`), overlay unmounts and `ScenarioComparisonCards` renders in its place
+- `ObjectiveReadinessPanel.tsx`: new optional `onUnlockClick` prop — footer becomes a clickable button (text-[13px] font-semibold, sw-accent color) when interview needed and handler provided
+
+### Gates (Clarity Pass)
+
+| Gate | Result |
+|------|--------|
+| `node tests/js/findingTypeLabel.test.mjs` | 15/15 pass |
+| `php artisan test --compact` | 1224 passed, 1 risky (pre-existing) |
+| `npm run build` | Clean — zero TS errors |
+| `vendor/bin/pint --dirty` | Pass |
+| D18 copy rules | All rendered text human-readable; no raw snake_case keys or jargon |
+| `sw-*` tokens | All new components use only `sw-*` design tokens |
+| Fix 5 acknowledgment | LockedScenariosOverlay implemented; coordinator grep-target: `LockedScenariosOverlay` |
+
+**Clarity Pass Commits:**
+- `7503831` — test(14-11): Fix 2 gate — 15 JS tests for renderFindingDescription
+- `4e4f582` — feat(14-11): renderFindingDescription utility (Fix 2 GREEN)
+- `401a2c1` — feat(14-11): OptimizationReportView clarity pass (Fix 1+2+3)
+- `a418e24` — feat(14-11): Optimize/Index clarity pass (Fix 1+2+4)
+- `6a730be` — feat(14-11): ObjectiveReadinessPanel Fix 5 unlock footer CTA
+
+### Fix 6 — Done-for-you interview loop (session-drain re-enqueue)
+
+**Root cause (coordinator-confirmed):** `enqueueGaps` used `$excluded = array_merge($queue, $asked, $skipped)` — this permanently excluded any key in `asked[]` even if it was served but never answered (user navigated away). The 5 gap keys were marked `asked` after question creation; on return visit `enqueueGaps` saw them in `asked[]` and refused to re-enqueue. Queue drained → false "Review complete — 0 questions".
+
+**Backend fix (ObjectiveReadinessService.php):**
+- Narrowed exclusion to only ANSWERED keys: `$answeredInAsked = array_filter($asked, fn(key) => UserTaxFact::currentFact exists for user+year)`
+- `$excluded = array_merge($queue, answered_asked, $skipped)` — served-but-unanswered keys are now re-enqueueable
+
+**Frontend fix (InterviewCard.tsx):**
+- New `onQueueEmpty?: () => void` prop — called when queue drains (on init with queue_size=0 OR fetchNextQuestion returns null)
+- New `remainingFacts?: Array<{label, source}>` prop — shown in "Looking for more questions..." spinner state instead of terminal dead-end
+- `no-questions` state: when `onQueueEmpty` is wired, renders a spinner with remaining fact labels
+
+**Frontend wiring (Index.tsx):**
+- `interviewKey` state: incrementing this forces React to unmount/remount InterviewCard, triggering fresh `initSession()`
+- `handleInterviewQueueEmpty`: re-fires `enqueueGaps` POST → `refreshObjectives()` → after 900ms increments `interviewKey`
+- `enqueueAttempts` state: caps loop at 3 (prevents infinite if genuinely nothing to enqueue); resets to 0 on each answered question
+
+**Test update (ObjectiveReadinessTest.php):**
+- Original `it enqueueGaps dedupes against already-asked keys` test was asserting BUG behavior (asked = excluded). Replaced with two tests:
+  - `it enqueueGaps can re-enqueue asked-but-unanswered keys (Fix 6)` — verifies new behavior
+  - `it enqueueGaps does not re-enqueue keys with a confirmed UserTaxFact` — verifies permanent exclusion for answered keys
+- Both pass: 14/14 ObjectiveReadinessTest
+
+### Fix 7 — D18 label-only template guard (no raw key served to user)
+
+**Root cause (coordinator-confirmed):** `employer.federal_withholding` (and similar entries) in `config/optimization-objectives.php` has only a `label` key, no `question` key. Previously:
+1. `enqueueGaps` would enqueue these keys as gaps
+2. `createTemplateQuestion` fell back to `"Please confirm: {$factKey}"` — raw snake_case key, D18 violation
+3. User was served "Please confirm: employer.federal_withholding" in the interview UI
+
+**Fix 7a (ObjectiveReadinessService.php):** Skip label-only templates in `enqueueGaps`:
+```php
+if (empty($templates[$key]['question'] ?? null) && empty($templates[$key]['dynamic'] ?? false)) {
+    continue; // label-only — not directly askable
+}
+```
+
+**Fix 7b (InterviewOrchestratorService.php):** Dual defence at question creation:
+- `createOptimizationQuestion`: guard returns `null` + logs for label-only templates (D18/Fix-7 log tag)
+- `createTemplateQuestion`: fallback changed from raw `$factKey` to human label: `"Please confirm: {$template['label']}"` or `"Please confirm this item applies to your situation."` (no raw key)
+
+**Fix 7c (old queue probe_deferral_gap / battery_medicare_enrollment):** Lower priority — deferred. Old sessions may have stale finding-type keys in queue; eligible-predicate gate in `nextQuestion()` will return null (no matching template) and consume them silently. No blocking UX impact confirmed.
+
+### Updated Gates (Fixes 6+7)
+
+| Gate | Result |
+|------|--------|
+| `node tests/js/findingTypeLabel.test.mjs` | 15/15 pass |
+| `php artisan test --compact` | 1225 passed, 1 risky (pre-existing) |
+| `npm run build` | Clean — zero TS errors |
+| `vendor/bin/pint --dirty` | Pass |
+| D18 copy rules | No raw snake_case keys; label-only templates blocked at enqueue AND creation |
+| Fix 6 acknowledged | interviewKey re-mount loop; onQueueEmpty callback; enqueueAttempts cap |
+| Fix 7 acknowledged | enqueueGaps skips label-only; createOptimizationQuestion guards; fallback uses human label |
+
+**Fix 6+7 Commits:**
+- `669bd64` — feat(14-11): Fix 6+5 — re-enqueue loop + LockedScenariosOverlay in Index.tsx
+- `bcc3e51` — fix(14-11): Fix 6+7 — enqueueGaps re-enqueue loop + D18 label-only template guard
