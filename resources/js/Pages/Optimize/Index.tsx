@@ -50,7 +50,10 @@ import {
   Link2,
   ChevronRight,
   Plus,
+  Lock,
+  FileCheck,
 } from 'lucide-react';
+import { renderFindingDescription } from '@/utils/findingTypeLabel';
 import Badge from '@/Components/SpendifiAI/Badge';
 import ConnectBankPrompt from '@/Components/SpendifiAI/ConnectBankPrompt';
 import InterviewCard from '@/Components/SpendifiAI/InterviewCard';
@@ -145,6 +148,11 @@ function firstSentence(text: string, maxChars = 140): string {
 
 // ─── Findings summary card ────────────────────────────────────────────────────
 
+/**
+ * Fix 1: Shown for TOPICAL sections only in the Overview.
+ * Fix 2: Uses renderFindingDescription — no "Analysis in progress..." on a ready report.
+ * Fix 1 zero-state: when section has 0 findings, shows semantic "clean" copy.
+ */
 function FindingSummaryCard({
   section,
   expandedFindingId,
@@ -156,28 +164,50 @@ function FindingSummaryCard({
 }) {
   const highFindings = section.findings.filter((f) => f.severity === 'high');
   const medFindings = section.findings.filter((f) => f.severity === 'medium');
+  const hasFindings = section.findings.length > 0;
+
+  // Fix 1: semantic subtitle — never "0 areas to consider"
+  const subtitle = hasFindings
+    ? `${section.findings.length} area${section.findings.length !== 1 ? 's' : ''} to consider`
+    : null; // zero-state is handled inline below
 
   return (
     <div className="rounded-2xl ring-1 ring-sw-border/70 bg-gradient-to-b from-white to-slate-50/40 shadow-sw-2 p-5 space-y-3 card-lift">
       <div className="flex items-start gap-3">
-        <div className="w-9 h-9 rounded-xl bg-sw-accent/10 ring-1 ring-sw-accent/20 flex items-center justify-center shrink-0">
-          <BarChart2 size={16} className="text-sw-accent" />
+        <div className={`w-9 h-9 rounded-xl ring-1 flex items-center justify-center shrink-0 ${
+          hasFindings
+            ? 'bg-sw-accent/10 ring-sw-accent/20'
+            : 'bg-sw-success/10 ring-sw-success/20'
+        }`}>
+          <BarChart2 size={16} className={hasFindings ? 'text-sw-accent' : 'text-sw-success'} />
         </div>
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           <p className="text-[14px] font-semibold text-sw-text leading-snug">{section.title}</p>
-          <p className="text-[11px] text-sw-dim mt-0.5">
-            {section.findings.length} area{section.findings.length !== 1 ? 's' : ''} to consider
+          {subtitle && (
+            <p className="text-[11px] text-sw-dim mt-0.5">{subtitle}</p>
+          )}
+        </div>
+        {hasFindings && (
+          <div className="flex items-center gap-1.5 shrink-0">
+            {highFindings.length > 0 && (
+              <Badge variant="danger">{highFindings.length} high</Badge>
+            )}
+            {medFindings.length > 0 && (
+              <Badge variant="warning">{medFindings.length} review</Badge>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Fix 1: zero-state for sections with no findings */}
+      {!hasFindings && (
+        <div className="flex items-center gap-2 pl-1">
+          <CheckCircle size={13} className="text-sw-success shrink-0" />
+          <p className="text-[12px] text-sw-success font-medium">
+            Nothing notable found in this area — looking good
           </p>
         </div>
-        <div className="flex items-center gap-1.5 shrink-0">
-          {highFindings.length > 0 && (
-            <Badge variant="danger">{highFindings.length} high</Badge>
-          )}
-          {medFindings.length > 0 && (
-            <Badge variant="warning">{medFindings.length} review</Badge>
-          )}
-        </div>
-      </div>
+      )}
 
       {/* D19: Findings preview — hook from narration_structured, or first-sentence clamp. */}
       {section.findings.slice(0, 3).map((finding) => {
@@ -185,9 +215,13 @@ function FindingSummaryCard({
         const structured = finding.narration_structured ?? null;
         const hook = structured?.hook ?? null;
         const desc = finding.description ?? null;
-        const displayText = hook ?? (desc ? firstSentence(desc) : null);
-        const fullText = hook ?? desc;
-        const needsExpand = !hook && desc !== null && firstSentence(desc) !== desc;
+
+        // Fix 2: renderFindingDescription — report is ready when this component is shown
+        // (only rendered inside `report.status === 'ready'` guard in the Overview)
+        const resolvedDesc = renderFindingDescription(desc, finding.finding_type, false);
+        const displayText = hook ?? (resolvedDesc ? firstSentence(resolvedDesc) : null);
+        const fullText = hook ?? resolvedDesc;
+        const needsExpand = !hook && resolvedDesc !== null && firstSentence(resolvedDesc) !== resolvedDesc;
 
         return (
           <div key={finding.finding_id} className="pl-3 border-l-2 border-sw-border">
@@ -202,7 +236,7 @@ function FindingSummaryCard({
                     <p className="text-[11px] text-sw-dim italic">{structured.action_cue}</p>
                   </div>
                 )}
-                {(needsExpand || (structured?.detail)) && (
+                {(needsExpand || structured?.detail) && (
                   <button
                     onClick={() => setExpandedFindingId(isExpanded ? null : finding.finding_id)}
                     className="mt-1 inline-flex items-center gap-1 text-[11px] font-medium text-sw-muted hover:text-sw-text transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sw-accent/50 rounded"
@@ -216,9 +250,7 @@ function FindingSummaryCard({
                   </button>
                 )}
               </>
-            ) : (
-              <p className="text-[12px] text-sw-dim italic">Analysis in progress...</p>
-            )}
+            ) : null}
           </div>
         );
       })}
@@ -254,6 +286,277 @@ function FindingSummaryCard({
           )}
         </div>
       )}
+    </div>
+  );
+}
+
+// ─── Journey stage-completion checklist (Fix 4) ─────────────────────────────
+
+/**
+ * A per-row checklist showing Documents / Suggestions / Questions stage states
+ * inside the Overview. Drives the affirmative "Everything's ready" CTA.
+ *
+ * States per stage:
+ *   Green (done)    — green check + what done meant
+ *   Amber (pending) — amber circle with count + action copy
+ *   Muted (locked)  — lock icon + label (data still loading)
+ *
+ * The advance CTA becomes affirmative when ALL upstream stages are green and
+ * the report is not rebuilding:
+ *   "✓ Everything's ready — See your options →"
+ */
+interface JourneyCheclistProps {
+  typeStatus: Record<string, DocTypeStatus>;
+  typeStatusLoaded: boolean;
+  proposals: UserTaxFactView[];
+  factsLoading: boolean;
+  needsInterview: boolean;
+  actionCenterLoaded: boolean;
+  isRegenerating: boolean;
+  onSeeOptions: () => void;
+}
+
+type StageState = 'done' | 'pending' | 'locked';
+
+function JourneyStageRow({
+  icon,
+  stageState,
+  doneText,
+  pendingText,
+  lockedLabel,
+  pendingCount,
+}: {
+  icon: React.ReactNode;
+  stageState: StageState;
+  doneText: string;
+  pendingText: string;
+  lockedLabel: string;
+  pendingCount?: number;
+}) {
+  if (stageState === 'locked') {
+    return (
+      <div className="flex items-center gap-3 opacity-50">
+        <div className="w-6 h-6 rounded-full border-2 border-sw-border/60 flex items-center justify-center shrink-0">
+          <Lock size={10} className="text-sw-dim" />
+        </div>
+        <div className="flex items-center gap-2 min-w-0">
+          <span className="shrink-0 text-sw-dim">{icon}</span>
+          <span className="text-[12px] text-sw-dim truncate">{lockedLabel}</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (stageState === 'done') {
+    return (
+      <div className="flex items-center gap-3">
+        <div className="w-6 h-6 rounded-full bg-sw-success flex items-center justify-center shrink-0">
+          <CheckCircle size={12} className="text-white" />
+        </div>
+        <div className="flex items-center gap-2 min-w-0">
+          <span className="shrink-0 text-sw-success">{icon}</span>
+          <span className="text-[12px] font-medium text-sw-success truncate">{doneText}</span>
+        </div>
+      </div>
+    );
+  }
+
+  // Pending (amber)
+  return (
+    <div className="flex items-center gap-3">
+      <div className="w-6 h-6 rounded-full border-2 border-sw-warning bg-sw-warning/10 flex items-center justify-center shrink-0">
+        {pendingCount !== undefined && pendingCount > 0 ? (
+          <span className="text-[10px] font-bold text-sw-warning leading-none">{pendingCount}</span>
+        ) : (
+          <span className="w-1.5 h-1.5 rounded-full bg-sw-warning" />
+        )}
+      </div>
+      <div className="flex items-center gap-2 min-w-0">
+        <span className="shrink-0 text-sw-warning">{icon}</span>
+        <span className="text-[12px] text-sw-text truncate">{pendingText}</span>
+      </div>
+    </div>
+  );
+}
+
+function JourneyProgressChecklist({
+  typeStatus,
+  typeStatusLoaded,
+  proposals,
+  factsLoading,
+  needsInterview,
+  actionCenterLoaded,
+  isRegenerating,
+  onSeeOptions,
+}: JourneyCheclistProps) {
+  // Documents stage
+  const docTypes = Object.values(typeStatus);
+  const docsLocked = !typeStatusLoaded || docTypes.length === 0;
+  const docsDone = !docsLocked && docTypes.every((t) => t.has_ready_doc || t.is_excluded === true);
+  const docsNeeded = docsLocked ? 0 : docTypes.filter((t) => !t.has_ready_doc && t.is_excluded !== true).length;
+  const docsState: StageState = docsLocked ? 'locked' : docsDone ? 'done' : 'pending';
+
+  // Suggestions stage (proposals)
+  const suggestionsLocked = factsLoading && proposals.length === 0;
+  const suggestionsDone = !suggestionsLocked && proposals.length === 0;
+  const suggestionsState: StageState = suggestionsLocked ? 'locked' : suggestionsDone ? 'done' : 'pending';
+
+  // Questions stage
+  const questionsLocked = !actionCenterLoaded;
+  const questionsDone = !questionsLocked && !needsInterview;
+  const questionsState: StageState = questionsLocked ? 'locked' : questionsDone ? 'done' : 'pending';
+
+  const allDone = docsDone && suggestionsDone && questionsDone;
+  const ctaAffirmative = allDone && !isRegenerating;
+
+  return (
+    <div className="rounded-2xl ring-1 ring-sw-border/70 bg-gradient-to-b from-white to-slate-50/40 shadow-sw-2 p-5 space-y-4">
+      {/* Stage rows */}
+      <div className="space-y-3">
+        <JourneyStageRow
+          icon={<Upload size={13} />}
+          stageState={docsState}
+          doneText="Documents — all types accounted for"
+          pendingText={docsNeeded === 1 ? '1 document type to provide' : `${docsNeeded} document types to provide`}
+          lockedLabel="Documents"
+          pendingCount={docsNeeded}
+        />
+        <JourneyStageRow
+          icon={<Sparkles size={13} />}
+          stageState={suggestionsState}
+          doneText="Suggestions — profile updated"
+          pendingText={proposals.length === 1 ? '1 suggestion to confirm' : `${proposals.length} suggestions to confirm`}
+          lockedLabel="Suggestions"
+          pendingCount={proposals.length > 0 ? proposals.length : undefined}
+        />
+        <JourneyStageRow
+          icon={<Brain size={13} />}
+          stageState={questionsState}
+          doneText="Questions — nothing left to ask"
+          pendingText="Interview questions to complete"
+          lockedLabel="Questions"
+        />
+      </div>
+
+      {/* Divider */}
+      <div className="border-t border-sw-border/60" />
+
+      {/* Advance CTA — affirmative when all stages green */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div className="min-w-0">
+          {ctaAffirmative ? (
+            <div className="flex items-center gap-2">
+              <FileCheck size={15} className="text-sw-success shrink-0" />
+              <p className="text-[13px] font-semibold text-sw-success leading-snug">
+                Everything's ready
+              </p>
+            </div>
+          ) : (
+            <p className="text-[12px] text-sw-muted leading-relaxed">
+              {isRegenerating
+                ? 'Report is updating — options available when ready.'
+                : 'Complete the steps above to unlock your optimization options.'}
+            </p>
+          )}
+        </div>
+        <button
+          onClick={onSeeOptions}
+          disabled={isRegenerating}
+          title={isRegenerating ? 'Available when your updated report is ready' : undefined}
+          className={`self-start shrink-0 inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition shadow-sm ${
+            ctaAffirmative
+              ? 'bg-sw-success text-white hover:bg-emerald-700'
+              : isRegenerating
+                ? 'bg-sw-surface text-sw-dim border border-sw-border cursor-not-allowed opacity-60'
+                : 'bg-sw-accent text-white hover:bg-sw-accent-hover'
+          }`}
+        >
+          {ctaAffirmative
+            ? <>✓ Everything's ready — See your options <ArrowRight size={14} /></>
+            : <>See your options <ArrowRight size={14} /></>
+          }
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ─── Fix 5: Locked scenario overlay ──────────────────────────────────────────
+
+/**
+ * Shows three ghost scenario cards with a prominent overlay when the interview
+ * isn't complete. Clicking any card OR the overlay triggers `onUnlock` which
+ * smooth-scrolls to the InterviewCard below with a brief ring pulse.
+ *
+ * Count-down: `questionsToUnlock` comes from objectivesData and updates after
+ * each answered question (objectivesData is refreshed in `onAnswered`).
+ * When the last gap closes (scenarios load), this component is not rendered.
+ */
+function LockedScenariosOverlay({
+  questionsToUnlock,
+  onUnlock,
+}: {
+  questionsToUnlock: number | null;
+  onUnlock: () => void;
+}) {
+  const countCopy =
+    questionsToUnlock === 1
+      ? '1 quick question unlocks your options'
+      : questionsToUnlock && questionsToUnlock > 1
+        ? `${questionsToUnlock} quick questions unlock your options`
+        : 'A few quick questions unlock your options';
+
+  return (
+    <div className="relative" aria-label="Options locked — complete the interview below to unlock">
+      {/* Ghost cards — blurred, not interactive */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 select-none pointer-events-none" aria-hidden="true">
+        {[
+          { label: 'Maximize Take-Home', color: 'bg-sw-success/5 ring-sw-success/20' },
+          { label: 'Reduce Tax Burden',  color: 'bg-violet-50/60 ring-violet-200/60' },
+          { label: 'Build Retirement',   color: 'bg-blue-50/60 ring-blue-200/60' },
+        ].map((card) => (
+          <div
+            key={card.label}
+            className={`rounded-2xl ring-1 ${card.color} p-5 blur-[3px] opacity-40 min-h-[11rem]`}
+          >
+            <div className="h-4 w-28 bg-slate-300/80 rounded mb-3" />
+            <div className="space-y-1.5">
+              <div className="h-3 w-full bg-slate-200/80 rounded" />
+              <div className="h-3 w-4/5 bg-slate-200/80 rounded" />
+              <div className="h-3 w-3/5 bg-slate-200/80 rounded" />
+            </div>
+            <div className="mt-4 h-9 w-full bg-slate-200/80 rounded-xl" />
+          </div>
+        ))}
+      </div>
+
+      {/* Prominent overlay — elevated card across all three ghost cards */}
+      <div
+        className="absolute inset-0 flex items-center justify-center"
+        aria-live="polite"
+        aria-atomic="true"
+      >
+        <button
+          onClick={onUnlock}
+          className="bg-white/95 backdrop-blur-sm shadow-sw-3 ring-1 ring-sw-border rounded-2xl px-8 py-6 flex flex-col items-center gap-3 text-center hover:shadow-sw-4 hover:ring-sw-accent/30 transition group focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-sw-accent/40 w-full max-w-sm mx-auto"
+          aria-label="Click to scroll to the interview questions below"
+        >
+          <div className="w-14 h-14 rounded-2xl bg-sw-accent/10 ring-1 ring-sw-accent/20 flex items-center justify-center group-hover:bg-sw-accent/15 transition">
+            <Lock size={24} className="text-sw-accent" />
+          </div>
+          <div className="space-y-1">
+            <p className="text-[22px] font-bold text-sw-text leading-tight tracking-tight">
+              {countCopy}
+            </p>
+            <p className="text-[13px] text-sw-muted leading-relaxed">
+              Tap to scroll to the questions below
+            </p>
+          </div>
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-sw-accent text-white text-sm font-semibold group-hover:bg-sw-accent-hover transition">
+            Go to questions <ArrowRight size={14} />
+          </div>
+        </button>
+      </div>
     </div>
   );
 }
@@ -355,6 +658,8 @@ export default function OptimizeIndex() {
 
   // ── Type-status inventory (fetched at the page level for accordion default) ───
   const [typeStatus, setTypeStatus] = useState<Record<string, DocTypeStatus>>({});
+  // Fix 4: track whether typeStatus has loaded at least once (for JourneyProgressChecklist lock state)
+  const [typeStatusLoaded, setTypeStatusLoaded] = useState(false);
 
   // ── "Add more documents" accordion — Fix-3 tri-state ───────────────────────
   //
@@ -419,10 +724,14 @@ export default function OptimizeIndex() {
   // Tracks whether the batch enqueue-gaps call has been fired for the current session.
   const [gapsEnqueued, setGapsEnqueued] = useState(false);
   const [fineTuneExpanded, setFineTuneExpanded] = useState(false);
+  // Fix 5: ref for scrolling to interview card + brief pulse ring on click
+  const interviewCardRef = useRef<HTMLDivElement>(null);
+  const [interviewPulse, setInterviewPulse] = useState(false);
 
   // Action center — stage0 items tell us what the user still needs to do
   const {
     data: actionCenterData,
+    loading: actionCenterLoading,
     refresh: refreshActionCenter,
   } = useApi<ActionCenterResponse>('/api/v1/optimizer/action-center', {
     enabled: auth.hasBankConnected,
@@ -444,7 +753,7 @@ export default function OptimizeIndex() {
   const fetchTypeStatus = useCallback(() => {
     if (!auth.hasBankConnected) return;
     axios.get<{ types: Record<string, DocTypeStatus>; exclusions: string[] }>('/api/v1/tax-vault/type-status')
-      .then((res) => setTypeStatus(res.data.types ?? {}))
+      .then((res) => { setTypeStatus(res.data.types ?? {}); setTypeStatusLoaded(true); })
       .catch(() => { /* silently ignore — accordion falls back to expanded */ });
   }, [auth.hasBankConnected]);
 
@@ -461,6 +770,13 @@ export default function OptimizeIndex() {
     (p) => !dismissedProposalIds.has(p.id)
   );
   const hasPendingProposals = proposals.length > 0;
+
+  // Fix 5: scroll to interview card + brief ring pulse feedback
+  const scrollToInterview = useCallback(() => {
+    interviewCardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    setInterviewPulse(true);
+    setTimeout(() => setInterviewPulse(false), 1600);
+  }, []);
 
   const handleUploadComplete = useCallback(() => {
     // Give extraction job a moment, then refresh facts + action center + type-status
@@ -809,26 +1125,26 @@ export default function OptimizeIndex() {
             </div>
           )}
 
-          {/* ── 5. Findings list ── */}
+          {/* ── 5. Journey checklist + Findings list ── */}
           <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <TrendingUp size={16} className="text-sw-accent" />
-                <h2 className="text-sm font-semibold text-sw-text">What We Noticed</h2>
-              </div>
-              {/* Fix 3: muted when regenerating; title communicates unavailability */}
-              <button
-                onClick={() => !isRegenerating && setViewMode('choices')}
-                disabled={isRegenerating}
-                title={isRegenerating ? 'Available when your updated report is ready' : undefined}
-                className={`inline-flex items-center gap-1.5 text-xs font-medium transition ${
-                  isRegenerating
-                    ? 'text-sw-dim cursor-not-allowed'
-                    : 'text-sw-accent hover:text-sw-accent-hover'
-                }`}
-              >
-                See your options <ArrowRight size={13} />
-              </button>
+
+            {/* Fix 4: Journey stage-completion checklist — always shown in Overview.
+                Shows Documents / Suggestions / Questions progress rows + advance CTA.
+                CTA becomes affirmative when all upstream stages green. */}
+            <JourneyProgressChecklist
+              typeStatus={typeStatus}
+              typeStatusLoaded={typeStatusLoaded}
+              proposals={proposals}
+              factsLoading={factsLoading}
+              needsInterview={needsInterview}
+              actionCenterLoaded={!actionCenterLoading}
+              isRegenerating={isRegenerating}
+              onSeeOptions={() => !isRegenerating && setViewMode('choices')}
+            />
+
+            <div className="flex items-center gap-2">
+              <TrendingUp size={16} className="text-sw-accent" />
+              <h2 className="text-sm font-semibold text-sw-text">What We Noticed</h2>
             </div>
 
             {/* Summary stats */}
@@ -891,10 +1207,13 @@ export default function OptimizeIndex() {
               </div>
             )}
 
-            {/* Findings list — show cached data even on non-fatal error */}
+            {/* Fix 1: Findings list — TOPICAL sections only in the Overview.
+                Wrapper/year_end/glossary sections are in the full Report view.
+                Fix 2: FindingSummaryCard uses renderFindingDescription (no "in progress" on ready report).
+                Fix 1 zero-state: FindingSummaryCard shows "Nothing notable found" for 0-finding topical sections. */}
             {!reportLoading && report && report.status === 'ready' && (
               <>
-                {report.sections.length === 0 ? (
+                {report.sections.filter((s) => s.section_type === 'topical').length === 0 ? (
                   <div className="rounded-2xl ring-1 ring-sw-border/70 bg-gradient-to-b from-white to-slate-50/40 shadow-sw-1 p-8 text-center">
                     <div className="w-12 h-12 mx-auto rounded-2xl bg-sw-success/10 ring-1 ring-sw-success/30 flex items-center justify-center mb-3">
                       <CheckCircle size={22} className="text-sw-success" />
@@ -907,6 +1226,8 @@ export default function OptimizeIndex() {
                 ) : (
                   <div className="space-y-3">
                     {[...report.sections]
+                      // Fix 1: only topical sections in the Overview findings list
+                      .filter((s) => s.section_type === 'topical')
                       .sort((a, b) => {
                         const aHigh = a.findings.filter((f) => f.severity === 'high').length;
                         const bHigh = b.findings.filter((f) => f.severity === 'high').length;
@@ -920,37 +1241,6 @@ export default function OptimizeIndex() {
                           setExpandedFindingId={setExpandedFindingId}
                         />
                       ))}
-
-                    {/* Fix 3: CTA to Choices — disabled while regenerating (stale facts) */}
-                    <div className={`rounded-2xl border p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 ${
-                      isRegenerating
-                        ? 'border-sw-border/40 bg-sw-surface/50'
-                        : 'border-sw-accent/20 bg-sw-accent/5'
-                    }`}>
-                      <div className="flex items-start gap-3">
-                        <GitCompare size={20} className={isRegenerating ? 'text-sw-dim shrink-0 mt-0.5' : 'text-sw-accent shrink-0 mt-0.5'} />
-                        <div>
-                          <p className="text-[14px] font-semibold text-sw-text">Ready to see your options?</p>
-                          <p className="text-[12px] text-sw-muted leading-relaxed mt-0.5">
-                            {isRegenerating
-                              ? 'Available when your updated report is ready.'
-                              : 'Compare optimization scenarios and choose the path that fits your situation.'}
-                          </p>
-                        </div>
-                      </div>
-                      <button
-                        onClick={() => !isRegenerating && setViewMode('choices')}
-                        disabled={isRegenerating}
-                        title={isRegenerating ? 'Available when your updated report is ready' : undefined}
-                        className={`self-start shrink-0 inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition shadow-sm ${
-                          isRegenerating
-                            ? 'bg-sw-surface text-sw-dim border border-sw-border cursor-not-allowed opacity-60'
-                            : 'bg-sw-accent text-white hover:bg-sw-accent-hover'
-                        }`}
-                      >
-                        See your options <ArrowRight size={14} />
-                      </button>
-                    </div>
                   </div>
                 )}
               </>
@@ -994,9 +1284,18 @@ export default function OptimizeIndex() {
               </div>
             </div>
           )}
-          {/* Objectives readiness panel — no button per D23 */}
+          {/* Objectives readiness panel.
+              Fix 5: pass onUnlockClick so the footer becomes a clickable CTA
+              that scrolls to the InterviewCard below (only when interview needed). */}
           {!objectivesLoading && objectivesData && (
-            <ObjectiveReadinessPanel data={objectivesData} />
+            <ObjectiveReadinessPanel
+              data={objectivesData}
+              onUnlockClick={
+                !scenariosLoading && scenariosData && scenariosData.options.length === 0
+                  ? scrollToInterview
+                  : undefined
+              }
+            />
           )}
 
           {/* Scenario comparison cards — auto-computed from GET /scenarios/{year} */}
@@ -1014,19 +1313,47 @@ export default function OptimizeIndex() {
             />
           )}
 
-          {/* D23: not-ready → inline interview (gaps auto-enqueued above). */}
-          {!scenariosLoading && scenariosData && scenariosData.options.length === 0 && (
-            <div className="space-y-4">
-              {/* Inline interview card — D23: show gap questions here, not on a separate tab */}
-              <InterviewCard
-                taxYear={currentYear}
-                onAnswered={() => {
-                  refreshObjectives();
-                  refreshScenarios();
-                }}
-              />
-            </div>
-          )}
+          {/* Fix 5: locked overlay across 3 ghost cards + scrollable interview below.
+              Shown when scenarios are not yet ready (interview incomplete).
+              LockedScenariosOverlay: clicking any card/overlay scrolls to InterviewCard.
+              Count-down: questionsToUnlock from objectivesData, updates after each answer.
+              When last gap closes, options.length > 0 → overlay unmounts, ScenarioComparisonCards shows. */}
+          {!scenariosLoading && scenariosData && scenariosData.options.length === 0 && (() => {
+            const totalQuestionsNeeded = objectivesData
+              ? Object.values(objectivesData.objectives).reduce(
+                  (sum, o) => sum + (!o.ready ? (o.questions_to_unlock ?? 1) : 0),
+                  0,
+                )
+              : null;
+
+            return (
+              <div className="space-y-4">
+                {/* Fix 5: Prominent lock overlay — replaces dead-end placeholder cards */}
+                <LockedScenariosOverlay
+                  questionsToUnlock={totalQuestionsNeeded}
+                  onUnlock={scrollToInterview}
+                />
+
+                {/* InterviewCard with ref + pulse ring for scroll-target feedback */}
+                <div
+                  ref={interviewCardRef}
+                  className={`rounded-2xl transition-all duration-300 ${
+                    interviewPulse
+                      ? 'ring-4 ring-sw-accent ring-offset-2 shadow-sw-3'
+                      : 'ring-0'
+                  }`}
+                >
+                  <InterviewCard
+                    taxYear={currentYear}
+                    onAnswered={() => {
+                      refreshObjectives();
+                      refreshScenarios();
+                    }}
+                  />
+                </div>
+              </div>
+            );
+          })()}
 
           {/* D23 — Mix & Model DEMOTED: collapsed "Fine-tune this plan" expander */}
           <div className="rounded-2xl ring-1 ring-sw-border/60 bg-white overflow-hidden">
