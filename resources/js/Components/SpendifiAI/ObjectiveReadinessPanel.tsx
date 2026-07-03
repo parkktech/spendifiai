@@ -2,24 +2,25 @@
  * ObjectiveReadinessPanel — Phase 14-10 / D.2 Scenarios stage
  *
  * Renders the three scenario objectives (take_home, tax_burden, retirement)
- * as readiness chips, shows missing-fact counts, and surfaces an enqueue CTA
- * when all objectives are ready.
+ * as readiness chips and shows missing-fact counts.
+ *
+ * D23 (done-for-you): no "See your options" button; no dead-end text.
+ * - When ALL ready: scenarios are already auto-computed above by ScenarioController.
+ * - When NOT ready: Index.tsx auto-fires POST /enqueue-gaps on stage load and renders
+ *   an inline InterviewCard below this panel. The footer says so, never a dead-end.
  *
  * Design: born-premium §3.11 recipe, stagger-children.
  * Educational framing: "may", "could", "consider" — no assertive language.
  */
 
-import { useState } from 'react';
-import axios from 'axios';
 import {
   CheckCircle2,
   Circle,
-  ArrowRight,
   TrendingUp,
   ShieldMinus,
   PiggyBank,
-  Loader2,
   AlertCircle,
+  MessageSquare,
 } from 'lucide-react';
 import type { ObjectivesResponse, ObjectiveReadiness } from '@/types/spendifiai';
 
@@ -119,12 +120,9 @@ function ReadinessChip({
 
 interface Props {
   data: ObjectivesResponse;
-  onEnqueue: () => void;
-  enqueueing: boolean;
-  enqueueError: string | null;
 }
 
-export default function ObjectiveReadinessPanel({ data, onEnqueue, enqueueing, enqueueError }: Props) {
+export default function ObjectiveReadinessPanel({ data }: Props) {
   const objectives = data.objectives;
   const allReady = Object.values(objectives).every((o) => o.ready);
   const readyCount = Object.values(objectives).filter((o) => o.ready).length;
@@ -155,37 +153,19 @@ export default function ObjectiveReadinessPanel({ data, onEnqueue, enqueueing, e
         ))}
       </div>
 
-      {/* Enqueue CTA */}
-      {allReady ? (
-        <div className="pt-3 border-t border-sw-border/60">
-          {enqueueError && (
-            <p className="text-[11px] text-sw-danger flex items-center gap-1.5 mb-2">
-              <AlertCircle size={12} /> {enqueueError}
-            </p>
-          )}
-          <button
-            onClick={onEnqueue}
-            disabled={enqueueing}
-            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-sw-accent text-white text-sm font-semibold hover:bg-sw-accent-hover transition disabled:opacity-50 shadow-sw-1"
-          >
-            {enqueueing ? (
-              <Loader2 size={15} className="animate-spin" />
-            ) : (
-              <ArrowRight size={15} />
-            )}
-            See your optimization options
-          </button>
-          <p className="text-[10px] text-sw-dim text-center mt-2">
+      {/* D23 footer: no button, no dead-end. Scenarios auto-load; gaps auto-enqueue. */}
+      <div className="pt-3 border-t border-sw-border/60">
+        {allReady ? (
+          <p className="text-[10px] text-sw-dim text-center">
             Educational estimates only — consider reviewing with a tax professional
           </p>
-        </div>
-      ) : (
-        <div className="pt-3 border-t border-sw-border/60">
-          <p className="text-[11px] text-sw-muted text-center">
-            Complete the interview to unlock scenario comparison
+        ) : (
+          <p className="text-[11px] text-sw-muted flex items-center justify-center gap-1.5">
+            <MessageSquare size={12} className="text-sw-accent shrink-0" />
+            A few quick questions below will unlock your options
           </p>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }

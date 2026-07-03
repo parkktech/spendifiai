@@ -415,9 +415,10 @@ export default function OptimizeIndex() {
   // Dismissed proposal IDs (rejected locally)
   const [dismissedProposalIds, setDismissedProposalIds] = useState<Set<number>>(new Set());
 
-  // Phase 14-10: Scenarios/Choices stage state
-  const [enqueueing, setEnqueueing] = useState(false);
-  const [enqueueError, setEnqueueError] = useState<string | null>(null);
+  // D23 done-for-you: auto-enqueue gaps when Choices stage loads and NOT all ready.
+  // Tracks whether the batch enqueue-gaps call has been fired for the current session.
+  const [gapsEnqueued, setGapsEnqueued] = useState(false);
+  const [fineTuneExpanded, setFineTuneExpanded] = useState(false);
 
   // Action center — stage0 items tell us what the user still needs to do
   const {
@@ -496,21 +497,27 @@ export default function OptimizeIndex() {
     enabled: auth.hasBankConnected && viewMode === 'choices',
   });
 
-  const handleEnqueue = async () => {
-    setEnqueueing(true);
-    setEnqueueError(null);
-    try {
-      await axios.post(`/api/v1/optimizer/objectives/${currentYear}/enqueue`);
-      refreshScenarios();
-    } catch (err) {
-      const msg =
-        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ??
-        'Could not start scenario computation';
-      setEnqueueError(msg);
-    } finally {
-      setEnqueueing(false);
+  // D23 — auto-enqueue gap questions on Choices stage entry when not all objectives ready.
+  // Fires once per stage visit (gapsEnqueued gate). If every objective is ready the call
+  // is skipped entirely (server side also no-ops). After enqueue, InterviewCard auto-shows.
+  useEffect(() => {
+    if (viewMode !== 'choices') return;
+    if (gapsEnqueued) return;
+    if (!auth.hasBankConnected) return;
+    if (!objectivesData) return;
+
+    const allReady = Object.values(objectivesData.objectives).every((o) => o.ready);
+    if (allReady) {
+      setGapsEnqueued(true);
+      return;
     }
-  };
+
+    setGapsEnqueued(true); // prevent re-fire before response
+    axios
+      .post(`/api/v1/optimizer/objectives/${currentYear}/enqueue-gaps`)
+      .catch(() => { /* non-fatal — InterviewCard still loads its own queue */ });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [viewMode, objectivesData, auth.hasBankConnected]);
 
   const handleChooseScenario = async (optionKey: string) => {
     try {
@@ -987,16 +994,12 @@ export default function OptimizeIndex() {
               </div>
             </div>
           )}
+          {/* Objectives readiness panel — no button per D23 */}
           {!objectivesLoading && objectivesData && (
-            <ObjectiveReadinessPanel
-              data={objectivesData}
-              onEnqueue={handleEnqueue}
-              enqueueing={enqueueing}
-              enqueueError={enqueueError}
-            />
+            <ObjectiveReadinessPanel data={objectivesData} />
           )}
 
-          {/* Scenario comparison cards */}
+          {/* Scenario comparison cards — auto-computed from GET /scenarios/{year} */}
           {scenariosLoading && (
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 animate-pulse">
               {[1, 2, 3].map((i) => (
@@ -1010,18 +1013,39 @@ export default function OptimizeIndex() {
               onChoose={handleChooseScenario}
             />
           )}
+
+          {/* D23: not-ready → inline interview (gaps auto-enqueued above). */}
           {!scenariosLoading && scenariosData && scenariosData.options.length === 0 && (
-            <div className="rounded-2xl ring-1 ring-sw-border/70 bg-gradient-to-b from-white to-slate-50/40 shadow-sw-1 p-6 text-center">
-              <GitCompare size={24} className="mx-auto text-sw-dim mb-2" />
-              <p className="text-sm font-medium text-sw-text mb-1">Scenarios not yet computed</p>
-              <p className="text-xs text-sw-muted max-w-xs mx-auto">
-                Complete the readiness check above and click "See your optimization options" to generate scenario comparisons.
-              </p>
+            <div className="space-y-4">
+              {/* Inline interview card — D23: show gap questions here, not on a separate tab */}
+              <InterviewCard
+                taxYear={currentYear}
+                onAnswered={() => {
+                  refreshObjectives();
+                  refreshScenarios();
+                }}
+              />
             </div>
           )}
 
-          {/* Mix panel */}
-          <ScenarioMixPanel taxYear={currentYear} />
+          {/* D23 — Mix & Model DEMOTED: collapsed "Fine-tune this plan" expander */}
+          <div className="rounded-2xl ring-1 ring-sw-border/60 bg-white overflow-hidden">
+            <button
+              className="w-full flex items-center justify-between px-5 py-3.5 text-left hover:bg-slate-50 transition"
+              onClick={() => setFineTuneExpanded((v) => !v)}
+            >
+              <span className="text-[13px] font-medium text-sw-text">Fine-tune this plan</span>
+              {fineTuneExpanded
+                ? <ChevronUp size={15} className="text-sw-muted" />
+                : <ChevronDown size={15} className="text-sw-muted" />
+              }
+            </button>
+            {fineTuneExpanded && (
+              <div className="border-t border-sw-border/60 px-5 py-4">
+                <ScenarioMixPanel taxYear={currentYear} />
+              </div>
+            )}
+          </div>
 
           {/* After choosing: link to Checklist */}
           {scenariosData?.chosen && (

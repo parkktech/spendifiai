@@ -353,6 +353,9 @@ Route::middleware(['auth:sanctum'])->group(function () {
                 ->middleware('throttle:60,1');
             Route::post('/{year}/{objective}/enqueue', [OptimizationObjectiveController::class, 'enqueue'])
                 ->middleware('throttle:10,1');
+            // D23 done-for-you: enqueue gaps for ALL not-ready objectives in one call.
+            Route::post('/{year}/enqueue-gaps', [OptimizationObjectiveController::class, 'enqueueAll'])
+                ->middleware('throttle:10,1');
         });
 
         // ── Phase 11-05: Durable Facts API (STORE-01 anchor UI) ──

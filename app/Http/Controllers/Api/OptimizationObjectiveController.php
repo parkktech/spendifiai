@@ -69,4 +69,61 @@ class OptimizationObjectiveController extends Controller
 
         return response()->json($result);
     }
+
+    /**
+     * POST /optimizer/objectives/{year}/enqueue-gaps — D23 done-for-you batch enqueue.
+     *
+     * Enqueues gap questions for ALL not-ready readiness objectives in one call.
+     * The Choices stage fires this on mount so missing facts auto-surface as inline
+     * interview cards — replacing the dead-end "Complete the interview first" copy (D23).
+     *
+     * Response mirrors single-objective enqueue shape, aggregated:
+     *   {session, enqueued (union), queue_size (after all enqueues), message}
+     */
+    public function enqueueAll(Request $request, int $year): JsonResponse
+    {
+        $user = $request->user();
+        $readiness = $this->readiness->readiness($user, $year);
+
+        $objectives = (array) config('optimization-objectives.objectives', []);
+
+        $allEnqueued = [];
+        $lastResult = null;
+
+        foreach (array_keys($readiness) as $objectiveKey) {
+            $spec = $objectives[$objectiveKey] ?? null;
+            if ($spec === null || ! empty($spec['is_scenario_domain'])) {
+                continue;
+            }
+            // Only enqueue for not-ready objectives — skip already-ready ones.
+            if ($readiness[$objectiveKey]['ready'] ?? false) {
+                continue;
+            }
+            $result = $this->readiness->enqueueGaps($user, $year, $objectiveKey);
+            $allEnqueued = array_values(array_unique(
+                array_merge($allEnqueued, $result['enqueued'] ?? [])
+            ));
+            $lastResult = $result;
+        }
+
+        // If every objective was already ready, nothing to enqueue.
+        if ($lastResult === null) {
+            // Re-resolve just to return a valid session ref.
+            $lastResult = $this->readiness->enqueueGaps($user, $year, 'take_home');
+        }
+
+        $count = count($allEnqueued);
+        $message = match (true) {
+            $count === 0 => 'No new questions — your interview is up to date.',
+            $count === 1 => '1 question added to your interview.',
+            default => "{$count} questions added to your interview.",
+        };
+
+        return response()->json([
+            'session' => $lastResult['session'],
+            'enqueued' => $allEnqueued,
+            'queue_size' => $lastResult['queue_size'],
+            'message' => $message,
+        ]);
+    }
 }
