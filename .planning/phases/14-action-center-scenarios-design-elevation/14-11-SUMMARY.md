@@ -973,3 +973,46 @@ if (empty($templates[$key]['question'] ?? null) && empty($templates[$key]['dynam
 **Fix 6+7 Commits:**
 - `669bd64` — feat(14-11): Fix 6+5 — re-enqueue loop + LockedScenariosOverlay in Index.tsx
 - `bcc3e51` — fix(14-11): Fix 6+7 — enqueueGaps re-enqueue loop + D18 label-only template guard
+
+## D24 reliability hardening
+
+Four workstreams committed to `feature/v2.1-optimize-my-income` as part of D24
+(Decision 24 — reliability doctrine):
+
+### Work 1 — Fact-key registry + contract test
+- `config/fact-registry.php`: ~110-key canonical map covering all fact namespaces
+- `tests/Feature/FactRegistryContractTest.php`: 4-test contract suite — sweep for
+  unregistered literals, enum-choice validation (kills married_joint bug class),
+  question_template completeness, objective canonical_key coverage
+- Commit: `e57f315`
+
+### Work 2 — Queue smoke + silent no-op logging + error views
+- `optimizer:queue-smoke` artisan command proving dispatch reaches worker end-to-end
+- Root-cause documented: `onQueue('optimization')` vs `default` queue + ShouldBeUnique
+  cache lock (300s TTL) silently drops duplicate dispatches; `Bus::dispatchSync()`
+  bypassed queue which is why tinker worked
+- `ScenarioChecklistService::materialize()` logs reason on empty return (no knob diverges
+  vs all diverging knobs filtered)
+- Brand-consistent 429/500/503 error views (JSON requests still get JSON)
+- Commit: `9052639`
+
+### Work 3 — Inertia asset versioning + new-version toast
+- `HandleInertiaRequests::version()` explicit override hashing `public/build/manifest.json`
+  via xxh128; `buildVersion` shared prop exposed to SPA
+- `GET /api/v1/meta/build-version` public endpoint (throttle 60/min)
+- `NewVersionToast` component polls every 5 minutes, shows dismissable bottom-right
+  toast on hash mismatch; mounts in AuthenticatedLayout
+- 4 new Pest tests verifying version derivation, shared prop, and endpoint behavior
+- Commit: `aa02c3a`
+
+### Work 4 — e2e:walk single-command + CI gate
+- `npm run e2e:walk` / `composer e2e:walk` aliases running optimize-journey.spec.ts
+  on chromium-desktop
+- `.github/workflows/e2e-walk.yml`: PR gate provisioning PostgreSQL + Redis, seeding
+  DemoAccountSeeder + ExpenseCategorySeeder, starting Laravel server, running walk
+- Commit: `5017ba2`
+
+### Gates
+- Full D24 test suite: 22 passed (66 assertions) in isolation
+- `vendor/bin/pint --dirty`: pass (no changes)
+- `npm run build`: built in 6.19s
