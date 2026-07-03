@@ -354,8 +354,10 @@ Route::middleware(['auth:sanctum'])->group(function () {
             Route::post('/{year}/{objective}/enqueue', [OptimizationObjectiveController::class, 'enqueue'])
                 ->middleware('throttle:10,1');
             // D23 done-for-you: enqueue gaps for ALL not-ready objectives in one call.
+            // D24: idempotent (skips already-enqueued/answered); 10/min starved the
+            // braked recovery loop into a permanent "looking for questions" state.
             Route::post('/{year}/enqueue-gaps', [OptimizationObjectiveController::class, 'enqueueAll'])
-                ->middleware('throttle:10,1');
+                ->middleware('throttle:40,1');
         });
 
         // ── Phase 11-05: Durable Facts API (STORE-01 anchor UI) ──
