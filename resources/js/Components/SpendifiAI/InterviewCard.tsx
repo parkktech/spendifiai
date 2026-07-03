@@ -494,6 +494,7 @@ export default function InterviewCard({ taxYear = CURRENT_YEAR, onAnswered }: In
         {isAutoSuggest && currentQuestion.suggested_treatment ? (
           <SuggestedConfirmCard
             suggestedTreatment={currentQuestion.suggested_treatment}
+            questionText={currentQuestion.question}
             band={currentQuestion.band}
             transactionCount={currentQuestion.transaction_count}
             onConfirm={alreadyAnswered ? handleReAnswer : handleAnswer}
