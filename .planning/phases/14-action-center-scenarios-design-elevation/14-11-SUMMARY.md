@@ -621,3 +621,168 @@ RET-C and RET-D not emitted for user 1 because `employer.match_pct` and `family.
 | D18: educational framing in all RET treatments | `may/could/consider/worth exploring` present |
 | SAFE-03: only RET-C sets `estimated_value_cents` (from engine) | Pass |
 | FLAG-20: RET-A treatment contains "if your plan allows" + mega-backdoor hedges | Pass |
+| FLAG-20: RET-A treatment contains "if your plan allows" + mega-backdoor hedges | Pass |
+
+---
+
+## IRA multi-select + doc-driven accounts
+
+### Fix 1 — IRA Type becomes multi-select
+
+**Problem:** The "IRA Type" field was a single-select dropdown, but the owner holds both Traditional and Roth IRAs (Decision 2). The system already has multi-IRA support in the facts/engine layer.
+
+**Solution (additive):**
+- Added `ira_types` JSON array column to `user_financial_profiles` alongside the preserved `ira_type` string column
+- Migration backfills: `ira_type IS NOT NULL` → `ira_types = [ira_type]`
+- `UpdateFinancialProfileRequest` accepts `ira_types` (array, each `in:traditional,roth,sep,simple`)
+- `UserProfileController::updateFinancial` syncs `ira_type = ira_types[0]` for backward compat
+- `ProfileConformanceDetector` (Plane 2, Dir A2): roth-only check now reads `ira_types` array; falls back to `ira_type` for legacy rows. "Roth-only" = `roth` present AND `traditional` absent
+- `IncomeOptimizerDataAssemblerService::readProfileFlags` exposes `ira_types` alongside `ira_type`
+- `EnhancedProfileSection.tsx`: replaced `<select>` with multi-checkboxes (Traditional / Roth / SEP / SIMPLE)
+
+**Commits:** `4740892`
+
+### Fix 2 — Accounts section driven by documents/facts
+
+**Problem:** The Tax-Advantaged Accounts checkboxes were purely form-driven, ignoring what the system already knows from documents and interviews.
+
+**Solution (additive GET-only, user choice wins):**
+- `UserProfileController::showFinancial` now returns an additive `derived_accounts` block:
+  ```json
+  {
+    "hsa":       { "value": "no"|"yes"|null, "source": "your answers"|"documents"|... },
+    "ira":       { "value": "yes"|null, "source": "documents" },
+    "ira_types": {
+      "traditional": { "value": true, "source": "documents" },
+      "roth":        { "value": true, "source": "documents" }
+    }
+  }
+  ```
+- Sources checked: `finance.has_hsa`, `employer.hsa_deduction_ytd`, `retirement.hsa_ytd_cents`, `ira.traditional_ytd_contribution_cents`, `ira.roth_ytd_contribution_cents`, `retirement.has_ira_balance`, `finance.has_ira`
+- User form choice ALWAYS wins. When `has_hsa` or `has_ira` is saved, a `user_edit` fact is written (`finance.has_hsa`, `finance.has_ira`) so the system reflects the explicit choice
+- Frontend: `EnhancedProfileSection.tsx` reads `derived_accounts` for soft annotation notes; pre-fills IRA types from facts when profile has none; shows source attribution (`"(from documents)"`)
+- Existing `profile` response shape unchanged — `derived_accounts` is a new top-level key
+
+**D18 copy compliance:** All annotation notes use soft educational framing ("Based on your documents, it looks like…"; "your selection will be saved"). No raw fact keys exposed to UI.
+
+### Rule 1 Auto-Fix — DurableFactsController humanizeValue
+
+**Found during:** gate run (PaystubProposalFlowTest:386 regression)
+**Issue:** `PaystubFactExtractorService.normalizeW4FilingStatus` (parallel executor) stores `married_joint`/`single_or_mfs`/`head_of_household` enums; `humanizeValue` in `DurableFactsController` only matched verbatim form strings, so `married_joint` fell through to `ucwords($value)` → `'Married_joint'`
+**Fix:** Added normalized enum cases to the `w4.filing_status` match table; improved default fallback with `str_replace('_', ' ', $value)` before `ucwords`
+**Commit:** `b81ea9b`
+
+### Gates Verified (IRA multi-select + doc-driven accounts)
+
+| Gate | Result |
+|------|--------|
+| `php artisan test --compact` | 1187 passed, 0 failed, 1 risky (baseline 1178 + 8 new + 1 from parallel executor) |
+| `npm run build` | Clean (5.84s), zero TypeScript errors |
+| `vendor/bin/pint --dirty` | Clean |
+| EnhancedProfileTest (15 tests, was 7) | All 15 pass |
+| Fix 1: ira_types saves + backfills ira_type | Pass |
+| Fix 1: ira_types enum validation | Pass |
+| Fix 2: derived_accounts block in GET | Pass |
+| Fix 2: finance.has_hsa user_edit fact written on save | Pass |
+| Fix 2: finance.has_ira user_edit fact written on save | Pass |
+| Fix 2: derived hsa reflects finance.has_hsa fact | Pass |
+| Fix 2: derived ira_types from YTD contribution facts | Pass |
+| ProfileConformanceDetector Plane 2: roth-only uses ira_types | Pass |
+| Migration additive (ADD COLUMN only, backfill safe) | Pass |
+
+---
+
+## Choices repair + D23
+
+Four defects fixed + D23 done-for-you Choices stage shipped on branch `feature/v2.1-optimize-my-income`, 2026-07-02.
+
+### Fix 1 — W-4 filing status normalization
+
+**Root cause:** `PaystubFactExtractorService::proposeFacts()` stored the W-4 filing status verbatim (e.g. `"Married filing jointly (or Qualifying widow(er))"`) without normalization. `TaxRulesEngineService` only accepts `married_joint | single_or_mfs | head_of_household` → engine threw at scenario compute time.
+
+**Three-layer fix:**
+
+1. **Extractor** (`PaystubFactExtractorService`): `normalizeW4FilingStatus(string $raw): string` static method maps all W-4 display strings to engine enums. Called in `proposeFacts()` when `fact_key === 'w4.filing_status'`; original display string preserved in `metadata['original_display']`.
+
+2. **Resolver boundary** (`ScenarioFactResolverService`): defensive second layer in `resolveFromFact()` — if resolved fact is `w4.filing_status`, run through `PaystubFactExtractorService::normalizeW4FilingStatus()` before returning. Guards against any verbatim strings still in the DB from pre-fix writes.
+
+3. **Snapshot normalization** (`ScenarioFactResolverService`): `normaliseFilingStatus()` extended with `'married'` → `'married_joint'` and common abbreviations (`mfj/mfs/hoh`). Applied in `resolveFromSnapshot()` for the `filing_status` column — `IncomeOptimizationProfile` stores values from `UserFinancialProfile::tax_filing_status` which uses legacy bare `'married'`.
+
+4. **Artisan backfill** (`NormalizeW4FilingStatusCommand`): `optimizer:normalize-w4-filing-status [--user=ID] [--dry-run]` — idempotent migration for existing `is_current=true` facts with verbatim values. Run for user 1: fact id=29 migrated `"Married filing jointly (or Qualifying widow(er))"` → `"married_joint"`.
+
+**Live verification:** `ScenarioSolverService::assembleBaseline(user 1, 2026)` → `w4_on_file.filing_status: married_joint`, all three `solve()` objectives (take_home / tax_burden / retirement) complete without enum error.
+
+**Commits:** `b8492be`
+
+---
+
+### Fix 2 — Readiness lookup: confirmed facts were still blocking
+
+**Root cause:** `config/optimization-objectives.php` chain for `pay.gross_per_period_cents` was `['derive:paystub_gross_pay', 'derive:annual_gross_over_periods', 'ask']` — both derivations return null when the derivation-rule scaffolding is incomplete, so the chain fell through to `'ask'` (null). A confirmed `UserTaxFact` for this key was never read because `'fact'` was not in the chain.
+
+**Fixes:**
+- Added `'fact'` at position 2 of `pay.gross_per_period_cents` chain: `['derive:paystub_gross_pay', 'fact', 'derive:annual_gross_over_periods', 'ask']` — resolver now reads the confirmed fact before derivations.
+- Added `'prerequisite' => 'health.hsa_eligible'` to `hsa.ytd_contribution_cents` in both `take_home` and `tax_burden` objectives. When `health.hsa_eligible` resolves to `'no'` (or the profile `has_hsa=false`), the dependent fact flips to `not_applicable` instead of appearing as `blocking_missing`. Prevents non-HSA users from being gated on HSA contribution facts.
+
+**Live verification:** `pay.gross_per_period_cents` NO LONGER in `blocking_missing` for user 1's take_home/tax_burden objectives. `hsa.ytd_contribution_cents` NO LONGER blocking (flips to not_applicable).
+
+**Commits:** `4b73ea6`
+
+---
+
+### Fix 3 — D23 done-for-you Choices stage
+
+**D23 principle:** The app does everything it can automatically; it only asks the user for things it genuinely cannot compute.
+
+**Three changes:**
+
+**A — Backend `enqueue-gaps` batch endpoint:**
+- `OptimizationObjectiveController::enqueueAll()` (new method)
+- `POST /api/v1/optimizer/objectives/{year}/enqueue-gaps` — enqueues gap questions for ALL not-ready objectives in a single call. Returns union of enqueued fact keys.
+- Idempotent: objectives already ready are skipped; duplicate facts in union are deduplicated.
+
+**B — Frontend auto-enqueue on Choices mount:**
+- `Optimize/Index.tsx`: fire-once `useEffect` — when `viewMode === 'choices'` and `objectivesData` has loaded, POST `/enqueue-gaps` if any objective is not-ready. Fires only once per `objectivesData` load (`gapsEnqueued` gate). Non-fatal — catch is silent.
+- Replaced dead-end "Scenarios not yet computed. Complete the interview to unlock scenario comparison." with an inline `<InterviewCard>` — when `scenariosData.options.length === 0`, the interview renders inline in the Choices stage. The user answers questions where they already are; gaps auto-resolve.
+- `ObjectiveReadinessPanel`: removed `onEnqueue / enqueueing / enqueueError` props; removed "See your optimization options" button; dead-end footer copy replaced with "A few quick questions below will unlock your options" (with MessageSquare icon).
+
+**C — MixPanel demoted:**
+- `ScenarioMixPanel` moved inside a collapsible "Fine-tune this plan" expander (`ChevronDown/ChevronUp` toggle). Collapsed by default. Users who want knob-level control can expand; the default view is the scenario result cards.
+
+**Commits:** `c32bb0f`
+
+---
+
+### Fix 4 — Label + questions_to_unlock accuracy
+
+**Two fixes:**
+
+1. **`employer.federal_withholding` label:** Added label-only template entry to `question_templates` in `config/optimization-objectives.php`:
+   ```php
+   'employer.federal_withholding' => ['label' => 'Annual federal withholding'],
+   ```
+   This key is derived (not directly asked), so it has no `'question'` key — it only provides a human-readable label for display in `blocking_missing` arrays.
+
+2. **`questions_to_unlock` count:** `ObjectiveReadinessService` changed from checking for template presence (any key in `question_templates`) to checking for `question` key presence (`isset($templates[$key]['question'])`). Label-only template entries (like `employer.federal_withholding`) are excluded from the unlock count — they are never directly asked.
+
+**Commits:** `4b73ea6` (included with Fix 2)
+
+---
+
+### Gates Verified (Choices repair + D23)
+
+| Gate | Result |
+|------|--------|
+| `php artisan test` on new tests (23 tests) | 23 passed, 0 failed |
+| `npm run build` | Clean (5.87s), zero TypeScript errors |
+| `vendor/bin/pint --dirty` | Clean |
+| W4FilingStatusNormalizationTest (12 tests) | All 12 pass |
+| ChoicesStageRepairTest (11 tests) | All 11 pass |
+| D17 (zero new Claude calls) | Pass — all changes deterministic |
+| SAFE-03 (no dollar figures in narrative) | Pass — no amounts added to narrative payloads |
+| Scenario compute live (user 1, all 3 objectives) | All 3 succeed without enum error |
+| `pay.gross_per_period_cents` no longer blocking | Verified live |
+| `hsa.ytd_contribution_cents` not_applicable when has_hsa=false | Verified live |
+| W-4 filing_status: user 1 migrated → `married_joint` | Verified (currentFact id=29) |
+
+**Commits:** `b8492be` (Fix 1 — W-4 normalization), `4b73ea6` (Fix 2 + Fix 4 — readiness chain + labels), `c32bb0f` (Fix 3 — D23 done-for-you), `682184c` (tests)
