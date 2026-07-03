@@ -1123,6 +1123,15 @@ class TaxRulesEngineService
                 'illustration' => $illustration,
             ],
             'guards' => $guards,
+            // Baseline absolute values for BEFORE/AFTER display (Change 1 banner).
+            // These are the CURRENT-state values before any knob changes are applied.
+            // Additive — does not break existing consumers that read only the delta keys above.
+            'baseline_absolute' => [
+                'federal_tax_annual_cents' => $curTax,
+                'per_period_take_home_cents' => $curTakeHome,
+                'annual_contributions_cents' => $curContrib,
+                'employer_match_cents' => $curMatch,
+            ],
         ];
     }
 

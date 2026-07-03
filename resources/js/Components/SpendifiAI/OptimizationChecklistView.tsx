@@ -183,38 +183,141 @@ function knobIcon(knob: string): React.ReactNode {
 
 // ─── Header Aggregate Banner ──────────────────────────────────────────────────
 
+/**
+ * Formats a cents value with optional "k" abbreviation and no sign (for display values).
+ * Used in the before/after tiles where the sign context is the arrow.
+ */
+function fmtAbs(cents: number | undefined | null): string {
+  if (!cents && cents !== 0) return '—';
+  const abs = Math.abs(cents) / 100;
+  if (abs >= 1000) return `$${(abs / 1000).toFixed(1)}k`;
+  return `$${abs.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+}
+
+/**
+ * BEFORE → AFTER banner — Change 1.
+ *
+ * Each tile shows the CURRENT absolute value → ESTIMATED AFTER value, with the delta
+ * as a secondary line. Retirement uses the engine's futureValueRangeCents (always a range,
+ * D9.7 illustration rule: never a guaranteed figure).
+ *
+ * Falls back gracefully to delta-only display when baseline_absolute values are absent
+ * (e.g. checklist items materialized before this change).
+ */
 function HeaderAggregateBanner({ params }: { params: ChecklistBenefitParams | null }) {
   if (!params?.header_aggregate) return null;
   const agg = params.header_aggregate;
-  const takeHome = agg.take_home_annual_delta_cents;
-  const taxSavings = -(agg.federal_tax_annual_delta_cents); // negative = savings
-  const retirement = agg.retirement_contributions_delta_cents;
+
+  // Take-home: per-paycheck BEFORE → AFTER
+  const baselinePP = agg.baseline_per_period_take_home_cents;
+  const chosenPP = agg.chosen_per_period_take_home_cents;
+  const takeHomeDelta = agg.take_home_annual_delta_cents;
+  const hasTHAbsolute = baselinePP !== undefined && chosenPP !== undefined;
+
+  // Tax: annual BEFORE → AFTER
+  const baselineTax = agg.baseline_federal_tax_annual_cents;
+  const chosenTax = agg.chosen_federal_tax_annual_cents;
+  const taxDelta = agg.federal_tax_annual_delta_cents; // negative = savings
+  const hasTaxAbsolute = baselineTax !== undefined && chosenTax !== undefined;
+
+  // Retirement: FV range BEFORE → AFTER
+  const baseFv = agg.baseline_retirement_fv;
+  const chsnFv = agg.chosen_retirement_fv;
+  const retirementAge = agg.retirement_target_age;
+  const hasFvRange = baseFv !== null && baseFv !== undefined && chsnFv !== null && chsnFv !== undefined
+    && (baseFv.low_cents > 0 || chsnFv.low_cents > 0);
+  // Fall back to contribution delta if FV range not available
+  const retirementContribDelta = agg.retirement_contributions_delta_cents;
 
   return (
     <div className="rounded-2xl ring-1 ring-sw-accent/30 bg-sw-accent/5 p-4 mb-4">
-      <p className="text-[11px] font-semibold uppercase tracking-widest text-sw-accent mb-2">
-        Your optimization plan — estimated annual impact
+      <p className="text-[11px] font-semibold uppercase tracking-widest text-sw-accent mb-3">
+        Your optimization plan — estimated impact
       </p>
-      <div className="grid grid-cols-3 gap-3">
-        <div className="text-center">
-          <p className={`text-[22px] font-[800] font-tabular tracking-[-0.03em] leading-none ${takeHome > 0 ? 'text-sw-success' : takeHome < 0 ? 'text-sw-danger' : 'text-sw-muted'}`}>
-            {fmtCents(takeHome)}
-          </p>
-          <p className="text-[10px] text-sw-muted mt-0.5">take-home</p>
+      <div className="grid grid-cols-3 gap-2">
+
+        {/* Tile 1: Bring home */}
+        <div className="rounded-xl bg-white/60 ring-1 ring-sw-border/40 p-2.5 text-center">
+          <p className="text-[9px] font-semibold uppercase tracking-wider text-sw-muted mb-1.5">Bring home</p>
+          {hasTHAbsolute ? (
+            <>
+              <p className="text-[11px] text-sw-text-secondary font-tabular leading-none">
+                {fmtAbs(baselinePP)}<span className="mx-0.5 text-sw-muted">→</span>
+                <span className="font-semibold text-sw-text">{fmtAbs(chosenPP)}</span>
+                <span className="text-[9px] text-sw-muted">/check</span>
+              </p>
+              <p className={`text-[18px] font-[800] font-tabular tracking-[-0.03em] leading-none mt-1 ${takeHomeDelta > 0 ? 'text-sw-success' : takeHomeDelta < 0 ? 'text-sw-danger' : 'text-sw-muted'}`}>
+                {fmtCents(takeHomeDelta)}<span className="text-[10px] font-medium">/yr</span>
+              </p>
+            </>
+          ) : (
+            <p className={`text-[22px] font-[800] font-tabular tracking-[-0.03em] leading-none ${takeHomeDelta > 0 ? 'text-sw-success' : takeHomeDelta < 0 ? 'text-sw-danger' : 'text-sw-muted'}`}>
+              {fmtCents(takeHomeDelta)}
+            </p>
+          )}
+          <p className="text-[9px] text-sw-dim mt-0.5">per paycheck</p>
         </div>
-        <div className="text-center">
-          <p className={`text-[22px] font-[800] font-tabular tracking-[-0.03em] leading-none ${taxSavings > 0 ? 'text-sw-success' : taxSavings < 0 ? 'text-sw-danger' : 'text-sw-muted'}`}>
-            {taxSavings !== 0 ? `${taxSavings > 0 ? '+' : '−'}${fmtCents(Math.abs(taxSavings), false)}` : '—'}
-          </p>
-          <p className="text-[10px] text-sw-muted mt-0.5">tax savings</p>
+
+        {/* Tile 2: Tax */}
+        <div className="rounded-xl bg-white/60 ring-1 ring-sw-border/40 p-2.5 text-center">
+          <p className="text-[9px] font-semibold uppercase tracking-wider text-sw-muted mb-1.5">Est. tax</p>
+          {hasTaxAbsolute ? (
+            <>
+              <p className="text-[11px] text-sw-text-secondary font-tabular leading-none">
+                {fmtAbs(baselineTax)}<span className="mx-0.5 text-sw-muted">→</span>
+                <span className="font-semibold text-sw-text">{fmtAbs(chosenTax)}</span>
+              </p>
+              <p className={`text-[18px] font-[800] font-tabular tracking-[-0.03em] leading-none mt-1 ${taxDelta < 0 ? 'text-sw-success' : taxDelta > 0 ? 'text-sw-danger' : 'text-sw-muted'}`}>
+                {taxDelta !== 0 ? `${taxDelta < 0 ? '−' : '+'}${fmtAbs(Math.abs(taxDelta))}` : '—'}<span className="text-[10px] font-medium">/yr</span>
+              </p>
+            </>
+          ) : (
+            <>
+              <p className={`text-[22px] font-[800] font-tabular tracking-[-0.03em] leading-none ${(-taxDelta) > 0 ? 'text-sw-success' : (-taxDelta) < 0 ? 'text-sw-danger' : 'text-sw-muted'}`}>
+                {taxDelta !== 0 ? `${taxDelta < 0 ? '+' : '−'}${fmtAbs(Math.abs(taxDelta))}` : '—'}
+              </p>
+              <p className="text-[9px] text-sw-dim mt-0.5">savings/yr</p>
+            </>
+          )}
+          {hasTaxAbsolute && <p className="text-[9px] text-sw-dim mt-0.5">federal/yr</p>}
         </div>
-        <div className="text-center">
-          <p className={`text-[22px] font-[800] font-tabular tracking-[-0.03em] leading-none ${retirement > 0 ? 'text-sw-success' : retirement < 0 ? 'text-sw-danger' : 'text-sw-muted'}`}>
-            {fmtCents(retirement)}
+
+        {/* Tile 3: Retirement */}
+        <div className="rounded-xl bg-white/60 ring-1 ring-sw-border/40 p-2.5 text-center">
+          <p className="text-[9px] font-semibold uppercase tracking-wider text-sw-muted mb-1.5">
+            {retirementAge ? `At age ${retirementAge}` : 'Retirement'}
           </p>
-          <p className="text-[10px] text-sw-muted mt-0.5">retirement</p>
+          {hasFvRange ? (
+            <>
+              <p className="text-[9px] text-sw-text-secondary font-tabular leading-none">
+                ~{fmtAbs(baseFv!.low_cents)}–{fmtAbs(baseFv!.high_cents)}
+              </p>
+              <p className="text-[9px] text-sw-muted mx-0.5">→</p>
+              <p className="text-[11px] font-semibold text-sw-success font-tabular leading-none">
+                ~{fmtAbs(chsnFv!.low_cents)}–{fmtAbs(chsnFv!.high_cents)}
+              </p>
+              <p className="text-[9px] text-sw-dim mt-0.5">est. range</p>
+            </>
+          ) : (
+            <>
+              <p className={`text-[22px] font-[800] font-tabular tracking-[-0.03em] leading-none ${retirementContribDelta > 0 ? 'text-sw-success' : retirementContribDelta < 0 ? 'text-sw-danger' : 'text-sw-muted'}`}>
+                {fmtCents(retirementContribDelta)}
+              </p>
+              <p className="text-[9px] text-sw-dim mt-0.5">contrib/yr</p>
+            </>
+          )}
         </div>
+
       </div>
+
+      {/* D9.7 illustration assumptions line — always shown when FV range is present */}
+      {hasFvRange && chsnFv?.assumptions && chsnFv.assumptions.length > 0 && (
+        <p className="text-[9px] text-sw-dim mt-2 text-center leading-relaxed">
+          <span className="font-medium">Illustration only — not a guarantee.</span>{' '}
+          {`${(chsnFv.growth_rate_low * 100).toFixed(0)}%–${(chsnFv.growth_rate_high * 100).toFixed(0)}% annual growth assumed over ${chsnFv.horizon_years} years. Actual results vary.`}
+        </p>
+      )}
+
       <p className="text-[10px] text-sw-dim mt-2 text-center">
         Estimates only. Results could differ. Consider reviewing with a tax professional.
       </p>
@@ -344,10 +447,11 @@ function ChecklistCard({
             {title}
           </p>
         </div>
-        {/* Exact instruction with concrete numbers (owner mandate) */}
+        {/* Exact instruction with concrete numbers (owner mandate).
+            Change 2: matches title font size/weight; prefixed with "TODO: " */}
         {instruction && !isDone && (
-          <p className="text-[12px] text-sw-text-secondary leading-relaxed mt-1.5">
-            {instruction}
+          <p className="text-[13px] font-semibold text-sw-text leading-tight mt-1">
+            <span className="text-sw-accent">TODO: </span>{instruction}
           </p>
         )}
         {/* Benefit amount — §3.11 born-premium: text-[22px] font-[800] */}

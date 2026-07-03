@@ -468,10 +468,26 @@ final class ScenarioSolverService
             $ftDelta = $singleOutcome['federal_tax']['annual_delta_cents'];
             $rcDelta = $singleOutcome['retirement']['annual_contributions_delta_cents'];
 
+            // Provide nested structure that buildBenefitParams reads (Coordinator Change 3 fix):
+            // per-paycheck delta, employer match delta, and retirement illustration per dimension.
             $knobAttrs[$dim] = [
+                // Flat keys (backward compat)
                 'take_home_annual_delta_cents' => $thDelta,
                 'federal_tax_annual_delta_cents' => $ftDelta,
                 'retirement_contributions_delta_cents' => $rcDelta,
+                // Nested keys for ScenarioChecklistService::buildBenefitParams()
+                'take_home' => [
+                    'annual_delta_cents' => $thDelta,
+                    'per_paycheck_delta_cents' => $singleOutcome['take_home']['per_paycheck_delta_cents'],
+                ],
+                'federal_tax' => [
+                    'annual_delta_cents' => $ftDelta,
+                ],
+                'retirement' => [
+                    'annual_contributions_delta_cents' => $rcDelta,
+                    'employer_match_delta_cents' => $singleOutcome['retirement']['employer_match_delta_cents'],
+                    'illustration' => $singleOutcome['retirement']['illustration'],
+                ],
             ];
 
             $sumTH += $thDelta;
@@ -484,15 +500,56 @@ final class ScenarioSolverService
         $interFT = $totalFT - $sumFT;
         $interRC = $totalRC - $sumRC;
 
+        // ── Absolute baseline values for BEFORE/AFTER banner (Change 1) ──────
+        $baselineAbs = $total['baseline_absolute'] ?? [];
+        $periods = max(1, (int) ($baseline['pay_periods_per_year'] ?? 26));
+        $totalPPDelta = $total['take_home']['per_paycheck_delta_cents'] ?? 0;
+
+        $baselineTHPerPeriod = (int) ($baselineAbs['per_period_take_home_cents'] ?? 0);
+        $chosenTHPerPeriod = $baselineTHPerPeriod + (int) $totalPPDelta;
+
+        $baselineFedTaxAnnual = (int) ($baselineAbs['federal_tax_annual_cents'] ?? 0);
+        $chosenFedTaxAnnual = $baselineFedTaxAnnual + (int) $totalFT;
+
+        // Retirement FV range: project BOTH baseline and chosen to target age (D9.7 illustration).
+        $curAge = $baseline['age'] ?? null;
+        $targetAge = $baseline['target_retirement_age'] ?? null;
+        $horizon = ($curAge !== null && $targetAge !== null) ? max(0, (int) $targetAge - (int) $curAge) : 0;
+
+        $curAnnualContrib = (int) ($baselineAbs['annual_contributions_cents'] ?? 0)
+            + (int) ($baselineAbs['employer_match_cents'] ?? 0);
+        $totalMatchDelta = (int) ($total['retirement']['employer_match_delta_cents'] ?? 0);
+        $chosenAnnualContrib = $curAnnualContrib
+            + (int) $totalRC
+            + $totalMatchDelta;
+
+        $baselineRetirementFv = ($horizon > 0 && $curAnnualContrib > 0)
+            ? $this->engine->futureValueRangeCents(max(0, $curAnnualContrib), $horizon, $year)
+            : null;
+        $chosenRetirementFv = ($horizon > 0)
+            ? $this->engine->futureValueRangeCents(max(0, $chosenAnnualContrib), $horizon, $year)
+            : null;
+
         return [
             'knobs' => $knobAttrs,
             'header_aggregate' => [
+                // Existing delta keys (backward compat)
                 'take_home_annual_delta_cents' => $totalTH,
                 'federal_tax_annual_delta_cents' => $totalFT,
                 'retirement_contributions_delta_cents' => $totalRC,
                 'interaction_remainder_take_home_cents' => $interTH,
                 'interaction_remainder_federal_tax_cents' => $interFT,
                 'interaction_remainder_retirement_cents' => $interRC,
+                // BEFORE/AFTER absolute values for banner (Change 1)
+                'baseline_per_period_take_home_cents' => $baselineTHPerPeriod,
+                'chosen_per_period_take_home_cents' => $chosenTHPerPeriod,
+                'baseline_federal_tax_annual_cents' => $baselineFedTaxAnnual,
+                'chosen_federal_tax_annual_cents' => $chosenFedTaxAnnual,
+                // Retirement FV illustration (D9.7: always a range, never a guarantee)
+                'baseline_retirement_fv' => $baselineRetirementFv,
+                'chosen_retirement_fv' => $chosenRetirementFv,
+                'retirement_target_age' => $targetAge,
+                'retirement_horizon_years' => $horizon,
             ],
         ];
     }

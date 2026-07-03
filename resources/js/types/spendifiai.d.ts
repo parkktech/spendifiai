@@ -1353,12 +1353,37 @@ export interface ChecklistBenefitParams {
 
   // Header aggregate (nested in header item's benefit_line_params)
   header_aggregate?: {
+    // Delta keys (backward compat)
     take_home_annual_delta_cents: number;
     federal_tax_annual_delta_cents: number;
     retirement_contributions_delta_cents: number;
     interaction_remainder_take_home_cents: number;
     interaction_remainder_federal_tax_cents: number;
     interaction_remainder_retirement_cents: number;
+    // BEFORE/AFTER absolute values (Change 1 banner)
+    baseline_per_period_take_home_cents?: number;
+    chosen_per_period_take_home_cents?: number;
+    baseline_federal_tax_annual_cents?: number;
+    chosen_federal_tax_annual_cents?: number;
+    // Retirement FV illustration (D9.7: always a range)
+    baseline_retirement_fv?: {
+      low_cents: number;
+      high_cents: number;
+      horizon_years: number;
+      growth_rate_low: number;
+      growth_rate_high: number;
+      assumptions: string[];
+    } | null;
+    chosen_retirement_fv?: {
+      low_cents: number;
+      high_cents: number;
+      horizon_years: number;
+      growth_rate_low: number;
+      growth_rate_high: number;
+      assumptions: string[];
+    } | null;
+    retirement_target_age?: number | null;
+    retirement_horizon_years?: number;
   };
   action_count?: number;
   option_key?: string;
