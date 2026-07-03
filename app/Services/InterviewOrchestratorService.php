@@ -98,15 +98,20 @@ class InterviewOrchestratorService
     /**
      * D20 — format version stamp.
      *
-     * Bump this constant to invalidate pre-D20 sessions on next startOrResume().
-     * The stale-queue self-heal rebuilds the queue with tier+eligibility ordering.
+     * Bump this constant to invalidate sessions built under an older schema on next
+     * startOrResume(). The stale-queue self-heal rebuilds the queue and, from v3,
+     * also resets the asked[] array so orphaned asked-but-unanswered keys become
+     * re-enqueable (fixes "Review complete" dead-end for polluted pre-fix sessions).
      *
      * Version history:
      *   0 (null) — pre-D18, legacy queue order
      *   1         — D18: escape hatch, pattern aggregation
      *   2         — D20: eligibility predicates + tier ordering + format_version stamp
+     *   3         — stale-session self-heal: asked[] cleared on upgrade so orphaned
+     *               asked-but-unanswered gap keys can re-enter the queue; isAlreadyAnswered()
+     *               prevents confirmed facts from being re-served.
      */
-    public const FORMAT_VERSION = 2;
+    public const FORMAT_VERSION = 3;
 
     /**
      * D20 — question tier definitions (1 = highest priority, 4 = lowest).
@@ -205,11 +210,22 @@ class InterviewOrchestratorService
     public function __construct(
         private readonly ScenarioFactResolverService $resolver = new ScenarioFactResolverService,
         private readonly FindingPatternQuestionService $patterns = new FindingPatternQuestionService,
+        // Stateless gap serving — injected lazily to avoid circular dependency during bootstrap.
+        // Resolved on first call to nextQuestion() when objectives are still locked.
+        private ?ObjectiveReadinessService $readinessService = null,
     ) {
         // §A.4.3: merge config prerequisite pairs with the shipped const gate map.
         // array_merge order → GATED_PROBES (const) wins on key collision.
         $configPrereqs = (array) config('optimization-objectives.prerequisites', []);
         $this->gateMap = array_merge($configPrereqs, self::GATED_PROBES);
+    }
+
+    /**
+     * Lazy-resolve the readiness service to avoid circular dependency during DI bootstrap.
+     */
+    private function readiness(): ObjectiveReadinessService
+    {
+        return $this->readinessService ??= app(ObjectiveReadinessService::class);
     }
 
     // ─── Session Lifecycle ────────────────────────────────────────────────────
@@ -240,18 +256,29 @@ class InterviewOrchestratorService
         if ($session !== null) {
             $session->activate(); // idempotent: in_progress stays in_progress
 
-            // D20 format_version check: if the session was built with an older format,
-            // force a queue rebuild with the new tier+eligibility ordering.
-            // The session history (asked[], transcript) is preserved; only queue is rebuilt.
+            // format_version check: if the session was built with an older format,
+            // force a full queue rebuild. From v3 we also reset asked[] so that keys
+            // which were served (asked) but never answered (no UserTaxFact) can
+            // re-enter the queue — this eliminates the "Review complete" dead-end for
+            // polluted pre-fix sessions (stale-session self-heal, owner incident Jul 2026).
             $sessionVersion = (int) ($session->format_version ?? 0);
             if ($sessionVersion < self::FORMAT_VERSION) {
-                $session->update(['queue' => [], 'format_version' => self::FORMAT_VERSION]);
+                $updatePayload = ['queue' => [], 'format_version' => self::FORMAT_VERSION];
+
+                // v3 upgrade: clear asked[] so orphaned asked-but-unanswered keys become
+                // re-enqueable. isAlreadyAnswered() prevents confirmed facts being re-served.
+                if ($sessionVersion < 3) {
+                    $updatePayload['asked'] = [];
+                }
+
+                $session->update($updatePayload);
                 $session->refresh();
-                Log::info('InterviewOrchestratorService: format_version upgraded — queue cleared for rebuild', [
+                Log::info('InterviewOrchestratorService: format_version upgraded', [
                     'user_id' => $userId,
                     'session_id' => $session->id,
                     'old_version' => $sessionVersion,
                     'new_version' => self::FORMAT_VERSION,
+                    'asked_reset' => $sessionVersion < 3,
                 ]);
             }
 
@@ -634,6 +661,11 @@ class InterviewOrchestratorService
      * 5. Create AIQuestion(Optimization), record in asked[], return
      *
      * Returns null if queue is empty (session moves to completed).
+     *
+     * NOTE: This method handles FINDING-BACKED and BATTERY questions from the
+     * session queue. Gap questions (for locked objectives) are handled by the
+     * stateless nextGapQuestion() method called by InterviewController::next()
+     * after this method returns null.
      */
     public function nextQuestion(InterviewSession $session): ?AIQuestion
     {
@@ -649,7 +681,7 @@ class InterviewOrchestratorService
             $session->update(['queue' => $queue]);
 
             // INT-04: prerequisite gating — skip if prerequisite not yet answered
-            if ($this->isPrerequisiteUnsatisfied($factKey, $session->user_id)) {
+            if ($this->isPrerequisiteUnsatisfied($factKey, $session->user_id, $session->tax_year)) {
                 Log::info('InterviewOrchestratorService: prerequisite not met, skipping', [
                     'fact_key' => $factKey,
                     'user_id' => $session->user_id,
@@ -693,7 +725,10 @@ class InterviewOrchestratorService
             }
         }
 
-        // Queue exhausted — complete the session
+        // Queue exhausted — complete the session (for finding-backed flow)
+        // Note: the controller will subsequently call nextGapQuestion() to check
+        // for remaining gap facts from readiness; completion here is soft and
+        // may be overridden by the COMPLETE-CANNOT-LIE guard in nextGapQuestion.
         if ($session->status !== 'completed') {
             $session->complete();
         }
@@ -702,10 +737,302 @@ class InterviewOrchestratorService
     }
 
     /**
+     * STATELESS GAP SERVING — Coordinator mandate.
+     *
+     * Derives the next gap question directly from readiness() without consulting
+     * the session queue. This makes staleness impossible by construction:
+     * - A fact answered between requests is immediately excluded (fact store check)
+     * - An abandoned-but-asked question re-serves naturally (no asked[] gate)
+     * - Session completion only occurs when ALL objectives are confirmed ready
+     *   (COMPLETE-CANNOT-LIE invariant)
+     *
+     * Called by InterviewController::next() AFTER nextQuestion() returns null.
+     * Handles the gap-question path; finding-backed questions remain in nextQuestion().
+     *
+     * @return array{question: ?AIQuestion, all_ready: bool, stalled_key: ?string}
+     */
+    public function nextGapQuestion(InterviewSession $session): array
+    {
+        $taxYear = (int) $session->tax_year;
+        $userId = $session->user_id;
+        $skipped = $session->skipped ?? [];
+
+        // ── 1. Derive blocking fact keys from readiness ──────────────────────
+        $readinessData = $this->readiness()->readiness($session->user, $taxYear);
+        $blockingKeys = $this->deriveBlockingKeys($readinessData);
+        $allObjectivesReady = empty(array_filter($readinessData, fn ($r) => ! $r['ready']));
+
+        // ── 2. Iterate blocking keys — serve the first answerable one ────────
+        $stalledKey = null;
+        foreach ($blockingKeys as $factKey) {
+            if (in_array($factKey, $skipped, true)) {
+                continue; // session-level skip
+            }
+
+            if ($this->isPrerequisiteUnsatisfied($factKey, $userId, $taxYear)) {
+                // When the prerequisite itself is the next unblocking key, make sure
+                // we eventually serve it (it should appear earlier in blockingKeys if
+                // the readiness service lists it; if not, the AI fallback will catch it).
+                continue;
+            }
+
+            if ($this->isAlreadyAnswered($factKey, $userId)) {
+                continue;
+            }
+
+            if ($this->targetFactsConfirmed($factKey, $userId, $taxYear)) {
+                $this->expireByFactGate($factKey, $userId);
+
+                continue;
+            }
+
+            $question = $this->createOptimizationQuestion($session, $factKey);
+            if ($question !== null) {
+                return ['question' => $question, 'all_ready' => false, 'stalled_key' => null];
+            }
+
+            if ($stalledKey === null) {
+                $stalledKey = $factKey; // no template — AI fallback candidate
+            }
+        }
+
+        // ── 3. AI DEAD-END FALLBACK ─────────────────────────────────────────
+        if (! $allObjectivesReady && $stalledKey !== null) {
+            $lockedObjectives = array_filter($readinessData, fn ($r) => ! $r['ready']);
+            $synthesised = $this->synthesiseGapQuestion($session, $stalledKey, $lockedObjectives, $readinessData);
+            if ($synthesised !== null) {
+                return ['question' => $synthesised, 'all_ready' => false, 'stalled_key' => $stalledKey];
+            }
+        }
+
+        // ── 4. COMPLETE-CANNOT-LIE invariant ────────────────────────────────
+        if (! $allObjectivesReady) {
+            Log::warning('InterviewOrchestratorService: no servable question for locked objectives', [
+                'user_id' => $userId,
+                'tax_year' => $taxYear,
+                'locked_objectives' => array_keys(array_filter($readinessData, fn ($r) => ! $r['ready'])),
+                'stalled_key' => $stalledKey,
+            ]);
+        } elseif ($session->status !== 'completed') {
+            $session->complete();
+        }
+
+        return ['question' => null, 'all_ready' => $allObjectivesReady, 'stalled_key' => $stalledKey];
+    }
+
+    /**
+     * Collect blocking fact keys from readiness data in tier-priority order.
+     * Keys from Tier 1 objectives come first; within each tier, they appear
+     * in the order the objective spec defines them (already priority-sorted by
+     * ObjectiveReadinessService).
+     *
+     * @param  array  $readinessData  Return value of ObjectiveReadinessService::readiness()
+     * @return string[]
+     */
+    private function deriveBlockingKeys(array $readinessData): array
+    {
+        $keys = [];
+        foreach ($readinessData as $readiness) {
+            if ($readiness['ready']) {
+                continue; // skip ready objectives
+            }
+            foreach ($readiness['blocking_missing'] ?? [] as $entry) {
+                $key = $entry['fact_key'] ?? null;
+                if ($key !== null && ! in_array($key, $keys, true)) {
+                    $keys[] = $key;
+                }
+            }
+        }
+
+        // Stable sort by FACT_TIER_MAP (tier-ASC, preserve order within tier)
+        usort($keys, function (string $a, string $b) {
+            $ta = self::FACT_TIER_MAP[$a] ?? 99;
+            $tb = self::FACT_TIER_MAP[$b] ?? 99;
+
+            return $ta <=> $tb;
+        });
+
+        return $keys;
+    }
+
+    /**
+     * AI DEAD-END FALLBACK — Coordinator mandate.
+     *
+     * Called when a blocking fact key has no template in the registry.
+     * Calls the wording tier (haiku, D17-counted) to synthesise a question.
+     * Caches the stalled-state per session (once per stranded-state) to avoid
+     * hammering the API on rapid retries.
+     *
+     * @param  string  $stalledKey  The blocking fact key with no template
+     * @param  array  $lockedObjectives  Locked objectives from readiness()
+     * @param  array  $readinessData  Full readiness data for context
+     */
+    private function synthesiseGapQuestion(
+        InterviewSession $session,
+        string $stalledKey,
+        array $lockedObjectives,
+        array $readinessData,
+    ): ?AIQuestion {
+        $userId = $session->user_id;
+        $taxYear = (int) $session->tax_year;
+
+        // Idempotency: one AI call per stalled key per session (cache the result for 30 min)
+        $cacheKey = "interview:gap-synthesis:{$session->id}:{$stalledKey}";
+        if (Cache::has($cacheKey)) {
+            // Already synthesised — check if the existing question is still pending
+            $existing = AIQuestion::where('user_id', $userId)
+                ->where('question_type', QuestionType::Optimization->value)
+                ->where('ai_best_guess', $stalledKey)
+                ->where('status', QuestionStatus::Pending->value)
+                ->first();
+
+            return $existing;
+        }
+
+        Log::warning('InterviewOrchestratorService: TEMPLATE GAP — no template for blocking key, triggering AI synthesis', [
+            'user_id' => $userId,
+            'tax_year' => $taxYear,
+            'stalled_key' => $stalledKey,
+            'locked_objectives' => array_keys($lockedObjectives),
+        ]);
+
+        // Build context for the AI synthesis call
+        $lockedLabels = array_map(
+            fn ($obj) => $obj['label'] ?? 'unknown objective',
+            array_values($lockedObjectives)
+        );
+
+        $missingFactLabels = [];
+        foreach ($lockedObjectives as $readiness) {
+            foreach ($readiness['blocking_missing'] ?? [] as $entry) {
+                if (($entry['fact_key'] ?? '') === $stalledKey) {
+                    $missingFactLabels[] = $entry['label'] ?? $stalledKey;
+                }
+            }
+        }
+        $missingFactLabel = $missingFactLabels[0] ?? $stalledKey;
+
+        // Collect known sibling facts for D18 context enrichment
+        $siblingFacts = [];
+        $templates = (array) config('optimization-objectives.question_templates', []);
+        foreach ($templates as $fk => $tpl) {
+            if ($fk === $stalledKey) {
+                continue;
+            }
+            $fact = UserTaxFact::currentFact($userId, $fk);
+            if ($fact !== null) {
+                $label = $tpl['label'] ?? $fk;
+                $siblingFacts[] = "{$label}: confirmed";
+                if (count($siblingFacts) >= 5) {
+                    break; // cap context to 5 sibling facts
+                }
+            }
+        }
+
+        // D17 wording-tier call (haiku — budget-capped)
+        try {
+            $anthropicKey = config('services.anthropic.key') ?? env('ANTHROPIC_API_KEY');
+            if (empty($anthropicKey)) {
+                Log::error('InterviewOrchestratorService: ANTHROPIC_API_KEY not set — cannot synthesise gap question');
+
+                return null;
+            }
+
+            $prompt = implode("\n", [
+                'You are building a single tax-optimization interview question for a financial app.',
+                'The user\'s goal: unlock these objectives: '.implode(', ', $lockedLabels).'.',
+                'We need to ask about: '.$missingFactLabel.' (fact key: '.$stalledKey.').',
+                'Known context from other answered questions: '.(empty($siblingFacts) ? 'none' : implode('; ', $siblingFacts)).'.',
+                '',
+                'Write ONE concise, plain-English question (≤2 sentences) and 3-5 answer choices.',
+                'The question MUST NOT mention internal fact key names, dollar amounts, or system terms.',
+                'Use educational, non-assertive framing ("have you", "do you", "are you").',
+                'Return JSON: {"question": "...", "choices": [{"value":"...","label":"..."}], "context": "..."}',
+                'The context field (1 sentence) explains WHY we are asking (D18 "Why we\'re asking").',
+                'Always include a "Not applicable / none" or "I\'m not sure" choice.',
+            ]);
+
+            $response = Http::withHeaders(['x-api-key' => $anthropicKey])
+                ->timeout(15)
+                ->post('https://api.anthropic.com/v1/messages', [
+                    'model' => 'claude-haiku-4-5',
+                    'max_tokens' => 512,
+                    'messages' => [['role' => 'user', 'content' => $prompt]],
+                ]);
+
+            if (! $response->successful()) {
+                Log::warning('InterviewOrchestratorService: AI synthesis call failed', [
+                    'status' => $response->status(),
+                    'stalled_key' => $stalledKey,
+                ]);
+
+                return null;
+            }
+
+            $content = $response->json('content.0.text', '');
+            $jsonStart = strpos($content, '{');
+            $jsonEnd = strrpos($content, '}');
+            if ($jsonStart === false || $jsonEnd === false) {
+                Log::warning('InterviewOrchestratorService: AI synthesis returned non-JSON', ['stalled_key' => $stalledKey]);
+
+                return null;
+            }
+
+            $parsed = json_decode(substr($content, $jsonStart, $jsonEnd - $jsonStart + 1), true);
+            if (! is_array($parsed) || empty($parsed['question'])) {
+                return null;
+            }
+
+            // Build choices (D18 format)
+            $choices = [];
+            foreach ($parsed['choices'] ?? [] as $choice) {
+                if (is_array($choice) && isset($choice['value'], $choice['label'])) {
+                    $choices[] = ['value' => $choice['value'], 'label' => $choice['label']];
+                } elseif (is_string($choice)) {
+                    $choices[] = ['value' => strtolower(str_replace(' ', '_', $choice)), 'label' => $choice];
+                }
+            }
+
+            // Create the synthesised AIQuestion
+            $question = AIQuestion::create([
+                'user_id' => $userId,
+                'status' => QuestionStatus::Pending->value,
+                'question_type' => QuestionType::Optimization->value,
+                'question' => $parsed['question'],
+                'options' => [
+                    'answer_type' => 'choice',
+                    'choices' => $choices,
+                    'context' => $parsed['context'] ?? null,
+                    'band' => 'conditional',
+                    'ai_synthesised' => true,
+                    'synthesised_from' => $stalledKey,
+                ],
+                'ai_confidence' => 0.70, // conditional band
+                'ai_best_guess' => $stalledKey,
+                'ai_category' => null,
+                'transaction_id' => null,
+            ]);
+
+            // Cache to avoid re-synthesis on next request (30 min window)
+            Cache::put($cacheKey, $question->id, 1800);
+
+            return $question;
+
+        } catch (\Throwable $e) {
+            Log::error('InterviewOrchestratorService: AI synthesis threw exception', [
+                'error' => $e->getMessage(),
+                'stalled_key' => $stalledKey,
+            ]);
+
+            return null;
+        }
+    }
+
+    /**
      * Check INT-04 prerequisite gating.
      * Returns true if the probe should be SKIPPED because its prerequisite is unmet.
      */
-    private function isPrerequisiteUnsatisfied(string $factKey, int $userId): bool
+    private function isPrerequisiteUnsatisfied(string $factKey, int $userId, ?int $taxYear = null): bool
     {
         // §A.4.3: use the merged gate map (config prerequisites ∪ GATED_PROBES).
         $prerequisite = $this->gateMap[$factKey] ?? null;
@@ -713,10 +1040,14 @@ class InterviewOrchestratorService
             return false; // no gate → allow
         }
 
-        // Check if the prerequisite fact is confirmed in UserTaxFact
-        $fact = UserTaxFact::currentFact($userId, $prerequisite);
+        // Check non-scoped (permanent / stable volatility) fact first.
+        // Document-extracted facts (e.g. employer.has_401k from paystub) are often
+        // stored WITH a tax_year scope. currentFact() without taxYear misses them,
+        // causing the dependent question to be incorrectly gated. Check both scopes.
+        $fact = UserTaxFact::currentFact($userId, $prerequisite)
+            ?? ($taxYear !== null ? UserTaxFact::currentFact($userId, $prerequisite, null, $taxYear) : null);
 
-        return $fact === null; // gated if prerequisite not confirmed
+        return $fact === null; // gated if prerequisite not confirmed in either scope
     }
 
     /**
