@@ -184,9 +184,17 @@ class UserTaxFact extends Model
     ): self {
         $isProposal = $sourceType === 'document_extraction';
 
+        // user_edit IS the strongest confirmation tier — set confirmed_at immediately so
+        // confirmed-tier queries (QuestionRetirementService, resolve confirmed flag) pick
+        // it up without a separate confirm step. interview_answer and profile_field are
+        // equivalently self-confirmed (the act of writing them IS the user's assent).
+        $selfConfirmedTypes = ['user_edit', 'interview_answer', 'profile_field', 'detector'];
+        $isSelfConfirmed = in_array($sourceType, $selfConfirmedTypes, true);
+
         return DB::transaction(function () use (
             $userId, $factKey, $value, $sourceType, $label, $volatility,
-            $reconfirmAfter, $taxYear, $entityId, $sourceId, $metadata, $isProposal
+            $reconfirmAfter, $taxYear, $entityId, $sourceId, $metadata, $isProposal,
+            $isSelfConfirmed
         ) {
             // Acquire row lock on the current non-proposal fact for this key tuple.
             // This prevents concurrent inserts from racing past the partial unique index.
@@ -250,7 +258,10 @@ class UserTaxFact extends Model
                 'source_type' => $sourceType,
                 'source_id' => $sourceId,
                 'asserted_at' => now(),
-                'confirmed_at' => null,  // Always null on creation; confirmProposal() sets this
+                // Self-confirmed source types (user_edit, interview_answer, profile_field,
+                // detector) are confirmed at write time — the write IS the assent.
+                // document_extraction proposals stay null until confirmProposal() is called.
+                'confirmed_at' => $isSelfConfirmed ? now() : null,
                 'metadata' => empty($storedMetadata) ? null : $storedMetadata,
                 // Proposals are not current; all other source types are current
                 'is_current' => ! $isProposal,

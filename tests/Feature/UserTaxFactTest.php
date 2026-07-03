@@ -207,7 +207,8 @@ it('provenance_round_trip: source_type, source_id, asserted_at, and confirmed_at
     expect($found->volatility)->toBe('annual');
     expect($found->tax_year)->toBe(2025);
     expect($found->asserted_at)->not->toBeNull();
-    expect($found->confirmed_at)->toBeNull();  // interview_answer needs no confirmation
+    // interview_answer IS the user's assent — confirmed_at is set at write time (Item 2 fix)
+    expect($found->confirmed_at)->not->toBeNull();
 
     // Value round-trips through encryption
     expect((int) $found->value)->toBe(750000);
@@ -302,4 +303,75 @@ it('retirement_multi_account: roth_ytd_cents and traditional_ytd_cents coexist a
     // (multi-account facts live in UserTaxFact; the snapshot ira_type is a single legacy string)
     $profileModel = UserFinancialProfile::where('user_id', $user->id)->first();
     expect($profileModel)->toBeNull(); // no profile created in this test — correct behaviour
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Item 2: user_edit facts must be confirmed-tier (confirmed_at set at write time)
+// ─────────────────────────────────────────────────────────────────────────────
+
+it('user_edit_confirmed_tier: user_edit facts have confirmed_at set on creation', function () {
+    $user = User::factory()->create();
+
+    $fact = UserTaxFact::recordFact(
+        userId: $user->id,
+        factKey: 'w4.filing_status',
+        value: 'married',
+        sourceType: 'user_edit',
+    );
+
+    expect($fact->confirmed_at)->not->toBeNull()
+        ->and($fact->is_current)->toBeTrue()
+        ->and($fact->source_type)->toBe('user_edit');
+
+    // confirmed_at is approximately now (within 5 seconds)
+    expect($fact->confirmed_at->diffInSeconds(now()))->toBeLessThan(5);
+});
+
+it('interview_answer_confirmed_tier: interview_answer facts have confirmed_at set on creation', function () {
+    $user = User::factory()->create();
+
+    $fact = UserTaxFact::recordFact(
+        userId: $user->id,
+        factKey: 'profile.filing_status',
+        value: 'mfj',
+        sourceType: 'interview_answer',
+    );
+
+    expect($fact->confirmed_at)->not->toBeNull()
+        ->and($fact->is_current)->toBeTrue();
+});
+
+it('document_extraction_proposal_still_unconfirmed: document_extraction keeps confirmed_at=null', function () {
+    $user = User::factory()->create();
+
+    $proposal = UserTaxFact::recordFact(
+        userId: $user->id,
+        factKey: 'retirement.traditional_401k_ytd_cents',
+        value: '150000',
+        sourceType: 'document_extraction',
+    );
+
+    expect($proposal->confirmed_at)->toBeNull()
+        ->and($proposal->is_current)->toBeFalse();
+});
+
+it('user_edit_visible_to_confirmed_tier_queries: user_edit facts feed QuestionRetirementService', function () {
+    $user = User::factory()->create();
+
+    UserTaxFact::recordFact(
+        userId: $user->id,
+        factKey: 'pay.frequency',
+        value: 'biweekly',
+        sourceType: 'user_edit',
+        sourceId: 'doc:99',
+    );
+
+    // Emulate QuestionRetirementService query (confirmed_at IS NOT NULL)
+    $retiredKeys = UserTaxFact::where('user_id', $user->id)
+        ->where('source_type', 'user_edit')
+        ->whereNotNull('confirmed_at')
+        ->pluck('fact_key')
+        ->toArray();
+
+    expect($retiredKeys)->toContain('pay.frequency');
 });
