@@ -266,3 +266,7 @@ Owner asked: "Can I add E-File to this system with the IRS?" Answer recorded: po
 ## Non-negotiables that still apply
 
 Educational-only framing on every mismatch surface; additive migrations only; no changes to existing `UserFinancialProfile` API responses or `EnhancedProfileSection` behavior (extend, don't alter); encrypted TEXT + `$hidden` for sensitive new fields; all dollar math in TaxRulesEngineService from config.
+
+## Decision 23 — Done-for-you (owner, 2026-07-02): "The goal of this system is a done-for-you system. They shouldn't have to model things."
+
+Binding on the Choices stage + all optimization surfaces: (1) scenarios AUTO-COMPUTE the moment readiness is met — no "click to generate" ceremony; the user arrives to Options A/B/Balanced already computed as cards with plain-language trade-offs; (2) readiness gaps AUTO-ENQUEUE their questions INLINE at the Choices stage (via the existing enqueueGaps path) — never a "complete the interview" dead-end pointing at an empty interview; (3) Mix & Model knobs are DEMOTED to a collapsed "Fine-tune this plan" expander under the chosen option — an escape hatch for power users, never the primary interface; (4) value normalization at every boundary: extraction writes ENUM values (typed conversion at fact-write), engines never see display strings.
