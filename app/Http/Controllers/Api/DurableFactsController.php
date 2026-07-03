@@ -52,10 +52,13 @@ class DurableFactsController extends Controller
 
         // Proposals: also load 'value' (encrypted, never serialised) + 'source_id'
         // so we can compute display_value and source_label server-side.
+        // whereNull('superseded_by_id'): proposals resolved via confirm-with-correction
+        // (fix 1b) are linked to the winning user_edit fact and leave the list.
         $proposalRows = UserTaxFact::forUser($userId)
             ->where('is_current', false)
             ->where('source_type', 'document_extraction')
             ->whereNull('confirmed_at')
+            ->whereNull('superseded_by_id')
             ->orderBy('label')
             ->orderByDesc('created_at')
             ->get([...$confirmedFields, 'value', 'source_id']);
@@ -177,17 +180,114 @@ class DurableFactsController extends Controller
      */
     public function confirm(Request $request, UserTaxFact $fact): JsonResponse
     {
+        $request->validate([
+            'value' => 'nullable|string|max:500',
+        ]);
+
         // Owner-only authorization
         if ($fact->user_id !== $request->user()->id) {
             abort(403, 'You are not authorized to confirm this fact.');
         }
 
+        $correctedValue = $request->input('value');
+
+        // ── Confirm-with-correction (owner UX fix 1b) ─────────────────────────
+        // The user reviewed the document proposal and typed a corrected value.
+        // D4 semantics: the user's value WINS. It is written through recordFact()
+        // with source_type='user_edit' (becomes current, supersedes any prior
+        // current fact for the key tuple). The original proposal is marked
+        // resolved (superseded_by_id → corrected fact) so it leaves the
+        // proposals list, and the document linkage is preserved in metadata.
+        if ($correctedValue !== null && trim($correctedValue) !== '') {
+            if ($fact->source_type !== 'document_extraction') {
+                return response()->json([
+                    'message' => 'Only document suggestions can be corrected here.',
+                ], 422);
+            }
+
+            if ($fact->confirmed_at !== null) {
+                return response()->json([
+                    'message' => 'This suggestion has already been confirmed.',
+                ], 422);
+            }
+
+            // Typed conversion per the fact's type — money / int / string.
+            // Returns [storedValue, null] on success or [null, specificError].
+            [$storedValue, $typeError] = $this->normalizeCorrectedValue($fact->fact_key, trim($correctedValue));
+            if ($typeError !== null) {
+                return response()->json(['message' => $typeError], 422);
+            }
+
+            $newFact = UserTaxFact::recordFact(
+                userId: $fact->user_id,
+                factKey: $fact->fact_key,
+                value: $storedValue,
+                sourceType: 'user_edit',
+                label: $fact->label,
+                volatility: $fact->volatility,
+                taxYear: $fact->tax_year,
+                entityId: $fact->entity_id,
+                sourceId: $fact->source_id,
+                metadata: [
+                    // Provenance: this user_edit corrected a document proposal.
+                    'corrected_from_proposal_id' => $fact->id,
+                    'document_id' => $fact->metadata['document_id'] ?? $fact->source_id,
+                ],
+            );
+
+            // Resolve the proposal: it was answered by the correction, not confirmed
+            // as-extracted. superseded_by_id links it to the winning fact and removes
+            // it from the proposals list (index() filters resolved proposals out).
+            $fact->update(['superseded_by_id' => $newFact->id]);
+
+            return response()->json([
+                'message' => 'Your corrected value has been saved.',
+                'fact' => $newFact->only(['id', 'fact_key', 'label', 'volatility', 'tax_year', 'source_type', 'is_current', 'confirmed_at', 'asserted_at', 'metadata', 'created_at']),
+            ]);
+        }
+
+        // ── Plain confirm (no correction) — existing D4 behavior ─────────────
         $confirmed = UserTaxFact::confirmProposal($fact->id);
 
         return response()->json([
             'message' => 'Fact confirmed. This information may help identify relevant tax opportunities.',
             'fact' => $confirmed->only(['id', 'fact_key', 'label', 'volatility', 'tax_year', 'source_type', 'is_current', 'confirmed_at', 'asserted_at', 'metadata', 'created_at']),
         ]);
+    }
+
+    /**
+     * Convert a user-typed corrected value into the stored representation
+     * for the fact's type, with a specific validation error on failure.
+     *
+     * Money (fact_key ends _cents): "$4,250.00" / "4250" → integer-cents string.
+     * Int (dependents/count facts): "3" → "3"; rejects non-integers.
+     * String: stored as-is.
+     *
+     * @return array{0: string|null, 1: string|null} [storedValue, error]
+     */
+    private function normalizeCorrectedValue(string $factKey, string $input): array
+    {
+        // Money facts — stored as integer-cents-as-string
+        if (str_ends_with($factKey, '_cents')) {
+            $clean = str_replace(['$', ',', ' '], '', $input);
+            if (! preg_match('/^\d+(\.\d{1,2})?$/', $clean)) {
+                return [null, 'Please enter a dollar amount, like 4,250.00.'];
+            }
+
+            return [(string) (int) round((float) $clean * 100), null];
+        }
+
+        // Integer facts (e.g. w4.dependents_claimed)
+        if (str_ends_with($factKey, 'dependents_claimed') || str_ends_with($factKey, '_count')) {
+            if (! preg_match('/^\d+$/', $input)) {
+                return [null, 'Please enter a whole number, like 2.'];
+            }
+
+            return [$input, null];
+        }
+
+        // Everything else: plain string
+        return [$input, null];
     }
 
     /**

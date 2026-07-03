@@ -90,14 +90,22 @@ export default function ProposalConfirmCard({
     setState('superseding');
     setError(null);
     try {
-      await axios.post(`/api/v1/optimizer/facts/${fact.id}/supersede`, {
-        answer: editValue.trim(),
+      // Confirm-with-correction (fix 1b): proposals are is_current=false, so the
+      // supersede endpoint rejects them by design. The confirm endpoint accepts an
+      // optional corrected value — the user's value wins (recorded server-side as
+      // user_edit provenance; the proposal is resolved and leaves the list).
+      await axios.post(`/api/v1/optimizer/facts/${fact.id}/confirm`, {
+        value: editValue.trim(),
       });
       setState('done');
       onConfirmed(fact.id);
-    } catch {
-      setError('Could not save your edit. Please try again.');
-      setState('idle');
+    } catch (err: unknown) {
+      // Surface the server's specific validation message (e.g. "Please enter a
+      // dollar amount, like 4,250.00.") instead of the generic failure line.
+      const specific =
+        (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
+      setError(specific ?? 'Could not save your edit. Please try again.');
+      setState('editing');
     }
   };
 

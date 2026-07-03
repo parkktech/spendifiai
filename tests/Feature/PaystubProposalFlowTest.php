@@ -451,3 +451,152 @@ it('type-status shows has_ready_doc=true after a ready paystub is uploaded', fun
     // Other types still not ready
     expect($response->json('types.w2.has_ready_doc'))->toBeFalse();
 });
+
+// ─── Confirm-with-correction (owner UX fix 1b) ────────────────────────────────
+//
+// The Edit button on proposals was broken by design-gap: supersede() requires
+// is_current=true but proposals are is_current=false. POST /confirm now accepts
+// an optional corrected {value}: the user's value WINS (recorded as user_edit),
+// the proposal is resolved (superseded_by_id) and leaves the proposals list.
+
+it('confirm-with-correction: edited proposal value becomes current with user_edit provenance and the proposal resolves', function () {
+    Storage::fake('local');
+
+    $user = createAuthenticatedUser();
+    Sanctum::actingAs($user);
+
+    $doc = makePaystubDocument($user->id, [
+        'gross_pay' => ['value' => '4250.00', 'confidence' => 0.95],
+    ]);
+    app(PaystubFactExtractorService::class)->proposeFacts($doc);
+
+    $proposal = UserTaxFact::forUser($user->id)
+        ->where('fact_key', 'pay.gross_per_period_cents')
+        ->where('source_type', 'document_extraction')
+        ->firstOrFail();
+    expect($proposal->is_current)->toBeFalse();
+
+    // E2E: submit a corrected dollar value through the confirm endpoint
+    $response = $this->postJson("/api/v1/optimizer/facts/{$proposal->id}/confirm", [
+        'value' => '$4,300.00',
+    ]);
+    $response->assertOk();
+
+    // The corrected fact is CURRENT with user_edit provenance
+    $current = UserTaxFact::currentFact($user->id, 'pay.gross_per_period_cents', null, $proposal->tax_year);
+    expect($current)->not->toBeNull();
+    expect($current->source_type)->toBe('user_edit');
+    expect($current->value)->toBe('430000'); // typed money conversion: dollars → cents
+    expect($current->is_current)->toBeTrue();
+
+    // Provenance: the corrected fact records which proposal it corrected + document linkage
+    expect($current->metadata['corrected_from_proposal_id'])->toBe($proposal->id);
+    expect((string) $current->metadata['document_id'])->toBe((string) $doc->id);
+
+    // The proposal is resolved — superseded by the corrected fact, never confirmed as-is
+    $proposal->refresh();
+    expect($proposal->superseded_by_id)->toBe($current->id);
+    expect($proposal->confirmed_at)->toBeNull();
+    expect($proposal->is_current)->toBeFalse();
+
+    // The proposal leaves the proposals list (card disappears on refresh)
+    $list = $this->getJson('/api/v1/optimizer/facts');
+    $list->assertOk();
+    $ids = collect($list->json('proposals'))->pluck('id');
+    expect($ids)->not->toContain($proposal->id);
+});
+
+it('confirm-with-correction: money facts reject non-numeric input with a specific message', function () {
+    Storage::fake('local');
+
+    $user = createAuthenticatedUser();
+    Sanctum::actingAs($user);
+
+    $doc = makePaystubDocument($user->id);
+    app(PaystubFactExtractorService::class)->proposeFacts($doc);
+
+    $proposal = UserTaxFact::forUser($user->id)
+        ->where('fact_key', 'retirement.traditional_401k_ytd_cents')
+        ->firstOrFail();
+
+    $response = $this->postJson("/api/v1/optimizer/facts/{$proposal->id}/confirm", [
+        'value' => 'about a thousand',
+    ]);
+    $response->assertStatus(422);
+    // Specific typed-validation message — not the generic failure line
+    expect($response->json('message'))->toContain('dollar amount');
+
+    // Nothing was written: proposal untouched, no user_edit fact created
+    $proposal->refresh();
+    expect($proposal->superseded_by_id)->toBeNull();
+    expect(UserTaxFact::forUser($user->id)->where('source_type', 'user_edit')->count())->toBe(0);
+});
+
+it('confirm-with-correction: confirm without a value still behaves as plain D4 confirm', function () {
+    Storage::fake('local');
+
+    $user = createAuthenticatedUser();
+    Sanctum::actingAs($user);
+
+    $doc = makePaystubDocument($user->id);
+    app(PaystubFactExtractorService::class)->proposeFacts($doc);
+
+    $proposal = UserTaxFact::forUser($user->id)
+        ->where('fact_key', 'retirement.hsa_ytd_cents')
+        ->firstOrFail();
+
+    // No value in the body → existing confirmProposal path
+    $response = $this->postJson("/api/v1/optimizer/facts/{$proposal->id}/confirm");
+    $response->assertOk();
+
+    $proposal->refresh();
+    expect($proposal->is_current)->toBeTrue();
+    expect($proposal->confirmed_at)->not->toBeNull();
+    expect($proposal->source_type)->toBe('document_extraction');
+});
+
+it('confirm-with-correction: cannot correct an already-confirmed fact', function () {
+    Storage::fake('local');
+
+    $user = createAuthenticatedUser();
+    Sanctum::actingAs($user);
+
+    $doc = makePaystubDocument($user->id);
+    app(PaystubFactExtractorService::class)->proposeFacts($doc);
+
+    $proposal = UserTaxFact::forUser($user->id)
+        ->where('fact_key', 'benefits.fsa_ytd_cents')
+        ->firstOrFail();
+
+    // Confirm plainly first
+    $this->postJson("/api/v1/optimizer/facts/{$proposal->id}/confirm")->assertOk();
+
+    // Then attempt to correct → 422
+    $response = $this->postJson("/api/v1/optimizer/facts/{$proposal->id}/confirm", [
+        'value' => '999.00',
+    ]);
+    $response->assertStatus(422);
+    expect($response->json('message'))->toContain('already been confirmed');
+});
+
+it('confirm-with-correction: other users cannot correct someone else\'s proposal', function () {
+    Storage::fake('local');
+
+    $owner = User::factory()->create();
+    $doc = makePaystubDocument($owner->id);
+    app(PaystubFactExtractorService::class)->proposeFacts($doc);
+
+    $proposal = UserTaxFact::forUser($owner->id)
+        ->where('source_type', 'document_extraction')
+        ->firstOrFail();
+
+    $attacker = createAuthenticatedUser();
+    Sanctum::actingAs($attacker);
+
+    $this->postJson("/api/v1/optimizer/facts/{$proposal->id}/confirm", [
+        'value' => '1.00',
+    ])->assertStatus(403);
+
+    $proposal->refresh();
+    expect($proposal->superseded_by_id)->toBeNull();
+});
