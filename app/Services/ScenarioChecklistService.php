@@ -8,6 +8,7 @@ use App\Models\OptimizationChecklistItem;
 use App\Models\User;
 use App\Models\UserTaxFact;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Log;
 
 /**
  * ScenarioChecklistService — materializes and manages the D9 action checklist (§D.5).
@@ -69,9 +70,9 @@ final class ScenarioChecklistService
      *  5. Order groups by annual benefit DESC (Δ3).
      *  6. Persist all rows and return them.
      *
-     * @param  array  $baseline     §B.2 baseline from ScenarioSolverService::assembleBaseline()
+     * @param  array  $baseline  §B.2 baseline from ScenarioSolverService::assembleBaseline()
      * @param  array  $chosenKnobs  Clamped knob vector (server-recomputed, never client-trusted)
-     * @return array<int, array>    The materialized items (as arrays for the API response)
+     * @return array<int, array> The materialized items (as arrays for the API response)
      */
     public function materialize(
         User $user,
@@ -120,6 +121,26 @@ final class ScenarioChecklistService
         // ── Step 4: Sort groups by annual benefit DESC (Δ3) ──────────────────
         usort($groups, fn ($a, $b) => $b['annual_benefit'] <=> $a['annual_benefit']);
 
+        // D24: Log reason when materialize() returns empty — kills silent no-ops.
+        if (empty($groups)) {
+            $templateKeys = array_keys($templates);
+            $divergingKeys = [];
+            foreach ($templateKeys as $knobKey) {
+                if ($this->knobDiverges($knobKey, $chosenKnobs, $currentKnobs)) {
+                    $divergingKeys[] = $knobKey;
+                }
+            }
+            Log::info('ScenarioChecklistService::materialize returned empty', [
+                'user_id' => $user->id,
+                'tax_year' => $year,
+                'option_key' => $optionKey,
+                'reason' => empty($divergingKeys) ? 'no knobs diverge from baseline' : 'all diverging knobs filtered',
+                'template_count' => count($templateKeys),
+                'diverging_knobs' => $divergingKeys,
+                'chosen_knobs_keys' => array_keys($chosenKnobs),
+            ]);
+        }
+
         // ── Step 5: Persist items ─────────────────────────────────────────────
         $items = [];
         $position = 1;
@@ -130,7 +151,7 @@ final class ScenarioChecklistService
             $kind = $group['kind'];
             $benefitParams = $group['benefit_params'];
 
-            $stepKey = $knobKey . '_' . $kind;
+            $stepKey = $knobKey.'_'.$kind;
 
             $item = OptimizationChecklistItem::create([
                 'user_id' => $user->id,
@@ -252,6 +273,7 @@ final class ScenarioChecklistService
                 $curStatus = $currentKnobs['w4']['filing_status'] ?? null;
                 $chosenDeps = (int) ($chosenKnobs['w4']['dependents_under_17'] ?? 0);
                 $curDeps = (int) ($currentKnobs['w4']['dependents_under_17'] ?? 0);
+
                 return $chosenStatus !== $curStatus || $chosenDeps !== $curDeps;
 
             case 'k2':
@@ -259,6 +281,7 @@ final class ScenarioChecklistService
                 $chosen = (float) ($chosenKnobs['k401']['roth_share_pct'] ?? 0);
                 $current = (float) ($currentKnobs['k401']['roth_share_pct'] ?? 0);
                 $epsilon = (float) ($epsilons['k401.roth_share_pct'] ?? 25.0);
+
                 return abs($chosen - $current) >= $epsilon;
 
             case 'k3':
@@ -266,6 +289,7 @@ final class ScenarioChecklistService
                 $chosen = (float) ($chosenKnobs['k401']['deferral_pct'] ?? 0);
                 $current = (float) ($currentKnobs['k401']['deferral_pct'] ?? 0);
                 $epsilon = (float) ($epsilons['k401.deferral_pct'] ?? 1.0);
+
                 return abs($chosen - $current) >= $epsilon;
 
             case 'k4':
@@ -273,6 +297,7 @@ final class ScenarioChecklistService
                 $chosen = (int) ($chosenKnobs['hsa']['annual_election_cents'] ?? 0);
                 $current = (int) ($currentKnobs['hsa']['annual_election_cents'] ?? 0);
                 $epsilon = (int) ($epsilons['hsa.annual_election_cents'] ?? 25_000);
+
                 return abs($chosen - $current) >= $epsilon;
 
             case 'k5':
@@ -282,6 +307,7 @@ final class ScenarioChecklistService
                 $curTrad = (int) ($currentKnobs['ira']['traditional_cents'] ?? 0);
                 $curRoth = (int) ($currentKnobs['ira']['roth_cents'] ?? 0);
                 $epsilon = (int) ($epsilons['ira.traditional_cents'] ?? 50_000);
+
                 return abs($chosenTrad - $curTrad) >= $epsilon || abs($chosenRoth - $curRoth) >= $epsilon;
 
             case 'k6':
@@ -289,6 +315,7 @@ final class ScenarioChecklistService
                 $chosen = (int) ($chosenKnobs['transfer']['per_period_cents'] ?? 0);
                 $current = (int) ($currentKnobs['transfer']['per_period_cents'] ?? 0);
                 $epsilon = (int) ($epsilons['transfer.per_period_cents'] ?? 2_500);
+
                 return abs($chosen - $current) >= $epsilon;
 
             default:
@@ -421,6 +448,7 @@ final class ScenarioChecklistService
         if (isset($params['amount']) && $params['amount'] !== 0) {
             return abs($params['amount']);
         }
+
         return 0;
     }
 
