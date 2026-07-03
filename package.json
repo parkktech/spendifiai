@@ -7,7 +7,8 @@
         "dev": "vite",
         "test:e2e": "playwright test",
         "test:e2e:headed": "playwright test --headed",
-        "test:e2e:report": "playwright show-report"
+        "test:e2e:report": "playwright show-report",
+        "e2e:walk": "playwright test e2e/optimize-journey.spec.ts --project=chromium-desktop"
     },
     "devDependencies": {
         "@axe-core/playwright": "^4.11.1",

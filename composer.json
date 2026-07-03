@@ -71,6 +71,10 @@
             "@php artisan config:clear --ansi",
             "@php artisan test"
         ],
+        "e2e:walk": [
+            "Composer\\Config::disableProcessTimeout",
+            "npm run e2e:walk"
+        ],
         "post-autoload-dump": [
             "Illuminate\\Foundation\\ComposerScripts::postAutoloadDump",
             "@php artisan package:discover --ansi"

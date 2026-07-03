@@ -1,0 +1,160 @@
+name: E2E Walk (Optimize Journey)
+
+# D24 Work 4: Release gate — the Playwright journey walk runs as a permanent CI check.
+# "Reports are not evidence; walks are." — Decision 24 reliability doctrine.
+#
+# Runs the optimize-journey.spec.ts walk on every PR to master and on pushes
+# to master. The walk tests the full Optimize My Income user journey against
+# the demo account (demo@spendifiai.com / Demo1234!).
+#
+# The walk spec lives at e2e/optimize-journey.spec.ts and is owned by the
+# interview/serving redesign workstream — do NOT edit it here. This workflow
+# references it as-is.
+#
+# Environment requirements:
+#   - APP_URL must point to a running app with the demo account seeded.
+#   - The demo account (demo@spendifiai.com / Demo1234!) must exist.
+#   - DATABASE: SQLite (for CI) or PostgreSQL — configured via env.
+#   - QUEUE_CONNECTION: sync (jobs run inline in tests, no worker needed).
+#
+# Best-effort configuration: if the repo has no Actions history, this workflow
+# still commits as the authoritative template for the project's CI pipeline.
+
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+    branches: [master, main]
+
+jobs:
+  e2e-walk:
+    name: Optimize My Income E2E Walk
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: spendifiai_test
+          POSTGRES_PASSWORD: password
+          POSTGRES_DB: spendifiai_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U spendifiai_test"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+      redis:
+        image: redis:7
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd="redis-cli ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+    env:
+      APP_ENV: testing
+      APP_URL: http://localhost:8000
+      APP_KEY: base64:dGVzdGtleWZvcmNpMTIzNDU2Nzg5MDEyMzQ1Njc4OTA=
+      DB_CONNECTION: pgsql
+      DB_HOST: 127.0.0.1
+      DB_PORT: 5432
+      DB_DATABASE: spendifiai_test
+      DB_USERNAME: spendifiai_test
+      DB_PASSWORD: password
+      CACHE_STORE: redis
+      REDIS_HOST: 127.0.0.1
+      REDIS_PORT: 6379
+      QUEUE_CONNECTION: sync
+      SESSION_DRIVER: database
+      MAIL_MAILER: array
+      BROADCAST_CONNECTION: log
+      # Walk-specific: demo account must exist for the journey to run.
+      # The DemoAccountSeeder is run in the setup step below.
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup PHP 8.2
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.2"
+          extensions: mbstring, dom, fileinfo, pgsql, redis
+          tools: composer:v2
+          coverage: none
+
+      - name: Cache Composer dependencies
+        uses: actions/cache@v4
+        with:
+          path: vendor
+          key: composer-walk-${{ hashFiles('composer.lock') }}
+          restore-keys: composer-walk-
+
+      - name: Install PHP dependencies
+        run: composer install --no-interaction --prefer-dist --optimize-autoloader
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+
+      - name: Install Node dependencies
+        run: npm ci
+
+      - name: Build frontend assets
+        run: npm run build
+
+      - name: Run database migrations
+        run: php artisan migrate --force
+
+      - name: Seed demo account (required by walk)
+        run: php artisan db:seed --class=DemoAccountSeeder --force
+
+      - name: Seed expense categories (required by optimization pipeline)
+        run: php artisan db:seed --class=ExpenseCategorySeeder --force
+
+      - name: Seed cancellation providers (optional — walk references subscriptions)
+        run: php artisan db:seed --class=CancellationProviderSeeder --force
+
+      - name: Start Laravel server
+        run: |
+          php artisan serve --port=8000 &
+          echo "Server PID: $!"
+          # Wait for server to be ready
+          timeout 30 bash -c 'until curl -sf http://localhost:8000/api/auth/captcha-config; do sleep 1; done'
+        env:
+          APP_URL: http://localhost:8000
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Run E2E walk — Optimize My Income journey
+        run: npm run e2e:walk
+        env:
+          APP_URL: http://localhost:8000
+          # CI=true triggers stricter Playwright config (forbidOnly, retries=2).
+          CI: true
+
+      - name: Upload walk report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: e2e-walk-report
+          path: playwright-report/
+          retention-days: 14
+
+      - name: Upload walk screenshots and traces
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: e2e-walk-failure-artifacts
+          path: test-results/
+          retention-days: 7
