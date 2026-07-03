@@ -1365,6 +1365,15 @@ export interface ChecklistBenefitParams {
 }
 
 /** A materialized optimization checklist item (from GET /optimizer/checklist/{year}). */
+/** Morning polish Item 3: a single blocking unconfirmed fact for a gated checklist step. */
+export interface ChecklistGatedFact {
+  fact_key: string;
+  label: string;
+  display_value: string | null;
+  /** UserTaxFact.id — present when a fact row exists (for /confirm or /supersede); null when absent. */
+  fact_id: number | null;
+}
+
 export interface OptimizationChecklistItemView {
   id: number;
   knob: 'k1' | 'k2' | 'k3' | 'k4' | 'k5' | 'k6' | 'header';
@@ -1375,6 +1384,12 @@ export interface OptimizationChecklistItemView {
   position: number;
   done: boolean;
   done_at: string | null;
+  /**
+   * Morning polish Item 3: blocking unconfirmed anchor facts for confirm_ask items.
+   * null for directive items; array (possibly empty) for confirm_ask.
+   * Each entry has the fact key, human label, display value, and fact_id for confirmation.
+   */
+  gated_facts?: ChecklistGatedFact[] | null;
 }
 
 /** Full checklist response from GET /optimizer/checklist/{year}. */

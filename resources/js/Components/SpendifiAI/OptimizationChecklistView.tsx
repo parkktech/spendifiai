@@ -20,7 +20,7 @@
  * Educational framing: "may", "could", "consider" — no assertive language.
  */
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import axios from 'axios';
 import {
   CheckCircle2,
@@ -35,7 +35,9 @@ import {
   Sparkles,
   ArrowRight,
   ListChecks,
+  Check,
 } from 'lucide-react';
+import type { ChecklistGatedFact } from '@/types/spendifiai';
 import Badge from './Badge';
 import { useApi } from '@/hooks/useApi';
 import type { OptimizationChecklistResponse, OptimizationChecklistItemView, ChecklistBenefitParams, ScenariosResponse } from '@/types/spendifiai';
@@ -222,20 +224,82 @@ function HeaderAggregateBanner({ params }: { params: ChecklistBenefitParams | nu
 
 // ─── Checklist Item Card ──────────────────────────────────────────────────────
 
+/**
+ * Morning polish Item 3: Inline confirm button for a single gated fact.
+ * POSTs to /api/v1/optimizer/facts/{fact_id}/supersede to confirm the value.
+ * On success, calls onConfirmed() so the parent can refetch and re-render.
+ */
+function GatedFactConfirmRow({
+  fact,
+  onConfirmed,
+}: {
+  fact: ChecklistGatedFact;
+  onConfirmed: () => void;
+}) {
+  const [confirming, setConfirming] = useState(false);
+  const [confirmed, setConfirmed] = useState(false);
+
+  const handleConfirm = useCallback(async () => {
+    if (!fact.fact_id || confirming || confirmed) return;
+    setConfirming(true);
+    try {
+      // Use the supersede endpoint: POST the existing value as a user_edit confirmation
+      await axios.post(`/api/v1/optimizer/facts/${fact.fact_id}/supersede`, {
+        answer: fact.display_value ?? '0',
+      });
+      setConfirmed(true);
+      onConfirmed();
+    } catch {
+      // Silently log — user can retry
+    } finally {
+      setConfirming(false);
+    }
+  }, [fact, confirming, confirmed, onConfirmed]);
+
+  return (
+    <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+      <span className="text-[11px] text-amber-700">
+        <span className="font-medium">{fact.label}</span>
+        {fact.display_value && (
+          <> <span className="font-semibold">{fact.display_value}</span></>
+        )}
+      </span>
+      {fact.fact_id && (
+        <button
+          onClick={handleConfirm}
+          disabled={confirming || confirmed}
+          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-100 border border-amber-300 text-amber-800 text-[10px] font-semibold hover:bg-amber-200 transition disabled:opacity-50"
+        >
+          {confirmed ? (
+            <><Check size={9} /> Confirmed</>
+          ) : confirming ? (
+            <Loader2 size={9} className="animate-spin" />
+          ) : (
+            'Confirm'
+          )}
+        </button>
+      )}
+    </div>
+  );
+}
+
 function ChecklistCard({
   item,
   onToggle,
   optimisticDone,
+  onGatedFactConfirmed,
 }: {
   item: OptimizationChecklistItemView;
   onToggle: (id: number, done: boolean) => void;
   optimisticDone: boolean;
+  onGatedFactConfirmed?: () => void;
 }) {
   const isDirective = item.kind === 'directive';
   const benefitLine = buildBenefitLine(item.knob, item.benefit_line_params);
   const title = knobTitle(item.knob);
   const instruction = isDirective ? knobInstruction(item.knob, item.benefit_line_params) : null;
   const isDone = optimisticDone || item.done;
+  const gatedFacts = item.gated_facts ?? [];
 
   // k2 with FV range → illustration badge
   const hasIllustration = item.knob === 'k2' && item.benefit_line_params?.fv_low && item.benefit_line_params?.fv_high;
@@ -293,12 +357,32 @@ function ChecklistCard({
           </p>
         )}
 
-        {/* Confirm-ask framing */}
+        {/* Morning polish Item 3: confirm-ask framing — named blockers with inline confirm */}
         {!isDirective && !isDone && (
-          <p className="text-[11px] text-amber-700 mt-1 flex items-center gap-1">
-            <AlertCircle size={10} className="shrink-0" />
-            Confirm your facts in the interview to activate this step
-          </p>
+          <div className="mt-1">
+            {gatedFacts.length > 0 ? (
+              /* Named blockers: "Activate by confirming: [label] [value] [Confirm]" */
+              <div className="space-y-0.5">
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-amber-700/70 flex items-center gap-1">
+                  <AlertCircle size={9} className="shrink-0" />
+                  Activate by confirming:
+                </p>
+                {gatedFacts.map((fact) => (
+                  <GatedFactConfirmRow
+                    key={fact.fact_key}
+                    fact={fact}
+                    onConfirmed={onGatedFactConfirmed ?? (() => {})}
+                  />
+                ))}
+              </div>
+            ) : (
+              /* Fallback when gated_facts is empty (all anchors unresolvable) */
+              <p className="text-[11px] text-amber-700 flex items-center gap-1">
+                <AlertCircle size={10} className="shrink-0" />
+                Confirm your facts in the interview to activate this step
+              </p>
+            )}
+          </div>
         )}
 
         {/* k2 illustration badge (long-horizon FV range) */}
@@ -530,6 +614,7 @@ export default function OptimizationChecklistView({
             item={item}
             onToggle={handleToggle}
             optimisticDone={optimisticDone.get(item.id) ?? item.done}
+            onGatedFactConfirmed={refresh} // Item 3: refetch on inline confirm
           />
         ))}
       </div>

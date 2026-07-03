@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\OptimizationChecklistItem;
+use App\Models\UserTaxFact;
 use App\Services\ScenarioChecklistService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -37,7 +38,7 @@ class OptimizationChecklistController extends Controller
             ->where('tax_year', $year)
             ->orderBy('position')
             ->get()
-            ->map(fn ($item) => $this->formatItem($item))
+            ->map(fn ($item) => $this->formatItem($item, $user, $year))
             ->values();
 
         // Header aggregate from first header row (position=0, kind='header')
@@ -48,9 +49,23 @@ class OptimizationChecklistController extends Controller
 
         $headerAggregate = $headerItem?->benefit_line_params ?? null;
 
+        // Detect "already optimal" state: the user has a chosen scenario but
+        // materialize() returned zero items (all knobs already match baseline).
+        // The UI uses this flag to render a celebration state instead of a dead-end.
+        $hasChosenScenario = UserTaxFact::where('user_id', $user->id)
+            ->where('fact_key', 'scenario.chosen_option')
+            ->where(fn ($q) => $q->whereNull('tax_year')->orWhere('tax_year', $year))
+            ->whereNull('superseded_by_id')
+            ->where('is_current', true)
+            ->exists();
+
+        $actionItemCount = $items->filter(fn ($item) => ($item['knob'] ?? '') !== 'header')->count();
+        $alreadyOptimal = $hasChosenScenario && $actionItemCount === 0;
+
         return response()->json([
             'tax_year' => $year,
             'header_aggregate' => $headerAggregate,
+            'already_optimal' => $alreadyOptimal,
             'items' => $items,
         ]);
     }
@@ -70,7 +85,7 @@ class OptimizationChecklistController extends Controller
 
         $item = $this->checklist->toggleDone($request->user(), $checklistItem, $done);
 
-        return response()->json($this->formatItem($item));
+        return response()->json($this->formatItem($item, $request->user(), $item->tax_year));
     }
 
     /**
@@ -78,9 +93,24 @@ class OptimizationChecklistController extends Controller
      * No cents-field names in the public response (SAFE-03 alignment for the narrative path).
      * benefit_line_params is an internal field with integer cents — included here because
      * it is in a user-scoped authenticated row and the frontend needs it for checklist rendering.
+     *
+     * Morning polish Item 3: confirm_ask items include gated_facts (blocking unconfirmed
+     * anchor facts with labels + display values) so the UI can render inline activation.
      */
-    private function formatItem(OptimizationChecklistItem $item): array
+    private function formatItem(OptimizationChecklistItem $item, ?\App\Models\User $user = null, ?int $year = null): array
     {
+        // Morning polish Item 3: resolve gated facts for confirm_ask items only.
+        // Owner-scoped: $user is always request->user() (ownership verified by policy).
+        $gatedFacts = null;
+        if ($item->kind === 'confirm_ask' && $user !== null) {
+            $resolvedYear = $year ?? (int) ($item->tax_year ?? 0);
+            $gatedFacts = $this->checklist->resolveGatedFacts(
+                $user,
+                $item->knob,
+                $resolvedYear,
+            );
+        }
+
         return [
             'id' => $item->id,
             'knob' => $item->knob,
@@ -90,6 +120,7 @@ class OptimizationChecklistController extends Controller
             'position' => $item->position,
             'done' => ! is_null($item->done_at),
             'done_at' => $item->done_at?->toIso8601String(),
+            'gated_facts' => $gatedFacts, // null for directive, array for confirm_ask
         ];
     }
 }

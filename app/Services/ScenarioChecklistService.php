@@ -8,6 +8,7 @@ use App\Models\OptimizationChecklistItem;
 use App\Models\User;
 use App\Models\UserTaxFact;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Log;
 
 /**
@@ -56,6 +57,7 @@ final class ScenarioChecklistService
 
     public function __construct(
         private readonly ScenarioSolverService $solver,
+        private readonly ScenarioFactResolverService $factResolver = new ScenarioFactResolverService,
     ) {}
 
     /**
@@ -432,6 +434,121 @@ final class ScenarioChecklistService
         }
 
         return 'directive';
+    }
+
+    /**
+     * Morning polish Item 3: resolve the blocking (unconfirmed) anchor facts for
+     * a confirm_ask knob, with display values for inline checklist confirmation.
+     *
+     * Returns one entry per unconfirmed anchor fact:
+     *   [ fact_key, label, display_value, fact_id ]
+     *
+     * - display_value is humanized via ScenarioFactResolverService::resolve().
+     * - fact_id is the UserTaxFact.id for calling /facts/{id}/supersede.
+     * - Confirmed facts are excluded (they no longer block activation).
+     *
+     * Returns [] for directive items (no anchors or all confirmed).
+     *
+     * @return array<int, array{fact_key: string, label: string, display_value: string|null, fact_id: int|null}>
+     */
+    public function resolveGatedFacts(User $user, string $knobKey, int $year): array
+    {
+        $anchors = self::KNOB_ANCHOR_FACTS[$knobKey] ?? [];
+        if (empty($anchors)) {
+            return [];
+        }
+
+        $confirmedSources = ['user_edit', 'interview_answer'];
+        $gated = [];
+
+        foreach ($anchors as $factKey) {
+            // Check both tax-year-scoped and global fact rows
+            $fact = UserTaxFact::currentFact($user->id, $factKey, null, $year)
+                ?? UserTaxFact::currentFact($user->id, $factKey);
+
+            // Is it confirmed?
+            if ($fact !== null) {
+                $isConfirmed = in_array($fact->source_type, $confirmedSources, true)
+                    || ($fact->source_type === 'document_extraction' && $fact->confirmed_at !== null);
+
+                if ($isConfirmed) {
+                    continue; // confirmed — not a blocker
+                }
+            }
+
+            // Unconfirmed (or absent) — include as a gated fact
+            $resolved = $this->factResolver->resolve($user, $year, $factKey);
+            $displayValue = null;
+            if ($resolved !== null && ($resolved['value'] ?? null) !== null) {
+                $rawValue = (string) $resolved['value'];
+                $valueType = $resolved['value_type'] ?? null;
+                $displayValue = $this->humanizeFactValue($rawValue, $valueType, $factKey);
+            }
+
+            // Label: use the template label if available, else fall back to fact_key
+            $label = $this->factLabelFor($factKey);
+
+            $gated[] = [
+                'fact_key' => $factKey,
+                'label' => $label,
+                'display_value' => $displayValue,
+                'fact_id' => $fact?->id,
+            ];
+        }
+
+        return $gated;
+    }
+
+    /**
+     * Humanize a raw fact value for display in the checklist gate.
+     * Money values (money_cents value_type or _cents suffix) → "$X,XXX".
+     * Filing status / boolean → title-case string.
+     *
+     * @param  string  $rawValue  Raw stored value
+     * @param  string|null  $valueType  Value type hint from resolver
+     * @param  string  $factKey  Fact key for suffix detection
+     */
+    private function humanizeFactValue(string $rawValue, ?string $valueType, string $factKey): string
+    {
+        // Money: value_type='money_cents' OR fact_key ends with _cents
+        if ($valueType === 'money_cents' || str_ends_with($factKey, '_cents')) {
+            if (ctype_digit($rawValue)) {
+                return '$'.number_format((int) $rawValue / 100);
+            }
+        }
+
+        // Percentage: fact_key ends with _pct
+        if (str_ends_with($factKey, '_pct') && is_numeric($rawValue)) {
+            return number_format((float) $rawValue, 1).'%';
+        }
+
+        // Boolean-style strings
+        if (in_array(strtolower($rawValue), ['true', '1', 'yes'], true)) {
+            return 'Yes';
+        }
+        if (in_array(strtolower($rawValue), ['false', '0', 'no'], true)) {
+            return 'No';
+        }
+
+        // String values: title-case (filing_status: 'single' → 'Single')
+        return ucfirst(str_replace('_', ' ', $rawValue));
+    }
+
+    /**
+     * Return a human label for a fact key.
+     * Reads from the optimization-objectives template list where available.
+     */
+    private function factLabelFor(string $factKey): string
+    {
+        $templates = (array) config('optimization-objectives.question_templates', []);
+        if (isset($templates[$factKey]['label'])) {
+            return (string) $templates[$factKey]['label'];
+        }
+
+        // Fallback: split on dot, title-case the local part
+        $parts = explode('.', $factKey);
+
+        return ucwords(str_replace('_', ' ', end($parts)));
     }
 
     /**
