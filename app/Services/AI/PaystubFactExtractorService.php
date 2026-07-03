@@ -166,7 +166,9 @@ class PaystubFactExtractorService
         ],
         'after_tax_401k_available' => [
             'fact_key' => 'employer.after_tax_401k_available',
-            'label' => 'After-tax 401(k) available (mega backdoor gate)',
+            // Fix-2: removed "(mega backdoor gate)" — internal detector terminology.
+            // The mega-backdoor explanation belongs in finding/context copy, not the label.
+            'label' => 'After-tax 401(k) contributions allowed',
             'volatility' => 'stable',
             'money' => false,
             'bool_field' => true,

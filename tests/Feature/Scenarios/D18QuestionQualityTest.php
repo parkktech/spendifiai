@@ -1012,3 +1012,58 @@ it('d18_proposals_no_key_leak: proposals API label + display_value contain no in
 
     Http::assertNothingSent();
 });
+
+// ─── D18 Fix-2: proposal label jargon denylist ───────────────────────────────
+//
+// Sweep ALL proposal/fact labels (PAYSTUB_FACT_MAP, BENEFITS_FACT_MAP,
+// RETIREMENT_STATEMENT_FACT_MAP) for internal jargon that must not appear
+// in user-facing copy:
+//   - "gate" as a noun/suffix in parentheticals
+//   - "backdoor" as a parenthetical qualifier
+//   - "sweep" as a standalone word
+//   - "flag-" prefix (detector key fragment)
+//   - "conformance" as a standalone word
+//
+// This test uses reflection to read the fact maps directly so it stays
+// in-sync with the source without duplicating hard-coded lists.
+
+it('d18_label_no_jargon: all fact-map labels are free of internal detector jargon', function () {
+    $service = new \App\Services\AI\PaystubFactExtractorService;
+    $reflection = new ReflectionClass($service);
+
+    /** @var string[] $labels */
+    $labels = [];
+
+    foreach (['PAYSTUB_FACT_MAP', 'BENEFITS_FACT_MAP', 'RETIREMENT_STATEMENT_FACT_MAP'] as $mapName) {
+        if (! $reflection->hasConstant($mapName)) {
+            continue;
+        }
+        $map = $reflection->getConstant($mapName);
+        foreach ($map as $entry) {
+            $labels[] = (string) ($entry['label'] ?? '');
+        }
+    }
+
+    expect($labels)->not->toBeEmpty('Fact-map constants must be accessible via reflection');
+
+    // Jargon denylist — each pattern is tested on every label.
+    $denylist = [
+        // parenthetical "gate" (e.g. "mega backdoor gate")
+        '/\([^)]*\bgate\b[^)]*\)/i' => '"gate" in parenthetical',
+        // parenthetical "backdoor"
+        '/\([^)]*backdoor[^)]*\)/i' => '"backdoor" in parenthetical',
+        // "sweep" as a word in user-visible labels
+        '/\bsweep\b/i'              => '"sweep" in label',
+        // "flag-" detector-key fragment
+        '/\bflag-/i'                => '"flag-" in label',
+        // "conformance" (internal plane terminology)
+        '/\bconformance\b/i'        => '"conformance" in label',
+    ];
+
+    foreach ($labels as $label) {
+        foreach ($denylist as $pattern => $description) {
+            expect(preg_match($pattern, $label))
+                ->toBe(0, "Jargon found ({$description}) in fact-map label: \"{$label}\"");
+        }
+    }
+});
