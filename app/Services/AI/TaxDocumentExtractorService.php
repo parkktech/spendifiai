@@ -655,9 +655,19 @@ PROMPT;
                 }
             }
 
+            // Defense-in-depth: mask any digit run > 4 chars (SSN-shaped) before logging.
+            // This prevents a misbehaving model from leaking a full SSN into the log
+            // channel via the raw pre-sanitization response on parse failure.
+            $rawPreview = substr($text, 0, 500);
+            $maskedPreview = preg_replace_callback(
+                '/\d{5,}/',
+                static fn (array $m) => str_repeat('*', strlen($m[0]) - 4).substr($m[0], -4),
+                $rawPreview
+            );
+
             Log::error('Tax extraction JSON parse failed completely', [
                 'error' => json_last_error_msg(),
-                'text_preview' => substr($text, 0, 500),
+                'text_preview' => $maskedPreview,
             ]);
 
             return ['error' => 'Invalid JSON response'];

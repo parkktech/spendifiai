@@ -5,6 +5,7 @@ use App\Models\TaxDocument;
 use App\Models\User;
 use App\Services\AI\TaxDocumentExtractorService;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 
 uses(\Illuminate\Foundation\Testing\RefreshDatabase::class);
@@ -211,4 +212,37 @@ it('returns W2_FIELDS for W2 category and TIER2_FIELDS for unknown', function ()
 
     $receiptsSchema = $this->service->getFieldSchema(TaxDocumentCategory::Receipts);
     expect($receiptsSchema)->toBe(TaxDocumentExtractorService::TIER2_FIELDS);
+});
+
+// ─── SAFE gap-3: parse-failure log masking ────────────────────────────────────
+
+it('SAFE-gap3: parse-failure log masks digit runs longer than 4 digits (SSN-shaped)', function () {
+    // 9-digit SSN-shaped run embedded in non-JSON text (no closing brace → preg_match fails too)
+    $ssnDigits = '123456789';
+    $rawWithSsn = "Employee SSN on file: {$ssnDigits} - wages paid in 2025. This is not valid JSON.";
+
+    Http::fake([
+        'api.anthropic.com/*' => Http::response([
+            'content' => [['text' => $rawWithSsn]],
+            'stop_reason' => 'end_turn',
+        ], 200),
+    ]);
+
+    Log::spy();
+
+    $document = createTestDocument($this->user->id, ['category' => TaxDocumentCategory::W2->value]);
+    $this->service->extract($document);
+
+    // Log::error must have been called with a masked preview that:
+    //   (a) does NOT contain the full 9-digit run, and
+    //   (b) DOES contain '*' masking characters
+    Log::shouldHaveReceived('error')
+        ->once()
+        ->withArgs(function (string $message, array $context) use ($ssnDigits): bool {
+            $preview = $context['text_preview'] ?? '';
+
+            return str_contains($message, 'Tax extraction JSON parse failed completely')
+                && ! str_contains($preview, $ssnDigits)
+                && str_contains($preview, '*');
+        });
 });
