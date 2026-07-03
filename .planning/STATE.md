@@ -6,7 +6,7 @@ current_phase: 14
 current_phase_name: Action Center, Scenarios & Design Elevation
 status: verifying
 stopped_at: Completed 14-09-PLAN.md
-last_updated: "2026-07-03T18:00:46.606Z"
+last_updated: "2026-07-03T18:22:56.217Z"
 last_activity: 2026-07-02
 last_activity_desc: Phase 14 execution started
 progress:
@@ -106,6 +106,8 @@ Recent decisions affecting current work:
 - [Phase ?]: mandatory_roth_catchup_threshold tagged [ASSUMED] — confirm exact 2026 indexed value from IRS final regs before Phase 13
 - [Phase ?]: filing_status normalised from married_jointly to married_joint in assembler to match tax-rules.php config keys
 - [Phase ?]: Bank deposit classification logic inlined in assembler to enforce calendar-year Jan 1-Dec 31 window and avoid IncomeDetectorService rolling-window pitfall
+- [13-04]: assembleBaseline derives current.deferral_pct from per-period paystub keys (per_period × periods ÷ gross) — employer.contribution_pct (chosen %) is only fallback when no paystub facts exist
+- [13-04]: Per-period 401k deductions stored under retirement.*_per_period_cents keys (not ytd keys); annualization happens at baseline assembly (×periods), not at extraction time
 - [Phase ?]: passesMaterialityGate auto-floor does not apply to recurring patterns; recurring gates on annual total only
 - [Phase ?]: Pest.php TestCase binding extended to Unit/ root to enable config facade in plan-11 unit tests
 - [Phase ?]: [ASSUMED] markers on 11 IRS constants in detection block — P13 sign-off gate before production
@@ -152,6 +154,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-07-03T18:00:46.596Z
+Last session: 2026-07-03T18:22:56.207Z
 Stopped at: Completed 14-09-PLAN.md
 Resume file: None
