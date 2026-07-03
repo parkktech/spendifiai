@@ -8,47 +8,52 @@ use App\Services\RedFlagDetectorService;
 use App\Services\TaxRulesEngineService;
 
 /**
- * RetirementOpportunitySweep — Fix 2 (2026-07-02)
+ * RetirementOpportunitySweep — Fix 2 (2026-07-02, corrected 2026-07-02)
  *
  * Deterministic retirement-opportunity detector that emits EDUCATIONAL findings into the
  * "Retirement & Benefits" section from CONFIRMED durable facts (UserTaxFact.is_current=true).
  * Zero Claude calls. Zero hardcoded dollar amounts (all from config/TaxRulesEngineService).
  *
- * Four two-tier findings (known-facts → conditional-band):
+ * FACT KEY CONTRACT (must stay in sync with PaystubFactExtractorService::BENEFITS_FIELDS):
+ *   employer.after_tax_401k_available  — value 'yes'/'no' (bool_field convention)
+ *   retirement.roth_401k_ytd_cents     — int cents, from paystub extraction
+ *   retirement.traditional_401k_ytd_cents — int cents, from paystub extraction
+ *   employer.match_pct                 — float pct (interview / benefits guide)
+ *   employer.match_threshold_pct       — float pct (interview / benefits guide)
+ *   income.annual_gross_cents          — int cents (interview / paystub derivation)
+ *   w4.step3_annual_credits_cents      — int cents, from W-4 Step 3 extract
+ *   family.qualifying_children_under_17 — int count, from interview
  *
- *   RET-A  after_tax_401k_opportunity
- *          Trigger: employer.allows_after_tax_401k = 'true' AND total 401k YTD < employee deferral max.
- *          Band: conditional. Copy: "After-tax 401(k) contributions are available in your plan —
- *          a strategy sometimes called the mega backdoor Roth may be worth exploring."
+ * Four findings (known-facts → conditional-band):
  *
- *   RET-B  contribution_mix_review
+ *   RET-A  retirement_after_tax_401k_opportunity
+ *          Trigger: employer.after_tax_401k_available = 'yes' AND total 401k YTD < employee deferral max.
+ *          Band: conditional. Mandatory FLAG-20 "if your plan allows" + mega-backdoor hedges.
+ *
+ *   RET-B  retirement_contribution_mix_review
  *          Trigger: both retirement.roth_401k_ytd_cents > 0 AND retirement.traditional_401k_ytd_cents > 0.
- *          Band: conditional. Copy: "You split contributions between Roth and Traditional —
- *          reviewing the mix against your marginal rate may be worthwhile."
+ *          Band: conditional.
  *
- *   RET-C  match_pace_gap
- *          Trigger: match formula facts + YTD-based annual pace below full-match threshold.
- *          Band: auto. Uses TaxRulesEngineService::matchCaptureCents() for the gap amount
- *          (SAFE-03 compliant: no inline arithmetic, engine-computed only).
+ *   RET-C  retirement_match_pace_gap
+ *          Trigger: employer.match_pct + income.annual_gross_cents facts present + YTD pace below threshold.
+ *          Band: auto. estimated_value_cents from TaxRulesEngineService::matchCaptureCents() (SAFE-03).
  *
- *   RET-D  w4_step3_alignment
- *          Trigger: w4.step3_annual_credits_cents fact present AND family.qualifying_children_under_17
- *          fact present AND the claimed credits do not match expected per-child CTC amount.
- *          Band: conditional. Copy: "Your W-4 Step 3 credits may not fully reflect your
- *          qualifying dependents — reviewing your W-4 elections may be worthwhile."
+ *   RET-D  retirement_w4_step3_alignment
+ *          Trigger: w4.step3_annual_credits_cents != qualifying_children × CTC limit.
+ *          Band: conditional.
  *
  * LIABILITY BOUNDARIES:
  *   - All copy uses "may / could / consider / worth exploring" (D18 educational framing).
  *   - No guaranteed savings amounts claimed.
  *   - No tax-filing advice; no specific plan recommendations.
- *   - "If your plan allows" framing on mega-backdoor references (INTEGRATION-MAP).
- *   - Complements (not duplicates) W2BenefitArbitrageDetector which fires when already at max;
- *     this detector fires when after-tax is available but not yet at max.
+ *   - "If your plan allows" framing on mega-backdoor references (INTEGRATION-MAP / FLAG-20).
+ *   - Complements (not duplicates) W2BenefitArbitrageDetector (already-at-max path).
+ *     This detector fires when after-tax is available but employee deferral not yet maxed.
  *
  * SAFE-03 compliance:
  *   - estimated_value_cents is computed by TaxRulesEngineService::matchCaptureCents() only.
  *   - No dollar arithmetic performed inline in this class.
- *   - No other finding sets estimated_value_cents (only RET-C).
+ *   - Only RET-C sets estimated_value_cents.
  */
 class RetirementOpportunitySweep
 {
@@ -77,21 +82,34 @@ class RetirementOpportunitySweep
             return $emitted;
         }
 
+        // ── Shared YTD reads (from UserTaxFact directly — more reliable than profile fields) ──
+        // Fact keys are retirement.{roth,traditional}_401k_ytd_cents as written by
+        // PaystubFactExtractorService. Fall back to profile fields if facts not yet confirmed.
+        $rothYtdFact = UserTaxFact::currentFact($userId, 'retirement.roth_401k_ytd_cents', null, $taxYear);
+        $tradYtdFact = UserTaxFact::currentFact($userId, 'retirement.traditional_401k_ytd_cents', null, $taxYear);
+        $rothYtdCents = $rothYtdFact !== null
+            ? (int) $rothYtdFact->value
+            : (int) ($profile->roth_401k_ytd ?? 0);
+        $tradYtdCents = $tradYtdFact !== null
+            ? (int) $tradYtdFact->value
+            : (int) ($profile->traditional_401k_ytd ?? 0);
+
         // ─── RET-A: After-tax 401(k) opportunity (not-yet-maxed path) ──────────────
         // W2BenefitArbitrageDetector covers the already-maxed path; this covers the
         // "available but not at max" path — a broader educational signal.
-        $allowsAfterTax = UserTaxFact::currentFact($userId, 'employer.allows_after_tax_401k', null, $taxYear);
+        //
+        // CORRECT FACT KEY: employer.after_tax_401k_available (bool_field → 'yes'/'no')
+        // Per PaystubFactExtractorService::BENEFITS_FIELDS at key 'after_tax_401k_available'.
+        $afterTaxFact = UserTaxFact::currentFact($userId, 'employer.after_tax_401k_available', null, $taxYear);
 
-        if ($allowsAfterTax?->value === 'true') {
-            $rothYtd = (int) ($profile->roth_401k_ytd ?? 0);
-            $tradYtd = (int) ($profile->traditional_401k_ytd ?? 0);
-            $totalYtd = $rothYtd + $tradYtd;
+        if ($afterTaxFact?->value === 'yes') {
+            $totalYtd = $rothYtdCents + $tradYtdCents;
 
             // Employee deferral limit from config (TAX-08) — stored in dollars, convert to cents
             $employeeDeferralLimitDollars = (int) config("tax-rules.{$taxYear}.401k.employee_deferral", 23500);
             $employeeDeferralLimitCents = $employeeDeferralLimitDollars * 100;
-            // If YTD < max (or YTD not yet known), surface the after-tax opportunity
-            // note: YTD=0 means we haven't extracted the data yet — still educational to surface
+            // If YTD < max (or YTD not yet known), surface the after-tax opportunity.
+            // YTD=0 means we haven't extracted the data yet — still educational to surface.
             $notYetMaxed = $totalYtd < $employeeDeferralLimitCents;
 
             if ($notYetMaxed) {
@@ -101,7 +119,7 @@ class RetirementOpportunitySweep
                     findingKey: 'retirement_after_tax_401k_opportunity',
                     findingType: 'retirement',
                     band: 'conditional',
-                    // BINDING (INTEGRATION-MAP): "if your plan allows" mandatory; "mega backdoor" with hedges
+                    // BINDING (INTEGRATION-MAP / FLAG-20): "if your plan allows" mandatory
                     treatment: 'Your employer\'s plan appears to allow after-tax (non-Roth) 401(k) contributions. '
                         .'If your plan allows, this may open up a strategy sometimes called the "mega backdoor Roth" — '
                         .'contributing after-tax dollars beyond the standard employee deferral limit '
@@ -120,9 +138,7 @@ class RetirementOpportunitySweep
         }
 
         // ─── RET-B: Contribution mix review (Roth + Traditional split) ──────────────
-        $rothYtdCents = (int) ($profile->roth_401k_ytd ?? 0);
-        $tradYtdCents = (int) ($profile->traditional_401k_ytd ?? 0);
-
+        // Reads retirement.{roth,traditional}_401k_ytd_cents facts directly.
         if ($rothYtdCents > 0 && $tradYtdCents > 0) {
             $key = $service->registerFinding(
                 userId: $userId,
@@ -151,8 +167,11 @@ class RetirementOpportunitySweep
         // ─── RET-C: Match pace gap (YTD-based annual pace vs. full-match threshold) ──
         // Uses TaxRulesEngineService::matchCaptureCents() for dollar gap (SAFE-03).
         // Complements EmployerMatchGapDetector (which uses employer.contribution_pct).
-        $matchPctFact = UserTaxFact::currentFact($userId, 'employer.match_pct', null, $taxYear);
-        $thresholdFact = UserTaxFact::currentFact($userId, 'employer.match_threshold_pct', null, $taxYear);
+        // Fallback: try both taxYear-scoped and non-scoped facts (same pattern as EmployerMatchGapDetector).
+        $matchPctFact = UserTaxFact::currentFact($userId, 'employer.match_pct', null, $taxYear)
+            ?? UserTaxFact::currentFact($userId, 'employer.match_pct');
+        $thresholdFact = UserTaxFact::currentFact($userId, 'employer.match_threshold_pct', null, $taxYear)
+            ?? UserTaxFact::currentFact($userId, 'employer.match_threshold_pct');
         $annualGrossFact = UserTaxFact::currentFact($userId, 'income.annual_gross_cents', null, $taxYear);
 
         if ($matchPctFact && $annualGrossFact) {
@@ -162,7 +181,7 @@ class RetirementOpportunitySweep
             // Match threshold: default to match_pct if not separately specified
             $matchThresholdPct = $thresholdFact ? (float) $thresholdFact->value : $matchPct;
 
-            // YTD-based annualized contribution pace
+            // YTD total from confirmed facts (see shared reads above)
             $ytdTotalCents = $tradYtdCents + $rothYtdCents;
 
             // Only emit when we have enough data to assess the gap
