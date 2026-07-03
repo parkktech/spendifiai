@@ -202,3 +202,97 @@ All 4 scope items delivered exactly as specified. D17 strictly maintained. SAFE-
 - [x] `983b0e7` — feat(14-11-03): D22 preparer-packet upgrade
 
 ## Self-Check: PASSED
+
+---
+
+## Owner UX Fix Cluster
+
+Four owner-reported defects fixed atomically on branch `feature/v2.1-optimize-my-income`.
+
+### Fix 1 — Proposal cards show values and human labels (CRITICAL)
+
+**Problem:** `ProposalConfirmCard` showed "PAY / GROSS PER PERIOD CENTS … [Confirm]" — the raw fact_key rendered as UI copy and no value shown anywhere (`value` is `$hidden` on `UserTaxFact`).
+
+**Fix:**
+- `DurableFactsController::index()` now loads the encrypted `value` in PHP (bypasses `$hidden`) and computes `display_value` (humanized: `_cents` fact_keys → `$4,250.00`; `yes`/`no` → `Yes`/`No`; `w4.filing_status` → `"Married Filing Jointly"`) and `source_label` (`"from your Jul 2 Pay Stub"`) server-side for the authenticated owner only. Raw encrypted value is never serialised.
+- `UserTaxFactView` TypeScript type gains optional `display_value` and `source_label` fields.
+- `ProposalConfirmCard` redesigned: label (small/muted) → display_value (22px hero) → source_label → Confirm/Edit/Reject + confidence chip. No more raw `fact_key` rendered as UI copy (D18 rule 2 compliance).
+- D18 key-leak test extended to the proposals API surface (asserts `label` and `display_value` contain no snake_case key paths; raw `value` absent from response).
+- One group disclaimer for the proposals section in `Optimize/Index.tsx` replaces per-card paragraphs.
+
+**Commits:** `d5a8b79`
+
+**Taste audit:**
+- Value is the hero: 22px/700 weight above the label — the number jumps out before you read the label
+- Source attribution ("from your Jul 2 Pay Stub") gives provenance without jargon
+- Confidence chip is informational, placed right-side of action row — not blocking the value
+- One disclaimer for the group, not seven identical paragraphs
+
+### Fix 1b — Confirm-with-correction: the proposal Edit button works
+
+**Problem (design-gap):** `ProposalConfirmCard`'s Edit posted to `/facts/{fact}/supersede`, but `supersede()` requires `is_current=true` — proposals are always `is_current=false`, so every proposal edit failed with the generic "Could not save your edit."
+
+**Fix:**
+- `POST /api/v1/optimizer/facts/{fact}/confirm` accepts an optional `{value: string}`.
+- With value (D4 semantics — user's corrected value WINS): recorded via `recordFact()` with `source_type='user_edit'` (becomes current, supersedes any prior current fact for the key tuple). Provenance preserved: metadata carries `corrected_from_proposal_id` + `document_id` linkage from the original proposal.
+- The original proposal is resolved (`superseded_by_id` → corrected fact, `confirmed_at` stays null — never confirmed as-extracted); `index()` filters resolved proposals out so the card leaves the list.
+- Typed conversion server-side per fact type: `_cents` facts parse `"$4,300.00"` → integer-cents; `dependents_claimed`/`_count` facts require whole numbers; strings pass through.
+- Validation failures return specific 422 messages ("Please enter a dollar amount, like 4,250.00.") which the card surfaces verbatim, keeping the editing state open for retry.
+- Without value: plain confirm behaves exactly as before (`confirmProposal()` path unchanged — regression-tested).
+- 5 new E2E tests: correction wins with user_edit provenance → proposal resolved → leaves proposals list; money-type validation with specific message; plain-confirm regression; already-confirmed guard; cross-user 403.
+
+**Commits:** `a1c8430`
+
+### Fix 2 — Upload success feedback + green-check inventory grid
+
+**Problem:** The type-picker grid was a blank list with no indication of what was already uploaded. Done step silently said "Upload complete" with no outcome information.
+
+**Fix:**
+- New `GET /api/v1/tax-vault/type-status` endpoint returns per-type inventory (`has_ready_doc`, `latest_uploaded_at`, `ready_count`, `extracted_fields_count`) for the 7 DocumentUploadFlow types.
+- `DocumentUploadFlow` fetches type-status on mount; overlays green check + `"Received ✓ · [date]"` (+ `×N` when multiple) on types with ready docs.
+- Done step polls `GET /api/v1/tax-vault/documents/{id}` until `ready` or `failed`; shows `"Parsed — N fields extracted"` on success, extraction failure copy on failure, or honest timeout copy — never silent.
+
+**Commits:** `242dfcb`
+
+### Fix 3 — Duplicate upload = already-on-file state, not a dead-end error
+
+**Problem:** Re-uploading a document hit HTTP 409 and rendered a dead-end error message ("already been uploaded").
+
+**Fix:**
+- `DocumentUploadFlow.handleUpload()` catches HTTP 409 separately; reads `duplicate_of` from the response body.
+- Renders done step as "✓ Already on file — your [category] uploaded [date]" with green check.
+- Still calls `onComplete` so the parent refreshes proposals/facts.
+
+**Commits:** `242dfcb`
+
+### Fix 4 — Upload grid must never disappear
+
+**Problem:** The upload section was gated by `needsDocUpload`; when everything was satisfied, the entire upload UI disappeared — making voluntary uploads impossible.
+
+**Fix:**
+- When `needsDocUpload` is `true`: upload hero shown unchanged.
+- When `needsDocUpload` is `false`: compact collapsible `"Add more documents ▸"` accordion is always present in the Overview journey, expanding to the full `DocumentUploadFlow` with the green-check inventory grid. Voluntary uploads are always available.
+
+**Commits:** `d5a8b79` (same commit as Fix 1 — both modify `Optimize/Index.tsx`)
+
+### Gates Verified (UX Fix Cluster)
+
+- [x] `npm run build` — zero TypeScript errors
+- [x] `php artisan test --compact` — 1117 passing, ZERO failures (the "known failure" DashboardFinancialBlocksTest is date-sensitive and passes on 2026-07-02; verified in isolation)
+- [x] Pint — all modified PHP files clean
+- [x] D18 key-leak test extended to proposals API surface — passes
+- [x] `value` raw column excluded from proposals API response — verified in 3 new test assertions
+- [x] `display_value` humanization correct: `$4,250.00` for cents, `Yes`/`No` for booleans, `Married Filing Jointly` for MFJ status
+- [x] Source_label format: `"from your [Mon D] [Category Label]"`
+- [x] Fix 1b: proposal Edit → corrected fact current with `user_edit` provenance → proposal resolved → leaves list (E2E-tested)
+- [x] Fix 1b: plain confirm (no value) regression-tested — behaves exactly as before
+- [x] Duplicate upload (HTTP 409) correctly renders "Already on file" — not an error
+- [x] Type-status endpoint returns all 7 grid types with correct schema
+- [x] Upload grid always present — collapsed accordion when upload not required
+
+### Taste Audit — Four lines
+
+1. Values hero before labels: the dollar amount jumps out at 22px/700 — you see the number, then understand the label.
+2. Source attribution is a single line of ambient context ("from your Jul 2 Pay Stub") — no modal, no tooltip, no panel.
+3. Upload type grid is an inventory: green-check types feel done, unchecked types feel like work remaining — status at a glance.
+4. "Already on file" is a success state with a green check, not a red error — uploading the same doc twice is not a user mistake.
