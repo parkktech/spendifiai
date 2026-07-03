@@ -466,7 +466,8 @@ export interface UserFinancialProfile {
   has_fsa: boolean | null;
   has_529_plan: boolean | null;
   has_ira: boolean | null;
-  ira_type: string | null;
+  ira_type: string | null;        // legacy single-value (first of ira_types)
+  ira_types: string[] | null;    // multi-select: ['traditional','roth','sep','simple']
   // Additional deductions
   has_student_loans: boolean | null;
   has_childcare_expenses: boolean | null;
@@ -476,9 +477,30 @@ export interface UserFinancialProfile {
   education_credits_eligible: boolean | null;
 }
 
+/** Derived annotation block from documents/facts (Fix 2 — additive, server sends alongside profile). */
+export interface DerivedAccountEntry {
+  value: 'yes' | 'no' | null;
+  source: 'documents' | 'interview' | 'your answers' | 'profile' | null;
+}
+
+export interface DerivedIraTypeEntry {
+  value: boolean;
+  source: 'documents' | null;
+}
+
+export interface DerivedAccounts {
+  hsa: DerivedAccountEntry;
+  ira: DerivedAccountEntry;
+  ira_types: {
+    traditional: DerivedIraTypeEntry;
+    roth: DerivedIraTypeEntry;
+  };
+}
+
 export interface UserFinancialProfileResponse {
   message?: string;
   profile: UserFinancialProfile | null;
+  derived_accounts?: DerivedAccounts;   // additive — absent when no facts exist
 }
 
 export interface PaginatedResponse<T> {

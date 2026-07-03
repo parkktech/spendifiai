@@ -1,15 +1,44 @@
 import { useState, useEffect } from 'react';
-import { FileText, ChevronDown, ChevronRight, Save, Loader2, CheckCircle } from 'lucide-react';
+import { FileText, ChevronDown, ChevronRight, Save, Loader2, CheckCircle, Info } from 'lucide-react';
 import { useApi, useApiPost } from '@/hooks/useApi';
-import type { UserFinancialProfile, UserFinancialProfileResponse } from '@/types/spendifiai';
+import type { UserFinancialProfile, UserFinancialProfileResponse, DerivedAccounts } from '@/types/spendifiai';
+
+/** Valid IRA type tokens (matches backend enum). */
+const IRA_TYPES = [
+  { value: 'traditional', label: 'Traditional IRA' },
+  { value: 'roth',        label: 'Roth IRA' },
+  { value: 'sep',         label: 'SEP IRA' },
+  { value: 'simple',      label: 'SIMPLE IRA' },
+] as const;
+
+type IraTypeValue = typeof IRA_TYPES[number]['value'];
+
+/** Soft annotation note rendered under a field when document-derived info conflicts. */
+function FactNote({ note }: { note: string }) {
+  return (
+    <p className="flex items-start gap-1 text-xs text-sw-info mt-0.5 ml-6 leading-relaxed">
+      <Info size={11} className="mt-0.5 flex-shrink-0" />
+      {note}
+    </p>
+  );
+}
+
+/** Derive a human-readable source label. */
+function sourceLabel(source: string | null): string {
+  if (!source) return 'your documents';
+  if (source === 'your answers') return 'your previous answers';
+  return source;
+}
 
 export default function EnhancedProfileSection() {
   const { data: profileData } = useApi<UserFinancialProfileResponse>('/api/v1/profile/financial');
   const profile = profileData?.profile ?? null;
+  const derived: DerivedAccounts | undefined = profileData?.derived_accounts;
   const { submit: saveProfile, loading: saving } = useApiPost<unknown, Partial<UserFinancialProfile>>('/api/v1/profile/financial', 'POST');
 
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [success, setSuccess] = useState(false);
+
   const [form, setForm] = useState({
     is_student: false,
     school_name: '',
@@ -21,7 +50,8 @@ export default function EnhancedProfileSection() {
     has_fsa: false,
     has_529_plan: false,
     has_ira: false,
-    ira_type: '',
+    // Fix 1: multi-select IRA types
+    ira_types: [] as IraTypeValue[],
     has_student_loans: false,
     has_childcare_expenses: false,
     childcare_annual_cost: '',
@@ -30,8 +60,43 @@ export default function EnhancedProfileSection() {
     education_credits_eligible: false,
   });
 
+  // Track whether the user has explicitly overridden a doc-derived value
+  // (used to decide when to show reconciliation notes vs plain annotation).
+  const [hsaOverridden, setHsaOverridden] = useState(false);
+  const [iraOverridden, setIraOverridden] = useState(false);
+
   useEffect(() => {
     if (profile) {
+      // Fix 1: Prefer ira_types array; fall back to legacy ira_type → singleton array
+      let iraTypes: IraTypeValue[] = [];
+      if (profile.ira_types && profile.ira_types.length > 0) {
+        iraTypes = profile.ira_types as IraTypeValue[];
+      } else if (profile.ira_type) {
+        iraTypes = [profile.ira_type as IraTypeValue];
+      }
+
+      // Fix 2: If derived says IRA and the profile has none, pre-fill from docs.
+      // Only pre-fill when profile has no explicit value yet (first-time annotation).
+      let prefillHasIra = profile.has_ira ?? false;
+      let prefillIraTypes = iraTypes;
+
+      if (!profile.has_ira && derived?.ira?.value === 'yes') {
+        prefillHasIra = true;
+        // Pre-select derived types when profile has none
+        if (iraTypes.length === 0) {
+          const newTypes: IraTypeValue[] = [];
+          if (derived.ira_types?.traditional?.value) newTypes.push('traditional');
+          if (derived.ira_types?.roth?.value) newTypes.push('roth');
+          if (newTypes.length > 0) prefillIraTypes = newTypes;
+        }
+      }
+
+      let prefillHasHsa = profile.has_hsa ?? false;
+      // Pre-fill HSA from derived only if no explicit profile value
+      if (profile.has_hsa === null && derived?.hsa?.value === 'yes') {
+        prefillHasHsa = true;
+      }
+
       setForm({
         is_student: profile.is_student ?? false,
         school_name: profile.school_name ?? '',
@@ -39,11 +104,11 @@ export default function EnhancedProfileSection() {
         spouse_name: profile.spouse_name ?? '',
         spouse_employment_type: profile.spouse_employment_type ?? '',
         spouse_income: profile.spouse_income ? String(profile.spouse_income) : '',
-        has_hsa: profile.has_hsa ?? false,
+        has_hsa: prefillHasHsa,
         has_fsa: profile.has_fsa ?? false,
         has_529_plan: profile.has_529_plan ?? false,
-        has_ira: profile.has_ira ?? false,
-        ira_type: profile.ira_type ?? '',
+        has_ira: prefillHasIra,
+        ira_types: prefillIraTypes,
         has_student_loans: profile.has_student_loans ?? false,
         has_childcare_expenses: profile.has_childcare_expenses ?? false,
         childcare_annual_cost: profile.childcare_annual_cost ? String(profile.childcare_annual_cost) : '',
@@ -51,10 +116,24 @@ export default function EnhancedProfileSection() {
         has_rental_property: profile.has_rental_property ?? false,
         education_credits_eligible: profile.education_credits_eligible ?? false,
       });
+      setHsaOverridden(false);
+      setIraOverridden(false);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [profile]);
 
   const toggle = (key: string) => setExpanded((prev) => ({ ...prev, [key]: !prev[key] }));
+
+  // Fix 1: Toggle an IRA type in the multi-select array.
+  const toggleIraType = (type: IraTypeValue) => {
+    setForm((prev) => {
+      const next = prev.ira_types.includes(type)
+        ? prev.ira_types.filter((t) => t !== type)
+        : [...prev.ira_types, type];
+      return { ...prev, ira_types: next };
+    });
+    setIraOverridden(true);
+  };
 
   const handleSave = async () => {
     const payload: Record<string, unknown> = { ...form };
@@ -62,11 +141,16 @@ export default function EnhancedProfileSection() {
     else delete payload.spouse_income;
     if (payload.childcare_annual_cost) payload.childcare_annual_cost = Number(payload.childcare_annual_cost);
     else delete payload.childcare_annual_cost;
-    if (!payload.ira_type) delete payload.ira_type;
     if (!payload.enrollment_status) delete payload.enrollment_status;
+
+    // Fix 1: send ira_types as the canonical field; remove legacy ira_type from payload
+    // (the controller derives ira_type from ira_types[0] for backward compat).
+    delete payload.ira_type;
 
     await saveProfile(payload as Partial<UserFinancialProfile>);
     setSuccess(true);
+    setHsaOverridden(false);
+    setIraOverridden(false);
     setTimeout(() => setSuccess(false), 3000);
   };
 
@@ -83,6 +167,36 @@ export default function EnhancedProfileSection() {
       {title}
     </button>
   );
+
+  // ── Derived annotation helpers ──────────────────────────────────────────────
+
+  /** HSA: show conflict note when derived says 'no' but user has HSA checked. */
+  const hsaConflictNote = (() => {
+    if (!derived?.hsa?.value) return null;
+    const derivedNo = derived.hsa.value === 'no';
+    const derivedYes = derived.hsa.value === 'yes';
+    if (derivedNo && form.has_hsa && hsaOverridden) {
+      return `Based on ${sourceLabel(derived.hsa.source)}, this appears to be "not applicable" — your selection will be saved.`;
+    }
+    if (derivedNo && !form.has_hsa) {
+      return `Based on ${sourceLabel(derived.hsa.source)}, this appears to be not applicable to you.`;
+    }
+    if (derivedYes && form.has_hsa) return null; // agreement — no note needed
+    return null;
+  })();
+
+  /** IRA: show annotation when derived info exists. */
+  const iraSuggestionNote = (() => {
+    if (!derived?.ira?.value || iraOverridden) return null;
+    if (derived.ira.value === 'yes' && !profile?.has_ira) {
+      const types: string[] = [];
+      if (derived.ira_types?.traditional?.value) types.push('Traditional');
+      if (derived.ira_types?.roth?.value) types.push('Roth');
+      const typeStr = types.length > 0 ? ` (${types.join(' + ')})` : '';
+      return `Based on ${sourceLabel(derived.ira.source)}, it looks like you have an IRA${typeStr}. We've pre-selected below — adjust if needed.`;
+    }
+    return null;
+  })();
 
   return (
     <div className="bg-sw-card border border-sw-border rounded-xl p-6">
@@ -160,28 +274,62 @@ export default function EnhancedProfileSection() {
         <SectionHeader title="Tax-Advantaged Accounts" sectionKey="accounts" />
         {expanded.accounts && (
           <div className="pl-6 pb-3 space-y-2">
+            {/* HSA */}
             <label className="flex items-center gap-2 text-xs text-sw-text-secondary">
-              <input type="checkbox" checked={form.has_hsa} onChange={(e) => setForm({ ...form, has_hsa: e.target.checked })} className={checkClass} /> Health Savings Account (HSA)
+              <input
+                type="checkbox"
+                checked={form.has_hsa}
+                onChange={(e) => {
+                  setForm({ ...form, has_hsa: e.target.checked });
+                  setHsaOverridden(true);
+                }}
+                className={checkClass}
+              />
+              Health Savings Account (HSA)
             </label>
+            {hsaConflictNote && <FactNote note={hsaConflictNote} />}
+
             <label className="flex items-center gap-2 text-xs text-sw-text-secondary">
               <input type="checkbox" checked={form.has_fsa} onChange={(e) => setForm({ ...form, has_fsa: e.target.checked })} className={checkClass} /> Flexible Spending Account (FSA)
             </label>
             <label className="flex items-center gap-2 text-xs text-sw-text-secondary">
               <input type="checkbox" checked={form.has_529_plan} onChange={(e) => setForm({ ...form, has_529_plan: e.target.checked })} className={checkClass} /> 529 Education Savings Plan
             </label>
+
+            {/* IRA — checkbox + multi-type selector */}
             <label className="flex items-center gap-2 text-xs text-sw-text-secondary">
-              <input type="checkbox" checked={form.has_ira} onChange={(e) => setForm({ ...form, has_ira: e.target.checked })} className={checkClass} /> IRA (Individual Retirement Account)
+              <input
+                type="checkbox"
+                checked={form.has_ira}
+                onChange={(e) => {
+                  setForm({ ...form, has_ira: e.target.checked, ira_types: e.target.checked ? form.ira_types : [] });
+                  setIraOverridden(true);
+                }}
+                className={checkClass}
+              />
+              IRA (Individual Retirement Account)
             </label>
+            {iraSuggestionNote && <FactNote note={iraSuggestionNote} />}
+
+            {/* Fix 1: Multi-select IRA type checkboxes */}
             {form.has_ira && (
-              <div className="ml-6 mt-1">
-                <label className={labelClass}>IRA Type</label>
-                <select value={form.ira_type} onChange={(e) => setForm({ ...form, ira_type: e.target.value })} className={inputClass + ' max-w-xs'}>
-                  <option value="">Select...</option>
-                  <option value="traditional">Traditional IRA</option>
-                  <option value="roth">Roth IRA</option>
-                  <option value="sep">SEP IRA</option>
-                  <option value="simple">SIMPLE IRA</option>
-                </select>
+              <div className="ml-6 mt-1 space-y-1">
+                <p className="text-xs font-medium text-sw-text-secondary mb-1">IRA type(s) — select all that apply:</p>
+                {IRA_TYPES.map(({ value, label }) => (
+                  <label key={value} className="flex items-center gap-2 text-xs text-sw-text-secondary">
+                    <input
+                      type="checkbox"
+                      checked={form.ira_types.includes(value)}
+                      onChange={() => toggleIraType(value)}
+                      className={checkClass}
+                    />
+                    {label}
+                    {/* Fix 2: show doc-derived badge for traditional/roth */}
+                    {(value === 'traditional' || value === 'roth') && derived?.ira_types?.[value]?.value && !iraOverridden && (
+                      <span className="text-xs text-sw-info italic">(from {sourceLabel(derived.ira_types[value].source)})</span>
+                    )}
+                  </label>
+                ))}
               </div>
             )}
           </div>

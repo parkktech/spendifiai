@@ -39,6 +39,9 @@ class UpdateFinancialProfileRequest extends FormRequest
             'has_529_plan' => 'nullable|boolean',
             'has_ira' => 'nullable|boolean',
             'ira_type' => 'nullable|in:traditional,roth,sep,simple',
+            // Multi-select IRA types (Fix 1) — accepted alongside legacy ira_type
+            'ira_types' => 'nullable|array',
+            'ira_types.*' => 'in:traditional,roth,sep,simple',
             // Additional deductions
             'has_student_loans' => 'nullable|boolean',
             'has_childcare_expenses' => 'nullable|boolean',

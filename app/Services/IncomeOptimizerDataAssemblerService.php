@@ -133,6 +133,7 @@ class IncomeOptimizerDataAssemblerService
                 'has_hsa_eligible_plan' => false,
                 'has_ira' => false,
                 'ira_type' => null,
+                'ira_types' => null,
                 'has_home_office' => false,
                 'has_self_employment' => false,
                 'employment_type' => null,
@@ -151,11 +152,16 @@ class IncomeOptimizerDataAssemblerService
         $selfEmployedTypes = ['self_employed', '1099_contractor', 'business_owner', 'freelancer'];
         $hasSelfEmployment = in_array($profile->employment_type, $selfEmployedTypes, true);
 
+        // Fix 1: expose ira_types (multi-select array) alongside legacy ira_type scalar.
+        // Callers that only read ira_type continue to work unchanged.
+        $iraTypes = $profile->ira_types ?? null;
+
         return [
             'filing_status' => $filingStatus,
             'has_hsa_eligible_plan' => (bool) ($profile->has_hsa ?? false),
             'has_ira' => (bool) ($profile->has_ira ?? false),
             'ira_type' => $profile->ira_type ?? null,
+            'ira_types' => $iraTypes,
             'has_home_office' => (bool) ($profile->has_home_office ?? false),
             'has_self_employment' => $hasSelfEmployment,
             'employment_type' => $profile->employment_type ?? null,

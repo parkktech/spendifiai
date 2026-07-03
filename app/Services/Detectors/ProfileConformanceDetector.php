@@ -133,17 +133,31 @@ class ProfileConformanceDetector
                 }
             }
 
-            // Dir A2: profile says Roth-only but Traditional IRA contribution detected
-            if (! $plane2Mismatch && $profile->has_ira === true
-                && strtolower((string) $profile->ira_type) === 'roth') {
+            // Dir A2: profile says Roth-only but Traditional IRA contribution detected.
+            // Fix 1: check ira_types (multi-select) first; fall back to legacy ira_type.
+            // "Roth-only" means the types array contains 'roth' but NOT 'traditional'.
+            if (! $plane2Mismatch && $profile->has_ira === true) {
+                $iraTypes = $profile->ira_types ?? null;
+                $isRothOnly = false;
 
-                $tradFact = UserTaxFact::currentFact($userId, 'ira.traditional_contribution_ytd', null, $taxYear)
-                    ?? UserTaxFact::currentFact($userId, 'ira.traditional_contribution_ytd');
+                if (! empty($iraTypes) && is_array($iraTypes)) {
+                    // Multi-select: roth present AND traditional absent → roth-only
+                    $isRothOnly = in_array('roth', $iraTypes, true)
+                        && ! in_array('traditional', $iraTypes, true);
+                } elseif ($profile->ira_type !== null) {
+                    // Legacy single-value fallback
+                    $isRothOnly = strtolower((string) $profile->ira_type) === 'roth';
+                }
 
-                if ($tradFact && (int) $tradFact->value > 0) {
-                    $plane2Mismatch = true;
-                    $plane2Description = 'Your records appear to show a Traditional IRA contribution '
-                        .'while your profile indicates a Roth-only account.';
+                if ($isRothOnly) {
+                    $tradFact = UserTaxFact::currentFact($userId, 'ira.traditional_contribution_ytd', null, $taxYear)
+                        ?? UserTaxFact::currentFact($userId, 'ira.traditional_contribution_ytd');
+
+                    if ($tradFact && (int) $tradFact->value > 0) {
+                        $plane2Mismatch = true;
+                        $plane2Description = 'Your records appear to show a Traditional IRA contribution '
+                            .'while your profile indicates a Roth-only account.';
+                    }
                 }
             }
         }

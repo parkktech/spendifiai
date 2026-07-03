@@ -19,7 +19,7 @@ class UserFinancialProfile extends Model
         // Spouse info
         'spouse_name', 'spouse_employment_type', 'spouse_income', 'spouse_user_id',
         // Tax-advantaged accounts
-        'has_hsa', 'has_fsa', 'has_529_plan', 'has_ira', 'ira_type',
+        'has_hsa', 'has_fsa', 'has_529_plan', 'has_ira', 'ira_type', 'ira_types',
         // Additional deductions
         'has_student_loans', 'has_childcare_expenses', 'childcare_annual_cost',
         'is_military', 'has_rental_property', 'education_credits_eligible',
@@ -45,6 +45,7 @@ class UserFinancialProfile extends Model
             'has_fsa' => 'boolean',
             'has_529_plan' => 'boolean',
             'has_ira' => 'boolean',
+            'ira_types' => 'array',
             'has_student_loans' => 'boolean',
             'has_childcare_expenses' => 'boolean',
             'is_military' => 'boolean',

@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\UserFinancialProfile;
+use App\Models\UserTaxFact;
 
 // ── Save New Profile Fields ──
 
@@ -123,4 +124,156 @@ it('can save childcare expense details', function () {
 
     $profile = UserFinancialProfile::where('user_id', $user->id)->first();
     expect($profile->has_childcare_expenses)->toBeTrue();
+});
+
+// ── Fix 1: IRA Multi-Select ──
+
+it('saves ira_types as a JSON array and backfills ira_type from first element', function () {
+    $user = createAuthenticatedUser();
+
+    $response = $this->postJson('/api/v1/profile/financial', [
+        'has_ira' => true,
+        'ira_types' => ['traditional', 'roth'],
+    ]);
+
+    $response->assertOk();
+
+    $profile = UserFinancialProfile::where('user_id', $user->id)->first();
+    expect($profile->has_ira)->toBeTrue();
+    expect($profile->ira_types)->toBe(['traditional', 'roth']);
+    // Legacy backward-compat: ira_type = first element
+    expect($profile->ira_type)->toBe('traditional');
+});
+
+it('accepts single ira_types value and keeps backward compat', function () {
+    $user = createAuthenticatedUser();
+
+    $this->postJson('/api/v1/profile/financial', [
+        'has_ira' => true,
+        'ira_types' => ['roth'],
+    ])->assertOk();
+
+    $profile = UserFinancialProfile::where('user_id', $user->id)->first();
+    expect($profile->ira_types)->toBe(['roth']);
+    expect($profile->ira_type)->toBe('roth');
+});
+
+it('validates ira_types values against allowed enum', function () {
+    createAuthenticatedUser();
+
+    $this->postJson('/api/v1/profile/financial', [
+        'ira_types' => ['traditional', 'invalid_type'],
+    ])->assertStatus(422);
+});
+
+it('returns derived_accounts block from GET profile endpoint', function () {
+    $user = createAuthenticatedUser();
+
+    UserFinancialProfile::create([
+        'user_id' => $user->id,
+        'has_hsa' => false,
+        'has_ira' => true,
+        'ira_types' => ['roth', 'traditional'],
+    ]);
+
+    $response = $this->getJson('/api/v1/profile/financial');
+
+    $response->assertOk()
+        ->assertJsonStructure([
+            'profile',
+            'derived_accounts' => [
+                'hsa' => ['value', 'source'],
+                'ira' => ['value', 'source'],
+                'ira_types' => [
+                    'traditional' => ['value', 'source'],
+                    'roth' => ['value', 'source'],
+                ],
+            ],
+        ]);
+});
+
+it('writes finance.has_hsa user_edit fact when has_hsa is saved', function () {
+    $user = createAuthenticatedUser();
+
+    $this->postJson('/api/v1/profile/financial', [
+        'has_hsa' => true,
+    ])->assertOk();
+
+    $fact = UserTaxFact::currentFact($user->id, 'finance.has_hsa');
+    expect($fact)->not->toBeNull();
+    expect($fact->value)->toBe('yes');
+    expect($fact->source_type)->toBe('user_edit');
+});
+
+it('writes finance.has_hsa=no user_edit fact when has_hsa is unchecked', function () {
+    $user = createAuthenticatedUser();
+
+    $this->postJson('/api/v1/profile/financial', [
+        'has_hsa' => false,
+    ])->assertOk();
+
+    $fact = UserTaxFact::currentFact($user->id, 'finance.has_hsa');
+    expect($fact)->not->toBeNull();
+    expect($fact->value)->toBe('no');
+    expect($fact->source_type)->toBe('user_edit');
+});
+
+it('writes finance.has_ira user_edit fact when has_ira is saved', function () {
+    $user = createAuthenticatedUser();
+
+    $this->postJson('/api/v1/profile/financial', [
+        'has_ira' => true,
+    ])->assertOk();
+
+    $fact = UserTaxFact::currentFact($user->id, 'finance.has_ira');
+    expect($fact)->not->toBeNull();
+    expect($fact->value)->toBe('yes');
+    expect($fact->source_type)->toBe('user_edit');
+});
+
+it('derived_accounts hsa block reflects finance.has_hsa fact', function () {
+    $user = createAuthenticatedUser();
+
+    UserFinancialProfile::create(['user_id' => $user->id]);
+
+    // Record a user_edit fact for finance.has_hsa=no (simulating N/A exclusion)
+    UserTaxFact::recordFact(
+        userId: $user->id,
+        factKey: 'finance.has_hsa',
+        value: 'no',
+        sourceType: 'user_edit',
+        label: 'HSA N/A',
+    );
+
+    $response = $this->getJson('/api/v1/profile/financial');
+
+    $response->assertOk()
+        ->assertJsonPath('derived_accounts.hsa.value', 'no')
+        ->assertJsonPath('derived_accounts.hsa.source', 'your answers');
+});
+
+it('derived_accounts ira_types reflect IRA YTD contribution facts', function () {
+    $user = createAuthenticatedUser();
+    UserFinancialProfile::create(['user_id' => $user->id]);
+
+    // Simulate document-extracted IRA contribution facts
+    UserTaxFact::recordFact(
+        userId: $user->id,
+        factKey: 'ira.traditional_ytd_contribution_cents',
+        value: '600000',    // $6,000
+        sourceType: 'interview_answer',
+    );
+    UserTaxFact::recordFact(
+        userId: $user->id,
+        factKey: 'ira.roth_ytd_contribution_cents',
+        value: '350000',    // $3,500
+        sourceType: 'interview_answer',
+    );
+
+    $response = $this->getJson('/api/v1/profile/financial');
+
+    $response->assertOk()
+        ->assertJsonPath('derived_accounts.ira.value', 'yes')
+        ->assertJsonPath('derived_accounts.ira_types.traditional.value', true)
+        ->assertJsonPath('derived_accounts.ira_types.roth.value', true);
 });
