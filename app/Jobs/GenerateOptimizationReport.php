@@ -3,6 +3,7 @@
 namespace App\Jobs;
 
 use App\Models\User;
+use App\Notifications\OptimizationReportReadyNotification;
 use App\Services\OptimizationReportGeneratorService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldBeUnique;
@@ -96,6 +97,19 @@ class GenerateOptimizationReport implements ShouldBeUnique, ShouldQueue
             'report_id' => $report->id,
             'section_count' => count($report->sections ?? []),
         ]);
+
+        // Fix 3: notify the user (database channel only) so the polling page
+        // and notification bell surface completion without building a new system.
+        // Wrapped in try/catch — a notification failure must not roll back the report.
+        try {
+            $user->notify(new OptimizationReportReadyNotification($this->taxYear));
+        } catch (\Throwable $e) {
+            Log::warning('GenerateOptimizationReport: notification dispatch failed', [
+                'user_id' => $this->userId,
+                'tax_year' => $this->taxYear,
+                'error' => $e->getMessage(),
+            ]);
+        }
     }
 
     public function failed(Throwable $exception): void

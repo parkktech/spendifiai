@@ -553,7 +553,9 @@ export default function OptimizeIndex() {
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
-    const isGenerating = report?.status === 'generating' || (!report && !reportLoading && !reportError);
+    // Fix 3: also poll while is_stale=true (rebuild in flight from Fix 1) so the
+    // overlay drops automatically when the fresh report arrives.
+    const isGenerating = isRegenerating;
 
     if (isGenerating && auth.hasBankConnected) {
       if (!pollRef.current) {
@@ -574,7 +576,7 @@ export default function OptimizeIndex() {
         pollRef.current = null;
       }
     };
-  }, [report?.status, reportLoading, reportError, auth.hasBankConnected, refreshReport]);
+  }, [isRegenerating, reportLoading, reportError, auth.hasBankConnected, refreshReport]);
 
   const handleRegenerate = async () => {
     setRegenerating(true);
@@ -637,8 +639,9 @@ export default function OptimizeIndex() {
       </div>
 
       {/* Journey progress indicator */}
+      {/* Fix 3: pass isRegenerating — locks Choices + Checklist while report is rebuilding */}
       <div className="mb-5">
-        <StageIndicator current={viewMode} onSelect={setViewMode} />
+        <StageIndicator current={viewMode} onSelect={setViewMode} isRegenerating={isRegenerating} />
       </div>
 
       {/* 429 / rate-limit gentle note */}
@@ -806,9 +809,16 @@ export default function OptimizeIndex() {
                 <TrendingUp size={16} className="text-sw-accent" />
                 <h2 className="text-sm font-semibold text-sw-text">What We Noticed</h2>
               </div>
+              {/* Fix 3: muted when regenerating; title communicates unavailability */}
               <button
-                onClick={() => setViewMode('choices')}
-                className="inline-flex items-center gap-1.5 text-xs font-medium text-sw-accent hover:text-sw-accent-hover transition"
+                onClick={() => !isRegenerating && setViewMode('choices')}
+                disabled={isRegenerating}
+                title={isRegenerating ? 'Available when your updated report is ready' : undefined}
+                className={`inline-flex items-center gap-1.5 text-xs font-medium transition ${
+                  isRegenerating
+                    ? 'text-sw-dim cursor-not-allowed'
+                    : 'text-sw-accent hover:text-sw-accent-hover'
+                }`}
               >
                 See your options <ArrowRight size={13} />
               </button>
@@ -904,20 +914,32 @@ export default function OptimizeIndex() {
                         />
                       ))}
 
-                    {/* CTA to Choices */}
-                    <div className="rounded-2xl border border-sw-accent/20 bg-sw-accent/5 p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                    {/* Fix 3: CTA to Choices — disabled while regenerating (stale facts) */}
+                    <div className={`rounded-2xl border p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 ${
+                      isRegenerating
+                        ? 'border-sw-border/40 bg-sw-surface/50'
+                        : 'border-sw-accent/20 bg-sw-accent/5'
+                    }`}>
                       <div className="flex items-start gap-3">
-                        <GitCompare size={20} className="text-sw-accent shrink-0 mt-0.5" />
+                        <GitCompare size={20} className={isRegenerating ? 'text-sw-dim shrink-0 mt-0.5' : 'text-sw-accent shrink-0 mt-0.5'} />
                         <div>
                           <p className="text-[14px] font-semibold text-sw-text">Ready to see your options?</p>
                           <p className="text-[12px] text-sw-muted leading-relaxed mt-0.5">
-                            Compare optimization scenarios and choose the path that fits your situation.
+                            {isRegenerating
+                              ? 'Available when your updated report is ready.'
+                              : 'Compare optimization scenarios and choose the path that fits your situation.'}
                           </p>
                         </div>
                       </div>
                       <button
-                        onClick={() => setViewMode('choices')}
-                        className="self-start shrink-0 inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-sw-accent text-white text-sm font-semibold hover:bg-sw-accent-hover transition shadow-sm"
+                        onClick={() => !isRegenerating && setViewMode('choices')}
+                        disabled={isRegenerating}
+                        title={isRegenerating ? 'Available when your updated report is ready' : undefined}
+                        className={`self-start shrink-0 inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition shadow-sm ${
+                          isRegenerating
+                            ? 'bg-sw-surface text-sw-dim border border-sw-border cursor-not-allowed opacity-60'
+                            : 'bg-sw-accent text-white hover:bg-sw-accent-hover'
+                        }`}
                       >
                         See your options <ArrowRight size={14} />
                       </button>
@@ -1063,6 +1085,7 @@ export default function OptimizeIndex() {
             />
           )}
 
+          {/* Fix 3: isRebuilding triggers full overlay + per-section SCALE badges */}
           <OptimizationReportView
             taxYear={currentYear}
             report={report}
@@ -1070,6 +1093,7 @@ export default function OptimizeIndex() {
             error={reportError}
             onRegenerate={handleRegenerate}
             regenerating={regenerating}
+            isRebuilding={isRegenerating && !!report && report.sections.length > 0}
           />
         </div>
       )}

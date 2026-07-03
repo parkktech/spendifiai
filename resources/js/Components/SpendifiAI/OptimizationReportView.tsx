@@ -91,6 +91,8 @@ interface OptimizationReportViewProps {
   error: string | null;
   onRegenerate: () => void;
   regenerating: boolean;
+  /** Fix 3: true when is_stale=true or status=generating — triggers full overlay. */
+  isRebuilding?: boolean;
 }
 
 // ─── Severity helpers ─────────────────────────────────────────────────────────
@@ -107,6 +109,29 @@ function severityLabel(severity: string): string {
   if (severity === 'medium') return 'Worth Reviewing';
   if (severity === 'low') return 'Low Impact';
   return severity;
+}
+
+// ─── Per-section zero-state SCALE (Fix 3) ────────────────────────────────────
+// RED = has high findings, YELLOW = has medium (no high), GREEN = all low, ANALYZING = 0 findings
+
+type SectionScale = 'RED' | 'YELLOW' | 'GREEN' | 'ANALYZING';
+
+function sectionScale(findings: ReportFinding[]): SectionScale {
+  if (findings.length === 0) return 'ANALYZING';
+  if (findings.some((f) => f.severity === 'high')) return 'RED';
+  if (findings.some((f) => f.severity === 'medium')) return 'YELLOW';
+  return 'GREEN';
+}
+
+function ScaleBadge({ scale }: { scale: SectionScale }) {
+  const map: Record<SectionScale, { variant: 'danger' | 'warning' | 'success' | 'info'; label: string }> = {
+    RED:       { variant: 'danger',  label: 'RED'       },
+    YELLOW:    { variant: 'warning', label: 'YELLOW'    },
+    GREEN:     { variant: 'success', label: 'GREEN'     },
+    ANALYZING: { variant: 'info',    label: 'ANALYZING' },
+  };
+  const { variant, label } = map[scale];
+  return <Badge variant={variant}>{label}</Badge>;
 }
 
 function formatRebuiltAt(iso: string | null): string {
@@ -243,6 +268,7 @@ function SectionCard({
   const [open, setOpen] = useState(defaultOpen);
   const highCount = section.findings.filter((f) => f.severity === 'high').length;
   const medCount = section.findings.filter((f) => f.severity === 'medium').length;
+  const scale = sectionScale(section.findings);
 
   return (
     <div className="rounded-2xl ring-1 ring-sw-border/70 bg-gradient-to-b from-white to-slate-50/40 shadow-sw-2 overflow-hidden">
@@ -266,6 +292,8 @@ function SectionCard({
           </div>
         </div>
         <div className="flex items-center gap-2 shrink-0">
+          {/* Fix 3: per-section SCALE badge */}
+          <ScaleBadge scale={scale} />
           {highCount > 0 && (
             <span className="w-5 h-5 rounded-full bg-sw-danger flex items-center justify-center text-[10px] text-white font-bold">
               {highCount}
@@ -335,6 +363,7 @@ export default function OptimizationReportView({
   error,
   onRegenerate,
   regenerating,
+  isRebuilding = false,
 }: OptimizationReportViewProps) {
   // Download the report PDF
   const handleDownload = () => {
@@ -412,7 +441,8 @@ export default function OptimizationReportView({
   const sections = report.sections ?? [];
 
   return (
-    <div className="space-y-4">
+    // Fix 3: relative wrapper for full overlay positioning
+    <div className="space-y-4 relative">
       {/* Report header bar */}
       <div className="rounded-2xl ring-1 ring-sw-border/70 bg-gradient-to-b from-white to-slate-50/40 shadow-sw-2 px-5 py-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div>
@@ -510,6 +540,33 @@ export default function OptimizationReportView({
           making any decisions based on this report. SpendifiAI does not provide tax, legal, or accounting advice.
         </p>
       </div>
+
+      {/* Fix 3: Full overlay — dims and blurs report content while a rebuild is running.
+          Shown when is_stale=true OR status=generating (with sections already present).
+          Content beneath is non-interactive (inert via pointer-events). */}
+      {isRebuilding && (
+        <div
+          className="absolute inset-0 z-20 rounded-2xl flex items-center justify-center"
+          style={{ backdropFilter: 'blur(3px)', background: 'rgba(255,255,255,0.82)' }}
+          aria-live="polite"
+          aria-label="Report is regenerating"
+        >
+          <div className="rounded-2xl border border-sw-accent/20 bg-white shadow-sw-3 px-7 py-7 text-center max-w-xs mx-4 space-y-3">
+            <div className="w-12 h-12 mx-auto rounded-2xl bg-sw-accent/10 ring-1 ring-sw-accent/20 flex items-center justify-center animate-pulse">
+              <Loader2 size={22} className="animate-spin text-sw-accent" />
+            </div>
+            <p className="text-[14px] font-semibold text-sw-text leading-snug">
+              Report running
+            </p>
+            <p className="text-[12px] text-sw-muted leading-relaxed">
+              We'll notify you when your updated report is ready, or check back in a few minutes.
+            </p>
+            <p className="text-[10px] text-sw-dim">
+              This page updates automatically once complete.
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
