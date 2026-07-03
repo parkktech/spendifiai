@@ -273,3 +273,25 @@ Fix: `attributeBenefits` now includes BOTH the flat keys (backward compat) AND t
 
 Two items with different knobs now produce different benefit lines; no item repeats the banner aggregate total.
 
+### Disposition: Change 4 — Banner unit discipline (owner, live)
+
+**Status: IMPLEMENTED (commit 809136d)** — acknowledged via coordinator relay (no user authority; consistent with owner-spec scope).
+
+Bug: the Bring Home tile rendered the ANNUAL take-home delta (−$4.4k/yr) directly above an unconditional "per paycheck" caption — reading as "−$4.4k/yr per paycheck".
+
+UNIT DISCIPLINE RULE applied to every tile: each number carries its own explicit unit inline; no caption may apply to a number with a different unit; standalone unit captions dropped.
+
+- **Bring Home:** line 1 `$5,512 → $5,343 per paycheck` (engine absolutes); line 2 `−$169/check · −$4.4k/yr` (both deltas, both labeled). Per-check delta derived as `chosenPP − baselinePP` from the same engine values.
+- **Est. federal tax:** line 1 `$54,750 → $53,050 per year`; line 2 `−$1.7k/yr`.
+- **Retirement:** range + assumptions unchanged; delta-only fallback now renders `/yr` inline (old `contrib/yr` caption dropped).
+- All delta-only fallback paths (legacy rows without absolutes) now carry `/yr` inline.
+
+**Enforcement:** `tests/Unit/BannerUnitDisciplineTest.php` — static source gate over the `HeaderAggregateBanner` function (3 tests, 14 assertions):
+1. Every `fmtAbs()`/`fmtCents()` JSX render must have a unit token (`/check`, `/yr`, `per paycheck`, `per year`, `est. range`) on the same line or within the next 3 lines (before→after pairs share one trailing unit).
+2. No `<p>` element whose entire content is a unit token (the standalone-caption bug pattern).
+3. Structure pins: `per paycheck`, `/check`, `per year`, `/yr`, `est. range`, `not a guarantee` all present.
+
+**Mutation proof (anti-vacuity):** temporarily re-inserted `<p>per paycheck</p>` standalone caption + a unitless `{fmtCents(takeHomeDelta)}` figure → 2 failed; reverted → 3 passed (14 assertions).
+
+**Gates after Change 4:** full suite 1396 passed / 0 failures / 1 risky (pre-existing); `npm run build` 0 TS errors; `vendor/bin/pint --dirty` pass. Suite runs coordinated with parallel Phase-13 executors via pgrep polling (multiple contention-corrupted runs discarded; final run quiescent).
+
