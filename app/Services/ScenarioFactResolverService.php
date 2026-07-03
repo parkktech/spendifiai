@@ -9,6 +9,7 @@ use App\Models\ScenarioFactSet;
 use App\Models\TaxDocument;
 use App\Models\User;
 use App\Models\UserTaxFact;
+use App\Services\AI\PaystubFactExtractorService;
 use Carbon\Carbon;
 
 /**
@@ -185,9 +186,18 @@ final class ScenarioFactResolverService
                 ?? UserTaxFact::currentFact($user->id, $key, null, null);
 
             if ($fact !== null) {
+                // Fix 1 (choices-repair) — defensive normalization at the resolver boundary.
+                // w4.filing_status facts written before the extractor normalization was added
+                // may carry verbatim W-4 display strings. Normalize them here so the engine
+                // never sees a display string (engine expects single_or_mfs | married_joint |
+                // head_of_household). Already-valid enums pass through unchanged (idempotent).
+                $resolvedValue = ($canonicalKey === 'w4.filing_status')
+                    ? PaystubFactExtractorService::normalizeW4FilingStatus((string) $fact->value)
+                    : $fact->value;
+
                 return $this->makeResolved(
                     $canonicalKey,
-                    $fact->value,
+                    $resolvedValue,
                     $this->inferValueType($canonicalKey),
                     'fact',
                     'fact:'.$fact->id,
@@ -247,6 +257,15 @@ final class ScenarioFactResolverService
 
         if (is_bool($value)) {
             $value = $value ? 'yes' : 'no';
+        }
+
+        // Rule 1 (choices-repair): normalize filing_status from the snapshot the same way
+        // resolveFromProfile normalizes it. IncomeOptimizationProfile stores the value from
+        // UserFinancialProfile which uses legacy strings like 'married' (stored in
+        // UserFinancialProfile::tax_filing_status as the Socialite/onboarding default).
+        // TaxRulesEngineService expects 'married_joint' | 'married_separate' | etc.
+        if ($columnSpec === 'filing_status') {
+            $value = $this->normaliseFilingStatus((string) $value) ?? (string) $value;
         }
 
         return $this->makeResolved(
@@ -667,10 +686,13 @@ final class ScenarioFactResolverService
         }
 
         return match ($status) {
-            'married_jointly', 'married_filing_jointly' => 'married_joint',
-            'married_separately', 'married_filing_separately' => 'married_separate',
-            'head_of_household' => 'head_of_household',
-            'single' => 'single',
+            // Canonical engine values pass through unchanged.
+            'married_joint', 'married_separate', 'head_of_household', 'single' => $status,
+            // Legacy / variant spellings → engine enum.
+            // 'married' alone (onboarding default) means MFJ per IRS convention.
+            'married', 'married_jointly', 'married_filing_jointly', 'mfj' => 'married_joint',
+            'married_separately', 'married_filing_separately', 'mfs' => 'married_separate',
+            'hoh' => 'head_of_household',
             default => $status,
         };
     }

@@ -344,6 +344,12 @@ class PaystubFactExtractorService
             } elseif ($isMoney) {
                 // Convert dollar float string to integer cents string
                 $storedValue = (string) $this->dollarsToCents((string) $rawValue);
+            } elseif ($factConfig['fact_key'] === 'w4.filing_status') {
+                // Fix 1 (choices-repair): W-4 filing status verbatim display strings → engine enums.
+                // Claude extraction produces the W-4 form's verbatim label; the engine expects an enum.
+                // Original display string preserved in metadata for UI humanization.
+                $metadata['original_display'] = $rawValue;
+                $storedValue = $this->normalizeW4FilingStatus((string) $rawValue);
             } else {
                 $storedValue = (string) $rawValue;
             }
@@ -596,6 +602,56 @@ class PaystubFactExtractorService
         $field = $fields[$name];
 
         return is_array($field) ? ($field['value'] ?? null) : $field;
+    }
+
+    /**
+     * Normalize a W-4 filing-status display string to the engine enum expected
+     * by TaxRulesEngineService (Fix 1 — choices-repair).
+     *
+     * W-4 form verbatim labels (as printed on the form and returned by Claude):
+     *   "Single or Married filing separately"        → single_or_mfs
+     *   "Married filing jointly (or Qualifying widow(er))" → married_joint
+     *   "Head of household"                          → head_of_household
+     *
+     * Already-valid enums pass through unchanged so the normalizer is idempotent.
+     * Truly unknown values are stored as-is; the engine boundary (ScenarioFactResolverService
+     * defensive layer) handles them with a clear error only for genuinely unknown inputs.
+     *
+     * @param  string  $raw  verbatim string from extraction
+     * @return string engine enum value
+     */
+    public static function normalizeW4FilingStatus(string $raw): string
+    {
+        // Pass-through valid enums unchanged (idempotent).
+        $valid = ['single_or_mfs', 'married_joint', 'head_of_household'];
+        if (in_array($raw, $valid, true)) {
+            return $raw;
+        }
+
+        $lower = strtolower(trim($raw));
+
+        // W-4 Step 1(c) verbatim labels (2020+ form) — longest match first.
+        if (str_contains($lower, 'married filing jointly')
+            || str_contains($lower, 'qualifying widow')) {
+            return 'married_joint';
+        }
+        if (str_contains($lower, 'head of household')) {
+            return 'head_of_household';
+        }
+        if (str_contains($lower, 'single')
+            || str_contains($lower, 'married filing separately')) {
+            return 'single_or_mfs';
+        }
+        // Legacy / abbreviated forms
+        if ($lower === 'married') {
+            return 'married_joint';
+        }
+        if ($lower === 'single') {
+            return 'single_or_mfs';
+        }
+
+        // Unknown: return as-is; the engine boundary logs a clear error.
+        return $raw;
     }
 
     /**
