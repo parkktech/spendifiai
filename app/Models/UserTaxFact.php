@@ -200,6 +200,23 @@ class UserTaxFact extends Model
                 ->lockForUpdate()
                 ->first();
 
+            // For proposals: find any existing OPEN proposal for the same key tuple
+            // so we can supersede it after inserting the new row (newest wins).
+            // "Open" = unconfirmed + not yet superseded.
+            $existingProposal = null;
+            if ($isProposal) {
+                $existingProposal = static::forUser($userId)
+                    ->where('fact_key', $factKey)
+                    ->where('entity_id', $entityId)
+                    ->where('tax_year', $taxYear)
+                    ->where('is_current', false)
+                    ->where('source_type', 'document_extraction')
+                    ->whereNull('confirmed_at')
+                    ->whereNull('superseded_by_id')
+                    ->lockForUpdate()
+                    ->first();
+            }
+
             // Step 1: For non-proposal writes, flip the existing current row to
             // is_current=false BEFORE inserting the new row. This avoids a partial
             // unique index violation (only one is_current=true allowed per key tuple).
@@ -208,6 +225,19 @@ class UserTaxFact extends Model
             }
 
             // Step 2: Insert the new row (now safe — no competing is_current=true row).
+            // For proposals: if the prior proposal had a HIGHER confidence score and we
+            // were not passed an explicit confidence, carry the higher value forward so
+            // the winning proposal always reflects the best extraction certainty.
+            $storedMetadata = $metadata;
+            if ($isProposal && $existingProposal !== null) {
+                $incomingConf = (float) ($metadata['confidence'] ?? 0);
+                $priorConf = (float) ($existingProposal->metadata['confidence'] ?? 0);
+                if ($priorConf > $incomingConf && ! array_key_exists('confidence', $metadata)) {
+                    $storedMetadata['confidence'] = $priorConf;
+                    $storedMetadata['confidence_from_prior_proposal'] = true;
+                }
+            }
+
             $newFact = static::create([
                 'user_id' => $userId,
                 'fact_key' => $factKey,
@@ -221,14 +251,20 @@ class UserTaxFact extends Model
                 'source_id' => $sourceId,
                 'asserted_at' => now(),
                 'confirmed_at' => null,  // Always null on creation; confirmProposal() sets this
-                'metadata' => empty($metadata) ? null : $metadata,
+                'metadata' => empty($storedMetadata) ? null : $storedMetadata,
                 // Proposals are not current; all other source types are current
                 'is_current' => ! $isProposal,
             ]);
 
-            // Step 3: Set superseded_by_id now that we have the new row's ID.
+            // Step 3a: For non-proposals, set superseded_by_id on the old current row.
             if (! $isProposal && $existing !== null) {
                 $existing->update(['superseded_by_id' => $newFact->id]);
+            }
+
+            // Step 3b: For proposals, supersede the prior open proposal (newest wins).
+            // This ensures at most one open proposal per fact_key tuple at all times.
+            if ($isProposal && $existingProposal !== null) {
+                $existingProposal->update(['superseded_by_id' => $newFact->id]);
             }
 
             return $newFact;

@@ -601,6 +601,175 @@ it('confirm-with-correction: other users cannot correct someone else\'s proposal
     expect($proposal->superseded_by_id)->toBeNull();
 });
 
+// ─── Fix 1: Duplicate proposals for the same fact_key ────────────────────────
+//
+// When two document extractions create proposals for the same fact_key + user + tax_year,
+// only ONE open proposal must exist at any time (newest wins; older is superseded).
+// DurableFactsController::index() must also show only one proposal per fact_key.
+
+it('two extractions for the same fact_key produce only one open proposal (newest wins)', function () {
+    Storage::fake('local');
+
+    $user = createAuthenticatedUser();
+    Sanctum::actingAs($user);
+
+    // First extraction — low confidence (98%)
+    $doc1 = makeBenefitsDocument($user->id, [
+        'has_401k' => ['value' => 'true', 'confidence' => 0.98],
+    ]);
+    app(PaystubFactExtractorService::class)->proposeFacts($doc1);
+
+    // Verify first proposal exists
+    $firstProposal = UserTaxFact::forUser($user->id)
+        ->where('fact_key', 'employer.has_401k')
+        ->where('source_type', 'document_extraction')
+        ->whereNull('superseded_by_id')
+        ->first();
+    expect($firstProposal)->not->toBeNull();
+    expect($firstProposal->metadata['confidence'])->toBe(0.98);
+
+    // Second extraction — higher confidence (99%) — e.g. a re-upload or second doc
+    Storage::disk('local')->put("tax-vault/{$user->id}/2025/benefits_guide/test2.pdf", 'fake-content-2');
+    $doc2 = TaxDocument::create([
+        'user_id' => $user->id,
+        'original_filename' => 'benefits-guide-2.pdf',
+        'stored_path' => "tax-vault/{$user->id}/2025/benefits_guide/test2.pdf",
+        'disk' => 'local',
+        'mime_type' => 'application/pdf',
+        'file_size' => 2048,
+        'file_hash' => hash('sha256', 'fake-content-2'),
+        'tax_year' => 2025,
+        'status' => 'ready',
+        'category' => 'benefits_guide',
+        'extracted_data' => [
+            'fields' => [
+                'has_401k' => ['value' => 'true', 'confidence' => 0.99],
+            ],
+            'overall_confidence' => 0.99,
+        ],
+    ]);
+    app(PaystubFactExtractorService::class)->proposeFacts($doc2);
+
+    // Only ONE open proposal must survive — the second (newest) wins
+    $openProposals = UserTaxFact::forUser($user->id)
+        ->where('fact_key', 'employer.has_401k')
+        ->where('source_type', 'document_extraction')
+        ->whereNull('confirmed_at')
+        ->whereNull('superseded_by_id')
+        ->get();
+
+    expect($openProposals)->toHaveCount(1);
+
+    // The surviving proposal is the NEWEST (from doc2)
+    expect($openProposals->first()->metadata['document_id'])->toBe($doc2->id);
+    expect($openProposals->first()->metadata['confidence'])->toBe(0.99);
+
+    // The first proposal is now superseded
+    $firstProposal->refresh();
+    expect($firstProposal->superseded_by_id)->not->toBeNull();
+    expect($firstProposal->superseded_by_id)->toBe($openProposals->first()->id);
+});
+
+it('proposals API endpoint collapses residual duplicates by fact_key (safety net)', function () {
+    Storage::fake('local');
+
+    $user = createAuthenticatedUser();
+    Sanctum::actingAs($user);
+
+    // Inject two open proposals for the same fact_key without going through recordFact()
+    // to simulate pre-fix residual state
+    Storage::disk('local')->put("tax-vault/{$user->id}/2025/pay_stub/p1.pdf", 'p1');
+    $doc1 = TaxDocument::create([
+        'user_id' => $user->id, 'original_filename' => 'p1.pdf',
+        'stored_path' => "tax-vault/{$user->id}/2025/pay_stub/p1.pdf", 'disk' => 'local',
+        'mime_type' => 'application/pdf', 'file_size' => 100,
+        'file_hash' => hash('sha256', 'p1-unique-aaa'),
+        'tax_year' => 2025, 'status' => 'ready', 'category' => 'pay_stub',
+        'extracted_data' => ['fields' => [], 'overall_confidence' => 0.9],
+    ]);
+
+    Storage::disk('local')->put("tax-vault/{$user->id}/2025/pay_stub/p2.pdf", 'p2');
+    $doc2 = TaxDocument::create([
+        'user_id' => $user->id, 'original_filename' => 'p2.pdf',
+        'stored_path' => "tax-vault/{$user->id}/2025/pay_stub/p2.pdf", 'disk' => 'local',
+        'mime_type' => 'application/pdf', 'file_size' => 100,
+        'file_hash' => hash('sha256', 'p2-unique-bbb'),
+        'tax_year' => 2025, 'status' => 'ready', 'category' => 'pay_stub',
+        'extracted_data' => ['fields' => [], 'overall_confidence' => 0.9],
+    ]);
+
+    // Directly create two open proposals for the same key (pre-fix residual scenario)
+    UserTaxFact::create([
+        'user_id' => $user->id, 'fact_key' => 'employer.has_401k',
+        'value' => 'yes', 'label' => 'Employer has 401(k) plan',
+        'volatility' => 'stable', 'tax_year' => 2025,
+        'source_type' => 'document_extraction', 'source_id' => (string) $doc1->id,
+        'asserted_at' => now()->subMinutes(5), 'is_current' => false,
+        'metadata' => ['confidence' => 0.95, 'document_id' => $doc1->id],
+    ]);
+    UserTaxFact::create([
+        'user_id' => $user->id, 'fact_key' => 'employer.has_401k',
+        'value' => 'yes', 'label' => 'Employer has 401(k) plan',
+        'volatility' => 'stable', 'tax_year' => 2025,
+        'source_type' => 'document_extraction', 'source_id' => (string) $doc2->id,
+        'asserted_at' => now(), 'is_current' => false,
+        'metadata' => ['confidence' => 0.99, 'document_id' => $doc2->id],
+    ]);
+
+    // Despite two raw DB rows, the API must return exactly ONE proposal per fact_key
+    $response = $this->getJson('/api/v1/optimizer/facts');
+    $response->assertOk();
+
+    $proposals = collect($response->json('proposals'));
+    $dupes = $proposals->filter(fn ($p) => $p['fact_key'] === 'employer.has_401k');
+    expect($dupes)->toHaveCount(1);
+    // Safety net picks the newest
+    expect($dupes->first()['metadata']['confidence'])->toBe(0.99);
+});
+
+it('optimizer:dedup-proposals marks older duplicate open proposals superseded', function () {
+    Storage::fake('local');
+
+    $user = createAuthenticatedUser();
+
+    // Create two open proposals for the same fact_key (pre-fix residual scenario)
+    Storage::disk('local')->put("tax-vault/{$user->id}/2025/pay_stub/dedup1.pdf", 'dedup1');
+    $doc1 = TaxDocument::create([
+        'user_id' => $user->id, 'original_filename' => 'dedup1.pdf',
+        'stored_path' => "tax-vault/{$user->id}/2025/pay_stub/dedup1.pdf", 'disk' => 'local',
+        'mime_type' => 'application/pdf', 'file_size' => 100,
+        'file_hash' => hash('sha256', 'dedup1-unique-xxx'),
+        'tax_year' => 2025, 'status' => 'ready', 'category' => 'pay_stub',
+        'extracted_data' => ['fields' => [], 'overall_confidence' => 0.9],
+    ]);
+
+    $older = UserTaxFact::create([
+        'user_id' => $user->id, 'fact_key' => 'employer.fsa_available',
+        'value' => 'yes', 'label' => 'FSA available',
+        'volatility' => 'stable', 'tax_year' => 2025,
+        'source_type' => 'document_extraction', 'source_id' => (string) $doc1->id,
+        'asserted_at' => now()->subMinutes(10), 'is_current' => false,
+        'metadata' => ['confidence' => 0.90, 'document_id' => $doc1->id],
+    ]);
+    $newer = UserTaxFact::create([
+        'user_id' => $user->id, 'fact_key' => 'employer.fsa_available',
+        'value' => 'yes', 'label' => 'FSA available',
+        'volatility' => 'stable', 'tax_year' => 2025,
+        'source_type' => 'document_extraction', 'source_id' => (string) $doc1->id,
+        'asserted_at' => now(), 'is_current' => false,
+        'metadata' => ['confidence' => 0.95, 'document_id' => $doc1->id],
+    ]);
+
+    // Both are open; run the cleanup command
+    $this->artisan('optimizer:dedup-proposals')->assertExitCode(0);
+
+    // Older proposal is now superseded by the newer one
+    $older->refresh();
+    $newer->refresh();
+    expect($older->superseded_by_id)->toBe($newer->id);
+    expect($newer->superseded_by_id)->toBeNull();
+});
+
 // ─── Fix B: W-4 Step 3 semantic remap ────────────────────────────────────────
 //
 // Modern W-4 Step 3 carries an annual dollar credit amount, NOT a dependent count.

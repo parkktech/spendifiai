@@ -99,6 +99,16 @@ class DurableFactsController extends Controller
             ];
         });
 
+        // Safety-net dedup: if any residual duplicate open proposals exist for the same
+        // fact_key (e.g. written before the recordFact() dedup was deployed), collapse
+        // them by keeping only the newest. Sort by id (auto-increment — always
+        // monotonically increasing, reliable even when created_at timestamps collide).
+        // This is a display-layer guard; the primary fix lives in recordFact().
+        $proposals = $proposals
+            ->groupBy('fact_key')
+            ->map(fn ($group) => $group->sortByDesc('id')->first())
+            ->values();
+
         return response()->json([
             'confirmed' => $confirmed,
             'proposals' => $proposals,
