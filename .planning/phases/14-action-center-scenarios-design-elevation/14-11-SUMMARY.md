@@ -488,3 +488,136 @@ Executed as an additive owner feature/fix cluster on branch `feature/v2.1-optimi
 | `npm run build` | Clean (5.74s) |
 | `vendor/bin/pint --dirty` | Clean |
 | Accordion tests | 14/14 pass (5 new Item 1 tests + 9 existing) |
+
+---
+
+## Report quality cluster
+
+Three fixes atomically committed on branch `feature/v2.1-optimize-my-income`, 2026-07-02.
+
+**Coordinator note acknowledged:** Fix 3 spec was upgraded mid-execution from "banner only" to "full overlay + CTA gate + notify". The full overlay implementation below is the coordinator's upgraded spec, not the original banner approach. Acknowledged in this summary per coordinator's grep-verification requirement.
+
+**Fix 2 defect acknowledged:** After the initial Fix 2 commit, the coordinator verified live on production user 1 that zero RET findings were emitted. Root cause: `employer.allows_after_tax_401k` was an invented key; real key is `employer.after_tax_401k_available` with value `'yes'` (bool_field convention, not `'true'`). Also, RET-B/RET-C read profile model fields instead of `UserTaxFact`. Both issues corrected in a follow-on commit. Live sweep for user 1 after correction confirmed RET-A and RET-B both fire.
+
+### Fix 1 — D13 wiring gap: UserAnsweredQuestion + DurableFactsController regen
+
+**Problem:**
+- `UserAnsweredQuestion` event was wired to `MarkOptimizationReportStale` (flag flip) but NOT to `DispatchReportGeneration` (the regen dispatch).
+- `DurableFactsController::confirm()`, `confirm-with-correction`, and `supersede` paths fired zero events — confirmed facts never triggered a report rebuild.
+
+**Fixes:**
+- `DispatchReportGeneration::handleUserAnsweredQuestion()`: filters to optimization-type questions only (`QuestionType::Category` with optimization context), then calls `dispatchDebounced()` following USER_ACTION always-dispatch policy (D13).
+- `AppServiceProvider`: wired `UserAnsweredQuestion` → both `MarkOptimizationReportStale::handleUserAnsweredQuestion` (already existed) and `DispatchReportGeneration::handleUserAnsweredQuestion` (new).
+- `DurableFactsController::dispatchRegenAfterFactChange()`: private helper that marks report stale immediately, then dispatches `BuildIncomeOptimizationProfile` (when no profile exists) or `GenerateOptimizationReport` with 30s delay (when profile ready). Called in confirm, confirm-with-correction, and supersede paths.
+
+**Tests:** 4 new tests in `ReportStalenessTest`:
+- Queue regen on optimization `UserAnsweredQuestion`
+- No regen on non-optimization `UserAnsweredQuestion`
+- Confirm-via-API marks stale + queues regen
+- Confirm dispatches `BuildIncomeOptimizationProfile` when no profile exists
+
+**Commit:** `856a550`
+
+---
+
+### Fix 2 — RetirementOpportunitySweep: 4 RET findings from confirmed facts
+
+**What was built:**
+New `RetirementOpportunitySweep` detector registered in `RedFlagDetectorService::detectorClasses()` that emits four educational retirement-opportunity findings from confirmed durable facts. Zero Claude calls. All dollar amounts from `TaxRulesEngineService` (SAFE-03).
+
+**Four findings:**
+
+| ID | Key | Trigger | Band |
+|----|-----|---------|------|
+| RET-A | `retirement_after_tax_401k_opportunity` | `employer.after_tax_401k_available='yes'` AND total YTD < employee deferral max | conditional |
+| RET-B | `retirement_contribution_mix_review` | `retirement.roth_401k_ytd_cents > 0` AND `retirement.traditional_401k_ytd_cents > 0` | conditional |
+| RET-C | `retirement_match_pace_gap` | YTD annualized pace < `employer.match_threshold_pct`; gap via `TaxRulesEngineService::matchCaptureCents()` | auto |
+| RET-D | `retirement_w4_step3_alignment` | `w4.step3_annual_credits_cents` ≠ `family.qualifying_children_under_17 × config CTC` | conditional |
+
+**Corrected fact keys (Fix 2 defect remediation):**
+- RET-A original (wrong): `employer.allows_after_tax_401k` === `'true'` → Corrected: `employer.after_tax_401k_available` === `'yes'` (bool_field convention per PaystubFactExtractorService::BENEFITS_FACT_MAP)
+- RET-B/RET-C original (wrong): reads from `IncomeOptimizationProfile->roth_401k_ytd` / `traditional_401k_ytd` → Corrected: `UserTaxFact::currentFact($userId, 'retirement.roth_401k_ytd_cents', null, $taxYear)` etc.
+- Profile fields retained as fallback only when fact not yet confirmed.
+
+**DRIFT GATE (new):** Two tests use `ReflectionClass` to assert that `employer.after_tax_401k_available` exists in `BENEFITS_FACT_MAP` and that `retirement.{roth,traditional}_401k_ytd_cents` + `w4.step3_annual_credits_cents` exist in `PAYSTUB_FACT_MAP`. Fails loudly on key rename — prevents this class of drift.
+
+**Live sweep results (user 1, tax_year 2026, post-correction):**
+```
+Confirmed retirement facts for user 1:
+  employer.after_tax_401k_available = yes
+  w4.step3_annual_credits_cents = 320000
+  retirement.traditional_401k_ytd_cents = 60870
+  retirement.roth_401k_ytd_cents = 15218
+
+RET findings emitted: 2
+  - retirement_after_tax_401k_opportunity (RET-A)
+  - retirement_contribution_mix_review (RET-B)
+```
+
+RET-C and RET-D not emitted for user 1 because `employer.match_pct` and `family.qualifying_children_under_17` are not confirmed facts — correct behavior.
+
+**Report rebuilt:** `Bus::dispatchSync(new GenerateOptimizationReport(1, 2026))` ran cleanly. Final finding count for user 1: 26 findings including `retirement_after_tax_401k_opportunity` and `retirement_contribution_mix_review`.
+
+**Tests:** 22 tests in `RetirementOpportunitySweepTest` (19 original + 2 DRIFT-GATE + 1 composite user-1 baseline)
+
+**Commits:** `8bad59d` (initial implementation), `e7c871c` (corrected fact keys + DRIFT-GATE tests)
+
+---
+
+### Fix 3 — Honest section zero-states, full overlay, CTA gating, notification
+
+**Coordinator spec upgrade acknowledged:** Original spec was "banner only". Upgraded mid-execution to: (a) full overlay, (b) gate CTAs, (c) notify on completion. All three implemented below.
+
+#### Per-section SCALE badges (RED/YELLOW/GREEN/ANALYZING)
+
+`OptimizationReportView.tsx`:
+- `SectionScale` type: `'RED' | 'YELLOW' | 'GREEN' | 'ANALYZING'`
+- `sectionScale(findings)`: 0 findings → ANALYZING, any `high` severity → RED, any `medium` → YELLOW, else GREEN
+- `ScaleBadge` component maps scale to `sw-*` Badge variants
+- Each `SectionCard` header now shows the section-scale badge — per-section honesty on a READY report
+
+#### Full overlay during regeneration
+
+`OptimizationReportView.tsx`:
+- Accepts `isRebuilding?: boolean` prop
+- When `true`: absolute-positioned full overlay with `backdropFilter: 'blur(3px)'`, pulse spinner, copy "Report running — we'll notify you when it's ready, or check back in a few minutes"
+- Content beneath dimmed and not interactive during rebuild
+
+#### CTA gate during regeneration
+
+`Optimize/Index.tsx`:
+- `isRegenerating` computed: `report?.is_stale === true || report?.status === 'generating' || (!report && !loading)`
+- `StageIndicator`: Choices and Checklist stages locked (`disabled + title="Available when your updated report is ready"`) while regenerating
+- "See your options" header button and CTA card button muted/disabled during regen
+- Poll `useEffect` also fires on `is_stale` (not just `status=generating`)
+
+#### Database notification on completion
+
+`OptimizationReportReadyNotification` (new):
+- Database channel only (`via() → ['database']`)
+- Payload: `{ tax_year, report_url: '/optimize', message: "Your {year} income optimization report is ready." }`
+- Dispatched in `GenerateOptimizationReport::handle()` after generator completes
+- Non-fatal: wrapped in try/catch + `Log::warning()` — notification failure never breaks report generation
+
+**Tests:** 0 new PHP tests for Fix 3 (notification tested by existence of notification class + manual verify that report generation does not break).
+
+**Commit:** `94d961a`
+
+---
+
+### Gates Verified (Report Quality Cluster)
+
+| Gate | Result |
+|------|--------|
+| `php artisan test --compact` | 1178 passed, 0 failed, 1 risky (pre-existing) |
+| `npm run build` | Clean (5.95s), zero TypeScript errors |
+| `vendor/bin/pint --dirty` | Clean |
+| RetirementOpportunitySweepTest (22 tests) | All 22 pass |
+| ReportStalenessTest (21 tests) | All 21 pass |
+| DRIFT-GATE: BENEFITS_FACT_MAP contains `employer.after_tax_401k_available` | Pass |
+| DRIFT-GATE: PAYSTUB_FACT_MAP contains retirement YTD + W-4 Step 3 keys | Pass |
+| Live sweep user 1 (RET-A + RET-B) | Both emit after correction |
+| Report rebuild `Bus::dispatchSync(GenerateOptimizationReport(1, 2026))` | 26 findings, status cleared |
+| D18: educational framing in all RET treatments | `may/could/consider/worth exploring` present |
+| SAFE-03: only RET-C sets `estimated_value_cents` (from engine) | Pass |
+| FLAG-20: RET-A treatment contains "if your plan allows" + mega-backdoor hedges | Pass |
