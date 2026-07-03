@@ -282,6 +282,69 @@ Four owner-reported defects fixed atomically on branch `feature/v2.1-optimize-my
 - [x] Pint — all modified PHP files clean
 - [x] D18 key-leak test extended to proposals API surface — passes
 - [x] `value` raw column excluded from proposals API response — verified in 3 new test assertions
+
+---
+
+## Edit + W-4 semantics fixes
+
+Two owner-blocking fixes shipped on 2026-07-02 against `feature/v2.1-optimize-my-income`.
+
+### Fix A: Proposal Edit (confirm-with-correction) — shipped in commit a1c8430
+
+**Problem:** `ProposalConfirmCard` Edit button called `POST /facts/{id}/supersede` which requires `is_current=true`, but proposals are `is_current=false` — every proposal edit failed with "Could not save your edit".
+
+**Fix:** Extended `POST /facts/{id}/confirm` to accept an optional `{value}` body parameter. When provided, the user's corrected value wins: written as `user_edit` (becomes current), original proposal marked resolved via `superseded_by_id`. Card updated to call `confirm` (not `supersede`) with the typed value. Doc comment updated.
+
+**Evidence:** 5 E2E tests in `PaystubProposalFlowTest` under "Confirm-with-correction" all pass:
+- Corrected value becomes current with `user_edit` provenance
+- Non-numeric input rejected with specific typed error
+- Confirm without value still plain D4 confirm
+- Already-confirmed fact cannot be re-corrected
+- Other users cannot correct someone else's proposal
+
+**Commits:** `a1c8430` (implementation + card), `2346458` (SUMMARY)
+
+---
+
+### Fix B: W-4 Step 3 semantic mis-mapping — commits 71bf7cd + 324bacb
+
+**Problem:** `PaystubFactExtractorService::PAYSTUB_FACT_MAP` mapped `w4_dependents_claimed` → `w4.dependents_claimed` (a COUNT fact) with `money: false`. Modern W-4 Step 3 is an annual dollar credit amount. The owner's Jul 2 paystub produced "W-4 dependents claimed: 3200" because $3,200 was stored as an integer string and interpreted as a count.
+
+**Fixes:**
+
+1. **Extractor mapping** (`PaystubFactExtractorService`):
+   - Extraction field renamed `w4_dependents_claimed` → `w4_step3_credits`
+   - Fact key: `w4.dependents_claimed` → `w4.step3_annual_credits_cents` (money: true)
+   - Label: "W-4 Step 3 dependent credits"
+   - `w4.dependents_claimed` now only sourced from interview / profile / actual W-4 document
+
+2. **PAY_STUB_FIELDS** (`TaxDocumentExtractorService`): field name updated to `w4_step3_credits`
+
+3. **Data migration** (`php artisan optimizer:migrate-w4-step3`):
+   - Idempotent command finds unconfirmed `w4.dependents_claimed` proposals from `document_extraction` where value > 20 (implausible as a count)
+   - Creates corrected `w4.step3_annual_credits_cents` proposal (stored as cents: value × 100)
+   - Marks bad proposal resolved via `superseded_by_id` → corrected proposal id
+   - Owner's specific case: user 1, value "3200" → proposal #N invalidated, `w4.step3_annual_credits_cents` proposal created at 320000 cents ($3,200)
+
+4. **Engine wiring** (`TaxRulesEngineService::estimatePeriodWithholdingCents`):
+   - Added optional `int $step3CreditsCents = 0` parameter (additive — no callers broken)
+   - When >0, uses direct Pub 15-T Step 3 dollar credit instead of count × CTC/ODC
+   - Wired through `ScenarioSolverService::assembleBaseline` → `computeCurrentTakeHomeCents`
+   - `w4_on_file.step3_credits_cents` propagated to baseline array
+
+5. **ProfileConformanceDetector**: stale comment updated (Plane 5 no longer claims paystub as source for `w4.dependents_claimed`)
+
+**Tests added (4 Fix-B tests + 1 engine test):**
+- `PaystubProposalFlowTest`: mapping, source-chain, migration behavior
+- `TaxRulesEngineScenarioTest`: step3CreditsCents overrides count-based credits
+- `ProfileConformanceDetectorTest`: field rename assertion
+
+**Gates:**
+- [x] `php artisan test --compact` — 1121 passed, 1 risky (pre-existing), ZERO failures
+- [x] `npm run build` — clean (no TSX touched in Fix B)
+- [x] `vendor/bin/pint --dirty` — one import fix applied, all files clean
+- [x] D18: no fact_key paths in UI copy (no TSX changes)
+- [x] Owner's bogus proposal: invalidated by `optimizer:migrate-w4-step3`; corrected `w4.step3_annual_credits_cents` proposal created
 - [x] `display_value` humanization correct: `$4,250.00` for cents, `Yes`/`No` for booleans, `Married Filing Jointly` for MFJ status
 - [x] Source_label format: `"from your [Mon D] [Category Label]"`
 - [x] Fix 1b: proposal Edit → corrected fact current with `user_edit` provenance → proposal resolved → leaves list (E2E-tested)
