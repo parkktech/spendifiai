@@ -226,10 +226,13 @@ final class ObjectiveReadinessService
         }
 
         // questions_to_unlock = distinct templates covering blocking_missing
-        // (multi-part asks count each part). Only directly-templated keys are askable.
+        // (multi-part asks count each part). Only directly-askable keys count.
+        // Fix 4 (choices-repair): check for 'question' key, not just template presence.
+        // Label-only entries (e.g. employer.federal_withholding — a derived key) provide
+        // human-readable names in blocking_missing without inflating the question count.
         $questionsToUnlock = 0;
         foreach ($blockingMissing as $entry) {
-            if (isset($templates[$entry['fact_key']])) {
+            if (isset($templates[$entry['fact_key']]['question'])) {
                 $questionsToUnlock++;
             }
         }

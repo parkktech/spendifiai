@@ -67,7 +67,13 @@ return [
                 'gross_per_period_cents' => [
                     'canonical_key' => 'pay.gross_per_period_cents',
                     'blocking' => true,
-                    'chain' => ['derive:paystub_gross_pay', 'derive:annual_gross_over_periods', 'ask'],
+                    // Fix 2 (choices-repair): 'fact' step added so confirmed UserTaxFact rows
+                    // (e.g. from doc extraction confirmed via D4 or interview answer) are found
+                    // even when the unimplemented derivations (paystub_gross_pay /
+                    // annual_gross_over_periods) return null. Previously the chain exhausted
+                    // to 'ask' without ever checking the facts table — a confirmed fact read
+                    // as MISSING in readiness.
+                    'chain' => ['derive:paystub_gross_pay', 'fact', 'derive:annual_gross_over_periods', 'ask'],
                 ],
                 'federal_withholding_annual' => [
                     'canonical_key' => 'employer.federal_withholding',
@@ -111,6 +117,12 @@ return [
                 'hsa_ytd_cents' => [
                     'canonical_key' => 'hsa.ytd_contribution_cents',
                     'blocking' => true,
+                    // Fix 2 (choices-repair): gate on health.hsa_eligible per SCENARIOS-SPEC §A.4.3.
+                    // When hsa_eligible resolves to 'no' (from profile.has_hsa or interview), the
+                    // HSA YTD fact flips to not_applicable and stops blocking readiness.
+                    // health.hsa_eligible resolves via ['fact', 'profile:has_hsa', 'ask'] so
+                    // the majority of users who set has_hsa=false are gated correctly without asking.
+                    'prerequisite' => 'health.hsa_eligible',
                     'chain' => ['snapshot:hsa_ytd', 'fact', 'ask'],
                 ],
                 'fsa_ytd_cents' => [
@@ -176,6 +188,7 @@ return [
                 'hsa_ytd_cents' => [
                     'canonical_key' => 'hsa.ytd_contribution_cents',
                     'blocking' => true,
+                    'prerequisite' => 'health.hsa_eligible', // Fix 2 (choices-repair): mirrors take_home
                     'chain' => ['snapshot:hsa_ytd', 'fact', 'ask'],
                 ],
                 'fsa_ytd_cents' => [
@@ -663,6 +676,16 @@ return [
             'volatility' => 'annual', 'tax_year_scoped' => true,
             'label' => 'Expected bonus amount',
         ],
+        // Fix 4 (choices-repair): label-only entry for employer.federal_withholding.
+        // This key is a DERIVED fact (annualize YTD or per-period × frequency); it is
+        // never directly asked. Its chain terminal is 'ask:pay.federal_withholding_per_period_cents',
+        // which proxies to the per-paycheck question above.  The 'label' field here provides
+        // a human-readable name when it appears in blocking_missing; the absence of a
+        // 'question' key prevents questions_to_unlock from double-counting it.
+        'employer.federal_withholding' => [
+            'label' => 'Annual federal withholding',
+        ],
+
         // D18 exemplar-3 follow-up: fans from a business-flavored vehicle/powersports
         // purpose answer as its OWN question (never crammed). 'willing_to_start' is a
         // CHECKLIST-able state — 14-08/09 wire the mileage/gallons-log Action Center
