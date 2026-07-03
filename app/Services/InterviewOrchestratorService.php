@@ -207,6 +207,34 @@ class InterviewOrchestratorService
 
     private const ESCAPE_LABEL = "Something else? Let's talk about it";
 
+    /**
+     * Morning polish Item 2 (D17): Not-sure phrase detection for typed fields.
+     * MUST be a static phrase list — zero new Claude call sites.
+     * Match is case-insensitive; leading/trailing whitespace stripped before comparison.
+     *
+     * @var string[]
+     */
+    private const NOT_SURE_PHRASES = [
+        'not sure',
+        "i don't know",
+        'i dont know',
+        "i don't remember",
+        'i dont remember',
+        'idk',
+        'no idea',
+        'not sure what to put',
+        'no clue',
+        'unsure',
+        "don't know",
+        'dont know',
+        'unknown',
+        '?',
+        '??',
+        'n/a',
+        'na',
+        'skip',
+    ];
+
     public function __construct(
         private readonly ScenarioFactResolverService $resolver = new ScenarioFactResolverService,
         private readonly FindingPatternQuestionService $patterns = new FindingPatternQuestionService,
@@ -1873,6 +1901,55 @@ SYS;
                     ]);
                 }
                 $storedValue = $this->interpretEscapeAnswer($template, $freeText);
+            } elseif (! $isChoiceStyle && $this->isNotSurePhrase($value)) {
+                // Morning polish Item 2: typed field + not-sure phrase.
+                // Record as unknown-zero (value='0', metadata.unknown=true).
+                // Create DocumentRequest if the template has a doc_affordance (D17).
+                $taxYear = ! empty($template['tax_year_scoped']) ? (int) $session->tax_year : null;
+                $label = $template['label'] ?? $questionText ?? "Answer to: {$factKey}";
+                $volatility = $template['volatility'] ?? 'stable';
+                $docAffordance = $template['doc_affordance'] ?? null;
+
+                if ($docAffordance !== null) {
+                    DocumentRequest::firstOrCreate(
+                        [
+                            'client_id' => $session->user_id,
+                            'category' => $docAffordance,
+                            'tax_year' => $session->tax_year,
+                            'accounting_firm_id' => null,
+                            'accountant_id' => null,
+                        ],
+                        [
+                            'description' => 'Requested from interview: '.$label,
+                            'status' => \App\Enums\DocumentRequestStatus::Pending->value,
+                        ]
+                    );
+                }
+
+                $fact = UserTaxFact::recordFact(
+                    userId: $session->user_id,
+                    factKey: $factKey,
+                    value: '0',
+                    sourceType: 'interview_answer',
+                    label: $label,
+                    volatility: $volatility,
+                    taxYear: $taxYear,
+                    sourceId: $questionId ? (string) $questionId : null,
+                    metadata: ['unknown' => true],
+                );
+
+                $session->appendTranscript([
+                    'fact_key' => $factKey,
+                    'question' => $questionText ?? "Interview question: {$factKey}",
+                    'answer' => $value,
+                    'answered_at' => now()->toIso8601String(),
+                    'question_id' => $questionId,
+                    'not_sure' => true,
+                ]);
+                $session->markAsked($factKey);
+                $session->dequeueKey($factKey);
+
+                return $fact;
             } elseif (empty($template['dynamic']) && strtolower(trim($value)) === self::CONFIRM_SENTINEL) {
                 // §A.5.5: resolve the prefill pointer server-side at answer time and
                 // record the resolved value (user-confirmed provenance). The value is
@@ -1955,6 +2032,15 @@ SYS;
     }
 
     /**
+     * Morning polish Item 2 (D17): phrase-list not-sure detection for typed fields.
+     * Zero Claude call sites — purely string comparison.
+     */
+    private function isNotSurePhrase(string $value): bool
+    {
+        return in_array(strtolower(trim($value)), self::NOT_SURE_PHRASES, true);
+    }
+
+    /**
      * §A.5.3 typed answer conversion driven by the template `answer_type`.
      * 422s (ValidationException) on a type mismatch — the orchestrator is the typed
      * validation boundary; AnswerOptimizationQuestionRequest stays string|max:500.
@@ -1970,7 +2056,7 @@ SYS;
             case 'money_dollars':
                 if (! is_numeric($trimmed) || (float) $trimmed < 0) {
                     throw ValidationException::withMessages([
-                        'answer' => 'Please enter a dollar amount (e.g. 1500 or 1500.00).',
+                        'answer' => 'Please enter a dollar amount, like $4,250 (numbers only).',
                     ]);
                 }
 
@@ -1981,7 +2067,7 @@ SYS;
             case 'year':
                 if (! ctype_digit($trimmed)) {
                     throw ValidationException::withMessages([
-                        'answer' => 'Please enter a whole number.',
+                        'answer' => 'Please enter a whole number, like 3.',
                     ]);
                 }
                 $n = (int) $trimmed;

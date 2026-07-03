@@ -719,6 +719,20 @@ export default function InterviewCard({ taxYear = CURRENT_YEAR, onAnswered, onQu
                 {submitting ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
               </button>
             </div>
+            {/* Morning polish Item 2: "I'm not sure" secondary action on typed fields */}
+            {['money_dollars', 'integer', 'year', 'pct'].includes(
+              currentQuestion?.answer_type ?? ''
+            ) && (
+              <button
+                onClick={() =>
+                  (alreadyAnswered ? handleReAnswer : handleAnswer)("not sure")
+                }
+                disabled={submitting}
+                className="text-[11px] text-sw-muted hover:text-sw-text underline underline-offset-2 transition disabled:opacity-40"
+              >
+                I'm not sure
+              </button>
+            )}
           </div>
         )}
 

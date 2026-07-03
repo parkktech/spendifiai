@@ -214,7 +214,7 @@ class InterviewController extends Controller
         $answerValue = $request->validated('answer');
 
         // Record the answer — writes UserTaxFact + transcript (FEED-03 / INT-05)
-        $this->orchestrator->recordAnswer(
+        $fact = $this->orchestrator->recordAnswer(
             session: $interview,
             factKey: $factKey,
             value: $answerValue,
@@ -228,6 +228,30 @@ class InterviewController extends Controller
             'status' => 'answered',
             'answered_at' => now(),
         ]);
+
+        // Morning polish Item 2: when the user didn't know (not-sure phrase),
+        // return helpful copy pointing them toward the right document source.
+        if ($fact->metadata['unknown'] ?? false) {
+            $docAffordance = $question->options['doc_affordance'] ?? null;
+            $docLabel = match ($docAffordance) {
+                'pay_stub' => 'pay stub',
+                'retirement_statement' => 'retirement statement',
+                'tax_return' => 'tax return',
+                'w2' => 'W-2',
+                '1099' => '1099',
+                default => 'your documents',
+            };
+            $message = $docAffordance
+                ? "No problem — we'll get this from your {$docLabel} when you upload it."
+                : 'No problem — you can come back and fill this in later.';
+
+            return response()->json([
+                'message' => $message,
+                'fact_key' => $factKey,
+                'not_sure' => true,
+                'session_status' => $interview->fresh()->status,
+            ]);
+        }
 
         return response()->json([
             'message' => 'Answer recorded.',
