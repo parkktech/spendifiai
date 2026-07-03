@@ -819,23 +819,45 @@ export default function OptimizeIndex() {
     enabled: auth.hasBankConnected && viewMode === 'choices',
   });
 
-  // Fix 6: done-for-you loop — called by InterviewCard when its queue drains to empty.
+  // Fix 6 / storm-brake: called by InterviewCard when its queue drains to empty.
   // Re-fires enqueueGaps → waits 900ms (backend fills queue) → re-mounts InterviewCard via key.
-  // Capped at 3 attempts to prevent infinite loops when genuinely nothing is enqueueable.
+  //
+  // Storm-brake rules (SAFE-SB):
+  //   1. Max 2 re-enqueue cycles — if still locked after 2, render the honest
+  //      "nothing left to review" state and stop all further automatic calls.
+  //   2. On 429: stop immediately, schedule a single retry after 15 s, then stop.
+  //   3. refreshObjectives is called once per cycle, not redundantly.
+  const [rateLimitedUntil, setRateLimitedUntil] = useState<number | null>(null);
   const handleInterviewQueueEmpty = useCallback(() => {
-    if (enqueueAttempts >= 3) {
+    // Already rate-limited — do nothing; the delayed retry is already scheduled
+    if (rateLimitedUntil !== null && Date.now() < rateLimitedUntil) return;
+
+    // Hard cap: max 2 automatic re-enqueue cycles
+    if (enqueueAttempts >= 2) {
       // Genuinely nothing left to enqueue — leave the card in its no-questions state
       return;
     }
     setEnqueueAttempts((n) => n + 1);
     axios.post(`/api/v1/optimizer/objectives/${currentYear}/enqueue-gaps`)
-      .catch(() => { /* non-fatal */ });
+      .then(() => {
+        // Re-mount after a short delay so the backend has time to fill the queue
+        setTimeout(() => setInterviewKey((k) => k + 1), 900);
+      })
+      .catch((err) => {
+        // 429 → stop the loop, schedule a single retry after 15 s
+        if (err?.response?.status === 429) {
+          const retryAt = Date.now() + 15_000;
+          setRateLimitedUntil(retryAt);
+          setTimeout(() => {
+            setRateLimitedUntil(null);
+            setEnqueueAttempts(0); // allow one more cycle after backoff
+          }, 15_000);
+        }
+        // All other errors: silently ignore (non-fatal)
+      });
+    // Refresh objectives once per re-enqueue cycle
     refreshObjectives();
-    // Re-mount after a short delay so the backend has time to fill the queue
-    setTimeout(() => {
-      setInterviewKey((k) => k + 1);
-    }, 900);
-  }, [enqueueAttempts, currentYear, refreshObjectives]);
+  }, [enqueueAttempts, rateLimitedUntil, currentYear, refreshObjectives]);
 
   // D23 — auto-enqueue gap questions on Choices stage entry when not all objectives ready.
   // Fires once per stage visit (gapsEnqueued gate). If every objective is ready the call
@@ -1338,25 +1360,50 @@ export default function OptimizeIndex() {
           )}
 
           {/* Fix 5: locked overlay across 3 ghost cards + scrollable interview below.
-              Shown when scenarios are not yet ready (interview incomplete).
-              LockedScenariosOverlay: clicking any card/overlay scrolls to InterviewCard.
-              Count-down: questionsToUnlock from objectivesData, updates after each answer.
-              When last gap closes, options.length > 0 → overlay unmounts, ScenarioComparisonCards shows. */}
-          {!scenariosLoading && scenariosData && scenariosData.options.length === 0 && (() => {
-            const totalQuestionsNeeded = objectivesData
-              ? Object.values(objectivesData.objectives).reduce(
-                  (sum, o) => sum + (!o.ready ? (o.questions_to_unlock ?? 1) : 0),
-                  0,
-                )
-              : null;
+              Fix 8 (owner-reported): gate on ANY objective locked — not options.length===0.
+              The first computed option previously hid the interview forever, stranding the
+              remaining locked objectives with no way to answer their questions. Full ghost
+              overlay only when NO options exist; with partial options a compact unlock
+              banner renders above the same InterviewCard. */}
+          {!scenariosLoading && scenariosData && objectivesData &&
+            Object.values(objectivesData.objectives).some((o) => !o.ready) && (() => {
+            const lockedObjectives = Object.values(objectivesData.objectives).filter((o) => !o.ready);
+            const totalQuestionsNeeded = lockedObjectives.reduce(
+              (sum, o) => sum + (o.questions_to_unlock ?? 1),
+              0,
+            );
+            const hasSomeOptions = scenariosData.options.length > 0;
 
             return (
               <div className="space-y-4">
-                {/* Fix 5: Prominent lock overlay — replaces dead-end placeholder cards */}
-                <LockedScenariosOverlay
-                  questionsToUnlock={totalQuestionsNeeded}
-                  onUnlock={scrollToInterview}
-                />
+                {hasSomeOptions ? (
+                  /* Fix 8: partial-unlock banner — some options computed, others still locked */
+                  <button
+                    onClick={scrollToInterview}
+                    className="w-full flex items-center justify-between gap-3 rounded-2xl ring-1 ring-sw-accent/30 bg-sw-accent-light px-5 py-4 text-left hover:ring-sw-accent/60 transition"
+                  >
+                    <div>
+                      <p className="text-[15px] font-bold text-sw-text">
+                        {lockedObjectives.length === 1
+                          ? '1 more objective to unlock'
+                          : `${lockedObjectives.length} more objectives to unlock`}
+                      </p>
+                      <p className="text-[12px] text-sw-muted mt-0.5">
+                        {totalQuestionsNeeded} quick {totalQuestionsNeeded === 1 ? 'question' : 'questions'} below unlock{' '}
+                        {lockedObjectives.map((o) => o.label).join(' and ')}
+                      </p>
+                    </div>
+                    <span className="shrink-0 text-[12px] font-semibold text-sw-accent">
+                      Answer now ↓
+                    </span>
+                  </button>
+                ) : (
+                  /* Fix 5: Prominent lock overlay — replaces dead-end placeholder cards */
+                  <LockedScenariosOverlay
+                    questionsToUnlock={totalQuestionsNeeded}
+                    onUnlock={scrollToInterview}
+                  />
+                )}
 
                 {/* InterviewCard with ref + pulse ring for scroll-target feedback */}
                 <div
