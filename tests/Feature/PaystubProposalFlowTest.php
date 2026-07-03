@@ -93,7 +93,7 @@ it('creates UserTaxFact proposals with is_current=false for PayStub extraction',
     expect($count)->toBeGreaterThan(0);
 
     $proposal = UserTaxFact::forUser($user->id)
-        ->where('fact_key', 'retirement.traditional_401k_ytd_cents')
+        ->where('fact_key', 'retirement.traditional_401k_per_period_cents')
         ->first();
 
     expect($proposal)->not->toBeNull()
@@ -114,9 +114,10 @@ it('proposal value is an integer-cents-as-string for money fields', function () 
 
     $service->proposeFacts($document);
 
+    // Bug-2 fix: extractor now writes to the per-period key, not the ytd key.
     // Value is $hidden from toArray() — access via fresh query without $hidden
     $proposal = UserTaxFact::forUser($user->id)
-        ->where('fact_key', 'retirement.traditional_401k_ytd_cents')
+        ->where('fact_key', 'retirement.traditional_401k_per_period_cents')
         ->first();
 
     expect($proposal)->not->toBeNull();
@@ -188,8 +189,9 @@ it('excludes proposals from UserTaxFact::currentFactKeys() pre-confirm', functio
 
     $keys = UserTaxFact::currentFactKeys($user->id);
 
-    expect($keys)->not->toContain('retirement.traditional_401k_ytd_cents')
-        ->not->toContain('retirement.roth_401k_ytd_cents')
+    // Bug-2 fix: extractor now writes to per-period keys (not ytd keys)
+    expect($keys)->not->toContain('retirement.traditional_401k_per_period_cents')
+        ->not->toContain('retirement.roth_401k_per_period_cents')
         ->not->toContain('retirement.hsa_ytd_cents');
 });
 
@@ -208,8 +210,8 @@ it('excludes proposals from IncomeOptimizationProfile::answerableFields() pre-co
 
     $answerable = $profile->answerableFields($factsProxy);
 
-    // Proposal keys must NOT appear as true in answerable fields
-    expect($answerable)->not->toHaveKey('retirement.traditional_401k_ytd_cents');
+    // Bug-2 fix: extractor writes per-period keys; proposal pre-confirm must not appear
+    expect($answerable)->not->toHaveKey('retirement.traditional_401k_per_period_cents');
 });
 
 // ─── (c) User-entered fact is NOT overwritten by a new proposal ───────────────
@@ -217,13 +219,14 @@ it('excludes proposals from IncomeOptimizationProfile::answerableFields() pre-co
 it('does NOT overwrite a user_edit fact when a proposal is created for the same key', function () {
     $user = User::factory()->create();
 
-    // Seed a user_edit fact first
+    // Bug-2 fix: extractor now writes to retirement.traditional_401k_per_period_cents.
+    // Seed a user_edit fact for the per-period key to test D4 conflict protection.
     $original = UserTaxFact::recordFact(
         userId: $user->id,
-        factKey: 'retirement.traditional_401k_ytd_cents',
-        value: '999999',    // 9999.99 in cents
+        factKey: 'retirement.traditional_401k_per_period_cents',
+        value: '99999',     // user-entered per-period amount in cents
         sourceType: 'user_edit',
-        label: 'Traditional 401(k) (user edited)',
+        label: 'Traditional 401(k) per paycheck (user edited)',
         volatility: 'annual',
         taxYear: 2025,
     );
@@ -231,12 +234,12 @@ it('does NOT overwrite a user_edit fact when a proposal is created for the same 
     expect($original->is_current)->toBeTrue()
         ->and($original->source_type)->toBe('user_edit');
 
-    // Now create a proposal
+    // Now create a proposal via extraction
     $document = makePaystubDocument($user->id);
     $service = app(PaystubFactExtractorService::class);
     $service->proposeFacts($document);
 
-    // The original user_edit fact must STILL be current
+    // The original user_edit fact must STILL be current (D4 gate)
     $original->refresh();
     expect($original->is_current)->toBeTrue()
         ->and($original->source_type)->toBe('user_edit')
@@ -244,7 +247,7 @@ it('does NOT overwrite a user_edit fact when a proposal is created for the same 
 
     // The proposal must exist but be is_current=false
     $proposal = UserTaxFact::forUser($user->id)
-        ->where('fact_key', 'retirement.traditional_401k_ytd_cents')
+        ->where('fact_key', 'retirement.traditional_401k_per_period_cents')
         ->where('source_type', 'document_extraction')
         ->first();
 
@@ -258,18 +261,19 @@ it('confirm() promotes a proposal to current and supersedes the user_edit fact',
     $user = User::factory()->create();
     Sanctum::actingAs($user);
 
-    // Seed user_edit fact
+    // Bug-2 fix: extractor now writes to retirement.traditional_401k_per_period_cents.
+    // Seed user_edit fact for the per-period key to test D4 promotion.
     $userEdit = UserTaxFact::recordFact(
         userId: $user->id,
-        factKey: 'retirement.traditional_401k_ytd_cents',
-        value: '500000',   // $5000.00
+        factKey: 'retirement.traditional_401k_per_period_cents',
+        value: '50000',   // $500.00 per period (user's prior self-entered value)
         sourceType: 'user_edit',
-        label: 'Traditional 401(k) (user edited)',
+        label: 'Traditional 401(k) per paycheck (user edited)',
         volatility: 'annual',
         taxYear: 2025,
     );
 
-    // Create proposal via extraction
+    // Create proposal via extraction ($1,200.00 per period from paystub)
     $document = makePaystubDocument($user->id, [
         'traditional_401k_deduction' => ['value' => '1200.00', 'confidence' => 0.91],
     ]);
@@ -277,7 +281,7 @@ it('confirm() promotes a proposal to current and supersedes the user_edit fact',
     $service->proposeFacts($document);
 
     $proposal = UserTaxFact::forUser($user->id)
-        ->where('fact_key', 'retirement.traditional_401k_ytd_cents')
+        ->where('fact_key', 'retirement.traditional_401k_per_period_cents')
         ->where('source_type', 'document_extraction')
         ->first();
 
@@ -299,7 +303,7 @@ it('confirm() promotes a proposal to current and supersedes the user_edit fact',
 
     // currentFactKeys() must now include this key
     $keys = UserTaxFact::currentFactKeys($user->id);
-    expect($keys)->toContain('retirement.traditional_401k_ytd_cents');
+    expect($keys)->toContain('retirement.traditional_401k_per_period_cents');
 });
 
 // ─── display_value + source_label in GET /api/v1/optimizer/facts ─────────────
@@ -516,7 +520,7 @@ it('confirm-with-correction: money facts reject non-numeric input with a specifi
     app(PaystubFactExtractorService::class)->proposeFacts($doc);
 
     $proposal = UserTaxFact::forUser($user->id)
-        ->where('fact_key', 'retirement.traditional_401k_ytd_cents')
+        ->where('fact_key', 'retirement.traditional_401k_per_period_cents')
         ->firstOrFail();
 
     $response = $this->postJson("/api/v1/optimizer/facts/{$proposal->id}/confirm", [

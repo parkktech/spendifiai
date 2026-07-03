@@ -74,15 +74,15 @@ it('DRIFT-GATE: employer.after_tax_401k_available key is present in PaystubFactE
     expect($benefitsFactKeys)->toContain('employer.after_tax_401k_available');
 });
 
-it('DRIFT-GATE: retirement YTD and W-4 Step 3 keys are present in PaystubFactExtractorService::PAYSTUB_FACT_MAP', function () {
-    // retirement.{roth,traditional}_401k_ytd_cents and w4.step3_annual_credits_cents are
-    // paystub facts (not benefits guide facts). This asserts they live in PAYSTUB_FACT_MAP.
+it('DRIFT-GATE: retirement per-period and W-4 Step 3 keys are present in PaystubFactExtractorService::PAYSTUB_FACT_MAP', function () {
+    // Bug-2 fix (2026-07-03): extractor now writes to per-period keys, not ytd keys.
+    // retirement.*_per_period_cents and w4.step3_annual_credits_cents are paystub facts.
     $ref = new \ReflectionClass(PaystubFactExtractorService::class);
     $paystubFields = $ref->getConstant('PAYSTUB_FACT_MAP');
     $paystubFactKeys = array_column($paystubFields, 'fact_key');
 
-    expect($paystubFactKeys)->toContain('retirement.roth_401k_ytd_cents');
-    expect($paystubFactKeys)->toContain('retirement.traditional_401k_ytd_cents');
+    expect($paystubFactKeys)->toContain('retirement.roth_401k_per_period_cents');
+    expect($paystubFactKeys)->toContain('retirement.traditional_401k_per_period_cents');
     expect($paystubFactKeys)->toContain('w4.step3_annual_credits_cents');
 });
 
@@ -344,16 +344,20 @@ it('all four retirement findings fire for user-1 production confirmed fact state
     //   retirement.traditional_401k_ytd_cents = 60870 (paystub)
     //   w4.step3_annual_credits_cents = 320000 (W-4; $3,200 but expect $4,400 for 2 kids)
     makeW2Profile($this->user->id, $this->taxYear, [
-        // Both > 0 for RET-B; total YTD~$760 annualized ~$1,300 → well below 6% threshold for RET-C
-        'traditional_401k_ytd' => '60870',   // mirroring confirmed fact value
-        'roth_401k_ytd' => '15218',           // mirroring confirmed fact value
+        // Profile fallback (lowest priority); actual YTD data comes from ytd fact keys above.
+        // Total ~$760 YTD across both buckets → annualized pace well below 6% threshold.
+        'traditional_401k_ytd' => '60870',   // mirrors confirmed ytd fact value
+        'roth_401k_ytd' => '15218',           // mirrors confirmed ytd fact value
         'w2_wages' => '9600000',              // $96,000 estimate
     ]);
 
     // (a) After-tax 401k available (from benefits guide)
     recordConfirmedFact($this->user->id, 'employer.after_tax_401k_available', 'yes', $this->taxYear);
 
-    // (b+c) YTD facts (both roth and traditional > 0; also used for RET-C pace)
+    // (b+c) True YTD facts for this detector test scenario.
+    // These are actual YTD totals (not per-period amounts), stored under ytd keys via
+    // interview/user_edit. The per_period path is tested separately in BaselineContaminationTest.
+    // Low YTD (~$760 total) → annualized pace ~1.4% << 6% match threshold → RET-C fires.
     recordConfirmedFact($this->user->id, 'retirement.traditional_401k_ytd_cents', '60870', $this->taxYear);
     recordConfirmedFact($this->user->id, 'retirement.roth_401k_ytd_cents', '15218', $this->taxYear);
 

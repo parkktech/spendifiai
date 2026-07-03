@@ -130,54 +130,78 @@ final class ScenarioSolverService
         $daysInYear = $today->daysInYear;
         $annFraction = max(0.01, $dayOfYear / $daysInYear); // avoid division by zero
 
-        // Helper to access the resolver source (not just value) so we can detect
-        // per-period values stored in ytd keys by the PaystubFactExtractorService.
-        $vSrc = fn (string $key) => ($resolved[$key]['source'] ?? null);
+        // ── Bug-2 fix (2026-07-03): per-period 401k keys ─────────────────────
+        // PaystubFactExtractorService (post-fix) writes traditional_401k_deduction
+        // and roth_401k_deduction to retirement.*_per_period_cents keys (not _ytd_).
+        // These must be annualized by ×periods, NOT by ÷year_fraction.
+        // Read them directly (they are not in the resolveAll objective chain) and
+        // give them priority over the ytd keys.
+        $resolvedTradPP = $this->resolver->resolve($user, $year, 'retirement.traditional_401k_per_period_cents');
+        $resolvedRothPP = $this->resolver->resolve($user, $year, 'retirement.roth_401k_per_period_cents');
 
-        $ytdTrad401k = (int) ($v('retirement.traditional_401k_ytd_cents') ?? 0);
-        $ytdRoth401k = (int) ($v('retirement.roth_401k_ytd_cents') ?? 0);
+        $tradPerPeriodCents = ($resolvedTradPP !== null) ? (int) $resolvedTradPP['value'] : null;
+        $rothPerPeriodCents = ($resolvedRothPP !== null) ? (int) $resolvedRothPP['value'] : null;
+
+        if ($tradPerPeriodCents !== null) {
+            // Confirmed paystub per-period deduction → annualize by ×periods
+            $annTrad401k = $tradPerPeriodCents * $periods;
+        } else {
+            // Fall back to ytd key (true YTD from interview/user_edit, or legacy snapshot)
+            $ytdTrad401k = (int) ($v('retirement.traditional_401k_ytd_cents') ?? 0);
+            $trad401kSource = ($resolved['retirement.traditional_401k_ytd_cents']['source'] ?? null);
+            $isSnapshotTrad = ($trad401kSource === 'snapshot') && ($grossPerPeriodCents !== null);
+            $annTrad401k = $isSnapshotTrad
+                ? $ytdTrad401k * $periods            // snapshot stores per-period amount → ×periods
+                : (int) round($ytdTrad401k / $annFraction);  // true YTD → annualize with fraction
+        }
+
+        if ($rothPerPeriodCents !== null) {
+            $annRoth401k = $rothPerPeriodCents * $periods;
+        } else {
+            $ytdRoth401k = (int) ($v('retirement.roth_401k_ytd_cents') ?? 0);
+            $roth401kSource = ($resolved['retirement.roth_401k_ytd_cents']['source'] ?? null);
+            $isSnapshotRoth = ($roth401kSource === 'snapshot') && ($grossPerPeriodCents !== null);
+            $annRoth401k = $isSnapshotRoth
+                ? $ytdRoth401k * $periods
+                : (int) round($ytdRoth401k / $annFraction);
+        }
+
         $ytdHsa = (int) ($v('hsa.ytd_contribution_cents') ?? 0);
         $ytdIraTrad = (int) ($v('ira.traditional_ytd_contribution_cents') ?? 0);
         $ytdIraRoth = (int) ($v('ira.roth_ytd_contribution_cents') ?? 0);
-
-        // Annual run-rates (annualized from YTD).
-        //
-        // Units-safety: PaystubFactExtractorService maps traditional_401k_deduction
-        // (per-period deduction, cents) to retirement.traditional_401k_ytd_cents.
-        // When this fact is sourced from 'snapshot' (i.e., from the assembler's
-        // paystub arm), the stored value is the per-period deduction, NOT the YTD
-        // sum. Annualizing with ytd/fraction would give ~1/13 of the correct value.
-        // Instead, when the source is 'snapshot' AND a confirmed per-period gross is
-        // available (meaning we have a reliable paystub), multiply by periods_per_year.
-        // True YTD facts (source 'fact' or 'interview') remain annualized with fraction.
-        $trad401kSource = $vSrc('retirement.traditional_401k_ytd_cents');
-        $roth401kSource = $vSrc('retirement.roth_401k_ytd_cents');
-
-        $isSnapshotTrad401k = ($trad401kSource === 'snapshot') && ($grossPerPeriodCents !== null);
-        $isSnapshotRoth401k = ($roth401kSource === 'snapshot') && ($grossPerPeriodCents !== null);
-
-        $annTrad401k = $isSnapshotTrad401k
-            ? $ytdTrad401k * $periods               // ytd key stores per-period amount → ×periods
-            : (int) round($ytdTrad401k / $annFraction);  // true YTD → annualize with fraction
-
-        $annRoth401k = $isSnapshotRoth401k
-            ? $ytdRoth401k * $periods
-            : (int) round($ytdRoth401k / $annFraction);
 
         $annHsa = (int) round($ytdHsa / $annFraction);
         // IRA ytd is used as-is (absolute; not typically annualized mid-year):
         $curIraTrad = $ytdIraTrad;
         $curIraRoth = $ytdIraRoth;
 
-        // Current deferral % (employer.contribution_pct or derived):
-        $contribPctRaw = $v('employer.contribution_pct');
-        if ($contribPctRaw !== null) {
-            $curDeferralPct = (float) $contribPctRaw;
-        } elseif ($grossCents > 0) {
-            $totalDeferral = $annTrad401k + $annRoth401k;
-            $curDeferralPct = $totalDeferral / $grossCents * 100;
+        // ── Bug-1 fix (2026-07-03): derive curDeferralPct from OBSERVED payroll ─
+        // employer.contribution_pct may have been written by ScenarioChecklistService
+        // writeRealityFact (K3 done) to record the CHOSEN (elected) percentage, not
+        // the current/actual payroll deduction. Treating it as "current" contaminates
+        // the baseline so all three objectives solve to the chosen %, not the real %.
+        //
+        // Priority: paystub-observed per-period data > employer.contribution_pct fallback.
+        // Per-period facts exist when a confirmed paystub has been processed.
+        // employer.contribution_pct is only used as a fallback when no paystub exists.
+        $hasPaystubDeferralData = ($tradPerPeriodCents !== null || $rothPerPeriodCents !== null)
+            && $grossCents > 0;
+
+        if ($hasPaystubDeferralData) {
+            // Observed payroll → annualized total ÷ annual gross = actual deferral %
+            $curDeferralPct = ($annTrad401k + $annRoth401k) / $grossCents * 100;
         } else {
-            $curDeferralPct = 0.0;
+            // No paystub per-period data: fall back to employer.contribution_pct (interview/detector)
+            // or derive from ytd amounts if available.
+            $contribPctRaw = $v('employer.contribution_pct');
+            if ($contribPctRaw !== null) {
+                $curDeferralPct = (float) $contribPctRaw;
+            } elseif ($grossCents > 0) {
+                $totalDeferral = $annTrad401k + $annRoth401k;
+                $curDeferralPct = $totalDeferral / $grossCents * 100;
+            } else {
+                $curDeferralPct = 0.0;
+            }
         }
 
         // ── Employer match trio (R6/R7) ───────────────────────────────────────

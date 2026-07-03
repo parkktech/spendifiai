@@ -549,17 +549,48 @@ final class ScenarioFactResolverService
         );
     }
 
-    /** 401k_ytd ÷ annual_gross → contribution percent (§A.6.3). */
+    /**
+     * 401k contribution ÷ annual_gross → contribution percent (§A.6.3).
+     *
+     * Bug-2 fix (2026-07-03): prefer the new per-period keys (written by the paystub
+     * extractor) which hold per-paycheck amounts. When a per-period key is available,
+     * derive annual contribution as per_period × pay_periods_per_year before dividing
+     * by gross. Fall back to the ytd key for true-YTD values from interview/user_edit.
+     */
     private function deriveContributionPctFromYtd(User $user, int $taxYear, string $canonicalKey): ?array
     {
-        $ytd = $this->resolve($user, $taxYear, 'retirement.traditional_401k_ytd_cents');
+        $perPeriod = $this->resolve($user, $taxYear, 'retirement.traditional_401k_per_period_cents');
         $gross = $this->resolve($user, $taxYear, 'income.annual_gross_cents');
-        if ($ytd === null || $gross === null) {
+
+        if ($gross === null) {
             return null;
         }
 
         $den = (int) $gross['value'];
         if ($den <= 0) {
+            return null;
+        }
+
+        if ($perPeriod !== null) {
+            // Per-period deduction × periods/yr → annual contribution
+            $freqResolved = $this->resolve($user, $taxYear, 'pay.frequency');
+            $freqStr = $freqResolved !== null ? (string) $freqResolved['value'] : 'biweekly';
+            $periods = $this->periodsPerYear($freqStr) ?? 26;
+            $annualCents = (int) $perPeriod['value'] * $periods;
+
+            return $this->makeResolved(
+                $canonicalKey,
+                (string) ((int) round($annualCents / $den * 100)),
+                'integer',
+                'derived',
+                'derived:contribution_pct_from_per_period('.$perPeriod['source_ref'].'×'.$periods.'/'.$gross['source_ref'].')',
+                false,
+            );
+        }
+
+        // Fall back to ytd key (true YTD from interview/user_edit)
+        $ytd = $this->resolve($user, $taxYear, 'retirement.traditional_401k_ytd_cents');
+        if ($ytd === null) {
             return null;
         }
 

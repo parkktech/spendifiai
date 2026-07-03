@@ -78,15 +78,19 @@ class PaystubFactExtractorService
             'volatility' => 'annual',
             'money' => true,
         ],
+        // Bug-2 fix (2026-07-03): these are PER-PAYCHECK deduction amounts, not YTD.
+        // Stored under retirement.*_per_period_cents so assembleBaseline can annualize
+        // them correctly (×pay_periods_per_year) instead of dividing by year fraction.
+        // The _ytd_cents keys remain for true YTD values entered via interview/user_edit.
         'traditional_401k_deduction' => [
-            'fact_key' => 'retirement.traditional_401k_ytd_cents',
-            'label' => 'Traditional 401(k) contribution (paystub)',
+            'fact_key' => 'retirement.traditional_401k_per_period_cents',
+            'label' => 'Traditional 401(k) per-paycheck deduction (paystub)',
             'volatility' => 'annual',
             'money' => true,
         ],
         'roth_401k_deduction' => [
-            'fact_key' => 'retirement.roth_401k_ytd_cents',
-            'label' => 'Roth 401(k) contribution (paystub)',
+            'fact_key' => 'retirement.roth_401k_per_period_cents',
+            'label' => 'Roth 401(k) per-paycheck deduction (paystub)',
             'volatility' => 'annual',
             'money' => true,
         ],

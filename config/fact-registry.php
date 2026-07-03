@@ -352,6 +352,21 @@ return [
         'label' => 'Roth 401(k) YTD contributions',
         'sources' => ['interview_answer', 'user_edit', 'document_extraction'],
     ],
+    // Bug-2 fix (2026-07-03): per-period deduction keys — written by PaystubFactExtractorService
+    // when extracting traditional_401k_deduction / roth_401k_deduction from a pay stub.
+    // These hold PER-PAYCHECK amounts (e.g. $608.70 = 60870 cents) and must be annualized
+    // by multiplying by pay_periods_per_year, NOT by dividing by the year-elapsed fraction.
+    // The old _ytd_cents keys remain for true YTD amounts entered via interview or user_edit.
+    'retirement.traditional_401k_per_period_cents' => [
+        'type' => 'money_cents',
+        'label' => 'Traditional 401(k) per-paycheck deduction (paystub)',
+        'sources' => ['document_extraction'],
+    ],
+    'retirement.roth_401k_per_period_cents' => [
+        'type' => 'money_cents',
+        'label' => 'Roth 401(k) per-paycheck deduction (paystub)',
+        'sources' => ['document_extraction'],
+    ],
     'retirement.target_age' => [
         'type' => 'int',
         'label' => 'Target retirement age',

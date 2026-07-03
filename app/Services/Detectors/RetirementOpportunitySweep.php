@@ -82,17 +82,48 @@ class RetirementOpportunitySweep
             return $emitted;
         }
 
-        // ── Shared YTD reads (from UserTaxFact directly — more reliable than profile fields) ──
-        // Fact keys are retirement.{roth,traditional}_401k_ytd_cents as written by
-        // PaystubFactExtractorService. Fall back to profile fields if facts not yet confirmed.
+        // ── Shared contribution reads ────────────────────────────────────────────────
+        // Bug-2 fix (2026-07-03): PaystubFactExtractorService (post-fix) now writes
+        // traditional_401k_deduction / roth_401k_deduction to the new per-period keys.
+        // Read both per-period keys (preferred, paystub-sourced) AND ytd keys (interview/
+        // user_edit). For each type, prefer the per-period key over the ytd key.
+        //
+        // For detection heuristics (RET-A notYetMaxed, RET-B mix trigger, RET-C pace),
+        // derive an effective YTD estimate: per_period × periods_elapsed (month-based).
+        $rothPPFact = UserTaxFact::currentFact($userId, 'retirement.roth_401k_per_period_cents', null, $taxYear);
+        $tradPPFact = UserTaxFact::currentFact($userId, 'retirement.traditional_401k_per_period_cents', null, $taxYear);
         $rothYtdFact = UserTaxFact::currentFact($userId, 'retirement.roth_401k_ytd_cents', null, $taxYear);
         $tradYtdFact = UserTaxFact::currentFact($userId, 'retirement.traditional_401k_ytd_cents', null, $taxYear);
-        $rothYtdCents = $rothYtdFact !== null
-            ? (int) $rothYtdFact->value
-            : (int) ($profile->roth_401k_ytd ?? 0);
-        $tradYtdCents = $tradYtdFact !== null
-            ? (int) $tradYtdFact->value
-            : (int) ($profile->traditional_401k_ytd ?? 0);
+
+        // Periods elapsed: biweekly approximation — use calendar month count × (26/12).
+        // Detectors only need directional estimates; exact frequency not guaranteed here.
+        $periodsElapsed = max(1, (int) round((int) now()->format('n') * 26 / 12));
+
+        if ($tradPPFact !== null) {
+            // Per-period deduction × periods elapsed → effective YTD estimate
+            $tradYtdCents = (int) $tradPPFact->value * $periodsElapsed;
+        } elseif ($tradYtdFact !== null) {
+            $tradYtdCents = (int) $tradYtdFact->value;
+        } else {
+            $tradYtdCents = (int) ($profile->traditional_401k_ytd ?? 0);
+        }
+
+        if ($rothPPFact !== null) {
+            $rothYtdCents = (int) $rothPPFact->value * $periodsElapsed;
+        } elseif ($rothYtdFact !== null) {
+            $rothYtdCents = (int) $rothYtdFact->value;
+        } else {
+            $rothYtdCents = (int) ($profile->roth_401k_ytd ?? 0);
+        }
+
+        // RET-B trigger: fire when BOTH roth and traditional contributions are observed
+        // (from either per-period or ytd sources).
+        $hasTradContrib = ($tradPPFact !== null && (int) $tradPPFact->value > 0)
+            || ($tradYtdFact !== null && (int) $tradYtdFact->value > 0)
+            || $tradYtdCents > 0;
+        $hasRothContrib = ($rothPPFact !== null && (int) $rothPPFact->value > 0)
+            || ($rothYtdFact !== null && (int) $rothYtdFact->value > 0)
+            || $rothYtdCents > 0;
 
         // ─── RET-A: After-tax 401(k) opportunity (not-yet-maxed path) ──────────────
         // W2BenefitArbitrageDetector covers the already-maxed path; this covers the
@@ -138,8 +169,9 @@ class RetirementOpportunitySweep
         }
 
         // ─── RET-B: Contribution mix review (Roth + Traditional split) ──────────────
-        // Reads retirement.{roth,traditional}_401k_ytd_cents facts directly.
-        if ($rothYtdCents > 0 && $tradYtdCents > 0) {
+        // Fires when both Roth and Traditional contributions are observed.
+        // Reads both per-period keys (post-fix) and ytd keys (interview/user_edit).
+        if ($hasTradContrib && $hasRothContrib) {
             $key = $service->registerFinding(
                 userId: $userId,
                 taxYear: $taxYear,
