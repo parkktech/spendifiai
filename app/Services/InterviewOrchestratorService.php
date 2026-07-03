@@ -672,7 +672,7 @@ class InterviewOrchestratorService
             // FACT-GATE (serve-time): if all target facts for this probe/finding
             // are confirmed, the question is already answered by the fact store.
             // Auto-resolve any pending AIQuestion for this key and skip.
-            if ($this->targetFactsConfirmed($factKey, $session->user_id)) {
+            if ($this->targetFactsConfirmed($factKey, $session->user_id, (int) $session->tax_year)) {
                 $this->expireByFactGate($factKey, $session->user_id);
                 Log::info('InterviewOrchestratorService: question suppressed — target facts confirmed', [
                     'fact_key' => $factKey,
@@ -731,8 +731,15 @@ class InterviewOrchestratorService
      * Returns false when:
      *   - No TARGET_FACTS_MAP entry (template questions, handled by isAlreadyAnswered)
      *   - Entry exists but none of the target facts are confirmed yet
+     *
+     * DUAL-SCOPE: document-extracted facts are often stored with a tax_year (e.g.
+     * PaystubFactExtractorService stores employer.has_401k with tax_year = document year).
+     * currentFact() with taxYear=null only finds non-scoped facts. We check both the
+     * non-scoped (permanent) and the year-scoped (annual document) variants.
+     *
+     * @param  int|null  $taxYear  The interview's tax year (from InterviewSession)
      */
-    private function targetFactsConfirmed(string $factKey, int $userId): bool
+    private function targetFactsConfirmed(string $factKey, int $userId, ?int $taxYear = null): bool
     {
         $targets = self::TARGET_FACTS_MAP[$factKey] ?? null;
         if ($targets === null) {
@@ -740,8 +747,14 @@ class InterviewOrchestratorService
         }
 
         foreach ($targets as $targetFactKey) {
+            // Check non-scoped (permanent) fact
             if (UserTaxFact::currentFact($userId, $targetFactKey) !== null) {
-                return true; // at least one target confirmed → probe moot
+                return true;
+            }
+            // Check year-scoped fact (document-extracted employer/paystub facts)
+            if ($taxYear !== null
+                && UserTaxFact::currentFact($userId, $targetFactKey, null, $taxYear) !== null) {
+                return true;
             }
         }
 
@@ -844,8 +857,8 @@ class InterviewOrchestratorService
         if ($existing !== null) {
             // FACT-GATE: if target facts are now confirmed for a pre-existing question
             // (e.g. question was created before document extraction ran), expire it
-            // instead of serving it.
-            if ($this->targetFactsConfirmed($factKey, $userId)) {
+            // instead of serving it. Check both non-scoped and year-scoped facts.
+            if ($this->targetFactsConfirmed($factKey, $userId, (int) $taxYear)) {
                 $this->expireByFactGate($factKey, $userId);
 
                 return null; // skip: target facts confirmed, question moot

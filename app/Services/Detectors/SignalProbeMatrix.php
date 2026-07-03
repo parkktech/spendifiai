@@ -70,8 +70,13 @@ class SignalProbeMatrix
         // employer.contribution_pct) cover any remaining data gaps through their own
         // paths. This prevents the exact reported defect: probe emitting while
         // employer.has_401k=yes is confirmed.
+        // DUAL-SCOPE fact gate: employer.has_401k may be stored non-scoped (interview) or
+        // year-scoped (document-extracted via PaystubFactExtractorService). Check both.
+        $has401kConfirmed = UserTaxFact::currentFact($userId, 'employer.has_401k') !== null
+            || UserTaxFact::currentFact($userId, 'employer.has_401k', null, $taxYear) !== null;
+
         if ($this->hasPayrollIncome($profile)
-            && UserTaxFact::currentFact($userId, 'employer.has_401k') === null
+            && ! $has401kConfirmed
             && ! $this->isMaxing401k($userId, $taxYear)
         ) {
             $key = $service->registerFinding(

@@ -69,10 +69,26 @@ class SweepFactGateCommand extends Command
                     $targets = InterviewOrchestratorService::TARGET_FACTS_MAP[$factKey] ?? [];
                     $confirmed = false;
 
+                    // Check for any tax year that has a confirmed session for this user.
+                    // Collect all distinct tax years from interview sessions for this user
+                    // so we can check both non-scoped and year-scoped document facts.
+                    $taxYears = \App\Models\InterviewSession::where('user_id', $userId)
+                        ->pluck('tax_year')
+                        ->unique()
+                        ->toArray();
+
                     foreach ($targets as $targetFactKey) {
+                        // Non-scoped (permanent/interview-answered) fact
                         if (UserTaxFact::currentFact($userId, $targetFactKey) !== null) {
                             $confirmed = true;
                             break;
+                        }
+                        // Year-scoped (document-extracted) facts
+                        foreach ($taxYears as $taxYear) {
+                            if (UserTaxFact::currentFact($userId, $targetFactKey, null, $taxYear) !== null) {
+                                $confirmed = true;
+                                break 2;
+                            }
                         }
                     }
 
