@@ -531,6 +531,13 @@ final class ScenarioSolverService
 
         $baselineTHPerPeriod = (int) ($baselineAbs['per_period_take_home_cents'] ?? 0);
         $chosenTHPerPeriod = $baselineTHPerPeriod + (int) $totalPPDelta;
+        // Observed take-home context (paystub-actual vs model — for informational note).
+        $observedTHPerPeriod = isset($baselineAbs['observed_per_period_take_home_cents'])
+            ? (int) $baselineAbs['observed_per_period_take_home_cents']
+            : null;
+        // Flag when model-baseline differs from observed actual by > $25/period.
+        $modelDiffersFromObserved = $observedTHPerPeriod !== null
+            && abs($baselineTHPerPeriod - $observedTHPerPeriod) > 2500;
 
         $baselineFedTaxAnnual = (int) ($baselineAbs['federal_tax_annual_cents'] ?? 0);
         $chosenFedTaxAnnual = $baselineFedTaxAnnual + (int) $totalFT;
@@ -565,8 +572,12 @@ final class ScenarioSolverService
                 'interaction_remainder_federal_tax_cents' => $interFT,
                 'interaction_remainder_retirement_cents' => $interRC,
                 // BEFORE/AFTER absolute values for banner (Change 1)
+                // Both values are MODELLED (same estimator both sides — DELTA-CONSISTENCY LAW).
                 'baseline_per_period_take_home_cents' => $baselineTHPerPeriod,
                 'chosen_per_period_take_home_cents' => $chosenTHPerPeriod,
+                // Paystub-actual context (null when no observed withholding fact exists)
+                'observed_per_period_take_home_cents' => $observedTHPerPeriod,
+                'model_differs_from_observed' => $modelDiffersFromObserved,
                 'baseline_federal_tax_annual_cents' => $baselineFedTaxAnnual,
                 'chosen_federal_tax_annual_cents' => $chosenFedTaxAnnual,
                 // Retirement FV illustration (D9.7: always a range, never a guarantee)
@@ -1189,7 +1200,9 @@ final class ScenarioSolverService
             $periodGross = (int) round($gross / $periods);
         }
 
-        // Withholding: prefer observed W-4-on-file, then annual_withholding, then estimate.
+        // Withholding: prefer observed W-4-on-file, then estimate — DELTA-CONSISTENCY LAW.
+        // The annual_withholding_cents (paystub observed) is NOT used here: this value must
+        // stay model-consistent with computeScenarioOutcome so the floor guard fires correctly.
         $w4OnFile = $baseline['w4_on_file'] ?? [];
         $w4Status = (string) ($w4OnFile['filing_status'] ?? '');
         $w4DepsAll = max(0, (int) ($w4OnFile['dependents_claimed'] ?? 0));
@@ -1207,10 +1220,9 @@ final class ScenarioSolverService
                 $year,
                 $step3Credits,
             );
-        } elseif (($baseline['annual_withholding_cents'] ?? null) !== null) {
-            $curWH = (int) round((int) $baseline['annual_withholding_cents'] / $periods);
         } else {
-            // No W-4 evidence: estimate from confirmed filing status.
+            // No W-4 on file (covers both annual_withholding_cents and no-evidence cases):
+            // estimate from confirmed filing status so the floor guard is model-consistent.
             $curWH = $this->engine->estimatePeriodWithholdingCents(
                 $periodGross,
                 (int) round(($curTrad401k + $curHsa) / $periods),

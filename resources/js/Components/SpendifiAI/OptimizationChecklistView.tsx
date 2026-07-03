@@ -34,8 +34,10 @@ import {
   Loader2,
   Sparkles,
   ArrowRight,
+  ArrowLeft,
   ListChecks,
   Check,
+  Target,
 } from 'lucide-react';
 import type { ChecklistGatedFact } from '@/types/spendifiai';
 import Badge from './Badge';
@@ -139,11 +141,13 @@ function knobInstruction(knob: string, params: ChecklistBenefitParams | null): s
       const from = params.from_pct;
       const rothShare = params.roth_share_pct;
       if (!to) return null;
-      const fromStr = (from !== undefined && from !== null) ? ` from ${from}%` : '';
+      // DISPLAY LAW (Addition 7): every rendered percentage rounds to the nearest whole percent.
+      const toRounded = Math.round(to);
+      const fromStr = (from !== undefined && from !== null) ? ` from ${Math.round(from)}%` : '';
       const rothStr = (rothShare !== undefined && rothShare !== null && rothShare > 0)
         ? `, with ${rothShare}% designated as Roth`
         : '';
-      return `Tell HR or your payroll portal: change your 401(k) deferral${fromStr} to ${to}%${rothStr}.`;
+      return `Tell HR or your payroll portal: change your 401(k) deferral${fromStr} to ${toRounded}%${rothStr}.`;
     }
     case 'k4': {
       const amt = params.amount;
@@ -195,11 +199,11 @@ function fmtAbs(cents: number | undefined | null): string {
 }
 
 /**
- * BEFORE → AFTER banner — Change 1 + Change 4 (unit discipline).
+ * BEFORE → AFTER banner — Change 1 + Change 4 (unit discipline) + DELTA-CONSISTENCY.
  *
- * Each tile shows the CURRENT absolute value → ESTIMATED AFTER value, with the delta(s)
- * as a secondary line. Retirement uses the engine's futureValueRangeCents (always a range,
- * D9.7 illustration rule: never a guaranteed figure).
+ * Both "before" and "after" take-home values are MODELLED via the same estimator so
+ * that the delta (perCheckDelta) is honest. If the user's actual paystub take-home
+ * differs materially from the model, a one-line context note is shown.
  *
  * UNIT DISCIPLINE RULE (Change 4): every rendered dollar figure carries its own explicit
  * unit token INLINE (/check, /yr, per paycheck, per year). No caption may apply to a
@@ -213,13 +217,16 @@ function HeaderAggregateBanner({ params }: { params: ChecklistBenefitParams | nu
   if (!params?.header_aggregate) return null;
   const agg = params.header_aggregate;
 
-  // Take-home: per-paycheck BEFORE → AFTER
+  // Take-home: per-paycheck BEFORE → AFTER (both modelled — DELTA-CONSISTENCY LAW)
   const baselinePP = agg.baseline_per_period_take_home_cents;
   const chosenPP = agg.chosen_per_period_take_home_cents;
   const takeHomeDelta = agg.take_home_annual_delta_cents;
-  const hasTHAbsolute = baselinePP !== undefined && chosenPP !== undefined;
+  const hasTHAbsolute = baselinePP !== undefined && baselinePP !== null && chosenPP !== undefined && chosenPP !== null;
   // Per-paycheck delta, derived from the same engine absolutes (unit-matched secondary line)
   const perCheckDelta = hasTHAbsolute ? (chosenPP! - baselinePP!) : 0;
+  // Observed paycheck context note
+  const observedPP = agg.observed_per_period_take_home_cents;
+  const modelDiffers = agg.model_differs_from_observed === true && observedPP != null;
 
   // Tax: annual BEFORE → AFTER
   const baselineTax = agg.baseline_federal_tax_annual_cents;
@@ -243,7 +250,7 @@ function HeaderAggregateBanner({ params }: { params: ChecklistBenefitParams | nu
       </p>
       <div className="grid grid-cols-3 gap-2">
 
-        {/* Tile 1: Bring home — unit discipline: line 1 per-paycheck, line 2 both deltas labeled */}
+        {/* Tile 1: Bring home — unit discipline: line 1 per-paycheck est., line 2 delta */}
         <div className="rounded-xl bg-white/60 ring-1 ring-sw-border/40 p-2.5 text-center">
           <p className="text-[9px] font-semibold uppercase tracking-wider text-sw-muted mb-1.5">Bring home</p>
           {hasTHAbsolute ? (
@@ -252,10 +259,10 @@ function HeaderAggregateBanner({ params }: { params: ChecklistBenefitParams | nu
                 <span className="font-normal text-sw-text-secondary">{fmtAbs(baselinePP)}</span>
                 <span className="mx-0.5 text-sw-muted font-normal">→</span>
                 {fmtAbs(chosenPP)}{' '}
-                <span className="text-[9px] font-normal text-sw-muted">per paycheck</span>
+                <span className="text-[9px] font-normal text-sw-muted">est. per paycheck</span>
               </p>
               <p className={`text-[12px] font-[700] font-tabular tracking-[-0.02em] leading-none mt-1.5 ${perCheckDelta > 0 ? 'text-sw-success' : perCheckDelta < 0 ? 'text-sw-danger' : 'text-sw-muted'}`}>
-                {fmtCents(perCheckDelta)}/check
+                {fmtCents(perCheckDelta)}/check est.
                 <span className="mx-1 text-sw-dim font-normal">·</span>
                 {fmtCents(takeHomeDelta)}/yr
               </p>
@@ -320,6 +327,14 @@ function HeaderAggregateBanner({ params }: { params: ChecklistBenefitParams | nu
         <p className="text-[9px] text-sw-dim mt-2 text-center leading-relaxed">
           <span className="font-medium">Illustration only — not a guarantee.</span>{' '}
           {`${(chsnFv.growth_rate_low * 100).toFixed(0)}%–${(chsnFv.growth_rate_high * 100).toFixed(0)}% annual growth assumed over ${chsnFv.horizon_years} years. Actual results vary.`}
+        </p>
+      )}
+
+      {/* Observed paycheck context note (DELTA-CONSISTENCY: model ≠ paystub actual) */}
+      {modelDiffers && observedPP != null && (
+        <p className="text-[9px] text-sw-muted mt-1.5 text-center leading-relaxed">
+          <span className="font-medium">Note:</span>{' '}
+          Your actual paycheck is ~{fmtAbs(observedPP)}/check. Deltas above compare like-for-like estimates — both sides use the same withholding model.
         </p>
       )}
 
@@ -409,11 +424,15 @@ function ChecklistCard({
   const isDone = optimisticDone || item.done;
   const gatedFacts = item.gated_facts ?? [];
 
-  // k2 with FV range → illustration badge
-  const hasIllustration = item.knob === 'k2' && item.benefit_line_params?.fv_low && item.benefit_line_params?.fv_high;
+  // k2 with FV range → illustration badge.
+  // Use explicit >0 check to avoid falsy-render "0" when fv_low=0 (no horizon or zero delta).
+  const hasIllustration = item.knob === 'k2'
+    && (item.benefit_line_params?.fv_low ?? 0) > 0
+    && (item.benefit_line_params?.fv_high ?? 0) > 0;
   const fvLow = item.benefit_line_params?.fv_low;
   const fvHigh = item.benefit_line_params?.fv_high;
   const retirementAge = item.benefit_line_params?.age;
+  const retirementRangesEqualRothChanged = item.benefit_line_params?.retirement_ranges_equal_roth_changed === true;
 
   return (
     <div
@@ -503,6 +522,13 @@ function ChecklistCard({
             </Badge>
           </div>
         )}
+        {/* Retirement equal-range note: same contribution amount, just different timing of tax */}
+        {item.knob === 'k2' && !isDone && retirementRangesEqualRothChanged && !hasIllustration && (
+          <p className="text-[10px] text-sw-muted mt-1 leading-relaxed">
+            <Info size={8} className="inline mr-0.5 text-sw-dim" />
+            Traditional vs Roth changes <em>when</em> you pay tax — not the projected balance.
+          </p>
+        )}
       </div>
     </div>
   );
@@ -531,6 +557,8 @@ interface Props {
   onChoose?: (optionKey: string) => Promise<void>;
   /** Callback to navigate back to the Choices stage when no options are computed. */
   onNavigateToChoices?: () => void;
+  /** Addition 8: callback to navigate back to Choices stage ("Change plan →" / Back button). */
+  onBackToChoices?: () => void;
 }
 
 export default function OptimizationChecklistView({
@@ -539,6 +567,7 @@ export default function OptimizationChecklistView({
   scenariosData,
   onChoose,
   onNavigateToChoices,
+  onBackToChoices,
 }: Props) {
   const { data, loading, error, refresh } = useApi<OptimizationChecklistResponse>(
     `/api/v1/optimizer/checklist/${taxYear}`,
@@ -693,8 +722,48 @@ export default function OptimizationChecklistView({
     );
   }
 
+  // Chosen plan label: from API response or from scenariosData (inline choose path).
+  const chosenOptionLabel = data?.chosen_option_label ?? null;
+
   return (
     <div className="rounded-2xl ring-1 ring-sw-border/70 bg-gradient-to-b from-white to-slate-50/40 shadow-sw-2 p-5">
+
+      {/* Addition 8: Back button — top-left, ghost/tertiary style */}
+      {onBackToChoices && (
+        <button
+          onClick={onBackToChoices}
+          className="inline-flex items-center gap-1 text-[11px] text-sw-muted hover:text-sw-accent transition mb-3"
+        >
+          <ArrowLeft size={12} />
+          Back to your options
+        </button>
+      )}
+
+      {/* Addition 6: Chosen plan header — "YOUR PLAN: X" eyebrow + Change plan link */}
+      {chosenOptionLabel && (
+        <div className="flex items-start justify-between gap-2 mb-3">
+          <div className="min-w-0">
+            <p className="text-[9px] font-semibold uppercase tracking-widest text-sw-muted leading-none mb-0.5">
+              Your plan
+            </p>
+            <div className="flex items-center gap-1.5">
+              <Target size={13} className="text-sw-accent shrink-0" />
+              <p className="text-[14px] font-bold text-sw-text leading-tight truncate">
+                {chosenOptionLabel}
+              </p>
+            </div>
+          </div>
+          {onBackToChoices && (
+            <button
+              onClick={onBackToChoices}
+              className="shrink-0 inline-flex items-center gap-1 text-[11px] font-medium text-sw-accent hover:text-sw-accent-hover transition"
+            >
+              Change plan <ArrowRight size={11} />
+            </button>
+          )}
+        </div>
+      )}
+
       {/* Header aggregate banner */}
       {headerRow && <HeaderAggregateBanner params={headerRow.benefit_line_params} />}
 

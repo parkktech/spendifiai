@@ -1029,6 +1029,19 @@ class TaxRulesEngineService
         // ── Step 4: per-paycheck take-home ─────────────────────────────────
         $periodGross = (int) round($gross / $periods);
 
+        // Resolve W-4 on-file BEFORE computing scenario WH so both sides of the delta
+        // see the same step3 credits (DELTA-CONSISTENCY LAW — step3 credits are a persistent
+        // W-4 election; the scenario knob does not change them).
+        $w4OnFile = $baseline['w4_on_file'] ?? [];
+        $w4Known = ! empty($w4OnFile['filing_status']);
+        // Fix-B: Step 3 dollar credits override count-based credits when available (Pub 15-T).
+        $w4Step3Credits = max(0, (int) ($w4OnFile['step3_credits_cents'] ?? 0));
+
+        // DELTA-CONSISTENCY: pass the same step3 credits to $scnWH when the W-4 is on file.
+        // Without this, $scnWH uses the count-based formula (ignoring confirmed step3 credits),
+        // creating an asymmetry that corrupts the delta sign when step3Credits > count-based.
+        $scnStep3Credits = $w4Known ? $w4Step3Credits : 0;
+
         $scnWH = $this->estimatePeriodWithholdingCents(
             $periodGross,
             (int) round(($trad401k + $hsa) / $periods),
@@ -1037,14 +1050,13 @@ class TaxRulesEngineService
             (int) $v['w4']['other_dependents'],
             $periods,
             $year,
+            $scnStep3Credits,
         );
         $scnFica = (int) round($this->employeeFicaCents(max(0, $gross - $hsa), $year)['total_cents'] / $periods);
         $scnTakeHome = $periodGross - (int) round(($trad401k + $roth401k + $hsa) / $periods) - $scnWH - $scnFica;
-
-        $w4OnFile = $baseline['w4_on_file'] ?? [];
-        $w4Known = ! empty($w4OnFile['filing_status']);
-        // Fix-B: Step 3 dollar credits override count-based credits when available (Pub 15-T).
-        $w4Step3Credits = max(0, (int) ($w4OnFile['step3_credits_cents'] ?? 0));
+        // Observed withholding per period (paystub actual); set only in the annual_withholding branch
+        // for context display — NEVER used as one side of a delta (DELTA-CONSISTENCY LAW).
+        $observedCurWH = null;
         if ($w4Known) {
             $curWH = $this->estimatePeriodWithholdingCents(
                 $periodGross,
@@ -1058,7 +1070,19 @@ class TaxRulesEngineService
             );
             $w4DeltaIncluded = true;
         } elseif (($baseline['annual_withholding_cents'] ?? null) !== null) {
-            $curWH = (int) round($baseline['annual_withholding_cents'] / $periods);
+            // DELTA-CONSISTENCY: estimate the baseline using the same model as the scenario.
+            // The observed paystub withholding is stored in $observedCurWH for context display
+            // only — mixing observed-before with model-after would corrupt the delta sign/magnitude.
+            $observedCurWH = (int) round($baseline['annual_withholding_cents'] / $periods);
+            $curWH = $this->estimatePeriodWithholdingCents(
+                $periodGross,
+                (int) round(($curTrad401k + $curHsa) / $periods),
+                $v['w4']['filing_status'],
+                (int) $v['w4']['dependents_under_17'],
+                (int) $v['w4']['other_dependents'],
+                $periods,
+                $year,
+            );
             $w4DeltaIncluded = false;
         } else {
             // No W-4 evidence: align baseline withholding to the scenario W-4 (K1 delta = 0).
@@ -1075,6 +1099,10 @@ class TaxRulesEngineService
         }
         $curFica = (int) round($this->employeeFicaCents(max(0, $gross - $curHsa), $year)['total_cents'] / $periods);
         $curTakeHome = $periodGross - (int) round(($curTrad401k + $curRoth401k + $curHsa) / $periods) - $curWH - $curFica;
+        // Observed take-home context (when paystub withholding exists but no W-4 on file).
+        $observedCurTakeHome = $observedCurWH !== null
+            ? $periodGross - (int) round(($curTrad401k + $curRoth401k + $curHsa) / $periods) - $observedCurWH - $curFica
+            : null;
 
         $perPaycheckDelta = $scnTakeHome - $curTakeHome;
 
@@ -1124,13 +1152,16 @@ class TaxRulesEngineService
             ],
             'guards' => $guards,
             // Baseline absolute values for BEFORE/AFTER display (Change 1 banner).
-            // These are the CURRENT-state values before any knob changes are applied.
-            // Additive — does not break existing consumers that read only the delta keys above.
+            // per_period_take_home_cents is ALWAYS modelled (estimatePeriodWithholdingCents)
+            // so both sides of the banner use the same estimator — DELTA-CONSISTENCY LAW.
+            // observed_per_period_take_home_cents carries the paystub-actual figure for
+            // informational context when the model and the actual paycheck differ materially.
             'baseline_absolute' => [
                 'federal_tax_annual_cents' => $curTax,
                 'per_period_take_home_cents' => $curTakeHome,
                 'annual_contributions_cents' => $curContrib,
                 'employer_match_cents' => $curMatch,
+                'observed_per_period_take_home_cents' => $observedCurTakeHome,
             ],
         ];
     }

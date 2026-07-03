@@ -1327,6 +1327,7 @@ export interface ChecklistBenefitParams {
   fv_low?: number;          // cents — illustration FV range low
   fv_high?: number;         // cents — illustration FV range high
   age?: number;             // target retirement age (illustration)
+  retirement_ranges_equal_roth_changed?: boolean; // true when roth_share changed but ranges identical
 
   // k3 (401k deferral level)
   pct?: number;             // float — chosen deferral percentage
@@ -1360,11 +1361,14 @@ export interface ChecklistBenefitParams {
     interaction_remainder_take_home_cents: number;
     interaction_remainder_federal_tax_cents: number;
     interaction_remainder_retirement_cents: number;
-    // BEFORE/AFTER absolute values (Change 1 banner)
+    // BEFORE/AFTER absolute values (Change 1 banner) — BOTH modelled (DELTA-CONSISTENCY LAW)
     baseline_per_period_take_home_cents?: number;
     chosen_per_period_take_home_cents?: number;
     baseline_federal_tax_annual_cents?: number;
     chosen_federal_tax_annual_cents?: number;
+    // Paystub-actual context (for informational note when model ≠ observed)
+    observed_per_period_take_home_cents?: number | null;
+    model_differs_from_observed?: boolean;
     // Retirement FV illustration (D9.7: always a range)
     baseline_retirement_fv?: {
       low_cents: number;
@@ -1423,6 +1427,8 @@ export interface OptimizationChecklistResponse {
   header_aggregate: ChecklistBenefitParams | null;
   /** True when the user has a chosen scenario but all knobs already match baseline (zero checklist items). */
   already_optimal: boolean;
+  /** Display label for the chosen optimization plan (e.g. "Maximize take-home pay"). Addition 6. */
+  chosen_option_label?: string | null;
   items: OptimizationChecklistItemView[];
 }
 

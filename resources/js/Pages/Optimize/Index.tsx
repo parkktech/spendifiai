@@ -37,6 +37,7 @@ import {
   AlertCircle,
   Info,
   ArrowRight,
+  ArrowLeft,
   BarChart2,
   Brain,
   CheckCircle,
@@ -1319,6 +1320,14 @@ export default function OptimizeIndex() {
       {/* ── Choices stage (was scenarios) ─────────────────────────────────────── */}
       {viewMode === 'choices' && (
         <div className="space-y-5">
+          {/* Addition 8: Back to overview — ghost button top-left */}
+          <button
+            onClick={() => setViewMode('overview')}
+            className="inline-flex items-center gap-1 text-[11px] text-sw-muted hover:text-sw-accent transition -mb-2"
+          >
+            <ArrowLeft size={12} />
+            Back to overview
+          </button>
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
               <GitCompare size={16} className="text-sw-accent" />
@@ -1512,6 +1521,7 @@ export default function OptimizeIndex() {
             scenariosData={scenariosData}
             onChoose={handleChooseScenario}
             onNavigateToChoices={() => setViewMode('choices')}
+            onBackToChoices={() => setViewMode('choices')}
           />
         </div>
       )}

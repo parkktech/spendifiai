@@ -294,6 +294,21 @@ class ScenarioController extends Controller
             metadata: ['fact_set_id' => $factSet->id, 'option_key' => $optionKey],
         );
 
+        // ── 4b. Persist scenario.chosen_option_label (Addition 6) ────────────
+        // Derive the exact display label using the same logic as ::show() so the
+        // checklist page can display "YOUR PLAN: <label>" without re-running the solver.
+        $chosenLabel = $this->deriveOptionLabel($optionKey, $baseline, $year);
+        UserTaxFact::recordFact(
+            userId: $user->id,
+            factKey: 'scenario.chosen_option_label',
+            value: $chosenLabel,
+            sourceType: 'user_edit',
+            label: 'Chosen optimization scenario display label',
+            volatility: 'volatile',
+            taxYear: $year,
+            metadata: ['fact_set_id' => $factSet->id],
+        );
+
         // ── 5. Materialize checklist ──────────────────────────────────────────
         // Pass the clamped knob vector directly (ScenarioChecklistService::materialize()
         // calls solver->attributeBenefits() internally — no pre-attribution needed here).
@@ -409,6 +424,43 @@ class ScenarioController extends Controller
                 'roth_share_pct' => $knobs['k401']['roth_share_pct'] ?? 0,
             ],
         ];
+    }
+
+    /**
+     * Derive the exact display label for an option key (same derivation as ::show()).
+     * For 'balanced': re-runs diffKnobs to determine whether it's "also lowest tax".
+     * For all other keys: uses the canonical label map.
+     */
+    private function deriveOptionLabel(string $optionKey, array $baseline, int $year): string
+    {
+        $labelMap = [
+            'take_home' => 'Maximize take-home pay',
+            'tax_burden' => 'Minimize '.$year.' federal tax',
+            'retirement' => 'Maximize retirement contributions',
+        ];
+
+        if (isset($labelMap[$optionKey])) {
+            return $labelMap[$optionKey];
+        }
+
+        if ($optionKey === 'balanced') {
+            // Re-derive the balanced label: "also lowest tax" when TB diverges from both poles.
+            try {
+                $thKnobs = $this->solver->solve($baseline, 'take_home', $year);
+                $tbKnobs = $this->solver->solve($baseline, 'tax_burden', $year);
+                $rKnobs = $this->solver->solve($baseline, 'retirement', $year);
+                $tbDivFromTH = $this->solver->diffKnobs($tbKnobs, $thKnobs);
+                $tbDivFromR = $this->solver->diffKnobs($tbKnobs, $rKnobs);
+
+                return (! empty($tbDivFromTH) && ! empty($tbDivFromR))
+                    ? 'Balanced — also lowest '.$year.' tax'
+                    : 'Balanced';
+            } catch (\Throwable) {
+                return 'Balanced';
+            }
+        }
+
+        return ucwords(str_replace('_', ' ', $optionKey));
     }
 
     /**

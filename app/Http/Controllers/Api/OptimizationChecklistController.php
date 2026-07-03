@@ -62,10 +62,15 @@ class OptimizationChecklistController extends Controller
         $actionItemCount = $items->filter(fn ($item) => ($item['knob'] ?? '') !== 'header')->count();
         $alreadyOptimal = $hasChosenScenario && $actionItemCount === 0;
 
+        // Chosen option label (Addition 6): expose the display label stored at choose time.
+        $chosenLabelFact = UserTaxFact::currentFact($user->id, 'scenario.chosen_option_label', null, $year);
+        $chosenOptionLabel = $chosenLabelFact?->value ?? null;
+
         return response()->json([
             'tax_year' => $year,
             'header_aggregate' => $headerAggregate,
             'already_optimal' => $alreadyOptimal,
+            'chosen_option_label' => $chosenOptionLabel,
             'items' => $items,
         ]);
     }

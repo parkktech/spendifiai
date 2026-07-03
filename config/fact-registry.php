@@ -543,6 +543,11 @@ return [
         'label' => 'Chosen knob values (JSON)',
         'sources' => ['user_edit'],
     ],
+    'scenario.chosen_option_label' => [
+        'type' => 'string',
+        'label' => 'Chosen scenario display label',
+        'sources' => ['user_edit'],
+    ],
 
     // ── Self-employment (legacy top-level key) ────────────────────────────────
     'has_self_employment' => [

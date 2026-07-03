@@ -353,19 +353,29 @@ final class ScenarioChecklistService
                 $params['from_roth_pct'] = $currTotal > 0
                     ? (int) round($currRoth / $currTotal * 100)
                     : 0;
-                // Illustration: long-horizon FV from retirement dim
+                // Illustration: long-horizon FV from retirement dim.
+                // Only include when the FV range is non-zero (zero means no horizon or no delta).
                 $illustration = $dim['retirement']['illustration'] ?? null;
-                if ($illustration !== null) {
+                if ($illustration !== null && ($illustration['low_cents'] ?? 0) > 0) {
                     $params['fv_low'] = (int) ($illustration['low_cents'] ?? 0);
                     $params['fv_high'] = (int) ($illustration['high_cents'] ?? 0);
                     $params['age'] = $age ?? config('optimizer-scenarios.assumptions.default_retirement_age', 65);
+                }
+                // Retirement-ranges-equal note: when roth_share changed but FV range is
+                // unavailable or equal, hint "Traditional vs Roth changes when you pay tax".
+                $chosenRothShare = (float) ($chosenKnobs['k401']['roth_share_pct'] ?? 0);
+                $currentRothShare = $currTotal > 0 ? ($currRoth / $currTotal * 100) : 0;
+                $rothShareChanged = abs($chosenRothShare - $currentRothShare) > 0.5;
+                if ($rothShareChanged) {
+                    $params['retirement_ranges_equal_roth_changed'] = true;
                 }
                 break;
 
             case 'k3':
                 $dim = $knobBenefits['k401_deferral'] ?? [];
-                $params['pct'] = (float) ($chosenKnobs['k401']['deferral_pct'] ?? 0);
-                $params['from_pct'] = (float) ($baseline['current']['deferral_pct'] ?? 0);
+                // DISPLAY LAW (Addition 7): round to nearest whole percent in user copy.
+                $params['pct'] = (int) round((float) ($chosenKnobs['k401']['deferral_pct'] ?? 0));
+                $params['from_pct'] = (int) round((float) ($baseline['current']['deferral_pct'] ?? 0));
                 $params['roth_share_pct'] = (int) ($chosenKnobs['k401']['roth_share_pct'] ?? $baseline['current']['roth_share_pct'] ?? 0);
                 $params['match'] = (int) ($dim['retirement']['employer_match_delta_cents'] ?? 0);
                 $params['delta_paycheck'] = (int) ($dim['take_home']['per_paycheck_delta_cents'] ?? 0);
