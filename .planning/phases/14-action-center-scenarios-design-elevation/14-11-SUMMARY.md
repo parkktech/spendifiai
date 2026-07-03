@@ -359,3 +359,75 @@ Two owner-blocking fixes shipped on 2026-07-02 against `feature/v2.1-optimize-my
 2. Source attribution is a single line of ambient context ("from your Jul 2 Pay Stub") — no modal, no tooltip, no panel.
 3. Upload type grid is an inventory: green-check types feel done, unchecked types feel like work remaining — status at a glance.
 4. "Already on file" is a success state with a green check, not a red error — uploading the same doc twice is not a user mistake.
+
+---
+
+## Final fix cluster
+
+Three owner-reported defects fixed atomically on branch `feature/v2.1-optimize-my-income`, 2026-07-02.
+
+### Fix 1 — Duplicate proposals for the same fact_key
+
+**Problem:** Two extractions from the same or different benefits-guide documents created two open proposals for `employer.has_401k` with 98% and 99% confidence — both showing "Employer has 401(k) plan" on the proposals list.
+
+**Root cause:** `UserTaxFact::recordFact()` for proposals did not check for existing open proposals before inserting; it simply created a new row. The display layer had no dedup guard either.
+
+**Fixes:**
+- `UserTaxFact::recordFact()`: for `document_extraction` proposals, lock and find any existing open proposal for the same `(user_id, fact_key, entity_id, tax_year)` tuple before inserting the new row. If found, supersede it (`superseded_by_id → new proposal id`) — newest wins. If the prior proposal had a higher confidence score AND the new proposal did not explicitly set `confidence`, carry the higher value forward in the new proposal's metadata.
+- `DurableFactsController::index()`: safety-net dedup groups proposals by `fact_key` and keeps the highest-id entry (auto-increment monotonically reliable). Guards against any residual pre-fix duplicates still in the DB.
+- `optimizer:dedup-proposals` artisan command: idempotent one-off cleanup for rows written before this fix. Groups all open proposals by tuple, supersedes all but the newest. Live run on all users: **0 duplicates found** (prior fix clusters or confirmations already resolved them).
+
+**New tests:** 3 E2E tests in `PaystubProposalFlowTest`:
+- Two extractions → one open proposal (newest wins, older superseded)
+- Safety-net API dedup (raw duplicate rows → one returned per fact_key)
+- `optimizer:dedup-proposals` command supersedes older row
+
+**Commits:** `03ff2b3`
+
+---
+
+### Fix 2 — Jargon in proposal labels
+
+**Problem:** `PaystubFactExtractorService::BENEFITS_FACT_MAP` had the label `"After-tax 401(k) available (mega backdoor gate)"` — internal detector terminology rendered verbatim as user-facing copy on the `ProposalConfirmCard`.
+
+**Fix:**
+- Label changed: `"After-tax 401(k) available (mega backdoor gate)"` → `"After-tax 401(k) contributions allowed"`. The mega-backdoor explanation belongs in finding/context copy, not the label.
+- D18QuestionQualityTest extended: new `d18_label_no_jargon` test uses reflection to read all three fact-map constants (`PAYSTUB_FACT_MAP`, `BENEFITS_FACT_MAP`, `RETIREMENT_STATEMENT_FACT_MAP`) and asserts no label contains: "gate" in parenthetical, "backdoor" in parenthetical, "sweep", "flag-", "conformance".
+
+**Commits:** `978e7d3`
+
+---
+
+### Fix 3 — "Add more documents" accordion default
+
+**Problem:** The "Add more documents" accordion was collapsed by default (`useState(false)`), hiding remaining work. Owner's intent: expanded while any doc type lacks a ready doc, auto-collapsed once all populated, user's manual collapse persists.
+
+**Fix — tri-state logic:**
+
+| Priority | State | Behavior |
+|----------|-------|----------|
+| 1 (wins) | User has set preference (`localStorage`) | Respect preference unconditionally |
+| 2 | All 7 doc types have a ready doc | Auto-collapse |
+| 3 (default) | Any type missing or data still loading | Auto-expand |
+
+**Implementation:**
+- `resources/js/utils/accordionDefault.ts`: pure `computeAccordionDefault(typeStatus, userPreference)` function. Zero framework dependencies.
+- `Optimize/Index.tsx`: fetches `/api/v1/tax-vault/type-status` at page level (lightweight, already fetched by `DocumentUploadFlow` on mount). On mount, reads localStorage key `sw_upload_accordion_{userId}` (scoped per user) and calls `computeAccordionDefault` for initial state. `useEffect` re-evaluates when `typeStatus` loads, auto-collapsing if all types are now filled and no manual preference is set. `handleAccordionToggle` saves the user's explicit choice to localStorage.
+
+**Tests:** 9 unit tests in `tests/js/accordionDefault.test.mjs` (Node.js, zero npm dependencies). Run with `node tests/js/accordionDefault.test.mjs`.
+
+**Commits:** `f82c839`
+
+---
+
+### Gates Verified (Final Fix Cluster)
+
+- [x] `php artisan test --compact` — 1125 passed (baseline was 1121; +4 new PHP tests), 1 risky (pre-existing DashboardFinancialBlocksTest), ZERO failures
+- [x] `node tests/js/accordionDefault.test.mjs` — 9 passed, 0 failed
+- [x] `npm run build` — zero TypeScript errors, clean Vite build
+- [x] `vendor/bin/pint --dirty` — all modified PHP files clean
+- [x] D18 jargon denylist: new `d18_label_no_jargon` test passes across all 3 fact-map constants
+- [x] Dedup cleanup: `optimizer:dedup-proposals` — 0 duplicates found live
+- [x] Fix 1: two extractions for same fact_key → exactly 1 open proposal after recordFact(); safety-net dedup in index()
+- [x] Fix 2: "After-tax 401(k) contributions allowed" — "(mega backdoor gate)" removed from label
+- [x] Fix 3: accordion expanded when any type missing; auto-collapsed when all filled; localStorage pref wins
