@@ -3,7 +3,7 @@
 **Feature:** Optimize My Income (v2.1)
 **Phase:** 13 — Safety Validation & Hardening
 **Report type:** SAFE-05 hardening artifact
-**Certification basis:** Green SAFE test suite (87 tests, 248 assertions) + this binding document
+**Certification basis:** Green SAFE test suite (88 tests, 255 assertions) + this binding document
 **Report date:** 2026-07-03
 **Branch:** feature/v2.1-optimize-my-income
 
@@ -103,7 +103,7 @@ No production code changes were required — all five links were already sound. 
 
 ### SAFE-05 — Security and legal hardening pass completed
 
-This report is the SAFE-05 artifact. Per research Pitfall 6 ("the test IS the artifact"), the artifact is: a green SAFE test suite (87 tests, 248 assertions) plus this bound evidence document. The document is not self-certifying — it is valid only when the SAFE suite runs green.
+This report is the SAFE-05 artifact. Per research Pitfall 6 ("the test IS the artifact"), the artifact is: a green SAFE test suite (88 tests, 255 assertions) plus this bound evidence document. The document is not self-certifying — it is valid only when the SAFE suite runs green.
 
 **Verification command:** `php artisan test --compact --filter=SAFE` must pass with 0 failures.
 
@@ -247,9 +247,9 @@ For DC-02 (PNG/image content path), the defense is the binary type constraint �
 
 The `<document_content>` delimiters on DC-08 and DC-09 rely on the LLM following the SECURITY instruction and treating content between the tags as data, not instructions. This is defense-in-depth on top of: (1) the structured JSON output constraint (the LLM is instructed to return specific fields only), and (2) upstream schema-whitelist validation. The delimiter approach cannot prevent a sufficiently adversarial input from confusing the model — it reduces the risk but does not eliminate it.
 
-**L-04 — Full suite migration ordering instability**
+**L-04 — Full suite migration ordering instability (resolved)**
 
-When the full test suite is run sequentially (`php artisan test --compact`), a subset of Feature tests that use `RefreshDatabase` fail due to migration ordering contention from new migration files added in Phase 13. These tests pass in isolation. This is a pre-existing test infrastructure issue (noted in 13-03 SUMMARY) that does not affect the correctness of the SAFE gates, which are all in the Unit test suite. Resolution requires a test suite re-ordering or explicit migration scoping, which is out of scope for this hardening phase.
+The full suite (`php artisan test --compact`) passes 1397/0 sequentially as of gap-closure 2026-07-03. The migration-ordering contention noted in 13-03 SUMMARY has been resolved in subsequent phases. This limitation no longer applies.
 
 ---
 
@@ -270,6 +270,8 @@ php artisan migrate --force
 
 No seeders should be run in production (see CLAUDE.md safety rules).
 
+**Config caching note:** If config caching is enabled (`bootstrap/cache/config.php` exists), run `php artisan config:cache` after deployment. Without this, the new `config/safe-refusal.php` cluster list is invisible to `HardBlockRefusalService` — the SAFE-06 gate will read a stale cached config and may not detect the full abusive-scheme phrase list.
+
 ---
 
 ## Attestation
@@ -283,4 +285,4 @@ This report certifies that, as of 2026-07-03:
 - Liability-reframed phrasings are pinned against drift.
 - The v1.0 liability gap (SavingsAnalyzerService and related services) is documented as an owner recommendation, not a silent omission.
 
-The SAFE test suite (87 tests, 248 assertions, `--filter=SAFE`) is the machine-enforced certification. This document is a human-readable binding of the evidence.
+The SAFE test suite (88 tests, 255 assertions, `--filter=SAFE`) is the machine-enforced certification. This document is a human-readable binding of the evidence.

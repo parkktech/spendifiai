@@ -1,10 +1,18 @@
 ---
 phase: 13
 slug: safety-validation-hardening
-status: draft
-nyquist_compliant: false
-wave_0_complete: false
+status: complete
+nyquist_compliant: true
+wave_0_complete: true
 created: 2026-07-03
+verified: 2026-07-03
+gap_closure_completed: 2026-07-03
+sign_offs:
+  - "Gap 1 (SAFE-06 frontend refusal rendering): closed — RefusalNotice component, QuestionCard+InterviewCard updated"
+  - "Gap 2 (best_effort_disclaimer renderer): closed — rendered inside RefusalNotice per refusal"
+  - "Gap 3 (SSN digit masking in parse-failure log): closed — TaxDocumentExtractorService masks runs >4 before logging"
+  - "Gap 5 (bookkeeping): closed — 13-VALIDATION, SAFE-HARDENING-REPORT, 13-04-SUMMARY updated"
+  - "Evidence: 1397 tests passed, 0 failed — see 13-VERIFICATION.md for verification audit trail"
 ---
 
 # Phase 13 — Validation Strategy

@@ -204,3 +204,45 @@ Existing document_extraction facts under old ytd keys migrated to per-period key
 |------|------|-------------|
 | 725ac38 | test(13-04) | RED — BaselineContaminationTest (6 failing tests) |
 | 824a0ac | fix(13-04) | GREEN — Bug-1+Bug-2: paystub contamination + per-period key semantics (1396 passing) |
+
+---
+
+## Verification gap closure
+
+Completed 2026-07-03. Closes all gaps identified in 13-VERIFICATION.md.
+
+### Gap 1 — Refusal renders as endorsement (SAFE-06 frontend, MAJOR)
+
+**Status: CLOSED**
+
+- Created `resources/js/Components/SpendifiAI/RefusalNotice.tsx` — amber/neutral warning box with D18-compliant framing: leads with "This isn't something we can help optimize", scheme name appears in body context only, education copy as body, `best_effort_disclaimer` verbatim at footer, no Apply affordance.
+- `QuestionCard.tsx` — added `RefusalResponse` type, detect `refused: true` FIRST in chat response; render `RefusalNotice` instead of the green suggestion box; "Ask something else" CTA keeps the input available; clear the chat message so a different question can be asked.
+- `InterviewCard.tsx` — `handleAnswer` now inspects the POST response body; if `refused: true`, store refusal in `activeRefusal` state, call `resetInputState`, and return WITHOUT appending to history or incrementing `totalAnswered`. `RefusalNotice` is rendered above the navigation controls. Question stays pending.
+
+### Gap 2 — best_effort_disclaimer has no renderer (MINOR)
+
+**Status: CLOSED**
+
+`HardBlockRefusalService::check()` now includes `best_effort_disclaimer` (verbatim from `config('safe-refusal.best_effort_disclaimer')`) in every refusal payload. `RefusalNotice` renders it at the bottom of every refusal (once per refusal encounter, as the config comment intended). Feature test updated to assert `best_effort_disclaimer` is present and non-empty in both refusal paths (escape-hatch and chat).
+
+### Gap 3 — Raw pre-sanitization text logged on parse failure (WARNING)
+
+**Status: CLOSED**
+
+`TaxDocumentExtractorService::parseJsonResponse()` (line ~658): on complete JSON parse failure, the `text_preview` field is now masked via `preg_replace_callback('/\d{5,}/', ...)` before being passed to `Log::error`. Digit runs longer than 4 characters (SSN-shaped) are replaced with `*` for all but the last 4 digits. Test added: `SAFE-gap3: parse-failure log masks digit runs longer than 4 digits` in `TaxDocumentExtractorServiceTest`.
+
+### Gap 5 — Bookkeeping (INFO)
+
+**Status: CLOSED**
+
+- `13-VALIDATION.md` frontmatter: `status: draft` → `complete`, `nyquist_compliant: false` → `true`, sign-off entries added citing 13-VERIFICATION.md.
+- `SAFE-HARDENING-REPORT.md`: L-04 stale claim corrected (suite now passes 1397/0 sequentially); SAFE suite count updated 87 tests/248 assertions → 88 tests/255 assertions; `config:cache` note added to §8 Deploy Runbook.
+
+### Suite result after gap closure
+
+| Metric | Before | After |
+|--------|--------|-------|
+| Full suite | 1396 passed, 0 failed | 1397 passed, 0 failed |
+| SAFE subset | 87 tests, 250 assertions | 88 tests, 255 assertions |
+| TS build | n/a | zero errors |
+| Pint | pass | pass |
