@@ -431,3 +431,60 @@ Three owner-reported defects fixed atomically on branch `feature/v2.1-optimize-m
 - [x] Fix 1: two extractions for same fact_key → exactly 1 open proposal after recordFact(); safety-net dedup in index()
 - [x] Fix 2: "After-tax 401(k) contributions allowed" — "(mega backdoor gate)" removed from label
 - [x] Fix 3: accordion expanded when any type missing; auto-collapsed when all filled; localStorage pref wins
+
+---
+
+## N/A + tier + frequency cluster
+
+Executed as an additive owner feature/fix cluster on branch `feature/v2.1-optimize-my-income`.
+
+### Item 1 — "Not applicable" per-type document exclusion
+
+**Commits:** `8bddf7f`
+**Tests:** 9 PHP (`DocumentTypeExclusionTest`) + 5 JS (`accordionDefault.test.mjs`) = 14 new tests
+
+**What changed:**
+- `user_document_type_exclusions` table (user_id, document_type, unique, additive migration).
+- `UserDocumentTypeExclusion` model + `exclusionsForUser()` helper.
+- `TaxDocumentController::typeStatus()`: adds `is_excluded` per type + `exclusions[]` array.
+- `TaxDocumentController::toggleTypeExclusion()` (POST `/api/v1/tax-vault/type-exclusions`):
+  - Allowlist of 7 types; paystub always required (422 if attempted).
+  - `hsa_statement` exclusion writes `finance.has_hsa=no` as `user_edit` fact (confirmed at write time per Item 2); reversal supersedes it.
+  - `medical_receipt`: preference-only, no semantic fact.
+- `accordionDefault.ts`: `is_excluded=true` counts as covered; accordion auto-collapses when all types are either ready OR excluded.
+- `DocumentUploadFlow.tsx`: "Not applicable" hover button on excludable types. Excluded state shows "Not applicable — marked by you" + Undo + "Upload anyway".
+- `Optimize/Index.tsx`: `DocTypeStatus` gets `is_excluded?`; `onExclusionsChange` wired.
+
+### Item 2 — user_edit facts confirmed at write time
+
+**Commits:** Previously executed (Item 2 was completed before context reset).
+**Tests:** 4 new tests in `UserTaxFactTest`
+
+**What changed:**
+- `UserTaxFact::recordFact()`: `$isSelfConfirmed` for source types `['user_edit', 'interview_answer', 'profile_field', 'detector']` → `confirmed_at=now()` at write time (previously null → invisible to `QuestionRetirementService`).
+- Migration backfill: `SET confirmed_at=asserted_at WHERE source_type='user_edit' AND confirmed_at IS NULL` — fixed fact id 21 (user 1's w4.dependents_claimed).
+
+### Item 3 — Pay-frequency derivation + income reconciliation
+
+**Commits:** `6f838bf`
+**Tests:** 14 new tests in `PayFrequencyDerivationTest`
+
+**What changed:**
+- `PaystubFactExtractorService::PAYSTUB_FACT_MAP`: added `pay_period_start` → `pay.period_start` and `pay_period_end` → `pay.period_end`.
+- `proposeFrequency()`: derives `pay.frequency` from inclusive span. Canonical table: 6-8→weekly, 13-15→biweekly, 15-16 anchored (1st-15th / 16th-EOM)→semimonthly, 27-31→monthly, else null. Emits `document_extraction` proposal (D4 gate; user must confirm).
+- `proposeIncomeReconciliation()`: when gross_per_period + frequency known and profile `monthly_income` diverges >5%, writes `income.paystub_monthly_base_cents` proposal. YTD-aware: sets `ytd_variable_comp_note=true` when annualized YTD ≥20% above base.
+- `ScenarioFactResolverService::deriveFrequencyFromPaystub()`: span table aligned to canonical spec (13-15 biweekly; was 12-14. 27-31 monthly; was 27-32). Existing ambiguous-span test updated from 15-day unanchored (now biweekly per spec) to 10-day span (genuinely ambiguous).
+- `DurableFactsController::confirm()`: when `income.paystub_monthly_base_cents` is confirmed with `is_income_reconciliation=true` metadata, updates `UserFinancialProfile.monthly_income` and dispatches `CategorizePendingTransactions` + `BuildIncomeOptimizationProfile`.
+- **User 1 doc 31 retroactively derived** (tinker): 06/07→06/20 = 14 days → biweekly; $7,608.75 gross × 26 / 12 = $16,485.63/mo. Proposals now in DB: `pay.frequency=biweekly`, `income.paystub_monthly_base_cents=1648563`. `ytd_variable_comp_note=true`. Profile still says $15,000 — user can confirm to update.
+
+**Deviation documented:** `ScenarioFactResolverTest` ambiguous-span test updated from 15-day (now biweekly per Item 3 spec) to 10-day span. This is a spec-driven behavior change, not a regression.
+
+### Gates
+
+| Gate | Result |
+|------|--------|
+| `php artisan test --compact` | 1175 passed, 0 failed, 1 risky (pre-existing) |
+| `node tests/js/accordionDefault.test.mjs` | 14 passed, 0 failed |
+| `npm run build` | Clean (5.74s) |
+| `vendor/bin/pint --dirty` | Clean |
+| Accordion tests | 14/14 pass (5 new Item 1 tests + 9 existing) |
