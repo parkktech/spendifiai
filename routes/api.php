@@ -395,14 +395,16 @@ Route::middleware(['auth:sanctum'])->group(function () {
         // GET  /optimizer/checklist/{year}         — list action checklist for the year
         // PATCH /optimizer/checklist/items/{checklistItem}  — toggle done ('checklistItem' avoids collision with OrderItem)
         //
-        // Throttle split: reads 60/min; choose (writes) 5/min; compute (engine calls) 30/min.
+        // Throttle split: reads 60/min; choose (writes) 20/min (idempotent, raised from 5); compute (engine calls) 30/min.
         Route::prefix('optimizer/scenarios')->group(function () {
             Route::get('/{year}', [\App\Http\Controllers\Api\ScenarioController::class, 'show'])
                 ->middleware('throttle:60,1');
             Route::post('/{year}/compute', [\App\Http\Controllers\Api\ScenarioController::class, 'compute'])
                 ->middleware('throttle:30,1');
             Route::post('/{year}/choose', [\App\Http\Controllers\Api\ScenarioController::class, 'choose'])
-                ->middleware('throttle:5,1');
+                // D24: idempotent (server recomputes); 20/min met a frontend
+                // retry loop and locked the owner out of choosing entirely.
+                ->middleware('throttle:60,1');
         });
         Route::prefix('optimizer/checklist')->group(function () {
             Route::get('/{year}', [\App\Http\Controllers\Api\OptimizationChecklistController::class, 'show'])
