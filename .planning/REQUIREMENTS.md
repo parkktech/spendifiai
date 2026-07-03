@@ -126,18 +126,18 @@ Requirements for this milestone. Each maps to a roadmap phase. All outputs are e
 ### Scenarios (SCN)
 
 - [x] **SCN-01**: `config/optimization-objectives.php` encodes the full fact-requirements map for objectives `take_home`, `tax_burden`, and `retirement`; `ObjectiveReadinessService` computes per-objective readiness (`blocking_missing`, `confirm_needed`, `optional_missing`, `questions_to_unlock`) in two tiers: `known` (sufficient for scenario math) and `confirmed` (required for fact-gated directives)
-- [ ] **SCN-02**: `ScenarioFactResolverService` resolves every required fact through a per-fact source-priority chain (fact → snapshot → profile → derive → ask) with alias fallback; a citable `ScenarioFactSet` row (HMAC-SHA256 hash, encrypted `resolved_facts`, GDPR cascade) is persisted via an additive migration at choose-time
+- [x] **SCN-02**: `ScenarioFactResolverService` resolves every required fact through a per-fact source-priority chain (fact → snapshot → profile → derive → ask) with alias fallback; a citable `ScenarioFactSet` row (HMAC-SHA256 hash, encrypted `resolved_facts`, GDPR cascade) is persisted via an additive migration at choose-time
 - [x] **SCN-03**: A `POST /optimizer/objectives/{year}/{objective}/enqueue` endpoint front-inserts blocking-missing gap questions into the interview session using deterministic config-driven question templates with typed answer conversion — zero Claude calls in this path
 - [x] **SCN-04**: `TaxRulesEngineService` gains SCN-01 through SCN-07 pure computation methods (W-4 withholding math, FICA/§125 split, match-capture arithmetic, FV-range illustration, MAGI headroom, full-vector outcome, benefit aggregation); the ACA-cliff guard is arithmetic inside `computeScenarioOutcome()` — no emitted scenario can push a marketplace enrollee over the 400%-FPL cliff; the ACA invariant is covered by a 200-baseline property test
-- [ ] **SCN-05**: `ScenarioSolverService` runs the six-knob solver (W-4 alignment, trad/Roth 401k split, 401k level vs match formula, HSA election, IRA type/amount within the shared limit, auto-transfer to savings) over all three objectives and attributes per-paycheck and per-year benefit figures entirely from TaxRulesEngineService
-- [ ] **SCN-06**: For objectives where knobs diverge the API emits three named options (A=`take_home`, B=`retirement`, `balanced`); when objectives agree a single merged plan is emitted; the frontend renders a side-by-side comparison with knob-diff highlights, trade-off one-liners, and an Illustration badge on long-horizon figures
-- [ ] **SCN-07**: Choosing a scenario re-computes server-side, snapshots the `ScenarioFactSet`, persists `scenario.chosen_option` and `scenario.chosen_knobs` in `UserTaxFact`, materializes or re-materializes the checklist, and marks the optimization report stale; re-choosing supersedes the previous choice
-- [ ] **SCN-08**: Materialized checklist items render as fact-gated imperatives — confirmed-fact steps show the directive ("Contact your payroll department and change your W-4 filing status to Married Filing Jointly"), unconfirmed-fact steps render as the confirmation ask; every step carries an engine-computed benefit line; the checklist header aggregates total unlocked benefit across all confirmed steps
+- [x] **SCN-05**: `ScenarioSolverService` runs the six-knob solver (W-4 alignment, trad/Roth 401k split, 401k level vs match formula, HSA election, IRA type/amount within the shared limit, auto-transfer to savings) over all three objectives and attributes per-paycheck and per-year benefit figures entirely from TaxRulesEngineService
+- [x] **SCN-06**: For objectives where knobs diverge the API emits three named options (A=`take_home`, B=`retirement`, `balanced`); when objectives agree a single merged plan is emitted; the frontend renders a side-by-side comparison with knob-diff highlights, trade-off one-liners, and an Illustration badge on long-horizon figures
+- [x] **SCN-07**: Choosing a scenario re-computes server-side, snapshots the `ScenarioFactSet`, persists `scenario.chosen_option` and `scenario.chosen_knobs` in `UserTaxFact`, materializes or re-materializes the checklist, and marks the optimization report stale; re-choosing supersedes the previous choice
+- [x] **SCN-08**: Materialized checklist items render as fact-gated imperatives — confirmed-fact steps show the directive ("Contact your payroll department and change your W-4 filing status to Married Filing Jointly"), unconfirmed-fact steps render as the confirmation ask; every step carries an engine-computed benefit line; the checklist header aggregates total unlocked benefit across all confirmed steps
 
 ### Monitors (MON)
 
 - [x] **MON-01**: `ChangeMonitor` unifies verification watches and change detection in one service: the verification side watches for EXPECTED changes (checklist items checked done → 2-4-week observation window → verified outcome surfaced when the projected change lands in transaction/deposit data, reusing SavingsLedger claimed→verified); the detection side fires on UNEXPECTED changes (income shift ≥2 pay cycles, CrossSourceReview discrepancy, life-event triggers) and creates an `OptimizationFinding` + AIQuestion + DOC-05 document request with educational, benefit-forward copy ("We noticed [specific change] — send an updated [doc] and we'll check whether your [withholding/401k/transfers] are still optimized"); cadence guard ensures one prompt per detected change per freshness window with ≥2 pay-cycle persistence requirement
-- [x] **MON-02**: Predictive calendar watchers extend ChangeMonitor with expected-event scheduling: bonus lead-time alerts (sourced from prior-year pattern, interview fact, or offer-letter extraction) fire with config lead time before the expected payroll cutoff, presenting a bonus scenario set (Option A: 0% deferral/max cash; Option B: max deferral/bracket management; Option C: standing election); year-end window items are gated on the user's confirmed business/personal context and confirmed business type, and every purchase-timing item carries the net-cost honesty statement ("a $10,000 purchase in the 24% bracket saves ~$2,400 in tax and costs ~$7,600 net cash — only if you needed it anyway")
+- [x] **MON-02** _(Partial — v2.1 ships interview-fact source only; prior-year-pattern + offer-letter sources deferred to v2.2 — see MON-02-EXT in Future Requirements)_: Predictive calendar watchers extend ChangeMonitor with expected-event scheduling: bonus lead-time alerts (sourced from prior-year pattern, interview fact, or offer-letter extraction) fire with config lead time before the expected payroll cutoff, presenting a bonus scenario set (Option A: 0% deferral/max cash; Option B: max deferral/bracket management; Option C: standing election); year-end window items are gated on the user's confirmed business/personal context and confirmed business type, and every purchase-timing item carries the net-cost honesty statement ("a $10,000 purchase in the 24% bracket saves ~$2,400 in tax and costs ~$7,600 net cash — only if you needed it anyway")
 
 ### Design Elevation (ELEV)
 
@@ -148,6 +148,10 @@ Requirements for this milestone. Each maps to a roadmap phase. All outputs are e
 ## Future Requirements
 
 Deferred beyond v2.1. Tracked but not in this roadmap.
+
+### Monitor Extensions
+
+- **MON-02-EXT**: Remaining MON-02 bonus-prediction sources deferred from v2.1. The interview-fact source (`UserTaxFact bonus.expected_month`) shipped in Phase 14; two additional sources are deferred: (1) prior-year transaction-pattern prediction — scan 13 months of deposit history for a recurring large-deposit signature matching the employer, compute expected month from the median lag, write `bonus.expected_month` as a derived fact; (2) offer-letter extraction — `TaxDocumentExtractorService` already extracts `signing_bonus` but does not map offer-letter bonus terms (expected month, frequency) to `bonus.expected_month`; add an offer-letter bonus-schedule field and wire it through `checkBonusLeadTime()`. Both sources are guarded by the existing config lead-time and honesty statement. Code reference: `ChangeMonitor.php:452` comment "deferred to v2.2".
 
 ### Post-Validation Enhancements
 
@@ -305,15 +309,15 @@ Each requirement maps to exactly one phase. Phases continue the global numbering
 | ACT-04 | Phase 14 | Complete |
 | ACT-05 | Phase 14 | Complete |
 | SCN-01 | Phase 14 | Complete |
-| SCN-02 | Phase 14 | Pending |
+| SCN-02 | Phase 14 | Complete |
 | SCN-03 | Phase 14 | Complete |
 | SCN-04 | Phase 14 | Complete |
-| SCN-05 | Phase 14 | Pending |
-| SCN-06 | Phase 14 | Pending |
-| SCN-07 | Phase 14 | Pending |
-| SCN-08 | Phase 14 | Pending |
+| SCN-05 | Phase 14 | Complete |
+| SCN-06 | Phase 14 | Complete |
+| SCN-07 | Phase 14 | Complete |
+| SCN-08 | Phase 14 | Complete |
 | MON-01 | Phase 14 | Complete |
-| MON-02 | Phase 14 | Complete |
+| MON-02 | Phase 14 | Partial |
 | ELEV-01 | Phase 14 | Complete |
 | ELEV-02 | Phase 14 | Complete |
 | ELEV-03 | Phase 14 | Complete |
