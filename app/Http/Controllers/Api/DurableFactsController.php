@@ -4,10 +4,12 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Jobs\BuildIncomeOptimizationProfile;
+use App\Jobs\CategorizePendingTransactions;
 use App\Jobs\GenerateOptimizationReport;
 use App\Models\IncomeOptimizationProfile;
 use App\Models\OptimizationReport;
 use App\Models\TaxDocument;
+use App\Models\UserFinancialProfile;
 use App\Models\UserTaxFact;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -270,6 +272,25 @@ class DurableFactsController extends Controller
         // and dispatch a debounced regen job so the optimizer picks it up without the
         // user needing to manually refresh. ShouldBeUnique coalesces rapid confirms.
         $this->dispatchRegenAfterFactChange($confirmed->user_id, $confirmed->tax_year ?? now()->year);
+
+        // ── Item 3 (c): Income reconciliation side effect ─────────────────────
+        // When the user confirms income.paystub_monthly_base_cents, update
+        // UserFinancialProfile.monthly_income to the derived value (cents → dollars).
+        // This is the "14-09 profile-update path" from the item spec.
+        if ($confirmed->fact_key === 'income.paystub_monthly_base_cents'
+            && ($confirmed->metadata['is_income_reconciliation'] ?? false)
+        ) {
+            $derivedDollars = (float) ($confirmed->metadata['derived_monthly_dollars'] ?? 0);
+            if ($derivedDollars > 0) {
+                UserFinancialProfile::updateOrCreate(
+                    ['user_id' => $confirmed->user_id],
+                    ['monthly_income' => $derivedDollars],
+                );
+                // Re-trigger categorization and profile rebuild so findings stay current.
+                CategorizePendingTransactions::dispatch($confirmed->user_id, true);
+                BuildIncomeOptimizationProfile::dispatch($confirmed->user_id, now()->year);
+            }
+        }
 
         return response()->json([
             'message' => 'Fact confirmed. This information may help identify relevant tax opportunities.',

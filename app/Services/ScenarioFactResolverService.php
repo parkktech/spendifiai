@@ -479,11 +479,17 @@ final class ScenarioFactResolverService
         $anchored = ($s->day === 1 && $e->day === 15)
             || ($s->day === 16 && $e->isLastOfMonth());
 
+        // Item 3 spec span table (canonical, synced with PaystubFactExtractorService):
+        //   6-8  → weekly
+        //   27-31 → monthly
+        //   15-16 anchored (1st-15th / 16th-EOM) → semimonthly (checked first to handle 15-day overlap)
+        //   13-15 → biweekly
+        //   else  → null (ambiguous → ask)
         $frequency = match (true) {
             $span >= 6 && $span <= 8 => 'weekly',
-            $span >= 27 && $span <= 32 => 'monthly',
-            $anchored && $span >= 14 && $span <= 16 => 'semimonthly',
-            $span >= 12 && $span <= 14 => 'biweekly',
+            $span >= 27 && $span <= 31 => 'monthly',
+            $anchored && $span >= 15 && $span <= 16 => 'semimonthly',
+            $span >= 13 && $span <= 15 => 'biweekly',
             default => null, // ambiguous → ask
         };
 

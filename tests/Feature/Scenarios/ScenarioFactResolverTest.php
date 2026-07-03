@@ -292,11 +292,14 @@ it('derives biweekly from a 14-day non-anchored span', function () {
 });
 
 it('returns null (falls through to ask) for an ambiguous pay span', function () {
-    // 15-day span with no 1st/15th anchors → ambiguous → derivation yields null,
-    // chain then hits fact (none) then ask → overall null.
+    // Item 3 canonical span table: 6-8 weekly, 13-15 biweekly, 27-31 monthly,
+    // 15-16 anchored → semimonthly; else null.
+    // 10-day span (e.g., 2026-01-03 → 2026-01-12) is genuinely ambiguous → null.
+    // NOTE: the old test used a 15-day unanchored span (Jan 3→17); that is now
+    // biweekly per the Item 3 spec (13-15 → biweekly). Updated to 10-day span.
     makeReadyPaystub($this->user, $this->year, [
         'pay_period_start' => '2026-01-03',
-        'pay_period_end' => '2026-01-17',
+        'pay_period_end' => '2026-01-12',   // 10 days inclusive — not in any bucket
     ]);
 
     expect($this->resolver->resolve($this->user, $this->year, 'pay.frequency'))->toBeNull();

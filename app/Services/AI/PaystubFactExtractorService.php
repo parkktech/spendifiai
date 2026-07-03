@@ -4,7 +4,9 @@ namespace App\Services\AI;
 
 use App\Enums\TaxDocumentCategory;
 use App\Models\TaxDocument;
+use App\Models\UserFinancialProfile;
 use App\Models\UserTaxFact;
+use Carbon\Carbon;
 
 /**
  * PaystubFactExtractorService — DOC-07 / D4 Proposal-Creation Bridge.
@@ -102,7 +104,7 @@ class PaystubFactExtractorService
         ],
         // §A.5.4 additive per-period paystub maps (money, annual, tax_year-scoped).
         // These feed take_home withholding/gross derivations; pay-frequency derivation
-        // stays in the RESOLVER (M7), NOT here.
+        // now also runs here (Item 3) after the period-date facts are written.
         'federal_tax_withheld' => [
             'fact_key' => 'pay.federal_withholding_per_period_cents',
             'label' => 'Federal income tax withheld per paycheck (paystub)',
@@ -114,6 +116,20 @@ class PaystubFactExtractorService
             'label' => 'Gross pay per paycheck (paystub)',
             'volatility' => 'annual',
             'money' => true,
+        ],
+        // Item 3: map period dates into facts so frequency derivation can be persisted
+        // as a confirmable proposal (not just an ephemeral resolver derivation).
+        'pay_period_start' => [
+            'fact_key' => 'pay.period_start',
+            'label' => 'Pay period start date (paystub)',
+            'volatility' => 'annual',
+            'money' => false,
+        ],
+        'pay_period_end' => [
+            'fact_key' => 'pay.period_end',
+            'label' => 'Pay period end date (paystub)',
+            'volatility' => 'annual',
+            'money' => false,
         ],
     ];
 
@@ -350,7 +366,236 @@ class PaystubFactExtractorService
             $count++;
         }
 
+        // ── Item 3 (a/b): Derive pay.frequency from period dates ─────────────────
+        // Only for PayStub documents. Reads the just-written pay.period_start /
+        // pay.period_end proposals (or falls back to raw extracted fields) and
+        // derives the pay frequency using the canonical span table.
+        // Emits pay.frequency as a document_extraction proposal (known tier; confirmable).
+        if ($document->category === TaxDocumentCategory::PayStub) {
+            $frequencyProposalId = $this->proposeFrequency($document, $fields, $count);
+
+            // ── Item 3 (c): Income reconciliation ────────────────────────────────
+            // When gross_per_period and a derived frequency are both known, compute
+            // the monthly base income and compare with the user's profile value.
+            // If they differ >5%, write an income reconciliation proposal.
+            if ($frequencyProposalId !== null) {
+                $this->proposeIncomeReconciliation($document, $fields);
+            }
+        }
+
         return $count;
+    }
+
+    /**
+     * Derive pay frequency from pay period dates and write it as a proposal.
+     *
+     * Span table (Item 3 spec):
+     *   6-8  days   → weekly
+     *   13-15 days  → biweekly
+     *   15-16 days anchored (1st-15th / 16th-EOM) → semimonthly
+     *   27-31 days  → monthly
+     *   else        → null (ambiguous; falls through to resolver ask)
+     *
+     * Note: semimonthly is tested BEFORE biweekly (anchor condition gates the
+     * overlap at 15). This is order-sensitive in the match.
+     *
+     * Returns the ID of the written proposal, or null if derivation is ambiguous.
+     */
+    protected function proposeFrequency(TaxDocument $document, array $fields, int &$count): ?int
+    {
+        $startRaw = $this->fieldValue($fields, 'pay_period_start');
+        $endRaw = $this->fieldValue($fields, 'pay_period_end');
+
+        if ($startRaw === null || $endRaw === null) {
+            return null;
+        }
+
+        try {
+            $s = Carbon::parse((string) $startRaw);
+            $e = Carbon::parse((string) $endRaw);
+        } catch (\Throwable) {
+            return null;
+        }
+
+        $span = $s->diffInDays($e) + 1; // inclusive span
+
+        // Semimonthly anchor: starts on the 1st, ends on the 15th;
+        // OR starts on the 16th, ends on the last day of the month.
+        $anchored = ($s->day === 1 && $e->day === 15)
+            || ($s->day === 16 && $e->isLastOfMonth());
+
+        $frequency = match (true) {
+            $span >= 6 && $span <= 8 => 'weekly',
+            $span >= 27 && $span <= 31 => 'monthly',
+            // Semimonthly BEFORE biweekly: both can be 15 days, but semimonthly requires anchor.
+            $anchored && $span >= 15 && $span <= 16 => 'semimonthly',
+            $span >= 13 && $span <= 15 => 'biweekly',
+            default => null,
+        };
+
+        if ($frequency === null) {
+            return null;
+        }
+
+        $proposal = UserTaxFact::recordFact(
+            userId: $document->user_id,
+            factKey: 'pay.frequency',
+            value: $frequency,
+            sourceType: 'document_extraction',
+            label: 'Pay frequency (derived from period dates)',
+            volatility: 'annual',
+            taxYear: $document->tax_year,
+            sourceId: (string) $document->id,
+            metadata: [
+                'confidence' => 0.92,
+                'document_id' => $document->id,
+                'derived_from' => 'pay_period_span',
+                'span_days' => $span,
+                'period_start' => $startRaw,
+                'period_end' => $endRaw,
+            ],
+        );
+
+        $count++;
+
+        return $proposal->id;
+    }
+
+    /**
+     * Income reconciliation: when gross_per_period + frequency are known,
+     * write an income.paystub_monthly_base_cents proposal if the derived
+     * monthly income differs >5% from the user's profile monthly_income.
+     *
+     * Also checks if YTD gross annualizes ≥20% above the base (variable comp
+     * note) and records that in the proposal metadata.
+     *
+     * YTD annualization uses the pay_period_end date as the reference point.
+     *
+     * D18/D19 copy: proposal label uses human-readable copy without fact_key paths.
+     */
+    protected function proposeIncomeReconciliation(TaxDocument $document, array $fields): void
+    {
+        // Need gross_per_period to compute the monthly base
+        $grossRaw = $this->fieldValue($fields, 'gross_pay');
+        if ($grossRaw === null || (float) $grossRaw <= 0) {
+            return;
+        }
+
+        $grossPerPeriod = (float) $grossRaw;
+
+        // Load the frequency from the just-written pay.frequency proposal
+        $frequencyFact = UserTaxFact::forUser($document->user_id)
+            ->where('fact_key', 'pay.frequency')
+            ->where('tax_year', $document->tax_year)
+            ->where('is_current', false)
+            ->where('source_type', 'document_extraction')
+            ->whereNull('superseded_by_id')
+            ->latest('id')
+            ->first();
+
+        if ($frequencyFact === null) {
+            return;
+        }
+
+        $frequency = $frequencyFact->value;
+        $periodsPerYear = match ($frequency) {
+            'weekly' => 52,
+            'biweekly' => 26,
+            'semimonthly' => 24,
+            'monthly' => 12,
+            default => null,
+        };
+
+        if ($periodsPerYear === null) {
+            return;
+        }
+
+        $derivedMonthlyBase = $grossPerPeriod * $periodsPerYear / 12;
+
+        // Compare with profile monthly_income
+        $profile = UserFinancialProfile::where('user_id', $document->user_id)->first();
+        $profileMonthly = $profile ? (float) $profile->monthly_income : null;
+
+        if ($profileMonthly === null || $profileMonthly <= 0) {
+            // No profile to reconcile against — still write the derived fact so
+            // the user can confirm it and update their profile.
+            $profileMonthly = 0.0;
+        }
+
+        // >5% divergence check (or no profile baseline — also write the proposal)
+        $diverges = $profileMonthly <= 0
+            || abs($derivedMonthlyBase - $profileMonthly) / $profileMonthly > 0.05;
+
+        if (! $diverges) {
+            return;
+        }
+
+        // YTD variable-comp check: annualize YTD gross; if ≥20% above base, note variable pay.
+        $ytdVariableCompNote = false;
+        $ytdRaw = $this->fieldValue($fields, 'ytd_gross');
+        $periodEndRaw = $this->fieldValue($fields, 'pay_period_end') ?? $this->fieldValue($fields, 'pay_date');
+        if ($ytdRaw !== null && (float) $ytdRaw > 0 && $periodEndRaw !== null) {
+            try {
+                $periodEnd = Carbon::parse((string) $periodEndRaw);
+                $taxYear = $document->tax_year ?? $periodEnd->year;
+                $yearStart = Carbon::create($taxYear, 1, 1);
+                $yearEnd = Carbon::create($taxYear, 12, 31);
+                // Fraction of year elapsed through the period end date
+                $totalDays = $yearStart->diffInDays($yearEnd) + 1;
+                $elapsedDays = $yearStart->diffInDays($periodEnd) + 1;
+                $elapsedFraction = $totalDays > 0 ? $elapsedDays / $totalDays : 0.0;
+
+                if ($elapsedFraction > 0.05) {
+                    $annualizedYtd = (float) $ytdRaw / $elapsedFraction;
+                    $annualBase = $derivedMonthlyBase * 12;
+                    // ≥20% above base → variable comp exists
+                    if ($annualBase > 0 && ($annualizedYtd - $annualBase) / $annualBase >= 0.20) {
+                        $ytdVariableCompNote = true;
+                    }
+                }
+            } catch (\Throwable) {
+                // Non-fatal — variable comp note is informational
+            }
+        }
+
+        $derivedMonthlyCents = (int) round($derivedMonthlyBase * 100);
+
+        UserTaxFact::recordFact(
+            userId: $document->user_id,
+            factKey: 'income.paystub_monthly_base_cents',
+            value: (string) $derivedMonthlyCents,
+            sourceType: 'document_extraction',
+            label: 'Monthly base income (from pay stub)',
+            volatility: 'annual',
+            taxYear: $document->tax_year,
+            sourceId: (string) $document->id,
+            metadata: [
+                'confidence' => 0.88,
+                'document_id' => $document->id,
+                'is_income_reconciliation' => true,
+                'derived_from_gross_per_period' => $grossPerPeriod,
+                'derived_from_frequency' => $frequency,
+                'derived_from_periods_per_year' => $periodsPerYear,
+                'derived_monthly_dollars' => round($derivedMonthlyBase, 2),
+                'current_profile_monthly_dollars' => $profileMonthly,
+                'ytd_variable_comp_note' => $ytdVariableCompNote,
+            ],
+        );
+    }
+
+    /**
+     * Nested-with-fallback field read (mirrors ScenarioFactResolverService::fieldValue).
+     * Prefers $fields[name]['value'], falls back to flat $fields[name].
+     */
+    protected function fieldValue(array $fields, string $name): mixed
+    {
+        if (! array_key_exists($name, $fields)) {
+            return null;
+        }
+
+        $field = $fields[$name];
+
+        return is_array($field) ? ($field['value'] ?? null) : $field;
     }
 
     /**
