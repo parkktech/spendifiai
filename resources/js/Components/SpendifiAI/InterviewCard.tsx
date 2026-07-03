@@ -57,6 +57,18 @@ interface InterviewCardProps {
   taxYear?: number;
   /** Called after each successful answer to notify the parent. */
   onAnswered?: (questionId: number, answer: string) => void;
+  /**
+   * Fix 6: called when the queue drains to empty (queue_size=0 on init OR fetchNextQuestion
+   * returns null). Parent uses this to re-fire enqueueGaps and re-mount the card.
+   * Without this, the done-for-you loop stalls after the first batch drains.
+   */
+  onQueueEmpty?: () => void;
+  /**
+   * Fix 6: remaining facts to show in the "waiting on more questions" state.
+   * Derived by parent from objectivesData.objectives[key].blocking.
+   * Shown when queue is empty but objectives are still locked.
+   */
+  remainingFacts?: Array<{ label: string; source: string }>;
 }
 
 type CardState =
@@ -77,7 +89,7 @@ const CURRENT_YEAR = new Date().getFullYear();
 /** D18 addendum 7 — the escape-hatch choice value (never rendered as text). */
 const ESCAPE_VALUE = '__other__';
 
-export default function InterviewCard({ taxYear = CURRENT_YEAR, onAnswered }: InterviewCardProps) {
+export default function InterviewCard({ taxYear = CURRENT_YEAR, onAnswered, onQueueEmpty, remainingFacts }: InterviewCardProps) {
   const [cardState, setCardState] = useState<CardState>('loading-session');
   const [session, setSession] = useState<InterviewSessionInfo | null>(null);
   const [currentQuestion, setCurrentQuestion] = useState<OptimizationQuestionPayload | null>(null);
@@ -117,6 +129,8 @@ export default function InterviewCard({ taxYear = CURRENT_YEAR, onAnswered }: In
 
       if (startRes.data.queue_size === 0) {
         setCardState('no-questions');
+        // Fix 6: notify parent so it can re-fire enqueueGaps and re-mount this card
+        onQueueEmpty?.();
         return;
       }
 
@@ -128,7 +142,10 @@ export default function InterviewCard({ taxYear = CURRENT_YEAR, onAnswered }: In
       }>(`/api/v1/optimizer/interview/${s.id}/next`);
 
       if (!nextRes.data.question) {
-        setCardState(nextRes.data.session_status === 'completed' ? 'complete' : 'no-questions');
+        const nextState = nextRes.data.session_status === 'completed' ? 'complete' : 'no-questions';
+        setCardState(nextState);
+        // Fix 6: queue empty on init — notify parent to re-enqueue gaps + re-mount
+        onQueueEmpty?.();
         return;
       }
 
@@ -155,7 +172,11 @@ export default function InterviewCard({ taxYear = CURRENT_YEAR, onAnswered }: In
       }>(`/api/v1/optimizer/interview/${sessionId}/next`);
 
       if (!res.data.question) {
-        setCardState(res.data.session_status === 'completed' ? 'complete' : 'no-questions');
+        const nextState = res.data.session_status === 'completed' ? 'complete' : 'no-questions';
+        setCardState(nextState);
+        // Fix 6: queue drained after answer — notify parent to re-enqueue gaps + re-mount.
+        // Drives the loop: answer → refill → answer → objectives unlock → auto-compute.
+        onQueueEmpty?.();
         return;
       }
 
@@ -166,7 +187,7 @@ export default function InterviewCard({ taxYear = CURRENT_YEAR, onAnswered }: In
       setCardState('error');
       setErrorMessage('Could not load the next question. Please try again.');
     }
-  }, [resetInputState]);
+  }, [resetInputState, onQueueEmpty]);
 
   /** Record the user's answer and advance. */
   const handleAnswer = useCallback(async (answer: string) => {
@@ -369,6 +390,28 @@ export default function InterviewCard({ taxYear = CURRENT_YEAR, onAnswered }: In
   }
 
   if (cardState === 'no-questions') {
+    // Fix 6: when onQueueEmpty is wired, this state is transient — parent is re-enqueuing
+    // and will re-mount this card. Show "Looking for the next batch..." instead of
+    // "No questions yet" (which implies a terminal state when objectives are still locked).
+    if (onQueueEmpty) {
+      return (
+        <div className="rounded-2xl border border-sw-border bg-sw-card p-6 text-center">
+          <Loader2 size={24} className="mx-auto text-sw-accent/60 mb-3 animate-spin" />
+          <h3 className="text-sm font-semibold text-sw-text mb-1">Looking for more questions...</h3>
+          {remainingFacts && remainingFacts.length > 0 ? (
+            <p className="text-xs text-sw-muted max-w-xs mx-auto leading-relaxed">
+              Still working on: {remainingFacts.slice(0, 3).map((f) => f.label).join(', ')}
+              {remainingFacts.length > 3 ? ` +${remainingFacts.length - 3} more` : ''}.
+            </p>
+          ) : (
+            <p className="text-xs text-sw-muted max-w-xs mx-auto">
+              Preparing the next batch of questions. This only takes a moment.
+            </p>
+          )}
+        </div>
+      );
+    }
+
     return (
       <div className="rounded-2xl border border-sw-border bg-sw-card p-8 text-center">
         <Brain size={28} className="mx-auto text-sw-accent/60 mb-3" />

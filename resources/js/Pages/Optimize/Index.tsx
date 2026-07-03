@@ -727,6 +727,10 @@ export default function OptimizeIndex() {
   // Fix 5: ref for scrolling to interview card + brief pulse ring on click
   const interviewCardRef = useRef<HTMLDivElement>(null);
   const [interviewPulse, setInterviewPulse] = useState(false);
+  // Fix 6: key to force InterviewCard re-mount after queue drain + re-enqueue
+  const [interviewKey, setInterviewKey] = useState(0);
+  // Fix 6: limit re-enqueue attempts to prevent infinite loop when genuinely nothing enqueueable
+  const [enqueueAttempts, setEnqueueAttempts] = useState(0);
 
   // Action center — stage0 items tell us what the user still needs to do
   const {
@@ -778,6 +782,8 @@ export default function OptimizeIndex() {
     setTimeout(() => setInterviewPulse(false), 1600);
   }, []);
 
+  // Fix 6 handler declared below after refreshObjectives is available
+
   const handleUploadComplete = useCallback(() => {
     // Give extraction job a moment, then refresh facts + action center + type-status
     setTimeout(() => {
@@ -812,6 +818,24 @@ export default function OptimizeIndex() {
   } = useApi<ScenariosResponse>(`/api/v1/optimizer/scenarios/${currentYear}`, {
     enabled: auth.hasBankConnected && viewMode === 'choices',
   });
+
+  // Fix 6: done-for-you loop — called by InterviewCard when its queue drains to empty.
+  // Re-fires enqueueGaps → waits 900ms (backend fills queue) → re-mounts InterviewCard via key.
+  // Capped at 3 attempts to prevent infinite loops when genuinely nothing is enqueueable.
+  const handleInterviewQueueEmpty = useCallback(() => {
+    if (enqueueAttempts >= 3) {
+      // Genuinely nothing left to enqueue — leave the card in its no-questions state
+      return;
+    }
+    setEnqueueAttempts((n) => n + 1);
+    axios.post(`/api/v1/optimizer/objectives/${currentYear}/enqueue-gaps`)
+      .catch(() => { /* non-fatal */ });
+    refreshObjectives();
+    // Re-mount after a short delay so the backend has time to fill the queue
+    setTimeout(() => {
+      setInterviewKey((k) => k + 1);
+    }, 900);
+  }, [enqueueAttempts, currentYear, refreshObjectives]);
 
   // D23 — auto-enqueue gap questions on Choices stage entry when not all objectives ready.
   // Fires once per stage visit (gapsEnqueued gate). If every objective is ready the call
@@ -1344,11 +1368,23 @@ export default function OptimizeIndex() {
                   }`}
                 >
                   <InterviewCard
+                    key={interviewKey}
                     taxYear={currentYear}
                     onAnswered={() => {
+                      // Reset attempt counter on each answer — we're in an active loop
+                      setEnqueueAttempts(0);
                       refreshObjectives();
                       refreshScenarios();
                     }}
+                    onQueueEmpty={handleInterviewQueueEmpty}
+                    remainingFacts={
+                      objectivesData
+                        ? Object.values(objectivesData.objectives)
+                            .filter((o) => !o.ready)
+                            .flatMap((o) => o.blocking.filter((b) => b.state === 'missing'))
+                            .map((b) => ({ label: b.label, source: b.source }))
+                        : undefined
+                    }
                   />
                 </div>
               </div>
