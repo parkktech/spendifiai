@@ -1311,12 +1311,15 @@ export interface ChecklistBenefitParams {
   delta_tax?: number;       // cents — annual federal tax delta (negative = savings)
   roth_pct?: number;        // integer 0–100 — chosen Roth share
   trad_pct?: number;        // integer 0–100 — chosen Trad share
+  from_roth_pct?: number;   // integer 0–100 — current Roth share (for exact instruction)
   fv_low?: number;          // cents — illustration FV range low
   fv_high?: number;         // cents — illustration FV range high
   age?: number;             // target retirement age (illustration)
 
   // k3 (401k deferral level)
   pct?: number;             // float — chosen deferral percentage
+  from_pct?: number;        // float — current deferral percentage (for exact instruction)
+  roth_share_pct?: number;  // integer 0–100 — Roth share for the chosen deferral
   match?: number;           // cents — annual employer match delta
   delta_paycheck?: number;  // cents — per-paycheck take-home delta
   delta_annual?: number;    // cents — annual take-home delta
@@ -1366,6 +1369,8 @@ export interface OptimizationChecklistItemView {
 export interface OptimizationChecklistResponse {
   tax_year: number;
   header_aggregate: ChecklistBenefitParams | null;
+  /** True when the user has a chosen scenario but all knobs already match baseline (zero checklist items). */
+  already_optimal: boolean;
   items: OptimizationChecklistItemView[];
 }
 

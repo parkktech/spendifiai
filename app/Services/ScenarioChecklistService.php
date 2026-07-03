@@ -344,6 +344,13 @@ final class ScenarioChecklistService
                 $params['delta_tax'] = (int) ($dim['federal_tax']['annual_delta_cents'] ?? 0);
                 $params['roth_pct'] = (int) ($chosenKnobs['k401']['roth_share_pct'] ?? 0);
                 $params['trad_pct'] = 100 - (int) ($chosenKnobs['k401']['roth_share_pct'] ?? 0);
+                // Exact-instruction fields: "from" current Roth share
+                $currTrad = (int) ($baseline['current']['trad_401k_cents'] ?? 0);
+                $currRoth = (int) ($baseline['current']['roth_401k_cents'] ?? 0);
+                $currTotal = $currTrad + $currRoth;
+                $params['from_roth_pct'] = $currTotal > 0
+                    ? (int) round($currRoth / $currTotal * 100)
+                    : 0;
                 // Illustration: long-horizon FV from retirement dim
                 $illustration = $dim['retirement']['illustration'] ?? null;
                 if ($illustration !== null) {
@@ -356,6 +363,8 @@ final class ScenarioChecklistService
             case 'k3':
                 $dim = $knobBenefits['k401_deferral'] ?? [];
                 $params['pct'] = (float) ($chosenKnobs['k401']['deferral_pct'] ?? 0);
+                $params['from_pct'] = (float) ($baseline['current']['deferral_pct'] ?? 0);
+                $params['roth_share_pct'] = (int) ($chosenKnobs['k401']['roth_share_pct'] ?? $baseline['current']['roth_share_pct'] ?? 0);
                 $params['match'] = (int) ($dim['retirement']['employer_match_delta_cents'] ?? 0);
                 $params['delta_paycheck'] = (int) ($dim['take_home']['per_paycheck_delta_cents'] ?? 0);
                 $params['delta_annual'] = (int) ($dim['take_home']['annual_delta_cents'] ?? 0);

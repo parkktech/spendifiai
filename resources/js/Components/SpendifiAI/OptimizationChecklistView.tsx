@@ -32,10 +32,13 @@ import {
   PiggyBank,
   RefreshCw,
   Loader2,
+  Sparkles,
+  ArrowRight,
+  ListChecks,
 } from 'lucide-react';
 import Badge from './Badge';
 import { useApi } from '@/hooks/useApi';
-import type { OptimizationChecklistResponse, OptimizationChecklistItemView, ChecklistBenefitParams } from '@/types/spendifiai';
+import type { OptimizationChecklistResponse, OptimizationChecklistItemView, ChecklistBenefitParams, ScenariosResponse } from '@/types/spendifiai';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -107,6 +110,63 @@ function knobTitle(knob: string): string {
   return titles[knob] ?? knob;
 }
 
+/**
+ * Exact imperative instruction with concrete numbers for each knob (owner mandate).
+ * Returns null when key parameters are missing (falls back to generic title).
+ */
+function knobInstruction(knob: string, params: ChecklistBenefitParams | null): string | null {
+  if (!params) return null;
+  switch (knob) {
+    case 'k2': {
+      const roth = params.roth_pct ?? 0;
+      const trad = params.trad_pct ?? 100;
+      const fromRoth = params.from_roth_pct;
+      if (fromRoth !== undefined && fromRoth !== null) {
+        if (roth === 0) {
+          return `Tell HR or your payroll portal: change your 401(k) contributions to 100% Traditional, 0% Roth (currently ${fromRoth}% Roth).`;
+        }
+        if (trad === 0) {
+          return `Tell HR or your payroll portal: change your 401(k) contributions to 100% Roth, 0% Traditional (currently ${fromRoth}% Roth).`;
+        }
+        return `Tell HR or your payroll portal: change your 401(k) to ${trad}% Traditional / ${roth}% Roth (currently ${fromRoth}% Roth).`;
+      }
+      return `Tell HR or your payroll portal: change your 401(k) to ${trad}% Traditional / ${roth}% Roth.`;
+    }
+    case 'k3': {
+      const to = params.pct;
+      const from = params.from_pct;
+      const rothShare = params.roth_share_pct;
+      if (!to) return null;
+      const fromStr = (from !== undefined && from !== null) ? ` from ${from}%` : '';
+      const rothStr = (rothShare !== undefined && rothShare !== null && rothShare > 0)
+        ? `, with ${rothShare}% designated as Roth`
+        : '';
+      return `Tell HR or your payroll portal: change your 401(k) deferral${fromStr} to ${to}%${rothStr}.`;
+    }
+    case 'k4': {
+      const amt = params.amount;
+      if (!amt || amt <= 0) return null;
+      return `Elect $${Math.round(Number(amt) / 100).toLocaleString('en-US')}/yr in HSA contributions through your benefits portal or payroll.`;
+    }
+    case 'k5': {
+      const n = params.n ?? 26;
+      const perPeriod = params.amount;
+      if (!perPeriod || perPeriod <= 0) return null;
+      const perPeriodDollars = Math.round(Number(perPeriod) / 100);
+      return `Set up an automatic $${perPeriodDollars.toLocaleString('en-US')}/${n === 12 ? 'month' : n === 26 ? 'biweekly' : n === 24 ? 'semi-monthly' : 'period'} transfer to an IRA (Fidelity, Vanguard, or Schwab — takes ~10 min to open).`;
+    }
+    case 'k6': {
+      const amt = params.amount;
+      const label = params.period_label ?? 'period';
+      if (!amt || amt <= 0) return null;
+      const dollars = Math.round(Number(amt) / 100);
+      return `Set up an automatic $${dollars.toLocaleString('en-US')}/${label} transfer to your savings account.`;
+    }
+    default:
+      return null;
+  }
+}
+
 function knobIcon(knob: string): React.ReactNode {
   switch (knob) {
     case 'k1': return <TrendingUp size={14} className="text-sw-accent" />;
@@ -174,6 +234,7 @@ function ChecklistCard({
   const isDirective = item.kind === 'directive';
   const benefitLine = buildBenefitLine(item.knob, item.benefit_line_params);
   const title = knobTitle(item.knob);
+  const instruction = isDirective ? knobInstruction(item.knob, item.benefit_line_params) : null;
   const isDone = optimisticDone || item.done;
 
   // k2 with FV range → illustration badge
@@ -219,6 +280,12 @@ function ChecklistCard({
             {title}
           </p>
         </div>
+        {/* Exact instruction with concrete numbers (owner mandate) */}
+        {instruction && !isDone && (
+          <p className="text-[12px] text-sw-text-secondary leading-relaxed mt-1.5">
+            {instruction}
+          </p>
+        )}
         {/* Benefit amount — §3.11 born-premium: text-[22px] font-[800] */}
         {benefitLine && !isDone && (
           <p className="text-[22px] font-[800] text-sw-success font-tabular leading-none tracking-[-0.03em] mt-1">
@@ -265,9 +332,21 @@ function ChecklistSkeleton() {
 interface Props {
   taxYear: number;
   hasBankConnected: boolean;
+  /** Scenarios data passed from parent to power the inline choose CTA on the empty state. */
+  scenariosData?: ScenariosResponse | null;
+  /** Callback to choose a scenario (fires POST /choose and advances to checklist). */
+  onChoose?: (optionKey: string) => Promise<void>;
+  /** Callback to navigate back to the Choices stage when no options are computed. */
+  onNavigateToChoices?: () => void;
 }
 
-export default function OptimizationChecklistView({ taxYear, hasBankConnected }: Props) {
+export default function OptimizationChecklistView({
+  taxYear,
+  hasBankConnected,
+  scenariosData,
+  onChoose,
+  onNavigateToChoices,
+}: Props) {
   const { data, loading, error, refresh } = useApi<OptimizationChecklistResponse>(
     `/api/v1/optimizer/checklist/${taxYear}`,
     { enabled: hasBankConnected },
@@ -275,6 +354,18 @@ export default function OptimizationChecklistView({ taxYear, hasBankConnected }:
 
   // Optimistic done states
   const [optimisticDone, setOptimisticDone] = useState<Map<number, boolean>>(new Map());
+  // Inline choose loading — prevents double-click 429s on the empty-state option cards
+  const [inlineChoosingKey, setInlineChoosingKey] = useState<string | null>(null);
+
+  const handleInlineChoose = async (optionKey: string) => {
+    if (inlineChoosingKey !== null) return; // idempotency guard
+    setInlineChoosingKey(optionKey);
+    try {
+      await onChoose?.(optionKey);
+    } finally {
+      setInlineChoosingKey(null);
+    }
+  };
 
   const handleToggle = async (id: number, done: boolean) => {
     setOptimisticDone((prev) => new Map(prev).set(id, done));
@@ -319,15 +410,92 @@ export default function OptimizationChecklistView({ taxYear, hasBankConnected }:
   const totalCount = actionItems.length;
 
   if (totalCount === 0) {
+    // Case 1: user chose a scenario and it produced zero items → already optimal
+    if (data.already_optimal) {
+      return (
+        <div className="rounded-2xl ring-1 ring-sw-success/30 bg-gradient-to-b from-sw-success/5 to-white shadow-sw-1 p-6 text-center">
+          <div className="w-12 h-12 mx-auto rounded-2xl bg-sw-success/10 ring-1 ring-sw-success/30 flex items-center justify-center mb-3">
+            <Sparkles size={22} className="text-sw-success" />
+          </div>
+          <h3 className="text-[14px] font-semibold text-sw-text mb-1">
+            You&apos;re already optimized
+          </h3>
+          <p className="text-xs text-sw-muted max-w-xs mx-auto leading-relaxed">
+            Your current settings match the chosen plan — no payroll changes needed.
+            We&apos;ll continue monitoring and surface any new opportunities here.
+          </p>
+        </div>
+      );
+    }
+
+    // Case 2: scenario options computed but none chosen → inline compact choose cards
+    const options = scenariosData?.options ?? [];
+    if (options.length > 0 && onChoose) {
+      return (
+        <div className="rounded-2xl ring-1 ring-sw-border/70 bg-gradient-to-b from-white to-slate-50/40 shadow-sw-1 p-5">
+          <div className="flex items-center gap-2 mb-4">
+            <ListChecks size={15} className="text-sw-accent" />
+            <h3 className="text-[13px] font-semibold text-sw-text">
+              Choose a plan to build your checklist
+            </h3>
+          </div>
+          <div className="space-y-2">
+            {options.map((opt) => {
+              const isChoosing = inlineChoosingKey === opt.key;
+              const isDisabled = inlineChoosingKey !== null;
+              return (
+                <button
+                  key={opt.key}
+                  onClick={() => handleInlineChoose(opt.key)}
+                  disabled={isDisabled}
+                  className="w-full text-left rounded-xl ring-1 ring-sw-border/70 bg-white hover:ring-sw-accent/40 hover:bg-sw-accent-light/30 transition-all p-3.5 group disabled:opacity-60 disabled:cursor-not-allowed"
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-[13px] font-medium text-sw-text group-hover:text-sw-accent transition">
+                      {opt.label}
+                    </span>
+                    <span className="inline-flex items-center gap-1 text-[11px] font-medium text-sw-accent">
+                      {isChoosing
+                        ? <Loader2 size={11} className="animate-spin" />
+                        : <><span className="opacity-0 group-hover:opacity-100 transition">Choose</span> <ArrowRight size={11} className="opacity-0 group-hover:opacity-100 transition" /></>
+                      }
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-sw-muted mt-0.5">
+                    {opt.outcome.take_home === 'positive_large' || opt.outcome.take_home === 'positive_medium'
+                      ? 'Take-home increase expected'
+                      : opt.outcome.take_home === 'positive_small'
+                        ? 'Modest take-home gain expected'
+                        : opt.outcome.retirement === 'positive_large' || opt.outcome.retirement === 'positive_medium'
+                          ? 'Retirement boost expected'
+                          : 'Tailored for this objective'}
+                  </p>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      );
+    }
+
+    // Case 3: no options computed yet → link to Choices stage
     return (
       <div className="rounded-2xl ring-1 ring-sw-border/70 bg-gradient-to-b from-white to-slate-50/40 shadow-sw-1 p-6 text-center">
-        <div className="w-11 h-11 mx-auto rounded-2xl bg-sw-success/10 ring-1 ring-sw-success/30 flex items-center justify-center mb-3">
-          <CheckCircle2 size={20} className="text-sw-success" />
+        <div className="w-11 h-11 mx-auto rounded-2xl bg-sw-accent/10 ring-1 ring-sw-accent/20 flex items-center justify-center mb-3">
+          <ListChecks size={20} className="text-sw-accent" />
         </div>
-        <h3 className="text-[14px] font-semibold text-sw-text mb-1">No checklist yet</h3>
-        <p className="text-xs text-sw-muted max-w-xs mx-auto leading-relaxed">
-          Choose a scenario above to generate your personalized optimization checklist.
+        <h3 className="text-[14px] font-semibold text-sw-text mb-1">No plan selected yet</h3>
+        <p className="text-xs text-sw-muted max-w-xs mx-auto leading-relaxed mb-4">
+          Complete the interview and choose a scenario to generate your personalized checklist.
         </p>
+        {onNavigateToChoices && (
+          <button
+            onClick={onNavigateToChoices}
+            className="inline-flex items-center gap-1.5 text-xs font-medium text-sw-accent hover:text-sw-accent-hover transition"
+          >
+            Go to Choices <ArrowRight size={12} />
+          </button>
+        )}
       </div>
     );
   }

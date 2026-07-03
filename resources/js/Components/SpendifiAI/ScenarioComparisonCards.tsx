@@ -330,15 +330,26 @@ interface Props {
 export default function ScenarioComparisonCards({ data, onChoose }: Props) {
   const [pendingKey, setPendingKey] = useState<string | null>(null);
   const [choosingKey, setChoosingKey] = useState<string | null>(null);
+  const [chooseError, setChooseError] = useState<string | null>(null);
 
   const divergingKnobs = findDivergingKnobs(data.options);
 
   const handleChooseConfirm = async () => {
-    if (!pendingKey) return;
+    // Idempotency guard: if a choose request is already in flight, do not fire another.
+    // This eliminates the double-submit loop the coordinator identified (429 exhaustion).
+    if (!pendingKey || choosingKey !== null) return;
     setChoosingKey(pendingKey);
-    setPendingKey(null);
-    await onChoose(pendingKey);
-    setChoosingKey(null);
+    setChooseError(null);
+    // FIRST-CLICK LAW: keep dialog open until request resolves.
+    // setPendingKey(null) only on success — error re-enables the button.
+    try {
+      await onChoose(pendingKey);
+      setPendingKey(null); // close dialog on success; navigation handled by parent
+    } catch {
+      setChooseError('Something went wrong. Please try again in a moment.');
+    } finally {
+      setChoosingKey(null);
+    }
   };
 
   return (
@@ -387,8 +398,10 @@ export default function ScenarioComparisonCards({ data, onChoose }: Props) {
           } optimization plan into a step-by-step checklist. You can revisit and re-choose at any time.`}
           confirmText="Yes, create my checklist"
           variant="default"
+          loading={choosingKey !== null}
+          error={chooseError}
           onConfirm={handleChooseConfirm}
-          onCancel={() => setPendingKey(null)}
+          onCancel={() => { if (choosingKey === null) { setPendingKey(null); setChooseError(null); } }}
         />
       )}
     </div>

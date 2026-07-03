@@ -314,6 +314,8 @@ interface JourneyCheclistProps {
   actionCenterLoaded: boolean;
   isRegenerating: boolean;
   onSeeOptions: () => void;
+  /** Fix 9: pass objectivesData so Questions row reflects the real gap queue size. */
+  objectivesData?: ObjectivesResponse | null;
 }
 
 type StageState = 'done' | 'pending' | 'locked';
@@ -388,6 +390,7 @@ function JourneyProgressChecklist({
   actionCenterLoaded,
   isRegenerating,
   onSeeOptions,
+  objectivesData,
 }: JourneyCheclistProps) {
   // Documents stage
   const docTypes = Object.values(typeStatus);
@@ -401,13 +404,33 @@ function JourneyProgressChecklist({
   const suggestionsDone = !suggestionsLocked && proposals.length === 0;
   const suggestionsState: StageState = suggestionsLocked ? 'locked' : suggestionsDone ? 'done' : 'pending';
 
-  // Questions stage
+  // Questions stage — Fix 9: use objective gap queue size, not just do_interview flag.
+  // The action-center do_interview flag fires when there are queued interview questions,
+  // but objectives can still be locked (gap questions for locked objectives aren't always
+  // routed through the action-center queue). Count actual gap questions from objectivesData.
   const questionsLocked = !actionCenterLoaded;
-  const questionsDone = !questionsLocked && !needsInterview;
+  const lockedObjectives = objectivesData
+    ? Object.values(objectivesData.objectives).filter((o) => !o.ready)
+    : [];
+  const gapQuestionsTotal = lockedObjectives.reduce(
+    (sum, o) => sum + (o.questions_to_unlock ?? 1),
+    0,
+  );
+  // "Done" only when action-center has no interview queued AND no objectives remain locked.
+  const questionsDone = !questionsLocked && !needsInterview && lockedObjectives.length === 0;
   const questionsState: StageState = questionsLocked ? 'locked' : questionsDone ? 'done' : 'pending';
 
+  // Questions pending text: prefer gap count when objectives are locked.
+  const questionsPendingText = lockedObjectives.length > 0
+    ? `${gapQuestionsTotal} remaining to unlock ${lockedObjectives.length === 1 ? '1 objective' : `${lockedObjectives.length} objectives`}`
+    : 'Interview questions to complete';
+
+  // "Everything's ready" only when ALL stages done AND no locked objectives.
   const allDone = docsDone && suggestionsDone && questionsDone;
-  const ctaAffirmative = allDone && !isRegenerating;
+  // Gate-precision fix: the CTA is affirmative when all stages done.
+  // Report-narrative staleness (isRegenerating) no longer blocks "See your options" —
+  // the Choices stage computes from the fact set directly and doesn't need the narrative.
+  const ctaAffirmative = allDone;
 
   return (
     <div className="rounded-2xl ring-1 ring-sw-border/70 bg-gradient-to-b from-white to-slate-50/40 shadow-sw-2 p-5 space-y-4">
@@ -433,8 +456,9 @@ function JourneyProgressChecklist({
           icon={<Brain size={13} />}
           stageState={questionsState}
           doneText="Questions — nothing left to ask"
-          pendingText="Interview questions to complete"
+          pendingText={`Questions — ${questionsPendingText}`}
           lockedLabel="Questions"
+          pendingCount={gapQuestionsTotal > 0 ? gapQuestionsTotal : undefined}
         />
       </div>
 
@@ -453,26 +477,20 @@ function JourneyProgressChecklist({
             </div>
           ) : (
             <p className="text-[12px] text-sw-muted leading-relaxed">
-              {isRegenerating
-                ? 'Report is updating — options available when ready.'
-                : 'Complete the steps above to unlock your optimization options.'}
+              Complete the steps above to unlock your optimization options.
             </p>
           )}
         </div>
         <button
           onClick={onSeeOptions}
-          disabled={isRegenerating}
-          title={isRegenerating ? 'Available when your updated report is ready' : undefined}
           className={`self-start shrink-0 inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition shadow-sm ${
             ctaAffirmative
               ? 'bg-sw-success text-white hover:bg-emerald-700'
-              : isRegenerating
-                ? 'bg-sw-surface text-sw-dim border border-sw-border cursor-not-allowed opacity-60'
-                : 'bg-sw-accent text-white hover:bg-sw-accent-hover'
+              : 'bg-sw-accent text-white hover:bg-sw-accent-hover'
           }`}
         >
           {ctaAffirmative
-            ? <>✓ Everything's ready — See your options <ArrowRight size={14} /></>
+            ? <>✓ Everything&apos;s ready — See your options <ArrowRight size={14} /></>
             : <>See your options <ArrowRight size={14} /></>
           }
         </button>
@@ -564,50 +582,41 @@ function LockedScenariosOverlay({
 // ─── Stage indicator (progress bar — not peer tabs) ───────────────────────────
 
 /**
- * Fix 3: when isRegenerating=true, Choices and Checklist stages are locked —
- * shown muted with a title tooltip explaining they're available when the report is ready.
- * This prevents users from computing scenarios against stale facts.
+ * Stage indicator — scenarios/checklist tabs are ALWAYS live (gate-precision fix).
+ * Locking choices/checklist on report narrative staleness (is_stale=true) was too
+ * broad: scenarios recompute from the fact set on demand; the report narrative is
+ * irrelevant to them. The report tab shows the rebuilding overlay instead.
  */
 function StageIndicator({
   current,
   onSelect,
-  isRegenerating = false,
 }: {
   current: ViewMode;
   onSelect: (m: ViewMode) => void;
-  isRegenerating?: boolean;
 }) {
-  const stages: { key: ViewMode; label: string; lockWhenRegenerating?: boolean }[] = [
+  const stages: { key: ViewMode; label: string }[] = [
     { key: 'overview',  label: 'Overview' },
-    { key: 'choices',   label: 'Choices',   lockWhenRegenerating: true },
-    { key: 'checklist', label: 'Checklist', lockWhenRegenerating: true },
+    { key: 'choices',   label: 'Choices' },
+    { key: 'checklist', label: 'Checklist' },
     { key: 'report',    label: 'Report' },
   ];
   const idx = stages.findIndex((s) => s.key === current);
 
   return (
     <nav aria-label="Optimize journey stages" className="flex items-center gap-0 rounded-xl border border-sw-border bg-sw-card overflow-hidden">
-      {stages.map((stage, i) => {
-        const isLocked = isRegenerating && stage.lockWhenRegenerating;
-        return (
-          <button
-            key={stage.key}
-            onClick={() => !isLocked && onSelect(stage.key)}
-            disabled={isLocked}
-            title={isLocked ? 'Available when your updated report is ready' : undefined}
-            aria-disabled={isLocked}
-            className={`flex-1 px-4 py-2.5 text-xs font-semibold transition-colors border-r border-sw-border last:border-r-0 ${
-              isLocked
-                ? 'text-sw-dim bg-sw-surface/50 cursor-not-allowed opacity-60'
-                : i <= idx
-                  ? 'bg-sw-accent text-white'
-                  : 'text-sw-muted hover:text-sw-text hover:bg-sw-surface'
-            }`}
-          >
-            {stage.label}
-          </button>
-        );
-      })}
+      {stages.map((stage, i) => (
+        <button
+          key={stage.key}
+          onClick={() => onSelect(stage.key)}
+          className={`flex-1 px-4 py-2.5 text-xs font-semibold transition-colors border-r border-sw-border last:border-r-0 ${
+            i <= idx
+              ? 'bg-sw-accent text-white'
+              : 'text-sw-muted hover:text-sw-text hover:bg-sw-surface'
+          }`}
+        >
+          {stage.label}
+        </button>
+      ))}
     </nav>
   );
 }
@@ -719,6 +728,8 @@ export default function OptimizeIndex() {
   const [rateLimited, setRateLimited] = useState(false);
   // Dismissed proposal IDs (rejected locally)
   const [dismissedProposalIds, setDismissedProposalIds] = useState<Set<number>>(new Set());
+  // checklist remount key — incremented on successful choose to force a fresh fetch
+  const [checklistKey, setChecklistKey] = useState(0);
 
   // D23 done-for-you: auto-enqueue gaps when Choices stage loads and NOT all ready.
   // Tracks whether the batch enqueue-gaps call has been fired for the current session.
@@ -881,17 +892,17 @@ export default function OptimizeIndex() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [viewMode, objectivesData, auth.hasBankConnected]);
 
-  const handleChooseScenario = async (optionKey: string) => {
-    try {
-      await axios.post(`/api/v1/optimizer/scenarios/${currentYear}/choose`, {
-        option_key: optionKey,
-      });
-      refreshScenarios();
-      // Advance to checklist after choosing
-      setTimeout(() => setViewMode('checklist'), 800);
-    } catch {
-      // ignore — user can retry
-    }
+  const handleChooseScenario = async (optionKey: string): Promise<void> => {
+    // Propagate errors so callers (ScenarioComparisonCards) can show per-action error state.
+    // FIRST-CLICK LAW: errors surface specifically, never silently swallowed.
+    await axios.post(`/api/v1/optimizer/scenarios/${currentYear}/choose`, {
+      option_key: optionKey,
+    });
+    refreshScenarios();
+    // Force checklist to remount → fresh fetch from the new materialized rows.
+    setChecklistKey((k) => k + 1);
+    // Advance to checklist immediately — remount key ensures fresh data.
+    setViewMode('checklist');
   };
 
   // Fetch the report (includes sections/findings).
@@ -1007,10 +1018,9 @@ export default function OptimizeIndex() {
         </p>
       </div>
 
-      {/* Journey progress indicator */}
-      {/* Fix 3: pass isRegenerating — locks Choices + Checklist while report is rebuilding */}
+      {/* Journey progress indicator — all stages always live (gate-precision fix) */}
       <div className="mb-5">
-        <StageIndicator current={viewMode} onSelect={setViewMode} isRegenerating={isRegenerating} />
+        <StageIndicator current={viewMode} onSelect={setViewMode} />
       </div>
 
       {/* 429 / rate-limit gentle note */}
@@ -1185,7 +1195,8 @@ export default function OptimizeIndex() {
               needsInterview={needsInterview}
               actionCenterLoaded={!actionCenterLoading}
               isRegenerating={isRegenerating}
-              onSeeOptions={() => !isRegenerating && setViewMode('choices')}
+              onSeeOptions={() => setViewMode('choices')}
+              objectivesData={objectivesData}
             />
 
             <div className="flex items-center gap-2">
@@ -1495,8 +1506,12 @@ export default function OptimizeIndex() {
           </div>
 
           <OptimizationChecklistView
+            key={checklistKey}
             taxYear={currentYear}
             hasBankConnected={auth.hasBankConnected}
+            scenariosData={scenariosData}
+            onChoose={handleChooseScenario}
+            onNavigateToChoices={() => setViewMode('choices')}
           />
         </div>
       )}
