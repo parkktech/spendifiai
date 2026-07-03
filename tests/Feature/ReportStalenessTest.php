@@ -122,7 +122,7 @@ test('OptimizationProfileBuilt marks report stale when no rebuilt_at (treated as
     Queue::assertNothingPushed();
 });
 
-test('5 optimization UserAnsweredQuestion events each flip the stale flag; no job dispatched', function () {
+test('5 optimization UserAnsweredQuestion events each flip the stale flag (MarkOptimizationReportStale only — no dispatch)', function () {
     Queue::fake();
 
     $user = createAuthenticatedUser();
@@ -151,8 +151,48 @@ test('5 optimization UserAnsweredQuestion events each flip the stale flag; no jo
         expect($report->is_stale)->toBeTrue();
     }
 
-    // MarkOptimizationReportStale never dispatches GenerateOptimizationReport
+    // MarkOptimizationReportStale is flag-flip-only — it never dispatches jobs.
+    // DispatchReportGeneration (separate listener) handles the dispatch.
     Queue::assertNothingPushed();
+});
+
+// Fix 1 (D13 wiring gap): DispatchReportGeneration now also handles UserAnsweredQuestion.
+test('Fix 1: DispatchReportGeneration queues regen job on optimization UserAnsweredQuestion', function () {
+    Queue::fake();
+
+    $user = createAuthenticatedUser();
+
+    $question = AIQuestion::factory()->create([
+        'user_id' => $user->id,
+        'question_type' => QuestionType::Optimization->value,
+        'user_answer' => 'yes',
+    ]);
+
+    $listener = new DispatchReportGeneration;
+    $listener->handleUserAnsweredQuestion(new UserAnsweredQuestion($question, $user));
+
+    // Fix 1 closed the wiring gap — regen is now dispatched for USER_ACTION events.
+    Queue::assertPushed(GenerateOptimizationReport::class, function ($job) use ($user) {
+        return $job->userId === $user->id;
+    });
+});
+
+test('Fix 1: DispatchReportGeneration does NOT queue regen on non-optimization UserAnsweredQuestion', function () {
+    Queue::fake();
+
+    $user = createAuthenticatedUser();
+
+    // Categorization question — should not trigger regen
+    $question = AIQuestion::factory()->create([
+        'user_id' => $user->id,
+        'question_type' => QuestionType::Category->value,
+        'user_answer' => 'Groceries',
+    ]);
+
+    $listener = new DispatchReportGeneration;
+    $listener->handleUserAnsweredQuestion(new UserAnsweredQuestion($question, $user));
+
+    Queue::assertNotPushed(GenerateOptimizationReport::class);
 });
 
 test('non-optimization UserAnsweredQuestion does NOT mark report stale', function () {
@@ -573,5 +613,89 @@ test('D13: DispatchReportGeneration suppresses regen dispatch for churn within f
     $listener->handleOptimizationProfileBuilt(new OptimizationProfileBuilt($user->id, $taxYear, 0));
 
     // Within window, no material change → no regen job queued (D13 §1)
+    Queue::assertNotPushed(GenerateOptimizationReport::class);
+});
+
+// ─── Fix 1: Fact-confirmation wiring ─────────────────────────────────────────
+// Confirming a document_extraction proposal via DurableFactsController is a
+// USER_ACTION — marks report stale AND dispatches a regen job (D13 §2).
+
+test('Fix 1: confirming a fact via API marks report stale and queues regen job', function () {
+    Queue::fake();
+
+    $user = createAuthenticatedUser();
+    $taxYear = now()->year;
+
+    // Seed a fresh report
+    $report = OptimizationReport::create([
+        'user_id' => $user->id,
+        'tax_year' => $taxYear,
+        'is_stale' => false,
+        'sections' => [],
+        'rebuilt_at' => now()->subDays(2),
+    ]);
+
+    // Seed a profile so the controller dispatches GenerateOptimizationReport (not BuildProfile)
+    IncomeOptimizationProfile::factory()->create([
+        'user_id' => $user->id,
+        'tax_year' => $taxYear,
+        'bank_deposit_total' => '9000000',
+    ]);
+
+    // Seed a document_extraction proposal
+    Storage::fake('local');
+    Storage::disk('local')->put("tax-vault/{$user->id}/{$taxYear}/pay_stub/test.pdf", 'fake');
+    $proposal = \App\Models\UserTaxFact::create([
+        'user_id' => $user->id,
+        'fact_key' => 'retirement.traditional_401k_ytd_cents',
+        'value' => '500000',
+        'label' => 'Traditional 401k YTD',
+        'volatility' => 'annual',
+        'tax_year' => $taxYear,
+        'source_type' => 'document_extraction',
+        'is_current' => false,
+        'asserted_at' => now(),
+    ]);
+
+    $response = $this->actingAs($user)->postJson("/api/v1/optimizer/facts/{$proposal->id}/confirm");
+
+    $response->assertStatus(200);
+
+    // Report should be marked stale
+    $report->refresh();
+    expect($report->is_stale)->toBeTrue();
+    expect($report->stale_since)->not->toBeNull();
+
+    // Regen job should be queued (Fix 1: USER_ACTION → always dispatch)
+    Queue::assertPushed(GenerateOptimizationReport::class, fn ($job) => $job->userId === $user->id && $job->taxYear === $taxYear);
+});
+
+test('Fix 1: confirming a fact dispatches BuildIncomeOptimizationProfile when no profile exists', function () {
+    Queue::fake();
+
+    $user = createAuthenticatedUser();
+    $taxYear = now()->year;
+
+    Storage::fake('local');
+    Storage::disk('local')->put("tax-vault/{$user->id}/{$taxYear}/pay_stub/test.pdf", 'fake');
+    $proposal = \App\Models\UserTaxFact::create([
+        'user_id' => $user->id,
+        'fact_key' => 'retirement.traditional_401k_ytd_cents',
+        'value' => '500000',
+        'label' => 'Traditional 401k YTD',
+        'volatility' => 'annual',
+        'tax_year' => $taxYear,
+        'source_type' => 'document_extraction',
+        'is_current' => false,
+        'asserted_at' => now(),
+    ]);
+
+    // No IncomeOptimizationProfile — should kick the full pipeline
+    $response = $this->actingAs($user)->postJson("/api/v1/optimizer/facts/{$proposal->id}/confirm");
+
+    $response->assertStatus(200);
+
+    // No profile → full pipeline dispatched instead of report-only regen
+    Queue::assertPushed(BuildIncomeOptimizationProfile::class, fn ($job) => $job->userId === $user->id);
     Queue::assertNotPushed(GenerateOptimizationReport::class);
 });

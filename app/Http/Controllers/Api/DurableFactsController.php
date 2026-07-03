@@ -3,6 +3,10 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Jobs\BuildIncomeOptimizationProfile;
+use App\Jobs\GenerateOptimizationReport;
+use App\Models\IncomeOptimizationProfile;
+use App\Models\OptimizationReport;
 use App\Models\TaxDocument;
 use App\Models\UserTaxFact;
 use Illuminate\Http\JsonResponse;
@@ -250,6 +254,9 @@ class DurableFactsController extends Controller
             // it from the proposals list (index() filters resolved proposals out).
             $fact->update(['superseded_by_id' => $newFact->id]);
 
+            // Fix 1 (D13 wiring gap): correction is a USER_ACTION — trigger regen.
+            $this->dispatchRegenAfterFactChange($newFact->user_id, $newFact->tax_year ?? now()->year);
+
             return response()->json([
                 'message' => 'Your corrected value has been saved.',
                 'fact' => $newFact->only(['id', 'fact_key', 'label', 'volatility', 'tax_year', 'source_type', 'is_current', 'confirmed_at', 'asserted_at', 'metadata', 'created_at']),
@@ -259,10 +266,50 @@ class DurableFactsController extends Controller
         // ── Plain confirm (no correction) — existing D4 behavior ─────────────
         $confirmed = UserTaxFact::confirmProposal($fact->id);
 
+        // Fix 1 (D13 wiring gap): confirming a fact is a USER_ACTION — mark report stale
+        // and dispatch a debounced regen job so the optimizer picks it up without the
+        // user needing to manually refresh. ShouldBeUnique coalesces rapid confirms.
+        $this->dispatchRegenAfterFactChange($confirmed->user_id, $confirmed->tax_year ?? now()->year);
+
         return response()->json([
             'message' => 'Fact confirmed. This information may help identify relevant tax opportunities.',
             'fact' => $confirmed->only(['id', 'fact_key', 'label', 'volatility', 'tax_year', 'source_type', 'is_current', 'confirmed_at', 'asserted_at', 'metadata', 'created_at']),
         ]);
+    }
+
+    // ─── Private helpers ──────────────────────────────────────────────────────
+
+    /**
+     * Fix 1 — D13 wiring gap: mark the report stale and dispatch a debounced regen job
+     * after any USER_ACTION that modifies a confirmed fact (confirm, correct, supersede).
+     *
+     * Uses the same first-visit self-healing pattern as OptimizationReportController@show:
+     * when no profile exists yet, dispatch BuildIncomeOptimizationProfile (full pipeline)
+     * rather than GenerateOptimizationReport directly (which would produce empty findings).
+     *
+     * ShouldBeUnique coalesces multiple rapid confirms into a single execution.
+     * The 30-second delay debounces bursts (user confirming 12 facts in quick succession).
+     */
+    private function dispatchRegenAfterFactChange(int $userId, int $taxYear): void
+    {
+        // Mark stale immediately so the UI shows the "analyzing" state on next poll.
+        OptimizationReport::forUser($userId)
+            ->where('tax_year', $taxYear)
+            ->update(['is_stale' => true, 'stale_since' => now()]);
+
+        // Dispatch regen (USER_ACTION: no D13 freshness/material-change gate).
+        $hasProfile = IncomeOptimizationProfile::where('user_id', $userId)
+            ->where('tax_year', $taxYear)
+            ->exists();
+
+        if (! $hasProfile) {
+            // No profile yet — kick the full pipeline so findings exist before regen.
+            BuildIncomeOptimizationProfile::dispatch($userId, $taxYear)
+                ->delay(now()->addSeconds(30));
+        } else {
+            GenerateOptimizationReport::dispatch($userId, $taxYear)
+                ->delay(now()->addSeconds(30));
+        }
     }
 
     /**
@@ -338,6 +385,9 @@ class DurableFactsController extends Controller
             taxYear: $fact->tax_year,
             entityId: $fact->entity_id,
         );
+
+        // Fix 1 (D13 wiring gap): user edit is a USER_ACTION — trigger regen.
+        $this->dispatchRegenAfterFactChange($newFact->user_id, $newFact->tax_year ?? now()->year);
 
         return response()->json([
             'message' => 'Your answer has been updated.',

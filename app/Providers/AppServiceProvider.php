@@ -159,10 +159,17 @@ class AppServiceProvider extends ServiceProvider
             \App\Events\OptimizationProfileBuilt::class,
             [\App\Listeners\DispatchReportGeneration::class, 'handleOptimizationProfileBuilt'],
         );
-        // UserAnsweredQuestion → flag flip only for optimization questions; no regen dispatch
+        // UserAnsweredQuestion → flag flip + debounced regen (Fix 1: closes D13 wiring gap)
+        // An active user confirming facts / answering optimization questions is definitionally
+        // active — the 28-day activity gate in GenerateOptimizationReport handles truly
+        // inactive users (D13 §2: USER_ACTION triggers always stale + always dispatch).
         Event::listen(
             \App\Events\UserAnsweredQuestion::class,
             [\App\Listeners\MarkOptimizationReportStale::class, 'handleUserAnsweredQuestion'],
+        );
+        Event::listen(
+            \App\Events\UserAnsweredQuestion::class,
+            [\App\Listeners\DispatchReportGeneration::class, 'handleUserAnsweredQuestion'],
         );
 
         // ── Vite Prefetch (from Breeze starter kit) ──

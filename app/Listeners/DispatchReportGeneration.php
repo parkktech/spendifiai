@@ -2,8 +2,10 @@
 
 namespace App\Listeners;
 
+use App\Enums\QuestionType;
 use App\Events\OptimizationProfileBuilt;
 use App\Events\TaxDocumentExtracted;
+use App\Events\UserAnsweredQuestion;
 use App\Jobs\GenerateOptimizationReport;
 use App\Models\IncomeOptimizationProfile;
 use App\Models\OptimizationReport;
@@ -27,9 +29,15 @@ use Illuminate\Support\Facades\Log;
  * coalesce a burst of events (e.g., 20-page paystub upload firing 20 events) into
  * exactly ONE report-generation job (Pitfall 4 / thundering-herd prevention).
  *
- * IMPORTANT: This listener does NOT handle UserAnsweredQuestion.
- * Interview answers trigger MarkOptimizationReportStale (flag flip) only.
- * Report regeneration from answers happens lazily on the next API call.
+ * This listener handles:
+ *   - TaxDocumentExtracted:     USER_ACTION → always dispatch regen (document ready)
+ *   - UserAnsweredQuestion:     USER_ACTION (optimization questions only) → always dispatch
+ *   - OptimizationProfileBuilt: DATA_CHURN  → dispatch ONLY if outside freshness
+ *                                             window OR material change detected
+ *
+ * Fix 1 (2026-07-02): UserAnsweredQuestion is now wired here (was stale-only before).
+ * An active user confirming facts / answering questions is definitionally active —
+ * the 28-day activity gate in GenerateOptimizationReport skips truly inactive users.
  *
  * SEPARATION OF CONCERNS:
  *   MarkOptimizationReportStale  → immediate flag flip (applies D13 gate)
@@ -53,6 +61,31 @@ class DispatchReportGeneration implements ShouldQueue
         $document = $event->document;
 
         $this->dispatchDebounced($document->user_id, $document->tax_year, 'TaxDocumentExtracted:user_action');
+    }
+
+    /**
+     * Handle UserAnsweredQuestion (USER_ACTION for optimization questions only).
+     *
+     * Fix 1 (2026-07-02): Closes the D13 wiring gap — stale flag is already set by
+     * MarkOptimizationReportStale; now we also dispatch the regen job so the report
+     * actually rebuilds after the user confirms facts or answers interview questions.
+     *
+     * Non-optimization question answers (transaction categorization, etc.) are
+     * silently ignored — they do not affect the optimization report.
+     */
+    public function handleUserAnsweredQuestion(UserAnsweredQuestion $event): void
+    {
+        $question = $event->question;
+
+        // Only optimization questions affect the optimization report.
+        if ($question->question_type !== QuestionType::Optimization) {
+            return;
+        }
+
+        $user = $event->user;
+        $taxYear = now()->year;
+
+        $this->dispatchDebounced($user->id, $taxYear, 'UserAnsweredQuestion:user_action');
     }
 
     /**
