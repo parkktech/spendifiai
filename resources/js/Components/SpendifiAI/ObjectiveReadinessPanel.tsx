@@ -120,9 +120,11 @@ function ReadinessChip({
 
 interface Props {
   data: ObjectivesResponse;
+  /** Fix 5: when provided, the "unlock" footer row becomes a clickable CTA. */
+  onUnlockClick?: () => void;
 }
 
-export default function ObjectiveReadinessPanel({ data }: Props) {
+export default function ObjectiveReadinessPanel({ data, onUnlockClick }: Props) {
   const objectives = data.objectives;
   const allReady = Object.values(objectives).every((o) => o.ready);
   const readyCount = Object.values(objectives).filter((o) => o.ready).length;
@@ -153,12 +155,23 @@ export default function ObjectiveReadinessPanel({ data }: Props) {
         ))}
       </div>
 
-      {/* D23 footer: no button, no dead-end. Scenarios auto-load; gaps auto-enqueue. */}
+      {/* D23 footer: no dead-end. Fix 5: unlock row is clickable when onUnlockClick provided. */}
       <div className="pt-3 border-t border-sw-border/60">
         {allReady ? (
           <p className="text-[10px] text-sw-dim text-center">
             Educational estimates only — consider reviewing with a tax professional
           </p>
+        ) : onUnlockClick ? (
+          /* Fix 5: prominent, clickable unlock cue */
+          <button
+            onClick={onUnlockClick}
+            className="w-full flex items-center justify-center gap-2 py-1.5 rounded-lg hover:bg-sw-accent/5 transition group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sw-accent/50"
+          >
+            <MessageSquare size={14} className="text-sw-accent shrink-0 group-hover:scale-110 transition-transform" />
+            <span className="text-[13px] font-semibold text-sw-accent">
+              Answer the questions below to unlock your options
+            </span>
+          </button>
         ) : (
           <p className="text-[11px] text-sw-muted flex items-center justify-center gap-1.5">
             <MessageSquare size={12} className="text-sw-accent shrink-0" />
