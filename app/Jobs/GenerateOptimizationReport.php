@@ -35,6 +35,14 @@ class GenerateOptimizationReport implements ShouldBeUnique, ShouldQueue
 
     public int $timeout = 300;
 
+    /**
+     * D24: without a TTL the unique lock survives a crashed job FOREVER —
+     * every subsequent dispatch for this user+year is silently dropped until
+     * someone clears the cache (bit the owner twice tonight). 360s covers the
+     * 300s timeout plus scheduling slack, then self-heals.
+     */
+    public int $uniqueFor = 360;
+
     public function __construct(
         public readonly int $userId,
         public readonly int $taxYear,
