@@ -270,3 +270,12 @@ Educational-only framing on every mismatch surface; additive migrations only; no
 ## Decision 23 — Done-for-you (owner, 2026-07-02): "The goal of this system is a done-for-you system. They shouldn't have to model things."
 
 Binding on the Choices stage + all optimization surfaces: (1) scenarios AUTO-COMPUTE the moment readiness is met — no "click to generate" ceremony; the user arrives to Options A/B/Balanced already computed as cards with plain-language trade-offs; (2) readiness gaps AUTO-ENQUEUE their questions INLINE at the Choices stage (via the existing enqueueGaps path) — never a "complete the interview" dead-end pointing at an empty interview; (3) Mix & Model knobs are DEMOTED to a collapsed "Fine-tune this plan" expander under the chosen option — an escape hatch for power users, never the primary interface; (4) value normalization at every boundary: extraction writes ENUM values (typed conversion at fact-write), engines never see display strings.
+
+## Decision 24 — Reliability doctrine (owner, 2026-07-03: "Close the gap and find a way to be more reliable here")
+
+The gap between conversational-AI reliability and the product's is architectural, not intelligence. Four bug classes from live testing, each killed structurally:
+1. **Stateful handoffs drift** → STATE MINIMIZATION: store only what users said (answers/skips/choices); derive everything else on every request (stateless gap serving — the D23/serving redesign). No stored queues for derivable things.
+2. **Contract drift between layers** (invented fact keys, enum vs display strings, asked/queue semantics) → ONE FACT REGISTRY: single config defining every fact key {type, label, enum values, sources}; all layers reference it; a contract test FAILS the suite on any fact key referenced in code/config that is not in the registry. Key drift becomes a red build, not a silent zero.
+3. **Silent failures** (empty materialize, vanishing async dispatches, no-op paths) → every no-op/empty return LOGS its reason; the vanished-queue-dispatch mystery must be root-caused, not worked around.
+4. **Stale frontends** (hours on old bundles) → Inertia asset versioning verified + "new version available — refresh" affordance; friendly 429/500 error views (none exist).
+Release gate: the Playwright journey walk (permanent, in CI) — reports are not evidence; walks are.
