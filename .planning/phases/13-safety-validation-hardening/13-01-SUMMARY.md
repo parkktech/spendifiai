@@ -195,3 +195,81 @@ None. This plan adds tests only; no production code or config stubs introduced.
 - [x] 17 new tests (BannedPhraseSystem: 2, FramingReviewPin: 15) GREEN
 
 ## Self-Check: PASSED
+
+---
+
+## Checklist before/after + TODO
+
+**Commit:** 8618ec2 on branch `feature/v2.1-optimize-my-income`
+**Files changed:** 4
+**Tests:** 1381 passed, 0 failures, 1 risky (up from ~1269 baseline)
+**Build:** `npm run build` — 0 TypeScript errors; `vendor/bin/pint --dirty` — pass
+
+### Disposition: Change 1 — Impact banner BEFORE → AFTER
+
+**Status: IMPLEMENTED**
+
+`HeaderAggregateBanner` in `OptimizationChecklistView.tsx` redesigned from delta-only to BEFORE → AFTER per-tile layout:
+
+- **Bring home tile:** Shows `{baseline_per_period_take_home_cents} → {chosen_per_period_take_home_cents}/check` with annual delta as the primary large number. Graceful fallback to delta-only if absolute values absent (legacy materialized rows).
+- **Est. tax tile:** Shows `{baseline_federal_tax_annual_cents} → {chosen_federal_tax_annual_cents}` with savings delta secondary. Negative delta = savings shown with minus sign.
+- **Retirement tile:** Shows `~$Xk–$Yk → ~$Ak–$Bk` range at target age. Falls back to annual contribution delta if FV range not computed (horizon = 0 or no age facts).
+
+D9.7 illustration rule enforced: when FV range is present, an assumptions line always displays: `"Illustration only — not a guarantee. X%–Y% annual growth assumed over N years. Actual results vary."` This is never a plain number — always a range with its growth-rate context.
+
+**Backend changes:**
+- `TaxRulesEngineService::computeScenarioOutcome` (additive): returns `baseline_absolute` with `federal_tax_annual_cents`, `per_period_take_home_cents`, `annual_contributions_cents`, `employer_match_cents` — the current-state values before any knob changes.
+- `ScenarioSolverService::attributeBenefits` (additive): populates `header_aggregate.baseline_per_period_take_home_cents`, `chosen_per_period_take_home_cents`, `baseline_federal_tax_annual_cents`, `chosen_federal_tax_annual_cents`, `baseline_retirement_fv`, `chosen_retirement_fv`, `retirement_target_age`, `retirement_horizon_years`. Uses `engine->futureValueRangeCents()` for both trajectories.
+- TypeScript `ChecklistBenefitParams.header_aggregate` extended with all new optional fields.
+
+**SAFE-03 compliance:** All dollar values come from `TaxRulesEngineService` (zero Claude). The new absolute values are derived from the same engine path as the existing deltas — `computeScenarioOutcome` with the current knob vector, not a separate AI call.
+
+**Text mock of the new Bring Home tile:**
+
+```
+┌─────────────────────────────────┐
+│ BRING HOME                      │
+│ $2,412 → $2,581/check           │
+│ +$4.4k/yr          (sw-success) │
+│ per paycheck                    │
+└─────────────────────────────────┘
+```
+
+### Disposition: Change 2 — Checklist item typography + TODO prefix
+
+**Status: IMPLEMENTED**
+
+In `ChecklistCard`, the instruction paragraph was:
+```tsx
+<p className="text-[12px] text-sw-text-secondary leading-relaxed mt-1.5">
+  {instruction}
+</p>
+```
+
+Now:
+```tsx
+<p className="text-[13px] font-semibold text-sw-text leading-tight mt-1">
+  <span className="text-sw-accent">TODO: </span>{instruction}
+</p>
+```
+
+- Size matches the title (`text-[13px] font-semibold text-sw-text`)
+- "TODO: " in `text-sw-accent` (blue) for visual weight and actionability
+- `leading-tight` matches the title's `leading-tight` (was `leading-relaxed`)
+
+### Disposition: Coordinator Change 3 — Per-item benefit line attribution fix
+
+**Status: IMPLEMENTED** (acknowledged — not from user; no user authority)
+
+Root cause: `ScenarioSolverService::attributeBenefits` stored per-dimension outcomes in a flat structure (`take_home_annual_delta_cents`, etc.) but `buildBenefitParams` tried to read them as nested (`$dim['take_home']['per_paycheck_delta_cents']`). Result: all per-knob attribution fields evaluated to `(int)(null ?? 0) = 0`, making every benefit line "—" instead of the item's own attributed figure.
+
+Fix: `attributeBenefits` now includes BOTH the flat keys (backward compat) AND the nested `take_home`, `federal_tax`, `retirement` sub-arrays in each dimension entry. `buildBenefitParams` now correctly reads:
+- k1: `per_paycheck` from `$dim['take_home']['per_paycheck_delta_cents']` ✓
+- k2: `delta_tax` from `$dim['federal_tax']['annual_delta_cents']`; `fv_low/fv_high` from `$dim['retirement']['illustration']` ✓
+- k3: `match` from `$dim['retirement']['employer_match_delta_cents']`; `delta_paycheck/delta_annual` from `$dim['take_home']` ✓
+- k4: `delta_paycheck` from `$dim['take_home']['per_paycheck_delta_cents']` ✓
+- k5: `delta_deduction` from `abs($dim['federal_tax']['annual_delta_cents'])` ✓
+- k6: `amount` from `chosenKnobs` (unchanged — was already correct) ✓
+
+Two items with different knobs now produce different benefit lines; no item repeats the banner aggregate total.
+
