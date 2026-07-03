@@ -124,8 +124,11 @@ it('extracts generic fields for Tier 2 form types', function () {
         ], 200),
     ]);
 
+    // Use Other category (→ TIER2_FIELDS) which includes form_title and issuer_name.
+    // DIV_1099 has its own schema (DIV_1099_FIELDS) that does not include these keys;
+    // the schema-whitelist (SAFE-07) correctly drops them for DIV_1099.
     $document = createTestDocument($this->user->id, [
-        'category' => TaxDocumentCategory::DIV_1099->value,
+        'category' => TaxDocumentCategory::Other->value,
     ]);
     $result = $this->service->extract($document);
 
