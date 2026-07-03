@@ -205,10 +205,20 @@ final class ScenarioChecklistService
         $current = $baseline['current'] ?? [];
         $employer = $baseline['employer'] ?? [];
 
+        // Compute actual current Roth share from annualized 401k breakdown in the baseline.
+        // (Earlier versions hardcoded this to 0, causing K2 checklist items to never generate
+        // when the user currently has Roth contributions and the scenario recommends 0% Roth.)
+        $tradCents = (int) ($current['trad_401k_cents'] ?? 0);
+        $rothCents = (int) ($current['roth_401k_cents'] ?? 0);
+        $totalCents = $tradCents + $rothCents;
+        $currentRothShare = $totalCents > 0
+            ? (float) round($rothCents / $totalCents * 100)
+            : 0.0;
+
         return [
             'k401' => [
                 'deferral_pct' => (float) ($current['deferral_pct'] ?? 0.0),
-                'roth_share_pct' => 0,   // baseline always has 0 roth_share assumption
+                'roth_share_pct' => $currentRothShare,
             ],
             'hsa' => [
                 'annual_election_cents' => (int) ($current['hsa_cents'] ?? 0),

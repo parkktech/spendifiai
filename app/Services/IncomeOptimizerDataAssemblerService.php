@@ -360,12 +360,13 @@ class IncomeOptimizerDataAssemblerService
                         );
                         $hasValue['hsa_ytd'] = true;
                     }
-                    if (isset($fields['gross_pay'])) {
-                        $totals['w2_wages'] += $this->dollarsToCents(
-                            $fields['gross_pay']['value'] ?? $fields['gross_pay']
-                        );
-                        $hasValue['w2_wages'] = true;
-                    }
+                    // NOTE: Do NOT accumulate w2_wages from gross_pay here.
+                    // gross_pay is the per-period gross; accumulating it as w2_wages
+                    // causes income.annual_gross_cents = per_period_gross_cents (off by
+                    // a factor of pay_periods_per_year). Annual gross is derived from
+                    // pay.gross_per_period_cents × periods in ScenarioSolverService, or
+                    // from derive:annualize_ytd_gross when the paystub has ytd_gross.
+                    // w2_wages should only come from actual W-2 documents.
                     break;
 
                     // [P12 DOC-07] BenefitsGuide arm — availability metadata only, no dollar accumulation.

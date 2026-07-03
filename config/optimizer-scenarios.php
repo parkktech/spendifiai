@@ -48,7 +48,7 @@ return [
     // construction) and therefore carries no epsilon.
     'divergence' => [
         'k401.deferral_pct' => 1.0,                 // ≥ 1.0 pt
-        'k401.roth_share_pct' => 25,                // ≥ one grid step
+        'k401.roth_share_pct' => 1.0,               // ≥ 1 pp (matches deferral sensitivity)
         'hsa.annual_election_cents' => 25_000,      // ≥ $250
         'ira.traditional_cents' => 50_000,          // ≥ ¼ remaining room OR ≥ $500, whichever larger
         'ira.roth_cents' => 50_000,                 // (solver takes the larger of epsilon vs ¼-room)

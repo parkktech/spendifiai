@@ -61,8 +61,28 @@ final class ScenarioSolverService
 
         $v = fn (string $key) => ($resolved[$key]['value'] ?? null);
 
+        // ── C3: pay frequency → periods (must come before C2 to multiply) ──────
+        $payFreq = (string) ($v('pay.frequency') ?? 'biweekly');
+        $periodsMap = (array) config('optimization-objectives.pay_periods_per_year', []);
+        $periods = max(1, (int) ($periodsMap[$payFreq] ?? 26));
+
         // ── C2: annual gross ──────────────────────────────────────────────────
-        $grossCents = (int) ($v('income.annual_gross_cents') ?? 0);
+        // Units-safety: the snapshot 'w2_wages' column has historically been
+        // populated with gross_pay (per-period, cents) from paystubs instead of
+        // actual annual W-2 wages, causing income.annual_gross_cents to be off by
+        // a factor of pay_periods_per_year. Prefer the directly-confirmed per-period
+        // fact multiplied by periods_per_year as the most accurate annual gross.
+        // Fall back to income.annual_gross_cents only when the per-period fact is absent
+        // (e.g. W-2-only filers with no paystub uploaded).
+        $grossPerPeriodCents = $v('pay.gross_per_period_cents') !== null
+            ? (int) $v('pay.gross_per_period_cents')
+            : null;
+
+        if ($grossPerPeriodCents !== null && $grossPerPeriodCents > 0) {
+            $grossCents = $grossPerPeriodCents * $periods;
+        } else {
+            $grossCents = (int) ($v('income.annual_gross_cents') ?? 0);
+        }
 
         // ── SE income separately (snapshot column; may be included in gross) ──
         // NOTE: We read SE income to populate se_income_cents for engine accuracy.
@@ -71,11 +91,6 @@ final class ScenarioSolverService
         // we set se=0 here (the delta math is invariant to SE in v2.1 per spec) and
         // let gross include everything. This matches the documented SE assumption.
         $seIncomeCents = 0;
-
-        // ── C3: pay frequency → periods ───────────────────────────────────────
-        $payFreq = (string) ($v('pay.frequency') ?? 'biweekly');
-        $periodsMap = (array) config('optimization-objectives.pay_periods_per_year', []);
-        $periods = max(1, (int) ($periodsMap[$payFreq] ?? 26));
 
         // ── C1: filing status (confirmed) ─────────────────────────────────────
         $filingStatus = (string) ($v('profile.filing_status') ?? 'single');
@@ -115,15 +130,40 @@ final class ScenarioSolverService
         $daysInYear = $today->daysInYear;
         $annFraction = max(0.01, $dayOfYear / $daysInYear); // avoid division by zero
 
+        // Helper to access the resolver source (not just value) so we can detect
+        // per-period values stored in ytd keys by the PaystubFactExtractorService.
+        $vSrc = fn (string $key) => ($resolved[$key]['source'] ?? null);
+
         $ytdTrad401k = (int) ($v('retirement.traditional_401k_ytd_cents') ?? 0);
         $ytdRoth401k = (int) ($v('retirement.roth_401k_ytd_cents') ?? 0);
         $ytdHsa = (int) ($v('hsa.ytd_contribution_cents') ?? 0);
         $ytdIraTrad = (int) ($v('ira.traditional_ytd_contribution_cents') ?? 0);
         $ytdIraRoth = (int) ($v('ira.roth_ytd_contribution_cents') ?? 0);
 
-        // Annual run-rates (annualized from YTD):
-        $annTrad401k = (int) round($ytdTrad401k / $annFraction);
-        $annRoth401k = (int) round($ytdRoth401k / $annFraction);
+        // Annual run-rates (annualized from YTD).
+        //
+        // Units-safety: PaystubFactExtractorService maps traditional_401k_deduction
+        // (per-period deduction, cents) to retirement.traditional_401k_ytd_cents.
+        // When this fact is sourced from 'snapshot' (i.e., from the assembler's
+        // paystub arm), the stored value is the per-period deduction, NOT the YTD
+        // sum. Annualizing with ytd/fraction would give ~1/13 of the correct value.
+        // Instead, when the source is 'snapshot' AND a confirmed per-period gross is
+        // available (meaning we have a reliable paystub), multiply by periods_per_year.
+        // True YTD facts (source 'fact' or 'interview') remain annualized with fraction.
+        $trad401kSource = $vSrc('retirement.traditional_401k_ytd_cents');
+        $roth401kSource = $vSrc('retirement.roth_401k_ytd_cents');
+
+        $isSnapshotTrad401k = ($trad401kSource === 'snapshot') && ($grossPerPeriodCents !== null);
+        $isSnapshotRoth401k = ($roth401kSource === 'snapshot') && ($grossPerPeriodCents !== null);
+
+        $annTrad401k = $isSnapshotTrad401k
+            ? $ytdTrad401k * $periods               // ytd key stores per-period amount → ×periods
+            : (int) round($ytdTrad401k / $annFraction);  // true YTD → annualize with fraction
+
+        $annRoth401k = $isSnapshotRoth401k
+            ? $ytdRoth401k * $periods
+            : (int) round($ytdRoth401k / $annFraction);
+
         $annHsa = (int) round($ytdHsa / $annFraction);
         // IRA ytd is used as-is (absolute; not typically annualized mid-year):
         $curIraTrad = $ytdIraTrad;
@@ -186,6 +226,7 @@ final class ScenarioSolverService
 
         $baseline = [
             'annual_gross_cents' => $grossCents,
+            'gross_per_period_cents' => $grossPerPeriodCents, // confirmed per-period fact (may be null)
             'se_income_cents' => $seIncomeCents,
             'pay_periods_per_year' => $periods,
             'filing_status' => $filingStatus,
@@ -1056,7 +1097,16 @@ final class ScenarioSolverService
         $curRoth401k = (int) ($baseline['current']['roth_401k_cents'] ?? 0);
         $curHsa = (int) ($baseline['current']['hsa_cents'] ?? 0);
 
-        $periodGross = (int) round($gross / $periods);
+        // Prefer the confirmed per-period gross over annual÷periods to avoid
+        // the units error where annual_gross_cents was set from per-period gross
+        // (causing periodGross = per_period_gross / periods instead of per_period_gross).
+        if (isset($baseline['gross_per_period_cents']) && $baseline['gross_per_period_cents'] !== null
+            && (int) $baseline['gross_per_period_cents'] > 0
+        ) {
+            $periodGross = (int) $baseline['gross_per_period_cents'];
+        } else {
+            $periodGross = (int) round($gross / $periods);
+        }
 
         // Withholding: prefer observed W-4-on-file, then annual_withholding, then estimate.
         $w4OnFile = $baseline['w4_on_file'] ?? [];
