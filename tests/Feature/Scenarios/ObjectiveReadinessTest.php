@@ -229,10 +229,42 @@ it('enqueueGaps is idempotent on a double call', function () {
     expect($second['queue_size'])->toBe($first['queue_size']);
 });
 
-it('enqueueGaps dedupes against already-asked keys', function () {
+it('enqueueGaps can re-enqueue asked-but-unanswered keys (Fix 6)', function () {
+    // Fix 6: a key in asked[] that has no corresponding UserTaxFact (was served but
+    // not answered — e.g. user navigated away) SHOULD be re-enqueueable so the
+    // done-for-you loop continues after a queue drain.
     $user = User::factory()->create();
 
     $session = InterviewSession::factory()->create([
+        'user_id' => $user->id,
+        'tax_year' => 2026,
+        'status' => 'in_progress',
+        'queue' => [],
+        'asked' => ['profile.filing_status'],  // served but NOT answered
+    ]);
+
+    $result = readinessService()->enqueueGaps($user, 2026, 'take_home');
+
+    // With no UserTaxFact, the key should be re-enqueueable
+    expect($result['enqueued'])->toContain('profile.filing_status');
+    expect($session->fresh()->queue)->toContain('profile.filing_status');
+});
+
+it('enqueueGaps does not re-enqueue keys with a confirmed UserTaxFact', function () {
+    // Keys in asked[] that have a UserTaxFact (were actually answered) should never
+    // be re-enqueued — they are permanently resolved.
+    $user = User::factory()->create();
+
+    \App\Models\UserTaxFact::recordFact(
+        userId: $user->id,
+        factKey: 'profile.filing_status',
+        value: 'single',
+        sourceType: 'interview_answer',
+        label: 'Filing status',
+        volatility: 'stable',
+    );
+
+    InterviewSession::factory()->create([
         'user_id' => $user->id,
         'tax_year' => 2026,
         'status' => 'in_progress',
@@ -242,6 +274,6 @@ it('enqueueGaps dedupes against already-asked keys', function () {
 
     $result = readinessService()->enqueueGaps($user, 2026, 'take_home');
 
+    // Already answered via UserTaxFact — must not re-enqueue
     expect($result['enqueued'])->not->toContain('profile.filing_status');
-    expect($session->fresh()->queue)->not->toContain('profile.filing_status');
 });

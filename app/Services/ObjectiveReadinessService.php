@@ -90,13 +90,31 @@ final class ObjectiveReadinessService
         $queue = $session->queue ?? [];
         $asked = $session->asked ?? [];
         $skipped = $session->skipped ?? [];
-        $excluded = array_merge($queue, $asked, $skipped);
 
-        // Keys with a template, not already in queue/asked/skipped, not already answered.
+        // Fix 6: only exclude from asked[] keys that were actually ANSWERED (UserTaxFact
+        // confirmed). Keys that were SERVED (in asked[]) but not yet answered can be
+        // re-enqueued so the done-for-you loop continues after a queue drain.
+        // Without this, served-but-unanswered gap keys are permanently excluded and the
+        // "Review complete" screen fires while objectives remain locked.
+        $answeredInAsked = array_filter($asked, function (string $askedKey) use ($user, $taxYear): bool {
+            return UserTaxFact::currentFact($user->id, $askedKey, null, $taxYear) !== null
+                || UserTaxFact::currentFact($user->id, $askedKey) !== null;
+        });
+        $excluded = array_merge($queue, array_values($answeredInAsked), $skipped);
+
+        // Keys with a template (and a question — not label-only), not already in
+        // queue/answered/skipped, not already answered via UserTaxFact.
         $keys = [];
         foreach ($candidateKeys as $key) {
             if (! isset($templates[$key])) {
                 continue; // only templated gaps are enqueued (zero-Claude, answerable)
+            }
+            // Fix 7a: label-only template entries (no 'question' key, not dynamic) are
+            // derived facts — they are never directly askable. Enqueueing them causes the
+            // interview to serve a raw-key fallback question ("Please confirm: employer.
+            // federal_withholding") which violates D18. Skip them here.
+            if (empty($templates[$key]['question'] ?? null) && empty($templates[$key]['dynamic'] ?? false)) {
+                continue;
             }
             if (in_array($key, $excluded, true) || in_array($key, $keys, true)) {
                 continue;

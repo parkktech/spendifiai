@@ -873,6 +873,20 @@ class InterviewOrchestratorService
         // AIQuestion from it and skip wordQuestion() entirely.
         $template = $this->resolveTemplate($session, $factKey);
         if ($template !== null) {
+            // Fix 7a/7b: label-only template entries (no 'question' key, not dynamic) are
+            // derived facts and are never directly askable. Creating a question from them
+            // produces a raw-key fallback ("Please confirm: employer.federal_withholding")
+            // which violates D18. Skip them here and fall through to the 'hasTemplate' guard.
+            if (empty($template['question'] ?? null) && empty($template['dynamic'] ?? false)) {
+                Log::info('InterviewOrchestratorService: label-only template skipped (D18/Fix-7)', [
+                    'user_id' => $session->user_id,
+                    'fact_key' => $factKey,
+                    'label' => $template['label'] ?? null,
+                ]);
+
+                return null;
+            }
+
             return $this->createTemplateQuestion($session, $factKey, $template);
         }
 
@@ -981,10 +995,28 @@ class InterviewOrchestratorService
             $options['prefill_source'] = $resolved['source_ref'] ?? null;
         }
 
+        // Fix 7b: D18 — never fall back to a raw canonical_key in the question text.
+        // If the template has no 'question' key, use the human-readable 'label' as the
+        // question prefix, or refuse to create the question entirely (return should not
+        // happen here because createOptimizationQuestion guards label-only templates above,
+        // but defence-in-depth: label is still better than a raw dotted key).
+        $questionText = $template['question']
+            ?? ($template['label'] !== null ? "Please confirm: {$template['label']}" : null);
+
+        if ($questionText === null) {
+            Log::warning('InterviewOrchestratorService: createTemplateQuestion called with no question text (D18 guard)', [
+                'user_id' => $userId,
+                'fact_key' => $factKey,
+            ]);
+
+            // Manufacture a minimal safe question using only the label.
+            $questionText = 'Please confirm this item applies to your situation.';
+        }
+
         return AIQuestion::create([
             'user_id' => $userId,
             'transaction_id' => null,
-            'question' => $template['question'] ?? "Please confirm: {$factKey}",
+            'question' => $questionText,
             'question_type' => QuestionType::Optimization->value,
             'options' => $options,
             'ai_confidence' => $confidence,
