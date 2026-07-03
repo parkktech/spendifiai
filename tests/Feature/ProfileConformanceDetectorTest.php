@@ -521,7 +521,9 @@ it('PAY_STUB_FIELDS contains identity-plane fields added in 14-11', function () 
     $fields = \App\Services\AI\TaxDocumentExtractorService::PAY_STUB_FIELDS;
     expect($fields)->toContain('employee_address');
     expect($fields)->toContain('w4_filing_status');
-    expect($fields)->toContain('w4_dependents_claimed');
+    // Fix-B: renamed from w4_dependents_claimed — modern W-4 Step 3 is a dollar credit amount
+    expect($fields)->toContain('w4_step3_credits');
+    expect($fields)->not->toContain('w4_dependents_claimed');
     // Already present — verify not accidentally removed
     expect($fields)->toContain('employee_name');
     expect($fields)->toContain('state_tax_withheld');

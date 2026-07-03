@@ -66,11 +66,15 @@ class PaystubFactExtractorService
             'volatility' => 'annual',
             'money' => false,
         ],
-        'w4_dependents_claimed' => [
-            'fact_key' => 'w4.dependents_claimed',
-            'label' => 'W-4 dependents claimed (paystub evidence)',
+        // Fix-B: Modern W-4 Step 3 is an annual dollar credit amount, NOT a dependent count.
+        // The old w4_dependents_claimed field mis-mapped a dollar figure into w4.dependents_claimed
+        // (a count), producing "3200 dependents". Renamed field + new money fact key.
+        // w4.dependents_claimed is a COUNT fact — its only sources are profile/interview/actual W-4 doc.
+        'w4_step3_credits' => [
+            'fact_key' => 'w4.step3_annual_credits_cents',
+            'label' => 'W-4 Step 3 dependent credits',
             'volatility' => 'annual',
-            'money' => false,
+            'money' => true,
         ],
         'traditional_401k_deduction' => [
             'fact_key' => 'retirement.traditional_401k_ytd_cents',

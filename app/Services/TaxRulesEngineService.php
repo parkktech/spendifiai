@@ -685,6 +685,7 @@ class TaxRulesEngineService
         int $otherDependents,
         int $payPeriodsPerYear,
         int $year = 2026,
+        int $step3CreditsCents = 0,
     ): int {
         $this->validateYear($year);
         $status = $this->mapW4ToTableStatus($w4FilingStatus);
@@ -695,9 +696,16 @@ class TaxRulesEngineService
         $brackets = config("tax-rules.{$year}.brackets.{$status}");
         $tentative = $this->computeBracketTax($adjusted, $brackets);
 
-        $ctcCents = config("tax-rules.{$year}.detection.ctc_amount") * 100;
-        $odcCents = config("tax-rules.{$year}.detection.odc_amount") * 100;
-        $credits = $dependentsUnder17 * $ctcCents + $otherDependents * $odcCents;
+        // Fix-B: Pub 15-T Step 3 is an annual dollar credit amount (not a per-dependent count).
+        // When step3CreditsCents is provided (confirmed from W-4 / document extraction),
+        // use it directly. Otherwise fall back to the count-based approximation.
+        if ($step3CreditsCents > 0) {
+            $credits = $step3CreditsCents;
+        } else {
+            $ctcCents = config("tax-rules.{$year}.detection.ctc_amount") * 100;
+            $odcCents = config("tax-rules.{$year}.detection.odc_amount") * 100;
+            $credits = $dependentsUnder17 * $ctcCents + $otherDependents * $odcCents;
+        }
 
         return max(0, (int) round(($tentative - $credits) / $payPeriodsPerYear));
     }
@@ -1035,6 +1043,8 @@ class TaxRulesEngineService
 
         $w4OnFile = $baseline['w4_on_file'] ?? [];
         $w4Known = ! empty($w4OnFile['filing_status']);
+        // Fix-B: Step 3 dollar credits override count-based credits when available (Pub 15-T).
+        $w4Step3Credits = max(0, (int) ($w4OnFile['step3_credits_cents'] ?? 0));
         if ($w4Known) {
             $curWH = $this->estimatePeriodWithholdingCents(
                 $periodGross,
@@ -1044,6 +1054,7 @@ class TaxRulesEngineService
                 0,
                 $periods,
                 $year,
+                $w4Step3Credits,
             );
             $w4DeltaIncluded = true;
         } elseif (($baseline['annual_withholding_cents'] ?? null) !== null) {

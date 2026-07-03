@@ -108,7 +108,9 @@ class TaxDocumentExtractorService
         'roth_401k_deduction', 'fsa_deduction', 'health_insurance_premium',
         'dental_vision_premium', 'ytd_gross', 'ytd_federal_tax', 'tax_year',
         // Stage-C identity-plane fields (14-11 additive — same single extraction call, zero added AI cost)
-        'w4_filing_status', 'w4_dependents_claimed',
+        // Fix-B: w4_dependents_claimed renamed to w4_step3_credits — modern W-4 Step 3 is a dollar
+        // credit amount (not a dependent count). Fact key: w4.step3_annual_credits_cents (money).
+        'w4_filing_status', 'w4_step3_credits',
     ];
 
     // ── DOC-07 benefits guide schema (Phase 12) ───────────────────────────────

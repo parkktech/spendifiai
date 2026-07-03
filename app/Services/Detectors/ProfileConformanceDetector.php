@@ -262,7 +262,8 @@ class ProfileConformanceDetector
 
         // ── Plane 5: Dependents Conformance (14-11 / Stage C) ────────────────
         // Compare family.dependents_count fact (from interview/profile) vs
-        // w4.dependents_claimed fact (from paystub W-4 evidence).
+        // w4.dependents_claimed fact (from interview / W-4 doc — NOT paystub extraction;
+        // Fix-B: paystub Step 3 is a dollar credit, not a count → w4.step3_annual_credits_cents).
         // This is the "update your dependents from 0 to 3" directive feed.
         $familyDepsFact = UserTaxFact::currentFact($userId, 'family.dependents_count', null, $taxYear)
             ?? UserTaxFact::currentFact($userId, 'family.dependents_count');

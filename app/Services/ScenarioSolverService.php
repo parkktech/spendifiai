@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Models\User;
+use App\Models\UserTaxFact;
 use Carbon\Carbon;
 
 /**
@@ -82,6 +83,11 @@ final class ScenarioSolverService
         // ── W-4 on file (T4, optional-with-suppression M12) ───────────────────
         $w4FilingStatus = $v('w4.filing_status');
         $w4Deps = $v('w4.dependents_claimed');
+
+        // Fix-B: Pub 15-T Step 3 annual dollar credits (direct; overrides count-based credits
+        // when confirmed from paystub / W-4 document extraction).
+        $w4Step3Fact = UserTaxFact::currentFact($user->id, 'w4.step3_annual_credits_cents', null, $year);
+        $w4Step3CreditsCents = $w4Step3Fact !== null ? (int) $w4Step3Fact->value : 0;
 
         // ── Family (T5) ───────────────────────────────────────────────────────
         $depsUnder17 = max(0, (int) ($v('family.qualifying_children_under_17') ?? 0));
@@ -186,6 +192,9 @@ final class ScenarioSolverService
             'w4_on_file' => [
                 'filing_status' => $w4FilingStatus,
                 'dependents_claimed' => $w4Deps !== null ? (int) $w4Deps : null,
+                // Fix-B: Pub 15-T Step 3 dollar credits — when > 0, engine uses this directly
+                // instead of count-based credits (dependents × per-unit CTC/ODC amounts).
+                'step3_credits_cents' => $w4Step3CreditsCents,
             ],
             'family' => [
                 'dependents_under_17' => $depsUnder17,
@@ -1053,6 +1062,8 @@ final class ScenarioSolverService
         $w4OnFile = $baseline['w4_on_file'] ?? [];
         $w4Status = (string) ($w4OnFile['filing_status'] ?? '');
         $w4DepsAll = max(0, (int) ($w4OnFile['dependents_claimed'] ?? 0));
+        // Fix-B: Step 3 dollar credits override count-based credits when available.
+        $step3Credits = max(0, (int) ($w4OnFile['step3_credits_cents'] ?? 0));
 
         if ($w4Status !== '') {
             $curWH = $this->engine->estimatePeriodWithholdingCents(
@@ -1063,6 +1074,7 @@ final class ScenarioSolverService
                 0,
                 $periods,
                 $year,
+                $step3Credits,
             );
         } elseif (($baseline['annual_withholding_cents'] ?? null) !== null) {
             $curWH = (int) round((int) $baseline['annual_withholding_cents'] / $periods);
