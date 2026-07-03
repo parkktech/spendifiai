@@ -21,13 +21,14 @@ use Illuminate\Http\Request;
  *     "refused": true,
  *     "category": "<cluster label>",
  *     "education": "<what/why copy — never how>",
+ *     "best_effort_disclaimer": "<verbatim config copy>",
  *     "blocked_reason": "hard_block_safe06"
  *   }
  */
 class HardBlockRefusalException extends Exception
 {
     /**
-     * @param  array{refused: bool, category: string, education: string, blocked_reason: string}  $refusal
+     * @param  array{refused: bool, category: string, education: string, best_effort_disclaimer: string, blocked_reason: string}  $refusal
      */
     public function __construct(private readonly array $refusal)
     {

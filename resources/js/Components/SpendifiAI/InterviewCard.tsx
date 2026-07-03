@@ -49,6 +49,8 @@ import {
 } from 'lucide-react';
 import SuggestedConfirmCard from './SuggestedConfirmCard';
 import Badge from './Badge';
+import RefusalNotice from './RefusalNotice';
+import type { RefusalResponse } from './RefusalNotice';
 import type { InterviewSessionInfo, OptimizationQuestionPayload } from '@/types/spendifiai';
 import axios from 'axios';
 
@@ -111,6 +113,12 @@ export default function InterviewCard({ taxYear = CURRENT_YEAR, onAnswered, onQu
    */
   const [derivedConfirmMode, setDerivedConfirmMode] = useState<'confirm' | 'adjust' | null>(null);
 
+  /**
+   * SAFE-06: If the answer POST returns {refused: true}, this holds the refusal payload.
+   * The question stays pending (NOT appended to history, NOT counted as answered).
+   */
+  const [activeRefusal, setActiveRefusal] = useState<RefusalResponse | null>(null);
+
   /** Reset per-question input state when question changes. */
   const resetInputState = useCallback(() => {
     setFreeText('');
@@ -120,6 +128,7 @@ export default function InterviewCard({ taxYear = CURRENT_YEAR, onAnswered, onQu
     setShowContext(false);
     setShowEditMode(false);
     setDerivedConfirmMode(null); // Item 1: reset confirm mode on each new question
+    setActiveRefusal(null);     // SAFE-06: clear any pending refusal notice
   }, []);
 
   /** Start or resume interview session, then fetch the first question. */
@@ -200,13 +209,24 @@ export default function InterviewCard({ taxYear = CURRENT_YEAR, onAnswered, onQu
   const handleAnswer = useCallback(async (answer: string) => {
     if (!session || !currentQuestion) return;
     setSubmitting(true);
+    setActiveRefusal(null);
     try {
-      await axios.post(
+      const res = await axios.post<unknown>(
         `/api/v1/optimizer/interview/${session.id}/questions/${currentQuestion.id}/answer`,
         { answer }
       );
 
-      // Append to local history
+      // SAFE-06: the answer endpoint returns 200 for refusals too.
+      // Detect refused: true FIRST — do NOT record as an answer or advance the queue.
+      const data = res.data as Record<string, unknown>;
+      if (data && data.refused === true) {
+        setActiveRefusal(data as unknown as RefusalResponse);
+        // Question stays pending — reset input so the user can try a different answer
+        resetInputState();
+        return;
+      }
+
+      // Normal accepted answer — append to local history and advance
       setHistory((prev) => {
         const entry: HistoryEntry = { question: currentQuestion, answer };
         const updated = [...prev, entry];
@@ -222,7 +242,7 @@ export default function InterviewCard({ taxYear = CURRENT_YEAR, onAnswered, onQu
     } finally {
       setSubmitting(false);
     }
-  }, [session, currentQuestion, fetchNextQuestion, onAnswered]);
+  }, [session, currentQuestion, fetchNextQuestion, onAnswered, resetInputState]);
 
   /**
    * Skip the current question (advance without answering).
@@ -733,6 +753,17 @@ export default function InterviewCard({ taxYear = CURRENT_YEAR, onAnswered, onQu
                 I'm not sure
               </button>
             )}
+          </div>
+        )}
+
+        {/* SAFE-06 Refusal Notice — shown when the answer was a hard-blocked scheme.
+            Question stays pending: NOT counted, NOT in history. User can rephrase. */}
+        {activeRefusal && (
+          <div>
+            <RefusalNotice refusal={activeRefusal} />
+            <p className="mt-2 text-[11px] text-sw-muted">
+              Please answer the question above, or skip to continue.
+            </p>
           </div>
         )}
 

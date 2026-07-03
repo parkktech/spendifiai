@@ -23,12 +23,12 @@ class HardBlockRefusalService
      * Check user free text against the SAFE-06 hard-block phrase list.
      *
      * Returns a structured refusal array on match:
-     *   {refused: true, category, education, blocked_reason: 'hard_block_safe06'}
+     *   {refused: true, category, education, best_effort_disclaimer, blocked_reason: 'hard_block_safe06'}
      *
      * Returns null when the text is clear (no abusive-scheme signal detected).
      *
      * @param  string  $userText  Raw user-supplied free text (escape hatch or chat message)
-     * @return array{refused: true, category: string, education: string, blocked_reason: string}|null
+     * @return array{refused: true, category: string, education: string, best_effort_disclaimer: string, blocked_reason: string}|null
      */
     public function check(string $userText): ?array
     {
@@ -41,6 +41,7 @@ class HardBlockRefusalService
                         'refused' => true,
                         'category' => (string) ($cluster['category'] ?? 'Abusive Tax Scheme'),
                         'education' => (string) ($cluster['education'] ?? ''),
+                        'best_effort_disclaimer' => (string) config('safe-refusal.best_effort_disclaimer', ''),
                         'blocked_reason' => 'hard_block_safe06',
                     ];
                 }

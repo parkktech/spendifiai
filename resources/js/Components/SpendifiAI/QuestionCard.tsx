@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { Sparkles, Check, Loader2, Send, MessageCircle, ArrowRight, Mail } from 'lucide-react';
 import { usePage } from '@inertiajs/react';
 import Badge from './Badge';
+import RefusalNotice from './RefusalNotice';
+import type { RefusalResponse } from './RefusalNotice';
 import { formatDateShort } from '@/utils/formatDate';
 import type { AIQuestion } from '@/types/spendifiai';
 import axios from 'axios';
@@ -19,6 +21,8 @@ interface AISuggestion {
   explanation: string;
 }
 
+type ChatResponse = AISuggestion | RefusalResponse;
+
 export default function QuestionCard({ question, onAnswer, hasEmailConnected }: QuestionCardProps) {
   const tz = (usePage().props.auth as { timezone?: string }).timezone;
   const [selected, setSelected] = useState<string | null>(null);
@@ -31,6 +35,7 @@ export default function QuestionCard({ question, onAnswer, hasEmailConnected }: 
   const [chatMessage, setChatMessage] = useState('');
   const [chatLoading, setChatLoading] = useState(false);
   const [aiSuggestion, setAiSuggestion] = useState<AISuggestion | null>(null);
+  const [refusalNotice, setRefusalNotice] = useState<RefusalResponse | null>(null);
   const [chatError, setChatError] = useState<string | null>(null);
 
   // Email search state — use server status, with local override for immediate feedback
@@ -64,13 +69,22 @@ export default function QuestionCard({ question, onAnswer, hasEmailConnected }: 
     setChatLoading(true);
     setChatError(null);
     setAiSuggestion(null);
+    setRefusalNotice(null);
 
     try {
-      const response = await axios.post<AISuggestion>(
+      const response = await axios.post<ChatResponse>(
         `/api/v1/questions/${question.id}/chat`,
         { message: chatMessage.trim() }
       );
-      setAiSuggestion(response.data);
+
+      // SAFE-06: detect refusal FIRST — never render it as an affirmative suggestion
+      if ('refused' in response.data && response.data.refused === true) {
+        setRefusalNotice(response.data as RefusalResponse);
+        // Clear the message so the user can ask something different
+        setChatMessage('');
+      } else {
+        setAiSuggestion(response.data as AISuggestion);
+      }
     } catch {
       setChatError('Could not get AI suggestion. Try again or pick an option above.');
     } finally {
@@ -166,7 +180,7 @@ export default function QuestionCard({ question, onAnswer, hasEmailConnected }: 
       )}
 
       {/* Tell AI More */}
-      {!answered && !aiSuggestion && (
+      {!answered && !aiSuggestion && !refusalNotice && (
         <div className="mt-3">
           {!showChat ? (
             <button
@@ -238,6 +252,22 @@ export default function QuestionCard({ question, onAnswer, hasEmailConnected }: 
         <p className="mt-2 text-[11px] text-sw-dim text-center">
           No matching email receipts found
         </p>
+      )}
+
+      {/* SAFE-06 Refusal Notice — amber, no Apply button, input stays available */}
+      {refusalNotice && !answered && (
+        <div>
+          <RefusalNotice refusal={refusalNotice} />
+          <button
+            onClick={() => {
+              setRefusalNotice(null);
+              setShowChat(true);
+            }}
+            className="mt-2 text-[11px] text-sw-muted hover:text-sw-text underline underline-offset-2 transition"
+          >
+            Ask something else
+          </button>
+        </div>
       )}
 
       {/* AI Suggestion */}

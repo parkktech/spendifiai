@@ -111,10 +111,13 @@ it('SAFE06: abusive escape-hatch answer returns refusal without calling Anthropi
     $response->assertOk()
         ->assertJsonPath('refused', true)
         ->assertJsonPath('blocked_reason', 'hard_block_safe06')
-        ->assertJsonStructure(['refused', 'category', 'education', 'blocked_reason']);
+        ->assertJsonStructure(['refused', 'category', 'education', 'best_effort_disclaimer', 'blocked_reason']);
 
     // Category must reference Malta pension / abusive foreign trust cluster
     expect(mb_strtolower((string) $response->json('category')))->toContain('malta');
+
+    // best_effort_disclaimer must be the verbatim config copy (non-empty)
+    expect($response->json('best_effort_disclaimer'))->toBeString()->not->toBeEmpty();
 });
 
 // ── 2. Chat: abusive text → refusal with zero Anthropic calls ─────────────────
@@ -135,10 +138,13 @@ it('SAFE06: abusive chat message returns refusal without calling Anthropic', fun
     $response->assertOk()
         ->assertJsonPath('refused', true)
         ->assertJsonPath('blocked_reason', 'hard_block_safe06')
-        ->assertJsonStructure(['refused', 'category', 'education', 'blocked_reason']);
+        ->assertJsonStructure(['refused', 'category', 'education', 'best_effort_disclaimer', 'blocked_reason']);
 
     // Category must reference 831(b) / micro-captive cluster
     expect(mb_strtolower((string) $response->json('category')))->toContain('captive');
+
+    // best_effort_disclaimer must be the verbatim config copy (non-empty)
+    expect($response->json('best_effort_disclaimer'))->toBeString()->not->toBeEmpty();
 });
 
 // ── 3. Escape-hatch: legitimate text → passes through to Claude (faked) ────────
