@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Enums\QuestionStatus;
 use App\Enums\QuestionType;
+use App\Exceptions\HardBlockRefusalException;
 use App\Models\AIQuestion;
 use App\Models\DocumentRequest;
 use App\Models\InterviewSession;
@@ -1899,6 +1900,11 @@ SYS;
                     throw ValidationException::withMessages([
                         'answer' => 'Please tell us a little more so we can record your answer.',
                     ]);
+                }
+                // SAFE-06: hard-block gate — refuse-and-educate BEFORE any Claude call.
+                $refusal = app(HardBlockRefusalService::class)->check($freeText);
+                if ($refusal !== null) {
+                    throw new HardBlockRefusalException($refusal);
                 }
                 $storedValue = $this->interpretEscapeAnswer($template, $freeText);
             } elseif (! $isChoiceStyle && $this->isNotSurePhrase($value)) {

@@ -14,6 +14,7 @@ use App\Jobs\SearchTransactionEmails;
 use App\Models\AIQuestion;
 use App\Models\EmailConnection;
 use App\Services\AI\TransactionCategorizerService;
+use App\Services\HardBlockRefusalService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -21,6 +22,7 @@ class AIQuestionController extends Controller
 {
     public function __construct(
         private readonly TransactionCategorizerService $categorizer,
+        private readonly HardBlockRefusalService $refusalGate,
     ) {}
 
     /**
@@ -79,10 +81,20 @@ class AIQuestionController extends Controller
 
     /**
      * Chat with AI about a question — get a suggested category from free-text context.
+     *
+     * SAFE-06: HardBlockRefusalService::check() runs BEFORE the Claude call.
+     * Abusive-scheme signals in the user message receive a refuse-and-educate
+     * response (D18/D19 shape) with zero Anthropic requests made.
      */
     public function chat(ChatQuestionRequest $request, AIQuestion $question): JsonResponse
     {
         $this->authorize('update', $question);
+
+        // SAFE-06 gate — intercepts before any Claude call.
+        $refusal = $this->refusalGate->check($request->validated('message'));
+        if ($refusal !== null) {
+            return response()->json($refusal, 200);
+        }
 
         $suggestion = $this->categorizer->interpretUserResponse(
             $question,
