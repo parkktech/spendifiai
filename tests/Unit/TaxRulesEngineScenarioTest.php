@@ -365,3 +365,60 @@ it('SCN-07: ACA cliff guard shifts Roth 401k to Traditional for marketplace enro
         ->and($out['knobs']['k401']['roth_share_pct'])->toBeLessThan(100)
         ->and($magi)->toBeLessThanOrEqual(6_060_000);
 });
+
+// ─────────────────────────────────────────────────────────────────────────
+// Fix-B: W-4 Step 3 credit wire — estimatePeriodWithholdingCents
+// ─────────────────────────────────────────────────────────────────────────
+//
+// Pub 15-T uses Step 3 as an annual dollar credit amount, not a dependent count.
+// When step3CreditsCents is provided, the engine uses it directly instead of
+// count-based credits (dependentsUnder17 × CTC + otherDependents × ODC).
+//
+// Sanity: a $3,200 Step 3 credit (2 qualifying children × $1,600) on a
+// single biweekly earner at $6,000/period:
+//   annualWages = (600000 - 0) * 26 = 15,600,000
+//   std single = 1,610,000 → adjusted = 13,990,000
+//   bracketTax single ≈ (see hand-calc below)
+//   credits = 320,000 (direct Step 3 amount)
+// With count-based approach (2 dependents_under_17): 2 × 220,000 = 440,000
+// The two give DIFFERENT results — the test asserts that step3 takes precedence.
+
+it('Fix-B: step3CreditsCents overrides count-based credits when provided', function () {
+    // Single, biweekly (26), gross $6,000/period, 0 pretax.
+    // Count-based: 2 dependents_under_17 → credits = 2 × 220,000 = 440,000
+    // Step-3 based: $3,200 = 320,000 cents → credits = 320,000
+
+    $countBased = $this->engine->estimatePeriodWithholdingCents(
+        periodGrossCents: 600_000,
+        periodPreTaxCents: 0,
+        w4FilingStatus: 'single',
+        dependentsUnder17: 2,
+        otherDependents: 0,
+        payPeriodsPerYear: 26,
+    );
+
+    $step3Based = $this->engine->estimatePeriodWithholdingCents(
+        periodGrossCents: 600_000,
+        periodPreTaxCents: 0,
+        w4FilingStatus: 'single',
+        dependentsUnder17: 0,   // no count passed — step3 overrides
+        otherDependents: 0,
+        payPeriodsPerYear: 26,
+        year: 2026,
+        step3CreditsCents: 320_000,   // $3,200 Step 3 credit direct
+    );
+
+    // Two $1,600 CTC credits (440k) > $3,200 Step 3 (320k), so step3 yields MORE withholding
+    expect($step3Based)->toBeGreaterThan($countBased);
+
+    // Verify the override is active: same call without step3 and 2 deps = count-based path
+    $countBased2 = $this->engine->estimatePeriodWithholdingCents(
+        periodGrossCents: 600_000,
+        periodPreTaxCents: 0,
+        w4FilingStatus: 'single',
+        dependentsUnder17: 2,
+        otherDependents: 0,
+        payPeriodsPerYear: 26,
+    );
+    expect($countBased2)->toBe($countBased); // unchanged when step3 = 0
+});

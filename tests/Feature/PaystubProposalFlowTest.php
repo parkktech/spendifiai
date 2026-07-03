@@ -600,3 +600,113 @@ it('confirm-with-correction: other users cannot correct someone else\'s proposal
     $proposal->refresh();
     expect($proposal->superseded_by_id)->toBeNull();
 });
+
+// ─── Fix B: W-4 Step 3 semantic remap ────────────────────────────────────────
+//
+// Modern W-4 Step 3 carries an annual dollar credit amount, NOT a dependent count.
+// The paystub field w4_dependents_claimed was mis-mapped to w4.dependents_claimed
+// (a count fact), producing "3200 dependents". Fix:
+//   - Extraction field renamed to w4_step3_credits → maps to w4.step3_annual_credits_cents (money)
+//   - w4.dependents_claimed no longer claimed by paystub extraction
+//   - Bad existing proposals (value > 20, sourced from document_extraction) are invalidated
+//     and the corrected w4.step3_annual_credits_cents proposal is created from the same doc
+
+it('Fix-B mapping: w4_step3_credits paystub field creates w4.step3_annual_credits_cents money proposal', function () {
+    Storage::fake('local');
+
+    $user = createAuthenticatedUser();
+
+    // Paystub extracted_data uses the NEW field name w4_step3_credits
+    $doc = makePaystubDocument($user->id, [
+        'w4_step3_credits' => ['value' => '3200.00', 'confidence' => 0.88],
+    ]);
+
+    $count = app(\App\Services\AI\PaystubFactExtractorService::class)->proposeFacts($doc);
+
+    expect($count)->toBeGreaterThan(0);
+
+    // Proposal created for the new fact key — money fact stored as integer cents
+    $proposal = UserTaxFact::forUser($user->id)
+        ->where('fact_key', 'w4.step3_annual_credits_cents')
+        ->first();
+
+    expect($proposal)->not->toBeNull()
+        ->and($proposal->is_current)->toBeFalse()
+        ->and($proposal->source_type)->toBe('document_extraction')
+        ->and($proposal->label)->toBe('W-4 Step 3 dependent credits')
+        ->and($proposal->metadata['confidence'])->toBe(0.88);
+
+    // Value is stored as integer cents: $3,200 → 320000 cents
+    expect((int) $proposal->value)->toBe(320_000);
+});
+
+it('Fix-B source-chain: paystub extraction no longer creates w4.dependents_claimed proposals', function () {
+    Storage::fake('local');
+
+    $user = createAuthenticatedUser();
+
+    // Paystub with old field name (now absent from the extractor map)
+    $doc = makePaystubDocument($user->id, [
+        'w4_dependents_claimed' => ['value' => '3200', 'confidence' => 0.85],
+    ]);
+
+    app(\App\Services\AI\PaystubFactExtractorService::class)->proposeFacts($doc);
+
+    // w4.dependents_claimed must NOT be proposed from paystub extraction
+    $bad = UserTaxFact::forUser($user->id)
+        ->where('fact_key', 'w4.dependents_claimed')
+        ->where('source_type', 'document_extraction')
+        ->first();
+
+    expect($bad)->toBeNull();
+});
+
+it('Fix-B migration: implausible w4.dependents_claimed proposal is invalidated and corrected step3 proposal created', function () {
+    Storage::fake('local');
+
+    $user = createAuthenticatedUser();
+
+    // Simulate the pre-fix state: a bad w4.dependents_claimed proposal with value 3200
+    // (stored as string — it was treated as a count by the old code)
+    $doc = makePaystubDocument($user->id, [
+        'gross_pay' => ['value' => '6000.00', 'confidence' => 0.95],
+    ]);
+
+    // Manually insert the bad proposal (as the old extractor would have)
+    $badProposal = UserTaxFact::create([
+        'user_id' => $user->id,
+        'fact_key' => 'w4.dependents_claimed',
+        'value' => '3200',   // implausible count (>20) — was actually Step 3 dollars
+        'label' => 'W-4 dependents claimed (paystub evidence)',
+        'volatility' => 'annual',
+        'source_type' => 'document_extraction',
+        'source_id' => (string) $doc->id,
+        'tax_year' => 2025,
+        'asserted_at' => now(),
+        'is_current' => false,
+        'metadata' => ['confidence' => 0.85, 'document_id' => $doc->id],
+    ]);
+
+    // Run the migration command
+    $this->artisan('optimizer:migrate-w4-step3')->assertExitCode(0);
+
+    // The bad proposal is now resolved (superseded_by_id is set)
+    $badProposal->refresh();
+    expect($badProposal->superseded_by_id)->not->toBeNull();
+
+    // The corrected step3 proposal was created
+    $corrected = UserTaxFact::forUser($user->id)
+        ->where('fact_key', 'w4.step3_annual_credits_cents')
+        ->where('source_type', 'document_extraction')
+        ->first();
+
+    expect($corrected)->not->toBeNull()
+        ->and($corrected->is_current)->toBeFalse()
+        // 3200 (dollar amount stored as string) → 320000 cents
+        ->and((int) $corrected->value)->toBe(320_000)
+        ->and($corrected->metadata['migrated_from_proposal_id'])->toBe($badProposal->id)
+        ->and($corrected->metadata['document_id'])->toBe($doc->id);
+
+    // The bad proposal's superseded_by_id points to the corrected proposal
+    expect($badProposal->superseded_by_id)->toBe($corrected->id);
+});
