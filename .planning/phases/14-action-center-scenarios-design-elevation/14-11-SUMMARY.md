@@ -1066,6 +1066,6 @@ Three owner-mandated items implemented on `feature/v2.1-optimize-my-income`. TDD
 | `php artisan test --compact` | 1250 passed, 0 failures (baseline 1234 + 16 new) |
 | `vendor/bin/pint --dirty` | pass |
 | `npm run build` | built in 5.79s |
-| `npm run e2e:walk` | INFRA BLOCKED — `libatk-1.0.so.0` missing on server (pre-existing, same failure on prior HEAD) |
+| `npm run e2e:walk` | INFRA BLOCKED — `libatk-1.0.so.0` missing on server (pre-existing, same failure on prior HEAD). Remediation: `dnf install -y atk at-spi2-atk libXcomposite libXdamage libXrandr mesa-libgbm alsa-lib` OR `npx playwright install-deps chromium`. CI (`e2e-walk.yml`, ubuntu-latest runner) runs the walk regardless — local infra does not block CI green. |
 | D17 — zero new Claude call sites | PASS — `isNotSurePhrase()` is string comparison only |
 | D18 copy rules | PASS — "Based on your data", "No problem", "Activate by confirming" all educational framing |
