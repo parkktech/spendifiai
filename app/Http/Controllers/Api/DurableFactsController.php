@@ -154,14 +154,16 @@ class DurableFactsController extends Controller
             return 'No';
         }
 
-        // W-4 filing status → human label
+        // W-4 filing status → human label.
+        // Handles both verbatim form labels (legacy) and normalized engine enums
+        // (written by PaystubFactExtractorService::normalizeW4FilingStatus since Fix 1).
         if ($factKey === 'w4.filing_status') {
             return match (strtolower(trim($value))) {
-                'single', 'single or married filing separately', 's' => 'Single / MFS',
-                'married', 'married filing jointly', 'mfj', 'm' => 'Married Filing Jointly',
-                'head of household', 'hoh', 'h' => 'Head of Household',
+                'single', 'single_or_mfs', 'single or married filing separately', 's' => 'Single / MFS',
+                'married', 'married_joint', 'married filing jointly', 'mfj', 'm' => 'Married Filing Jointly',
+                'head of household', 'head_of_household', 'hoh', 'h' => 'Head of Household',
                 'qualifying widow(er)', 'qw' => 'Qualifying Widow(er)',
-                default => ucwords($value),
+                default => ucwords(str_replace('_', ' ', $value)),
             };
         }
 
