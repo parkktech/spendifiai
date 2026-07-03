@@ -108,9 +108,9 @@ Requirements for this milestone. Each maps to a roadmap phase. All outputs are e
 ### Safety & Liability Boundary (SAFE)
 
 - [x] **SAFE-01**: All Claude system prompts hard-code educational framing and ban assertive language ("you should," "you must," "you qualify," filing-status assertions)
-- [ ] **SAFE-02**: Uploaded-document content is passed to Claude only inside `<document_content>` delimiters with a structured JSON output schema and output validation (prompt-injection defense)
+- [x] **SAFE-02**: Uploaded-document content is passed to Claude only inside `<document_content>` delimiters with a structured JSON output schema and output validation (prompt-injection defense)
 - [ ] **SAFE-03**: Claude never computes tax dollar amounts — a test asserts all report/finding numbers originate from `TaxRulesEngineService`/config
-- [ ] **SAFE-04**: Sensitive PII from stubs/offer letters (SSN, wages) follows existing encryption + SSN-last-4 rules; document access stays within the existing audit trail
+- [x] **SAFE-04**: Sensitive PII from stubs/offer letters (SSN, wages) follows existing encryption + SSN-last-4 rules; document access stays within the existing audit trail
 - [x] **SAFE-05**: A security + legal hardening pass (prompt-injection penetration test, disclaimer/framing review, SSN-masking audit) is completed before the milestone is considered done
 - [ ] **SAFE-06**: A hard-block refusal list is enforced in code (detect, refuse-and-educate, never monetize): 831(b) micro-captives, syndicated conservation easements, offshore structures / FBAR-FATCA concealment, Malta pension arrangements / abusive foreign trusts (Dirty Dozen — PB-v1 §8 P13 HARD-BLOCK row), nonprofit-as-personal-shelter (§4958 education), corporation sole / pure trust packages, "start a ministry" structures, crypto non-reporting, cash structuring, PPLI / offshore-crypto-IRA auto-pitches, and Hess-style body-mod probes (never probed — refuse-and-explain material only) — plus a never-surface-as-available config list (ended EV credits, residential solar federal credit for 2026+ primary homes, gambling losses presented as fully deductible) and the anti-waste principle (no output may present spending solely to create a deduction as savings); any matching user prompt triggers refuse-and-educate, the list feeds the RPT-06 refusal section (what/why only, never how), and guard-style warnings carry best-effort (not monitoring-guarantee) disclaimers
 - [x] **SAFE-07**: The prompt-injection defense explicitly covers every new content path: DOC-02 screenshot/vision extraction (including injection via text inside images), DOC-05 in-flow uploads, DOC-06 substantiation documents, and DOC-07 benefits guides — all passed inside `<document_content>` delimiters with structured JSON output schemas and output validation; and the SAFE-05 framing review enumerates by name every liability-reframed item and every gray-area module wording as testable assertions, pinning SAFE-01 system prompts to the exact reframe phrasings
@@ -262,9 +262,9 @@ Each requirement maps to exactly one phase. Phases continue the global numbering
 | UI-02 | Phase 12 | Complete |
 | UI-03 | Phase 12 | Complete |
 | SAFE-01 | Phase 13 | Complete |
-| SAFE-02 | Phase 13 | Pending |
+| SAFE-02 | Phase 13 | Complete |
 | SAFE-03 | Phase 13 | Pending |
-| SAFE-04 | Phase 13 | Pending |
+| SAFE-04 | Phase 13 | Complete |
 | SAFE-05 | Phase 13 | Complete |
 | FLAG-07 | Phase 11 | Pending |
 | TAX-08 | Phase 11 | Complete |
