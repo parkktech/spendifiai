@@ -105,6 +105,7 @@ class RedFlagDetectorService
         array $transactionIds = [],
         array $docsMissing = [],
         array $electionFacts = [],
+        int $estimatedValueCents = 0,   // SAFE-03: only pass when computed by TaxRulesEngineService
     ): ?string {
         // ── 1. Rule validation (suppress expired / hard-blocked rules) ──────
         if ($ruleId !== null) {
@@ -145,24 +146,31 @@ class RedFlagDetectorService
         $severity = $this->engine->bandToSeverity($band);
 
         // ── 5. Upsert (Pitfall 5: always pass all three key fields) ─────────
+        $updateData = [
+            'finding_type' => $findingType,
+            'severity' => $severity,
+            'band' => $band,
+            'treatment' => $treatment,
+            'legal_basis' => $legalBasis,      // static config citation, NEVER Claude
+            'assumptions' => $assumptions,     // static config citations, NEVER Claude
+            'transaction_ids' => $transactionIds ?: null,
+            'docs_missing' => $docsMissing ?: null,
+            'description' => null,             // narration fills this (NarrationService)
+            'status' => 'open',
+        ];
+
+        // SAFE-03: only write estimated_value_cents when explicitly provided by the engine
+        if ($estimatedValueCents > 0) {
+            $updateData['estimated_value_cents'] = $estimatedValueCents;
+        }
+
         OptimizationFinding::updateOrCreate(
             [
                 'user_id' => $userId,
                 'tax_year' => $taxYear,
                 'finding_key' => $findingKey,
             ],
-            [
-                'finding_type' => $findingType,
-                'severity' => $severity,
-                'band' => $band,
-                'treatment' => $treatment,
-                'legal_basis' => $legalBasis,      // static config citation, NEVER Claude
-                'assumptions' => $assumptions,     // static config citations, NEVER Claude
-                'transaction_ids' => $transactionIds ?: null,
-                'docs_missing' => $docsMissing ?: null,
-                'description' => null,             // narration fills this (NarrationService)
-                'status' => 'open',
-            ]
+            $updateData
         );
 
         return $findingKey;
@@ -202,6 +210,9 @@ class RedFlagDetectorService
             \App\Services\Detectors\IraToHsaQfdProbe::class,
             \App\Services\Detectors\AcaCliffMonitor::class,
             \App\Services\Detectors\RefundableCreditScanner::class,
+            // ── Fix 2 (2026-07-02): retirement opportunity sweep from confirmed facts ──
+            // Emits RET-A/B/C/D findings from UserTaxFact confirmed data into Retirement section.
+            \App\Services\Detectors\RetirementOpportunitySweep::class,
             // ── Wave 11c — Plan 11-07 (FLAG-07, FLAG-10, FLAG-11, FLAG-12, FLAG-18, FLAG-26, FLAG-27) ──
             \App\Services\Detectors\CategoryLibraryDetector::class,
             \App\Services\Detectors\DeductibleSaasSweep::class,
