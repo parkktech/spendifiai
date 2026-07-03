@@ -192,7 +192,7 @@ it('returns derived_accounts block from GET profile endpoint', function () {
         ]);
 });
 
-it('writes finance.has_hsa user_edit fact when has_hsa is saved', function () {
+it('writes finance.has_hsa=yes user_edit fact when has_hsa is saved as true', function () {
     $user = createAuthenticatedUser();
 
     $this->postJson('/api/v1/profile/financial', [
@@ -218,7 +218,7 @@ it('writes finance.has_hsa=no user_edit fact when has_hsa is unchecked', functio
     expect($fact->source_type)->toBe('user_edit');
 });
 
-it('writes finance.has_ira user_edit fact when has_ira is saved', function () {
+it('writes finance.has_ira=yes user_edit fact when has_ira is saved as true', function () {
     $user = createAuthenticatedUser();
 
     $this->postJson('/api/v1/profile/financial', [
@@ -231,12 +231,12 @@ it('writes finance.has_ira user_edit fact when has_ira is saved', function () {
     expect($fact->source_type)->toBe('user_edit');
 });
 
-it('derived_accounts hsa block reflects finance.has_hsa fact', function () {
+it('derived_accounts hsa block reflects finance.has_hsa=no fact', function () {
     $user = createAuthenticatedUser();
 
     UserFinancialProfile::create(['user_id' => $user->id]);
 
-    // Record a user_edit fact for finance.has_hsa=no (simulating N/A exclusion)
+    // Simulate the N/A exclusion fact written by TaxDocumentController
     UserTaxFact::recordFact(
         userId: $user->id,
         factKey: 'finance.has_hsa',
@@ -252,21 +252,20 @@ it('derived_accounts hsa block reflects finance.has_hsa fact', function () {
         ->assertJsonPath('derived_accounts.hsa.source', 'your answers');
 });
 
-it('derived_accounts ira_types reflect IRA YTD contribution facts', function () {
+it('derived_accounts ira_types reflect IRA YTD contribution facts from interview', function () {
     $user = createAuthenticatedUser();
     UserFinancialProfile::create(['user_id' => $user->id]);
 
-    // Simulate document-extracted IRA contribution facts
     UserTaxFact::recordFact(
         userId: $user->id,
         factKey: 'ira.traditional_ytd_contribution_cents',
-        value: '600000',    // $6,000
+        value: '600000',
         sourceType: 'interview_answer',
     );
     UserTaxFact::recordFact(
         userId: $user->id,
         factKey: 'ira.roth_ytd_contribution_cents',
-        value: '350000',    // $3,500
+        value: '350000',
         sourceType: 'interview_answer',
     );
 
