@@ -786,3 +786,53 @@ Four defects fixed + D23 done-for-you Choices stage shipped on branch `feature/v
 | W-4 filing_status: user 1 migrated → `married_joint` | Verified (currentFact id=29) |
 
 **Commits:** `b8492be` (Fix 1 — W-4 normalization), `4b73ea6` (Fix 2 + Fix 4 — readiness chain + labels), `c32bb0f` (Fix 3 — D23 done-for-you), `682184c` (tests)
+
+---
+
+## Fact-aware suppression
+
+**Defect:** Owner was served "Does your employer offer a 401(k)? What is your current contribution percentage?" even though `employer.has_401k=yes` was CONFIRMED (document_extraction, confirmed_at 2026-07-03) from a benefits guide. The question originated from `SignalProbeMatrix` Probe 1 (`probe_deferral_gap`) which never consulted the fact store.
+
+**Root cause chain:**
+1. `SignalProbeMatrix::run()` Probe 1 fired on payroll income — never checked `employer.has_401k` confirmed fact
+2. `SurfaceHighPriorityRedFlags` listener pre-created AIQuestion(Optimization) without a fact-store check
+3. `nextQuestion()` found the pre-created question via idempotency check and returned it directly, skipping `isAlreadyAnswered()` path
+
+**Secondary bug:** `isMaxing401k()` checked `retirement.k401_contribution_ytd_cents` but `PaystubFactExtractorService` writes `retirement.traditional_401k_ytd_cents` + `retirement.roth_401k_ytd_cents` — split-key mismatch meant the probe always thought the user was NOT maxing.
+
+**Tertiary bug:** Both `targetFactsConfirmed()` and the emission-time gate called `currentFact()` with no `taxYear`. PaystubFactExtractorService stores employer-level facts with `taxYear=$document->tax_year`. Non-scoped queries missed year-scoped document facts entirely.
+
+### Fixes applied
+
+| Fix | Description | Commits |
+|-----|-------------|---------|
+| 1 — Serve-time fact gate | `TARGET_FACTS_MAP` in `InterviewOrchestratorService`; `targetFactsConfirmed()` + `expireByFactGate()` in `nextQuestion()` and idempotency path of `createOptimizationQuestion()` | `88b832b` |
+| 2 — Emission-time gate | `SignalProbeMatrix` Probe 1 checks `employer.has_401k` confirmed before emitting `probe_deferral_gap`; `isMaxing401k()` checks combined + split keys | `88b832b` |
+| 3 — Backlog hygiene | `interview:sweep-fact-gate` artisan command — sweeps pending optimization questions against TARGET_FACTS_MAP + fact store; skips categorization questions | `46aa11e` |
+| 4 — D18 copy cleanup | `SuggestedConfirmCard`: removed "AI Suggestion" / "Suggested treatment" / "Not counted yet" labels; added `questionText` prop for evidence-lead → ask anatomy | `a3d6dce` |
+| 5 — Dual-scope fact check | `targetFactsConfirmed()` and emission-time gate now check both non-scoped (interview_answer) and year-scoped (document-extracted) facts | `33d17ec` |
+
+### Live verification — user 1
+
+| Check | Result |
+|-------|--------|
+| `employer.has_401k` non-scoped | Not found (not answered via interview) |
+| `employer.has_401k` year-scoped (2026) | `yes` (document_extraction, confirmed 2026-07-03) |
+| Emission-time gate fires | YES — probe_deferral_gap NOT emitted |
+| Serve-time gate fires | YES — question suppressed |
+| Sweep command (`--user=1`) | Scanned 0 (no probe_deferral_gap in queue) / Expired 0 |
+| User 1 remaining pending optimization | 2 questions (`life_event_marketplace_premium`, `penalty_1099k_mismatch`) — no confirmed TARGET_FACTS_MAP entries for these keys; correctly NOT suppressed |
+| 401k question served to user 1 | NONE — fully suppressed |
+
+### Gates
+
+| Gate | Result |
+|------|--------|
+| `FactAwareSuppressionTest` (14 tests) | All 14 pass |
+| Full interview test suite (69 tests) | All 69 pass |
+| `npm run build` | Clean — `InterviewCard-BRPEdxjB.js` rebuilt, zero TS errors |
+| `vendor/bin/pint --dirty` | Clean |
+| D17 / D18 no-regression | Pass — template questions unaffected; D18 anatomy intact |
+| User 1 interview: no confirmed-fact question served | Verified — only `life_event_marketplace_premium` + `penalty_1099k_mismatch` remain |
+
+**Commits:** `88b832b` (Fix 1+2), `46aa11e` (Fix 3 + test suite), `a3d6dce` (Fix 4 D18 copy), `33d17ec` (Fix 5 dual-scope)
