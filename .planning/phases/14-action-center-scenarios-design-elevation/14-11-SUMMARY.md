@@ -1016,3 +1016,56 @@ Four workstreams committed to `feature/v2.1-optimize-my-income` as part of D24
 - Full D24 test suite: 22 passed (66 assertions) in isolation
 - `vendor/bin/pint --dirty`: pass (no changes)
 - `npm run build`: built in 6.19s
+
+## Morning polish batch
+
+Three owner-mandated items implemented on `feature/v2.1-optimize-my-income`. TDD, one atomic commit per item.
+
+### Item 1 — Derived-value confirm-shape
+
+**What:** When a typed interview question has a KNOWN/DERIVED (unconfirmed) value from `ScenarioFactResolverService::resolve()`, the GET `/next` endpoint now returns `derived_confirm: true` + `prefill_display` (humanized dollar) + `prefill_approximate: bool`. `InterviewCard` renders a "Based on your data, we estimate this at about $X — does that sound right?" card with [Yes, about right] [Higher] [Lower] choices. Higher/Lower pre-fill the typed input with the known value for easy correction. Choice/multi-select questions are excluded.
+
+**Files:** `app/Http/Controllers/Api/InterviewController.php`, `resources/js/Components/SpendifiAI/InterviewCard.tsx`, `resources/js/types/spendifiai.d.ts`
+
+**Tests:** `tests/Feature/MorningPolishItem1Test.php` — 3 tests, 14 assertions (known snapshot → derived_confirm=true; no value → false; choice question → false)
+
+**Commits:** `ab615ed` (RED), `7d57f1c` (GREEN)
+
+---
+
+### Item 2 — Not-sure handling on typed fields (D17)
+
+**What:** A phrase list (`NOT_SURE_PHRASES` constant — zero new Claude call sites) detects not-sure input on typed fields (`money_dollars`, `integer`, `year`, `pct`). Matched phrases record `UserTaxFact(value='0', metadata.unknown=true)` and, when the template has a `doc_affordance`, create a `DocumentRequest(status=Pending)`. Controller returns "No problem — we'll get this from your [doc] when you upload it." `InterviewCard` adds an explicit "I'm not sure" secondary button on all typed fields. Other unparseable text gets specific 422 messages: "Please enter a dollar amount, like $4,250" / "Please enter a whole number, like 3."
+
+**Files:** `app/Services/InterviewOrchestratorService.php`, `app/Http/Controllers/Api/InterviewController.php`, `resources/js/Components/SpendifiAI/InterviewCard.tsx`
+
+**Tests:** `tests/Feature/MorningPolishItem2Test.php` — 9 tests, 23 assertions (owner phrase "I don't remember", "not sure", "idk", "?"; doc_affordance path; no-doc path; "No problem" copy; specific 422 messages)
+
+**Commits:** `58d34c8`
+
+**D17 gate:** `NOT_SURE_PHRASES` is a `private const string[]` — phrase list comparison only, no Claude calls added.
+
+---
+
+### Item 3 — Checklist activation UX
+
+**What:** `ScenarioChecklistService::resolveGatedFacts(user, knobKey, year)` returns the unconfirmed anchor facts for a confirm_ask knob with `{fact_key, label, display_value, fact_id}`. Confirmed anchor facts are excluded. `OptimizationChecklistController::formatItem()` injects `gated_facts` (array for confirm_ask, null for directive). `OptimizationChecklistView` renders `GatedFactConfirmRow` components showing "Activate by confirming: [label] [value] [Confirm]" inline. POST to `/api/v1/optimizer/facts/{id}/supersede` on confirm; on success, refetch (`refresh()`) and the item upgrades from confirm_ask to directive.
+
+**Files:** `app/Services/ScenarioChecklistService.php`, `app/Http/Controllers/Api/OptimizationChecklistController.php`, `resources/js/Components/SpendifiAI/OptimizationChecklistView.tsx`, `resources/js/types/spendifiai.d.ts`
+
+**Tests:** `tests/Feature/MorningPolishItem3Test.php` — 4 tests, 20 assertions (confirm_ask → gated_facts present; directive → gated_facts null; entry has label/display_value/fact_id; confirmed facts excluded from gated_facts)
+
+**Commits:** `99d5fc2` (RED), `5d27332` (GREEN)
+
+---
+
+### Gates
+
+| Gate | Result |
+|------|--------|
+| `php artisan test --compact` | 1250 passed, 0 failures (baseline 1234 + 16 new) |
+| `vendor/bin/pint --dirty` | pass |
+| `npm run build` | built in 5.79s |
+| `npm run e2e:walk` | INFRA BLOCKED — `libatk-1.0.so.0` missing on server (pre-existing, same failure on prior HEAD) |
+| D17 — zero new Claude call sites | PASS — `isNotSurePhrase()` is string comparison only |
+| D18 copy rules | PASS — "Based on your data", "No problem", "Activate by confirming" all educational framing |
