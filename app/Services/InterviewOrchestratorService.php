@@ -57,6 +57,45 @@ class InterviewOrchestratorService
     ];
 
     /**
+     * FACT-GATE (Fix: fact-aware suppression) — maps probe/finding keys to the
+     * canonical fact keys whose presence in the confirmed fact store makes the
+     * question redundant.
+     *
+     * Semantics: if ANY listed fact key has a confirmed UserTaxFact row,
+     * the probe is considered answered and the question is auto-resolved
+     * (status → expired, reason: answered_by_facts) without being served.
+     *
+     * This handles the exact reported defect: probe_deferral_gap asks
+     * "Does your employer offer a 401(k)?" when employer.has_401k is already
+     * confirmed from a benefits guide or paystub. The question was generated
+     * before the document facts existed — backlog hygiene and serve-time gating
+     * both consult this map.
+     *
+     * Template-backed questions (employer.has_401k, employer.contribution_pct,
+     * etc.) are already handled by isAlreadyAnswered() via UserTaxFact::currentFact().
+     * Only probe/finding-keyed questions need entries here.
+     *
+     * @var array<string, string[]>
+     */
+    public const TARGET_FACTS_MAP = [
+        // probe_deferral_gap: "Does your employer offer a 401(k)?  What is your
+        // current contribution %?"
+        // Suppress when employer.has_401k is confirmed (value yes/no) — the
+        // template questions for employer.contribution_pct and the YTD facts
+        // cover the remaining gaps through their own paths.
+        'probe_deferral_gap' => ['employer.has_401k'],
+
+        // probe_se_income: "Is this income from a business you own?"
+        // Suppress when has_self_employment is confirmed.
+        'probe_se_income' => ['has_self_employment'],
+
+        // probe_solo_401k: asks whether the user has employees beyond a spouse.
+        // Suppress when has_self_employment is confirmed (if not SE, the probe
+        // is moot; if SE, the template question covers the employee gate).
+        'probe_solo_401k' => ['has_self_employment'],
+    ];
+
+    /**
      * D20 — format version stamp.
      *
      * Bump this constant to invalidate pre-D20 sessions on next startOrResume().
@@ -630,6 +669,20 @@ class InterviewOrchestratorService
                 continue;
             }
 
+            // FACT-GATE (serve-time): if all target facts for this probe/finding
+            // are confirmed, the question is already answered by the fact store.
+            // Auto-resolve any pending AIQuestion for this key and skip.
+            if ($this->targetFactsConfirmed($factKey, $session->user_id)) {
+                $this->expireByFactGate($factKey, $session->user_id);
+                Log::info('InterviewOrchestratorService: question suppressed — target facts confirmed', [
+                    'fact_key' => $factKey,
+                    'user_id' => $session->user_id,
+                    'confirmed_facts' => self::TARGET_FACTS_MAP[$factKey] ?? [],
+                ]);
+
+                continue;
+            }
+
             // Pop succeeded — create the AIQuestion and record it
             $question = $this->createOptimizationQuestion($session, $factKey);
 
@@ -664,6 +717,70 @@ class InterviewOrchestratorService
         $fact = UserTaxFact::currentFact($userId, $prerequisite);
 
         return $fact === null; // gated if prerequisite not confirmed
+    }
+
+    /**
+     * FACT-GATE: check whether any target fact listed in TARGET_FACTS_MAP for
+     * this probe/finding key is confirmed in the durable fact store.
+     *
+     * Returns true when:
+     *   - The key has a TARGET_FACTS_MAP entry AND
+     *   - At least one listed fact key has a confirmed UserTaxFact row
+     *     (via UserTaxFact::currentFact — excludes unconfirmed proposals)
+     *
+     * Returns false when:
+     *   - No TARGET_FACTS_MAP entry (template questions, handled by isAlreadyAnswered)
+     *   - Entry exists but none of the target facts are confirmed yet
+     */
+    private function targetFactsConfirmed(string $factKey, int $userId): bool
+    {
+        $targets = self::TARGET_FACTS_MAP[$factKey] ?? null;
+        if ($targets === null) {
+            return false; // not a probe with target-fact mapping
+        }
+
+        foreach ($targets as $targetFactKey) {
+            if (UserTaxFact::currentFact($userId, $targetFactKey) !== null) {
+                return true; // at least one target confirmed → probe moot
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * FACT-GATE: expire all pending AIQuestion rows for this fact key.
+     *
+     * Called when targetFactsConfirmed() returns true. Marks questions as
+     * expired so they no longer appear in the interview queue. The audit
+     * trail is captured in the application log (reason: answered_by_facts).
+     * This is idempotent — safe to call multiple times.
+     */
+    private function expireByFactGate(string $factKey, int $userId): void
+    {
+        $count = AIQuestion::where('user_id', $userId)
+            ->where('question_type', QuestionType::Optimization->value)
+            ->where('ai_best_guess', $factKey)
+            ->where('status', QuestionStatus::Pending->value)
+            ->count();
+
+        if ($count === 0) {
+            return;
+        }
+
+        AIQuestion::where('user_id', $userId)
+            ->where('question_type', QuestionType::Optimization->value)
+            ->where('ai_best_guess', $factKey)
+            ->where('status', QuestionStatus::Pending->value)
+            ->update(['status' => QuestionStatus::Expired->value]);
+
+        Log::info('InterviewOrchestratorService: expireByFactGate — questions auto-resolved by confirmed facts', [
+            'fact_key' => $factKey,
+            'user_id' => $userId,
+            'expired_count' => $count,
+            'reason' => 'answered_by_facts',
+            'confirmed_facts' => self::TARGET_FACTS_MAP[$factKey] ?? [],
+        ]);
     }
 
     /**
@@ -725,6 +842,15 @@ class InterviewOrchestratorService
             ->first();
 
         if ($existing !== null) {
+            // FACT-GATE: if target facts are now confirmed for a pre-existing question
+            // (e.g. question was created before document extraction ran), expire it
+            // instead of serving it.
+            if ($this->targetFactsConfirmed($factKey, $userId)) {
+                $this->expireByFactGate($factKey, $userId);
+
+                return null; // skip: target facts confirmed, question moot
+            }
+
             return $existing; // already exists from SurfaceHighPriorityRedFlags
         }
 

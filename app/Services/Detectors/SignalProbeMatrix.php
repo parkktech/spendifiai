@@ -62,25 +62,35 @@ class SignalProbeMatrix
         // ── Probe 1: Deferral gap (payroll detected + no/low 401k contribution) ──
         // Signal: w2_wages present in snapshot
         // Question: "Does your employer offer a 401(k)? Current contribution %?"
-        if ($this->hasPayrollIncome($profile)) {
-            if (! $this->isMaxing401k($userId, $taxYear)) {
-                $key = $service->registerFinding(
-                    userId: $userId,
-                    taxYear: $taxYear,
-                    findingKey: 'probe_deferral_gap',
-                    findingType: 'retirement',
-                    band: 'auto',
-                    treatment: 'Your payroll deposits suggest you may have access to a 401(k) plan. '
-                        .'If you are not yet maximizing your employer plan, increasing contributions '
-                        .'may reduce your taxable income and capture any available employer match. '
-                        .'Does your employer offer a 401(k)? What is your current contribution percentage?',
-                    legalBasis: 'IRC §401(k); IRC §402(g) (deferral limits)',
-                    ruleId: 'employer_match_gap',
-                    electionFacts: $electionFacts,
-                );
-                if ($key !== null) {
-                    $emitted[] = $key;
-                }
+        //
+        // EMISSION-TIME FACT-GATE: if employer.has_401k is already confirmed in the
+        // durable fact store (e.g. from a benefits guide or paystub extraction), the
+        // core question "Does your employer offer a 401(k)?" is answered and this
+        // probe must NOT emit. The template questions (employer.has_401k,
+        // employer.contribution_pct) cover any remaining data gaps through their own
+        // paths. This prevents the exact reported defect: probe emitting while
+        // employer.has_401k=yes is confirmed.
+        if ($this->hasPayrollIncome($profile)
+            && UserTaxFact::currentFact($userId, 'employer.has_401k') === null
+            && ! $this->isMaxing401k($userId, $taxYear)
+        ) {
+            $key = $service->registerFinding(
+                userId: $userId,
+                taxYear: $taxYear,
+                findingKey: 'probe_deferral_gap',
+                findingType: 'retirement',
+                band: 'auto',
+                // D18 anatomy: evidence lead only — no embedded question strings in treatment.
+                // The question is surfaced by the interview system, not baked into copy.
+                treatment: 'Your payroll deposits suggest you may have access to a 401(k) plan. '
+                    .'If you are not yet maximizing your employer plan, increasing contributions '
+                    .'may reduce your taxable income and capture any available employer match.',
+                legalBasis: 'IRC §401(k); IRC §402(g) (deferral limits)',
+                ruleId: 'employer_match_gap',
+                electionFacts: $electionFacts,
+            );
+            if ($key !== null) {
+                $emitted[] = $key;
             }
         }
 
@@ -303,14 +313,28 @@ class SignalProbeMatrix
         // Deferral max 2026: $24,500 (standard) + catch-ups; use standard limit for gate
         $maxDeferralCents = 2_450_000; // $24,500
 
-        $fact = UserTaxFact::currentFact($userId, 'retirement.k401_contribution_ytd_cents', null, $taxYear)
+        // Check the combined YTD key (interview-sourced)
+        $combinedFact = UserTaxFact::currentFact($userId, 'retirement.k401_contribution_ytd_cents', null, $taxYear)
             ?? UserTaxFact::currentFact($userId, 'retirement.k401_contribution_ytd_cents');
 
-        if ($fact === null) {
-            return false; // no deferral data → treat as not maxing
+        if ($combinedFact !== null && (int) $combinedFact->value >= $maxDeferralCents) {
+            return true;
         }
 
-        return (int) $fact->value >= $maxDeferralCents;
+        // Also check paystub-extracted split-key facts (traditional + roth).
+        // PaystubFactExtractorService writes retirement.traditional_401k_ytd_cents
+        // and retirement.roth_401k_ytd_cents — not k401_contribution_ytd_cents.
+        // Combining them gives the total employee deferral for the year-to-date check.
+        $tradFact = UserTaxFact::currentFact($userId, 'retirement.traditional_401k_ytd_cents', null, $taxYear);
+        $rothFact = UserTaxFact::currentFact($userId, 'retirement.roth_401k_ytd_cents', null, $taxYear);
+
+        if ($tradFact !== null || $rothFact !== null) {
+            $totalYtd = (int) ($tradFact?->value ?? 0) + (int) ($rothFact?->value ?? 0);
+
+            return $totalYtd >= $maxDeferralCents;
+        }
+
+        return false; // no deferral data → treat as not maxing
     }
 
     private function getScheduleCNet(int $userId, int $taxYear): ?int
