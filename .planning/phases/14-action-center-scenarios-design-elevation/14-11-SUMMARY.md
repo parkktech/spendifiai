@@ -676,8 +676,8 @@ RET-C and RET-D not emitted for user 1 because `employer.match_pct` and `family.
 
 | Gate | Result |
 |------|--------|
-| `php artisan test --compact` | 1187 passed, 0 failed, 1 risky (baseline 1178 + 8 new + 1 from parallel executor) |
-| `npm run build` | Clean (5.84s), zero TypeScript errors |
+| `php artisan test --compact` | 1224 passed, 0 failed, 1 risky (pre-existing) — full suite |
+| `npm run build` | Clean (5.78s), zero TypeScript errors |
 | `vendor/bin/pint --dirty` | Clean |
 | EnhancedProfileTest (15 tests, was 7) | All 15 pass |
 | Fix 1: ira_types saves + backfills ira_type | Pass |
@@ -689,6 +689,7 @@ RET-C and RET-D not emitted for user 1 because `employer.match_pct` and `family.
 | Fix 2: derived ira_types from YTD contribution facts | Pass |
 | ProfileConformanceDetector Plane 2: roth-only uses ira_types | Pass |
 | Migration additive (ADD COLUMN only, backfill safe) | Pass |
+| syncAccountFacts deadlock guard (try-catch, non-fatal) | `ee0f52f` |
 
 ---
 
