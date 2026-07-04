@@ -63,8 +63,20 @@ class OptimizationChecklistController extends Controller
         $alreadyOptimal = $hasChosenScenario && $actionItemCount === 0;
 
         // Chosen option label (Addition 6): expose the display label stored at choose time.
+        // Fallback: elections made before the label fact existed derive it from the
+        // option key — the header must never silently hide for a chosen plan.
         $chosenLabelFact = UserTaxFact::currentFact($user->id, 'scenario.chosen_option_label', null, $year);
-        $chosenOptionLabel = $chosenLabelFact?->value ?? null;
+        $chosenOptionLabel = $chosenLabelFact?->value;
+        if ($chosenOptionLabel === null) {
+            $chosenKey = UserTaxFact::currentFact($user->id, 'scenario.chosen_option', null, $year)?->value;
+            $chosenOptionLabel = match ($chosenKey) {
+                'take_home' => 'Maximize take-home pay',
+                'tax_burden' => 'Reduce tax burden',
+                'retirement' => 'Build retirement',
+                'balanced' => 'Balanced',
+                default => $chosenKey,
+            };
+        }
 
         return response()->json([
             'tax_year' => $year,
