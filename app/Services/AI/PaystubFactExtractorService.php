@@ -121,6 +121,28 @@ class PaystubFactExtractorService
             'volatility' => 'annual',
             'money' => true,
         ],
+        // Banner-anchor fix (2026-07-06): knob-invariant per-paycheck deductions the
+        // stub already shows. Without these the banner's take-home is federal-model-only
+        // and overstates the real check (owner report: "$5.6k shown, check says less").
+        // They are subtracted from BOTH sides of the banner — never from the delta.
+        'state_tax_withheld' => [
+            'fact_key' => 'pay.state_withholding_per_period_cents',
+            'label' => 'State income tax withheld per paycheck (paystub)',
+            'volatility' => 'annual',
+            'money' => true,
+        ],
+        'health_insurance_premium' => [
+            'fact_key' => 'pay.health_premium_per_period_cents',
+            'label' => 'Health insurance premium per paycheck (paystub)',
+            'volatility' => 'annual',
+            'money' => true,
+        ],
+        'dental_vision_premium' => [
+            'fact_key' => 'pay.dental_vision_premium_per_period_cents',
+            'label' => 'Dental/vision premium per paycheck (paystub)',
+            'volatility' => 'annual',
+            'money' => true,
+        ],
         // Item 3: map period dates into facts so frequency derivation can be persisted
         // as a confirmable proposal (not just an ephemeral resolver derivation).
         'pay_period_start' => [

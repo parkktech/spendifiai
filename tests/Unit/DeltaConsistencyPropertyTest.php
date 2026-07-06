@@ -308,6 +308,57 @@ it('DC-02b: roth_share decrease at equal deferral → take-home ≥ before (50 r
 });
 
 // ─────────────────────────────────────────────────────────────────────────
+// DC-04: BANNER ANCHOR — knob-invariant deductions shift both sides equally
+// ─────────────────────────────────────────────────────────────────────────
+// Owner report (2026-07-06): banner showed $5.6k/check but the real check nets
+// less — the model ignored state withholding + insurance premiums the paystub
+// extraction had already captured. Fix: baseline carries
+// other_per_period_deductions_cents; the engine subtracts it from BOTH the
+// baseline and scenario take-home. The delta must be bit-identical with or
+// without the constant (DELTA-CONSISTENCY LAW), and both absolutes must drop
+// by exactly the constant.
+
+it('DC-04a: other_per_period_deductions shifts baseline and scenario take-home by the same constant; delta invariant', function () {
+    $deductions = 53_810; // $538.10/check — state tax + health + dental/vision (owner's stub)
+    $knobs = dcKnobs(12.0, 0.0);
+
+    $without = $this->engine->computeScenarioOutcome(dcBaseline(), $knobs);
+    $with = $this->engine->computeScenarioOutcome(
+        dcBaseline(['other_per_period_deductions_cents' => $deductions]),
+        $knobs
+    );
+
+    // Delta bit-identical — the constant never enters the delta.
+    expect($with['take_home']['per_paycheck_delta_cents'])
+        ->toBe($without['take_home']['per_paycheck_delta_cents']);
+    expect($with['take_home']['annual_delta_cents'])
+        ->toBe($without['take_home']['annual_delta_cents']);
+    expect($with['federal_tax']['annual_delta_cents'])
+        ->toBe($without['federal_tax']['annual_delta_cents']);
+
+    // Both absolutes drop by exactly the constant.
+    expect($with['baseline_absolute']['per_period_take_home_cents'])
+        ->toBe($without['baseline_absolute']['per_period_take_home_cents'] - $deductions);
+    expect($with['baseline_absolute']['observed_per_period_take_home_cents'])
+        ->toBe($without['baseline_absolute']['observed_per_period_take_home_cents'] - $deductions);
+});
+
+it('DC-04b: absent or zero other_per_period_deductions is a no-op (backward compat)', function () {
+    $knobs = dcKnobs(8.0, 20.0);
+
+    $absent = $this->engine->computeScenarioOutcome(dcBaseline(), $knobs);
+    $zero = $this->engine->computeScenarioOutcome(
+        dcBaseline(['other_per_period_deductions_cents' => 0]),
+        $knobs
+    );
+
+    expect($zero['baseline_absolute']['per_period_take_home_cents'])
+        ->toBe($absent['baseline_absolute']['per_period_take_home_cents']);
+    expect($zero['take_home']['per_paycheck_delta_cents'])
+        ->toBe($absent['take_home']['per_paycheck_delta_cents']);
+});
+
+// ─────────────────────────────────────────────────────────────────────────
 // DC-03: No outbound HTTP
 // ─────────────────────────────────────────────────────────────────────────
 

@@ -1053,7 +1053,12 @@ class TaxRulesEngineService
             $scnStep3Credits,
         );
         $scnFica = (int) round($this->employeeFicaCents(max(0, $gross - $hsa), $year)['total_cents'] / $periods);
-        $scnTakeHome = $periodGross - (int) round(($trad401k + $roth401k + $hsa) / $periods) - $scnWH - $scnFica;
+        // Knob-invariant per-paycheck deductions (state withholding, insurance premiums)
+        // observed on the paystub. Subtracted from BOTH scenario and baseline take-home
+        // so the displayed absolutes match the real check — the delta is unaffected
+        // (same constant both sides — DELTA-CONSISTENCY LAW).
+        $otherDeductionsPP = max(0, (int) ($baseline['other_per_period_deductions_cents'] ?? 0));
+        $scnTakeHome = $periodGross - (int) round(($trad401k + $roth401k + $hsa) / $periods) - $scnWH - $scnFica - $otherDeductionsPP;
         // Observed withholding per period (paystub actual); set only in the annual_withholding branch
         // for context display — NEVER used as one side of a delta (DELTA-CONSISTENCY LAW).
         $observedCurWH = null;
@@ -1098,10 +1103,10 @@ class TaxRulesEngineService
             $w4DeltaIncluded = false;
         }
         $curFica = (int) round($this->employeeFicaCents(max(0, $gross - $curHsa), $year)['total_cents'] / $periods);
-        $curTakeHome = $periodGross - (int) round(($curTrad401k + $curRoth401k + $curHsa) / $periods) - $curWH - $curFica;
+        $curTakeHome = $periodGross - (int) round(($curTrad401k + $curRoth401k + $curHsa) / $periods) - $curWH - $curFica - $otherDeductionsPP;
         // Observed take-home context (when paystub withholding exists but no W-4 on file).
         $observedCurTakeHome = $observedCurWH !== null
-            ? $periodGross - (int) round(($curTrad401k + $curRoth401k + $curHsa) / $periods) - $observedCurWH - $curFica
+            ? $periodGross - (int) round(($curTrad401k + $curRoth401k + $curHsa) / $periods) - $observedCurWH - $curFica - $otherDeductionsPP
             : null;
 
         $perPaycheckDelta = $scnTakeHome - $curTakeHome;

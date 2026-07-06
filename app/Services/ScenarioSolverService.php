@@ -245,6 +245,24 @@ final class ScenarioSolverService
             ? (int) $v('prior_year.federal_liability_cents')
             : null;
 
+        // ── Knob-invariant per-paycheck deductions (banner-anchor fix) ────────
+        // State withholding + insurance premiums observed on the paystub. These do
+        // not change with any federal knob, so the engine subtracts them from BOTH
+        // sides of the take-home banner (delta invariant) — the displayed absolutes
+        // then match the user's real check instead of a federal-only model figure.
+        // Read directly like the per-period 401k keys (not in the objective chain).
+        $otherDeductionsPP = 0;
+        foreach ([
+            'pay.state_withholding_per_period_cents',
+            'pay.health_premium_per_period_cents',
+            'pay.dental_vision_premium_per_period_cents',
+        ] as $deductionKey) {
+            $resolvedDeduction = $this->resolver->resolve($user, $year, $deductionKey);
+            if ($resolvedDeduction !== null) {
+                $otherDeductionsPP += max(0, (int) $resolvedDeduction['value']);
+            }
+        }
+
         // ── Fact set hash (from resolver) ─────────────────────────────────────
         $factSetHash = $this->resolver->snapshotFactSet($user, $year)->fact_set_hash;
 
@@ -289,6 +307,7 @@ final class ScenarioSolverService
             'monthly_surplus_cents' => $monthlySurplusCents,
             'annual_withholding_cents' => $annualWithholding,
             'prior_year_federal_liability_cents' => $priorFedLiability,
+            'other_per_period_deductions_cents' => $otherDeductionsPP,
             'fact_set_hash' => $factSetHash,
         ];
 
@@ -1241,7 +1260,10 @@ final class ScenarioSolverService
         return $periodGross
             - (int) round(($curTrad401k + $curRoth401k + $curHsa) / $periods)
             - $curWH
-            - $curFica;
+            - $curFica
+            // Banner-anchor fix: same knob-invariant deductions the engine subtracts,
+            // so the floor guard compares candidate and current on the same basis.
+            - max(0, (int) ($baseline['other_per_period_deductions_cents'] ?? 0));
     }
 
     // Deferral step size for greedy fill (1 percentage point — structural constant).

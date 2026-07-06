@@ -102,6 +102,24 @@ return [
         'label' => 'Pay period end date',
         'sources' => ['document_extraction'],
     ],
+    'pay.state_withholding_per_period_cents' => [
+        'type' => 'money_cents',
+        'label' => 'State income tax withheld per paycheck',
+        'sources' => ['interview_answer', 'user_edit', 'document_extraction'],
+        'notes' => 'Knob-invariant paycheck deduction — anchors banner take-home to the real check. Never enters federal delta math.',
+    ],
+    'pay.health_premium_per_period_cents' => [
+        'type' => 'money_cents',
+        'label' => 'Health insurance premium per paycheck',
+        'sources' => ['interview_answer', 'user_edit', 'document_extraction'],
+        'notes' => 'Knob-invariant paycheck deduction — anchors banner take-home to the real check. Never enters federal delta math.',
+    ],
+    'pay.dental_vision_premium_per_period_cents' => [
+        'type' => 'money_cents',
+        'label' => 'Dental/vision premium per paycheck',
+        'sources' => ['interview_answer', 'user_edit', 'document_extraction'],
+        'notes' => 'Knob-invariant paycheck deduction — anchors banner take-home to the real check. Never enters federal delta math.',
+    ],
 
     // ── W-4 plane ─────────────────────────────────────────────────────────────
     'w4.filing_status' => [
