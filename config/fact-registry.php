@@ -78,7 +78,13 @@ return [
         'type' => 'money_cents',
         'label' => 'Bonus / variable pay this year (beyond base)',
         'sources' => ['interview_answer', 'user_edit', 'document_extraction'],
-        'notes' => 'Derived from paystub YTD gross annualized vs base pace (≥20% gate). Enters annual tax/MAGI math only — never per-paycheck figures. Optional: absent → base-only behavior.',
+        'notes' => 'Derived from paystub YTD gross annualized vs base pace (≥20% gate). Enters annual tax/MAGI math only — never per-paycheck figures. Optional: absent → base-only behavior. Superseded by income.bonus_structure_pct when that is set.',
+    ],
+    'income.bonus_structure_pct' => [
+        'type' => 'int',
+        'label' => 'Annual bonus (% of base salary)',
+        'sources' => ['interview_answer', 'user_edit', 'document_extraction', 'profile_field'],
+        'notes' => 'Bonus STRUCTURE — e.g. 25 = a 25% annual bonus. Takes precedence over income.bonus_annual_cents in assembleBaseline (bonus = pct × annual base). Set via profile setting or proposed from paystub YTD excess.',
     ],
 
     // ── Pay plane ─────────────────────────────────────────────────────────────

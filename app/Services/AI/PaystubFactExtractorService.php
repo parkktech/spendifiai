@@ -712,6 +712,31 @@ class PaystubFactExtractorService
 
         $bonusCents = (int) round(($annualizedYtd - $annualBase) * 100);
 
+        // Owner refinement (2026-07-06): also propose the bonus STRUCTURE as a percent
+        // of base salary when the excess implies a plausible bonus (5–100%). The
+        // structure is what most users actually know ("I get a 25% annual bonus") and
+        // it recomputes with income, so it takes precedence over the dollar lump in
+        // assembleBaseline once confirmed or corrected.
+        $impliedPct = $annualBase > 0 ? ($annualizedYtd - $annualBase) / $annualBase * 100 : 0.0;
+        if ($impliedPct >= 5 && $impliedPct <= 100) {
+            UserTaxFact::recordFact(
+                userId: $document->user_id,
+                factKey: 'income.bonus_structure_pct',
+                value: (string) round($impliedPct, 1),
+                sourceType: 'document_extraction',
+                label: 'Annual bonus (% of base salary)',
+                volatility: 'annual',
+                taxYear: $document->tax_year,
+                sourceId: (string) $document->id,
+                metadata: [
+                    'confidence' => 0.70,
+                    'document_id' => $document->id,
+                    'derived_from' => 'ytd_excess_vs_base_pct',
+                    'note' => 'Estimated from your pay history — correct this to your actual bonus percentage if it differs.',
+                ],
+            );
+        }
+
         UserTaxFact::recordFact(
             userId: $document->user_id,
             factKey: 'income.bonus_annual_cents',

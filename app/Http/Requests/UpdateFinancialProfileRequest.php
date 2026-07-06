@@ -22,6 +22,10 @@ class UpdateFinancialProfileRequest extends FormRequest
             'tax_filing_status' => 'nullable|in:single,married,head_of_household',
             'estimated_tax_bracket' => 'nullable|integer|in:10,12,22,24,32,35,37',
             'monthly_income' => 'nullable|numeric|min:0',
+            // Yearly bonus structure: percent of base salary OR flat annual amount.
+            'bonus_structure_type' => 'nullable|in:percent,flat',
+            'bonus_structure_pct' => 'nullable|numeric|min:0|max:200|required_if:bonus_structure_type,percent',
+            'bonus_structure_amount' => 'nullable|numeric|min:0|required_if:bonus_structure_type,flat',
             'monthly_savings_goal' => 'nullable|numeric|min:0',
             'tax_year_start' => 'nullable|date',
             // Student info

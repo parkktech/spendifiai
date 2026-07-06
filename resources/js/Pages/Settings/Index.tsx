@@ -56,6 +56,9 @@ export default function SettingsIndex() {
     employment_type: '',
     tax_filing_status: '',
     monthly_income: '',
+    bonus_structure_type: '',
+    bonus_structure_pct: '',
+    bonus_structure_amount: '',
     business_type: '',
     has_home_office: false,
     housing_status: '',
@@ -88,6 +91,13 @@ export default function SettingsIndex() {
         employment_type: profile.employment_type || '',
         tax_filing_status: profile.tax_filing_status || '',
         monthly_income: profile.monthly_income !== null ? String(profile.monthly_income) : '',
+        bonus_structure_type: (profile as { bonus_structure_type?: string | null }).bonus_structure_type || '',
+        bonus_structure_pct: (profile as { bonus_structure_pct?: string | number | null }).bonus_structure_pct != null
+          ? String((profile as { bonus_structure_pct?: string | number | null }).bonus_structure_pct)
+          : '',
+        bonus_structure_amount: (profile as { bonus_structure_amount?: string | number | null }).bonus_structure_amount != null
+          ? String((profile as { bonus_structure_amount?: string | number | null }).bonus_structure_amount)
+          : '',
         business_type: profile.business_type || '',
         has_home_office: profile.has_home_office ?? false,
         housing_status: profile.housing_status || '',
@@ -100,10 +110,15 @@ export default function SettingsIndex() {
       employment_type: profileForm.employment_type || null,
       tax_filing_status: profileForm.tax_filing_status || null,
       monthly_income: profileForm.monthly_income ? Number(profileForm.monthly_income) : null,
+      bonus_structure_type: profileForm.bonus_structure_type || null,
+      bonus_structure_pct: profileForm.bonus_structure_type === 'percent' && profileForm.bonus_structure_pct
+        ? Number(profileForm.bonus_structure_pct) : null,
+      bonus_structure_amount: profileForm.bonus_structure_type === 'flat' && profileForm.bonus_structure_amount
+        ? Number(profileForm.bonus_structure_amount) : null,
       business_type: profileForm.business_type || null,
       has_home_office: profileForm.has_home_office,
       housing_status: profileForm.housing_status || null,
-    });
+    } as Partial<UserFinancialProfile>);
     setProfileSuccess(true);
     setTimeout(() => setProfileSuccess(false), 3000);
   };
@@ -366,6 +381,47 @@ export default function SettingsIndex() {
                 placeholder="5000"
                 className={inputClasses}
               />
+            </div>
+
+            <div>
+              <label className={labelClasses}>Yearly Bonus</label>
+              <div className="flex gap-2">
+                <select
+                  value={profileForm.bonus_structure_type}
+                  onChange={(e) => setProfileForm({ ...profileForm, bonus_structure_type: e.target.value })}
+                  className={inputClasses}
+                >
+                  <option value="">None</option>
+                  <option value="percent">% of salary</option>
+                  <option value="flat">Flat amount</option>
+                </select>
+                {profileForm.bonus_structure_type === 'percent' && (
+                  <input
+                    type="number"
+                    value={profileForm.bonus_structure_pct}
+                    onChange={(e) => setProfileForm({ ...profileForm, bonus_structure_pct: e.target.value })}
+                    placeholder="25"
+                    min="0"
+                    max="200"
+                    aria-label="Bonus percent of salary"
+                    className={inputClasses}
+                  />
+                )}
+                {profileForm.bonus_structure_type === 'flat' && (
+                  <input
+                    type="number"
+                    value={profileForm.bonus_structure_amount}
+                    onChange={(e) => setProfileForm({ ...profileForm, bonus_structure_amount: e.target.value })}
+                    placeholder="10000"
+                    min="0"
+                    aria-label="Bonus flat annual amount"
+                    className={inputClasses}
+                  />
+                )}
+              </div>
+              <p className="text-[11px] text-sw-muted mt-1">
+                Used to estimate your full-year taxes. Percent recalculates as your income changes.
+              </p>
             </div>
 
             <div>

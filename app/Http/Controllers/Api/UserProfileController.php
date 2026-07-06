@@ -110,6 +110,45 @@ class UserProfileController extends Controller
                     volatility: 'stable',
                 );
             }
+
+            // Bonus structure (2026-07-06): yearly bonus expressed either way —
+            // 'percent' of base salary or 'flat' annual dollars. Percent mirrors to
+            // income.bonus_structure_pct (assembleBaseline gives it precedence and
+            // recomputes with income); flat mirrors to income.bonus_annual_cents
+            // directly (user_edit — the strongest tier). Setting one shape clears
+            // the other so the optimizer never sees a stale competing structure.
+            $bonusType = $validated['bonus_structure_type'] ?? null;
+            if ($bonusType === 'percent' && ($validated['bonus_structure_pct'] ?? null) !== null) {
+                UserTaxFact::recordFact(
+                    userId: $userId,
+                    factKey: 'income.bonus_structure_pct',
+                    value: (string) round((float) $validated['bonus_structure_pct'], 2),
+                    sourceType: 'user_edit',
+                    label: 'Annual bonus (% of base salary, from profile)',
+                    volatility: 'annual',
+                    taxYear: now()->year,
+                );
+            } elseif ($bonusType === 'flat' && ($validated['bonus_structure_amount'] ?? null) !== null) {
+                UserTaxFact::recordFact(
+                    userId: $userId,
+                    factKey: 'income.bonus_annual_cents',
+                    value: (string) (int) round((float) $validated['bonus_structure_amount'] * 100),
+                    sourceType: 'user_edit',
+                    label: 'Yearly bonus (flat amount, from profile)',
+                    volatility: 'annual',
+                    taxYear: now()->year,
+                );
+                // Clear any percent structure so the flat amount governs.
+                UserTaxFact::recordFact(
+                    userId: $userId,
+                    factKey: 'income.bonus_structure_pct',
+                    value: '0',
+                    sourceType: 'user_edit',
+                    label: 'Annual bonus (% of base salary, from profile)',
+                    volatility: 'annual',
+                    taxYear: now()->year,
+                );
+            }
         } catch (\Throwable $e) {
             // Non-fatal: fact sync is a best-effort bridge. The profile save
             // itself has already succeeded. Log and continue.

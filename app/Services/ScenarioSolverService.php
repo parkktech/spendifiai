@@ -249,9 +249,21 @@ final class ScenarioSolverService
         // Confirmed annual variable comp (bonus/commission/RSU) beyond base wages.
         // Flows to the engine's ANNUAL taxable-income and MAGI math only — the
         // engine never adds it to per-period figures (bonuses aren't in the
-        // regular check). Optional: absent fact → 0 → prior behavior.
-        $resolvedBonus = $this->resolver->resolve($user, $year, 'income.bonus_annual_cents');
-        $bonusAnnualCents = $resolvedBonus !== null ? max(0, (int) $resolvedBonus['value']) : 0;
+        // regular check). Optional: absent facts → 0 → prior behavior.
+        //
+        // PRECEDENCE (owner decision 2026-07-06): a bonus STRUCTURE percentage
+        // (income.bonus_structure_pct, e.g. "25% annual bonus") beats the
+        // YTD-derived dollar lump — the structure recomputes with income and
+        // avoids overstating a one-time payment as an ongoing pace.
+        $resolvedBonusPct = $this->resolver->resolve($user, $year, 'income.bonus_structure_pct');
+        $bonusStructurePct = $resolvedBonusPct !== null ? max(0.0, (float) $resolvedBonusPct['value']) : null;
+
+        if ($bonusStructurePct !== null && $bonusStructurePct > 0 && $grossCents > 0) {
+            $bonusAnnualCents = (int) round($grossCents * $bonusStructurePct / 100);
+        } else {
+            $resolvedBonus = $this->resolver->resolve($user, $year, 'income.bonus_annual_cents');
+            $bonusAnnualCents = $resolvedBonus !== null ? max(0, (int) $resolvedBonus['value']) : 0;
+        }
 
         // ── Knob-invariant per-paycheck deductions (banner-anchor fix) ────────
         // State withholding + insurance premiums observed on the paystub. These do

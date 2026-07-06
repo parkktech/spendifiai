@@ -13,7 +13,8 @@ class UserFinancialProfile extends Model
     protected $fillable = [
         'user_id', 'employment_type', 'business_type', 'has_home_office',
         'housing_status', 'tax_filing_status', 'estimated_tax_bracket',
-        'monthly_income', 'monthly_savings_goal', 'custom_rules',
+        'monthly_income', 'bonus_structure_type', 'bonus_structure_pct', 'bonus_structure_amount',
+        'monthly_savings_goal', 'custom_rules',
         // Student info
         'is_student', 'school_name', 'enrollment_status',
         // Spouse info
@@ -36,6 +37,8 @@ class UserFinancialProfile extends Model
         return [
             'has_home_office' => 'boolean',
             'monthly_income' => 'encrypted',
+            'bonus_structure_pct' => 'decimal:2',
+            'bonus_structure_amount' => 'decimal:2',
             'monthly_savings_goal' => 'decimal:2',
             'custom_rules' => 'encrypted:array',
             'spouse_income' => 'encrypted',
