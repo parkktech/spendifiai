@@ -279,6 +279,17 @@ final class ScenarioSolverService
             $bonusAnnualCents = $resolvedBonus !== null ? max(0, (int) $resolvedBonus['value']) : 0;
         }
 
+        // Other cash bonuses beyond the main structure (e.g. FLI bonus) — joins the
+        // cash-bonus bucket (same tax + 401(k)-eligibility handling).
+        $resolvedOtherBonus = $this->resolver->resolve($user, $year, 'income.other_bonus_annual_cents');
+        $bonusAnnualCents += $resolvedOtherBonus !== null ? max(0, (int) $resolvedOtherBonus['value']) : 0;
+
+        // Equity / RSUs (owner reconciliation 2026-07-06): annual taxable income for
+        // tax/MAGI math but NEVER part of the 401(k) deferral base — equity vests
+        // don't take payroll deferrals.
+        $resolvedEquity = $this->resolver->resolve($user, $year, 'income.equity_annual_cents');
+        $equityAnnualCents = $resolvedEquity !== null ? max(0, (int) $resolvedEquity['value']) : 0;
+
         // ── Bonus 401(k) eligibility (owner request 2026-07-06) ───────────────
         // When the plan takes deferrals from bonus checks, the engine includes
         // the bonus in deferral-eligible comp. Unknown → no (conservative).
@@ -363,6 +374,7 @@ final class ScenarioSolverService
             'other_per_period_deductions_cents' => $otherDeductionsPP,
             'bonus_annual_cents' => $bonusAnnualCents,
             'bonus_401k_eligible' => $bonus401kEligible,
+            'equity_annual_cents' => $equityAnnualCents,
             'fact_set_hash' => $factSetHash,
         ];
 

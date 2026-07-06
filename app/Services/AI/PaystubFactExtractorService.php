@@ -321,6 +321,58 @@ class PaystubFactExtractorService
             'money' => false,
             'bool_field' => false,
         ],
+        // Total-rewards compensation dollars (owner gap 2026-07-06). Evidence facts
+        // for reconciliation plus direct income proposals (equity, other bonus,
+        // bonus target %). All confirmable — nothing silently overwrites.
+        'total_annual_compensation' => [
+            'fact_key' => 'comp.total_annual_cents',
+            'label' => 'Total annual compensation (HR statement)',
+            'volatility' => 'annual',
+            'money' => true,
+            'bool_field' => false,
+        ],
+        'total_cash_compensation' => [
+            'fact_key' => 'comp.cash_annual_cents',
+            'label' => 'Total cash compensation (HR statement)',
+            'volatility' => 'annual',
+            'money' => true,
+            'bool_field' => false,
+        ],
+        'total_benefits_value' => [
+            'fact_key' => 'comp.benefits_value_cents',
+            'label' => 'Employer-paid benefits value (HR statement)',
+            'volatility' => 'annual',
+            'money' => true,
+            'bool_field' => false,
+        ],
+        'stated_base_salary' => [
+            'fact_key' => 'comp.stated_base_salary_cents',
+            'label' => 'Base salary stated on HR statement',
+            'volatility' => 'annual',
+            'money' => true,
+            'bool_field' => false,
+        ],
+        'bonus_target_pct' => [
+            'fact_key' => 'income.bonus_structure_pct',
+            'label' => 'Annual bonus (% of base salary)',
+            'volatility' => 'annual',
+            'money' => false,
+            'bool_field' => false,
+        ],
+        'stock_annual_value' => [
+            'fact_key' => 'income.equity_annual_cents',
+            'label' => 'Stock / RSUs per year (value)',
+            'volatility' => 'annual',
+            'money' => true,
+            'bool_field' => false,
+        ],
+        'other_bonus_amount' => [
+            'fact_key' => 'income.other_bonus_annual_cents',
+            'label' => 'Other yearly bonuses (beyond the main bonus)',
+            'volatility' => 'annual',
+            'money' => true,
+            'bool_field' => false,
+        ],
     ];
 
     /**

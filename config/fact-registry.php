@@ -86,6 +86,42 @@ return [
         'sources' => ['interview_answer', 'user_edit', 'document_extraction', 'profile_field'],
         'notes' => 'Bonus STRUCTURE — e.g. 25 = a 25% annual bonus. Takes precedence over income.bonus_annual_cents in assembleBaseline (bonus = pct × annual base). Set via profile setting or proposed from paystub YTD excess.',
     ],
+    'income.equity_annual_cents' => [
+        'type' => 'money_cents',
+        'label' => 'Stock / RSUs per year (value)',
+        'sources' => ['interview_answer', 'user_edit', 'document_extraction'],
+        'notes' => 'Annual equity value — taxable income for tax/MAGI math but NEVER part of the 401(k) deferral base (equity vests don\'t take payroll deferrals).',
+    ],
+    'income.other_bonus_annual_cents' => [
+        'type' => 'money_cents',
+        'label' => 'Other yearly bonuses (beyond the main bonus)',
+        'sources' => ['interview_answer', 'user_edit', 'document_extraction'],
+        'notes' => 'Small cash bonuses outside the main structure (e.g. FLI bonus). Joins the cash-bonus bucket for tax math and 401(k)-eligibility handling.',
+    ],
+    'comp.total_annual_cents' => [
+        'type' => 'money_cents',
+        'label' => 'Total annual compensation (HR statement)',
+        'sources' => ['document_extraction'],
+        'notes' => 'Evidence fact for total-rewards reconciliation. Includes non-taxable benefits value — never used directly in tax math.',
+    ],
+    'comp.cash_annual_cents' => [
+        'type' => 'money_cents',
+        'label' => 'Total cash compensation (HR statement)',
+        'sources' => ['document_extraction'],
+        'notes' => 'Evidence fact — reconciled against base + bonus + equity + other bonuses to flag missing income.',
+    ],
+    'comp.benefits_value_cents' => [
+        'type' => 'money_cents',
+        'label' => 'Employer-paid benefits value (HR statement)',
+        'sources' => ['document_extraction'],
+        'notes' => 'Evidence fact. Non-taxable — correctly excluded from tax math.',
+    ],
+    'comp.stated_base_salary_cents' => [
+        'type' => 'money_cents',
+        'label' => 'Base salary stated on HR statement',
+        'sources' => ['document_extraction'],
+        'notes' => 'Evidence fact — cross-check against the paystub-derived base (statement may predate a raise).',
+    ],
 
     // ── Pay plane ─────────────────────────────────────────────────────────────
     'pay.frequency' => [

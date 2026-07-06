@@ -60,6 +60,8 @@ export default function SettingsIndex() {
     bonus_structure_pct: '',
     bonus_structure_amount: '',
     bonus_401k_eligible: false,
+    equity_annual_amount: '',
+    other_bonus_annual_amount: '',
     business_type: '',
     has_home_office: false,
     housing_status: '',
@@ -100,6 +102,12 @@ export default function SettingsIndex() {
           ? String((profile as { bonus_structure_amount?: string | number | null }).bonus_structure_amount)
           : '',
         bonus_401k_eligible: (profile as { bonus_401k_eligible?: boolean | null }).bonus_401k_eligible ?? false,
+        equity_annual_amount: (profile as { equity_annual_amount?: string | number | null }).equity_annual_amount != null
+          ? String((profile as { equity_annual_amount?: string | number | null }).equity_annual_amount)
+          : '',
+        other_bonus_annual_amount: (profile as { other_bonus_annual_amount?: string | number | null }).other_bonus_annual_amount != null
+          ? String((profile as { other_bonus_annual_amount?: string | number | null }).other_bonus_annual_amount)
+          : '',
         business_type: profile.business_type || '',
         has_home_office: profile.has_home_office ?? false,
         housing_status: profile.housing_status || '',
@@ -118,6 +126,8 @@ export default function SettingsIndex() {
       bonus_structure_amount: profileForm.bonus_structure_type === 'flat' && profileForm.bonus_structure_amount
         ? Number(profileForm.bonus_structure_amount) : null,
       bonus_401k_eligible: profileForm.bonus_structure_type ? profileForm.bonus_401k_eligible : null,
+      equity_annual_amount: profileForm.equity_annual_amount ? Number(profileForm.equity_annual_amount) : null,
+      other_bonus_annual_amount: profileForm.other_bonus_annual_amount ? Number(profileForm.other_bonus_annual_amount) : null,
       business_type: profileForm.business_type || null,
       has_home_office: profileForm.has_home_office,
       housing_status: profileForm.housing_status || null,
@@ -438,6 +448,36 @@ export default function SettingsIndex() {
                   </span>
                 </label>
               )}
+            </div>
+
+            <div>
+              <label className={labelClasses}>Stock / RSUs (per year)</label>
+              <input
+                type="number"
+                value={profileForm.equity_annual_amount}
+                onChange={(e) => setProfileForm({ ...profileForm, equity_annual_amount: e.target.value })}
+                placeholder="25000"
+                min="0"
+                className={inputClasses}
+              />
+              <p className="text-[11px] text-sw-muted mt-1">
+                Annual value of stock or RSUs — taxed as income when it vests.
+              </p>
+            </div>
+
+            <div>
+              <label className={labelClasses}>Other Yearly Bonuses</label>
+              <input
+                type="number"
+                value={profileForm.other_bonus_annual_amount}
+                onChange={(e) => setProfileForm({ ...profileForm, other_bonus_annual_amount: e.target.value })}
+                placeholder="2500"
+                min="0"
+                className={inputClasses}
+              />
+              <p className="text-[11px] text-sw-muted mt-1">
+                Smaller bonuses outside your main bonus (spot awards, incentives).
+              </p>
             </div>
 
             <div>

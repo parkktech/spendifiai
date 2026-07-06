@@ -124,6 +124,12 @@ class TaxDocumentExtractorService
         'section_127_available', 'commuter_benefits_available',
         'group_legal_available', 'trump_account_available',
         'employer_trump_account_contribution',
+        // Total-rewards compensation dollars (owner gap 2026-07-06: HR statements
+        // carry the full comp picture — base, bonus target, stock, benefits value —
+        // but only plan-feature booleans were being extracted).
+        'total_annual_compensation', 'total_cash_compensation',
+        'total_benefits_value', 'stated_base_salary',
+        'bonus_target_pct', 'stock_annual_value', 'other_bonus_amount',
     ];
 
     // ── DOC-01 additional financial schemas (Phase 12) ────────────────────────

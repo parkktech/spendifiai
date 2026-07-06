@@ -538,6 +538,45 @@ it('DC-06e: ineligible bonus leaves all contribution math unchanged (backward co
 });
 
 // ─────────────────────────────────────────────────────────────────────────
+// DC-07: EQUITY / RSU INCOME — taxable but never deferral-eligible
+// ─────────────────────────────────────────────────────────────────────────
+// Owner reconciliation (2026-07-06): $25k/yr stock + FLI bonus were missing
+// from taxable income. Equity joins annual tax + MAGI math exactly like the
+// cash bonus, but must NEVER enter the 401(k) deferral base — even when
+// bonus_401k_eligible=true (equity vests don't take payroll deferrals).
+
+it('DC-07a: equity raises annual federal tax like income but never take-home per check', function () {
+    $knobs = dcKnobs(10.0, 0.0);
+
+    $without = $this->engine->computeScenarioOutcome(dcBaseline(), $knobs);
+    $with = $this->engine->computeScenarioOutcome(
+        dcBaseline(['equity_annual_cents' => 2_500_000]), // $25k stock
+        $knobs
+    );
+
+    expect($with['baseline_absolute']['federal_tax_annual_cents'])
+        ->toBeGreaterThan($without['baseline_absolute']['federal_tax_annual_cents']);
+    expect($with['baseline_absolute']['per_period_take_home_cents'])
+        ->toBe($without['baseline_absolute']['per_period_take_home_cents']);
+});
+
+it('DC-07b: equity never joins the deferral base, even with bonus_401k_eligible', function () {
+    $knobs = dcKnobs(5.0, 0.0);
+    $base = ['bonus_annual_cents' => 5_000_000, 'bonus_401k_eligible' => true];
+
+    $noEquity = $this->engine->computeScenarioOutcome(dcBaseline($base), $knobs);
+    $withEquity = $this->engine->computeScenarioOutcome(
+        dcBaseline(array_merge($base, ['equity_annual_cents' => 2_500_000])),
+        $knobs
+    );
+
+    // Contributions delta identical: 5% of (gross + cash bonus) either way —
+    // the $25k equity adds zero deferral-eligible comp.
+    expect($withEquity['retirement']['annual_contributions_delta_cents'])
+        ->toBe($noEquity['retirement']['annual_contributions_delta_cents']);
+});
+
+// ─────────────────────────────────────────────────────────────────────────
 // DC-03: No outbound HTTP
 // ─────────────────────────────────────────────────────────────────────────
 

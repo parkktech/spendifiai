@@ -150,6 +150,33 @@ class UserProfileController extends Controller
                 );
             }
 
+            // Equity + other-bonus income (2026-07-06): annual stock value and small
+            // cash bonuses beyond the main structure. Both are annual taxable income;
+            // equity never joins the 401(k) deferral base.
+            if (array_key_exists('equity_annual_amount', $validated) && $validated['equity_annual_amount'] !== null) {
+                UserTaxFact::recordFact(
+                    userId: $userId,
+                    factKey: 'income.equity_annual_cents',
+                    value: (string) (int) round((float) $validated['equity_annual_amount'] * 100),
+                    sourceType: 'user_edit',
+                    label: 'Stock / RSUs per year (from profile)',
+                    volatility: 'annual',
+                    taxYear: now()->year,
+                );
+            }
+
+            if (array_key_exists('other_bonus_annual_amount', $validated) && $validated['other_bonus_annual_amount'] !== null) {
+                UserTaxFact::recordFact(
+                    userId: $userId,
+                    factKey: 'income.other_bonus_annual_cents',
+                    value: (string) (int) round((float) $validated['other_bonus_annual_amount'] * 100),
+                    sourceType: 'user_edit',
+                    label: 'Other yearly bonuses (from profile)',
+                    volatility: 'annual',
+                    taxYear: now()->year,
+                );
+            }
+
             // Bonus 401(k) eligibility: whether the plan takes deferrals from bonus
             // checks. Feeds the engine's deferral-eligible comp (contributions,
             // 402(g) clamps, match capture).
