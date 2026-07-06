@@ -359,6 +359,88 @@ it('DC-04b: absent or zero other_per_period_deductions is a no-op (backward comp
 });
 
 // ─────────────────────────────────────────────────────────────────────────
+// DC-05: BONUS GROUNDING — variable comp enters annual math only
+// ─────────────────────────────────────────────────────────────────────────
+// Owner request (2026-07-06): "add the bonus grounding for the taxes". The
+// baseline carries bonus_annual_cents (confirmed variable comp beyond base).
+// It must raise BOTH sides of the annual federal tax (real-income liability)
+// and reprice deferral deltas at the correct marginal bracket — but must never
+// touch per-paycheck figures (bonuses are not in the regular check).
+
+it('DC-05a: bonus never moves per-paycheck take-home absolutes or delta', function () {
+    $bonus = 10_000_000; // $100k variable comp
+    $knobs = dcKnobs(12.0, 0.0);
+
+    $without = $this->engine->computeScenarioOutcome(dcBaseline(), $knobs);
+    $with = $this->engine->computeScenarioOutcome(
+        dcBaseline(['bonus_annual_cents' => $bonus]),
+        $knobs
+    );
+
+    expect($with['take_home']['per_paycheck_delta_cents'])
+        ->toBe($without['take_home']['per_paycheck_delta_cents']);
+    expect($with['baseline_absolute']['per_period_take_home_cents'])
+        ->toBe($without['baseline_absolute']['per_period_take_home_cents']);
+});
+
+it('DC-05b: bonus raises both baseline and chosen annual federal tax', function () {
+    $bonus = 10_000_000;
+    $knobs = dcKnobs(12.0, 0.0);
+
+    $without = $this->engine->computeScenarioOutcome(dcBaseline(), $knobs);
+    $with = $this->engine->computeScenarioOutcome(
+        dcBaseline(['bonus_annual_cents' => $bonus]),
+        $knobs
+    );
+
+    expect($with['baseline_absolute']['federal_tax_annual_cents'])
+        ->toBeGreaterThan($without['baseline_absolute']['federal_tax_annual_cents']);
+    // Chosen-side tax (baseline + delta) also rises — the tile grounds on both ends.
+    $chosenWithout = $without['baseline_absolute']['federal_tax_annual_cents']
+        + $without['federal_tax']['annual_delta_cents'];
+    $chosenWith = $with['baseline_absolute']['federal_tax_annual_cents']
+        + $with['federal_tax']['annual_delta_cents'];
+    expect($chosenWith)->toBeGreaterThan($chosenWithout);
+});
+
+it('DC-05c: trad-deferral tax savings at higher bracket are never smaller (bracket monotonicity)', function () {
+    // Pure roth→trad shift at equal deferral: with bonus pushing income into a
+    // higher marginal bracket, each pre-tax dollar saves at least as much tax.
+    $knobsBefore = dcKnobs(10.0, 20.0);
+    $knobsAfter = dcKnobs(10.0, 0.0);
+
+    foreach ([0, 5_000_000, 10_000_000, 20_000_000] as $bonus) {
+        $baseline = dcBaseline(['bonus_annual_cents' => $bonus]);
+        $before = $this->engine->computeScenarioOutcome($baseline, $knobsBefore);
+        $after = $this->engine->computeScenarioOutcome($baseline, $knobsAfter);
+        // roth→trad at equal deferral must never increase federal tax, at any income.
+        $savings[$bonus] = ($after['baseline_absolute']['federal_tax_annual_cents'] + $after['federal_tax']['annual_delta_cents'])
+            - ($before['baseline_absolute']['federal_tax_annual_cents'] + $before['federal_tax']['annual_delta_cents']);
+        expect($savings[$bonus])->toBeLessThanOrEqual(0);
+    }
+
+    // Savings magnitude is non-decreasing as income (bracket) rises.
+    expect(abs($savings[20_000_000]))->toBeGreaterThanOrEqual(abs($savings[0]));
+});
+
+it('DC-05d: absent or zero bonus is a no-op (backward compat)', function () {
+    $knobs = dcKnobs(8.0, 20.0);
+
+    $absent = $this->engine->computeScenarioOutcome(dcBaseline(), $knobs);
+    $zero = $this->engine->computeScenarioOutcome(
+        dcBaseline(['bonus_annual_cents' => 0]),
+        $knobs
+    );
+
+    expect($zero['baseline_absolute']['federal_tax_annual_cents'])
+        ->toBe($absent['baseline_absolute']['federal_tax_annual_cents']);
+    expect($zero['take_home']['per_paycheck_delta_cents'])
+        ->toBe($absent['take_home']['per_paycheck_delta_cents']);
+    expect($zero['federal_tax']['annual_delta_cents'])
+        ->toBe($absent['federal_tax']['annual_delta_cents']);
+});
+
+// ─────────────────────────────────────────────────────────────────────────
 // DC-03: No outbound HTTP
 // ─────────────────────────────────────────────────────────────────────────
 

@@ -245,6 +245,14 @@ final class ScenarioSolverService
             ? (int) $v('prior_year.federal_liability_cents')
             : null;
 
+        // ── Bonus / variable comp (bonus-grounding fix) ───────────────────────
+        // Confirmed annual variable comp (bonus/commission/RSU) beyond base wages.
+        // Flows to the engine's ANNUAL taxable-income and MAGI math only — the
+        // engine never adds it to per-period figures (bonuses aren't in the
+        // regular check). Optional: absent fact → 0 → prior behavior.
+        $resolvedBonus = $this->resolver->resolve($user, $year, 'income.bonus_annual_cents');
+        $bonusAnnualCents = $resolvedBonus !== null ? max(0, (int) $resolvedBonus['value']) : 0;
+
         // ── Knob-invariant per-paycheck deductions (banner-anchor fix) ────────
         // State withholding + insurance premiums observed on the paystub. These do
         // not change with any federal knob, so the engine subtracts them from BOTH
@@ -308,6 +316,7 @@ final class ScenarioSolverService
             'annual_withholding_cents' => $annualWithholding,
             'prior_year_federal_liability_cents' => $priorFedLiability,
             'other_per_period_deductions_cents' => $otherDeductionsPP,
+            'bonus_annual_cents' => $bonusAnnualCents,
             'fact_set_hash' => $factSetHash,
         ];
 

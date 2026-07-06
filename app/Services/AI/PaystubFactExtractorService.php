@@ -143,6 +143,21 @@ class PaystubFactExtractorService
             'volatility' => 'annual',
             'money' => true,
         ],
+        // Bonus-grounding fix (2026-07-06): YTD evidence facts. ytd_gross feeds the
+        // income.bonus_annual_cents derivation (proposeBonusAnnual); ytd_federal_tax
+        // is context for withholding-vs-liability comparisons.
+        'ytd_gross' => [
+            'fact_key' => 'pay.ytd_gross_cents',
+            'label' => 'Year-to-date gross pay (paystub)',
+            'volatility' => 'annual',
+            'money' => true,
+        ],
+        'ytd_federal_tax' => [
+            'fact_key' => 'pay.ytd_federal_withheld_cents',
+            'label' => 'Year-to-date federal tax withheld (paystub)',
+            'volatility' => 'annual',
+            'money' => true,
+        ],
         // Item 3: map period dates into facts so frequency derivation can be persisted
         // as a confirmable proposal (not just an ephemeral resolver derivation).
         'pay_period_start' => [
@@ -412,6 +427,11 @@ class PaystubFactExtractorService
             // If they differ >5%, write an income reconciliation proposal.
             if ($frequencyProposalId !== null) {
                 $this->proposeIncomeReconciliation($document, $fields);
+
+                // ── Bonus-grounding fix: derive annual variable comp ──────────────
+                // Annualized YTD gross ≥20% above the base pace → propose
+                // income.bonus_annual_cents so the engine prices taxes at real income.
+                $this->proposeBonusAnnual($document, $fields);
             }
         }
 
@@ -611,6 +631,104 @@ class PaystubFactExtractorService
                 'derived_monthly_dollars' => round($derivedMonthlyBase, 2),
                 'current_profile_monthly_dollars' => $profileMonthly,
                 'ytd_variable_comp_note' => $ytdVariableCompNote,
+            ],
+        );
+    }
+
+    /**
+     * Bonus-grounding fix (2026-07-06): derive annual variable comp (bonus/commission/
+     * RSU) from paystub YTD evidence and write it as a confirmable proposal.
+     *
+     * Derivation: annualized YTD gross (ytd ÷ elapsed-year-fraction at period end)
+     * compared to the base pace (gross_per_period × periods_per_year). When the
+     * annualized figure is ≥20% above base (same gate as the reconciliation
+     * variable-comp note), the excess is proposed as income.bonus_annual_cents.
+     *
+     * The fact is OPTIONAL everywhere: it is not in any objective requirement chain,
+     * so it never blocks readiness — it only sharpens the tax math once confirmed.
+     * Annualizing mid-year YTD assumes the variable-comp pace continues; the proposal
+     * shape lets the user correct the number if their bonus was a one-time payment.
+     */
+    protected function proposeBonusAnnual(TaxDocument $document, array $fields): void
+    {
+        $grossRaw = $this->fieldValue($fields, 'gross_pay');
+        $ytdRaw = $this->fieldValue($fields, 'ytd_gross');
+        $periodEndRaw = $this->fieldValue($fields, 'pay_period_end') ?? $this->fieldValue($fields, 'pay_date');
+
+        if ($grossRaw === null || (float) $grossRaw <= 0
+            || $ytdRaw === null || (float) $ytdRaw <= 0
+            || $periodEndRaw === null) {
+            return;
+        }
+
+        // Load the frequency from the just-written pay.frequency proposal (same
+        // read pattern as proposeIncomeReconciliation).
+        $frequencyFact = UserTaxFact::forUser($document->user_id)
+            ->where('fact_key', 'pay.frequency')
+            ->where('tax_year', $document->tax_year)
+            ->where('is_current', false)
+            ->where('source_type', 'document_extraction')
+            ->whereNull('superseded_by_id')
+            ->latest('id')
+            ->first();
+
+        $periodsPerYear = match ($frequencyFact?->value) {
+            'weekly' => 52,
+            'biweekly' => 26,
+            'semimonthly' => 24,
+            'monthly' => 12,
+            default => null,
+        };
+
+        if ($periodsPerYear === null) {
+            return;
+        }
+
+        try {
+            $periodEnd = Carbon::parse((string) $periodEndRaw);
+        } catch (\Throwable) {
+            return;
+        }
+
+        $taxYear = $document->tax_year ?? $periodEnd->year;
+        $yearStart = Carbon::create($taxYear, 1, 1);
+        $yearEnd = Carbon::create($taxYear, 12, 31);
+        $totalDays = $yearStart->diffInDays($yearEnd) + 1;
+        $elapsedDays = $yearStart->diffInDays($periodEnd) + 1;
+        $elapsedFraction = $totalDays > 0 ? $elapsedDays / $totalDays : 0.0;
+
+        // Too early in the year to annualize meaningfully (same guard as reconciliation).
+        if ($elapsedFraction <= 0.05) {
+            return;
+        }
+
+        $annualBase = (float) $grossRaw * $periodsPerYear;
+        $annualizedYtd = (float) $ytdRaw / $elapsedFraction;
+
+        // ≥20% above base pace → variable comp is real, propose the excess.
+        if ($annualBase <= 0 || ($annualizedYtd - $annualBase) / $annualBase < 0.20) {
+            return;
+        }
+
+        $bonusCents = (int) round(($annualizedYtd - $annualBase) * 100);
+
+        UserTaxFact::recordFact(
+            userId: $document->user_id,
+            factKey: 'income.bonus_annual_cents',
+            value: (string) $bonusCents,
+            sourceType: 'document_extraction',
+            label: 'Bonus / variable pay this year (beyond base)',
+            volatility: 'annual',
+            taxYear: $document->tax_year,
+            sourceId: (string) $document->id,
+            metadata: [
+                'confidence' => 0.80,
+                'document_id' => $document->id,
+                'derived_from' => 'ytd_gross_annualized_vs_base',
+                'annualized_ytd_dollars' => round($annualizedYtd, 2),
+                'annual_base_dollars' => round($annualBase, 2),
+                'elapsed_year_fraction' => round($elapsedFraction, 4),
+                'note' => 'Assumes the variable-pay pace continues for the full year — correct this if the bonus was a one-time payment.',
             ],
         );
     }

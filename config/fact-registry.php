@@ -74,6 +74,12 @@ return [
         'label' => 'Prior-year income',
         'sources' => ['document_extraction', 'interview_answer', 'user_edit'],
     ],
+    'income.bonus_annual_cents' => [
+        'type' => 'money_cents',
+        'label' => 'Bonus / variable pay this year (beyond base)',
+        'sources' => ['interview_answer', 'user_edit', 'document_extraction'],
+        'notes' => 'Derived from paystub YTD gross annualized vs base pace (≥20% gate). Enters annual tax/MAGI math only — never per-paycheck figures. Optional: absent → base-only behavior.',
+    ],
 
     // ── Pay plane ─────────────────────────────────────────────────────────────
     'pay.frequency' => [
@@ -119,6 +125,18 @@ return [
         'label' => 'Dental/vision premium per paycheck',
         'sources' => ['interview_answer', 'user_edit', 'document_extraction'],
         'notes' => 'Knob-invariant paycheck deduction — anchors banner take-home to the real check. Never enters federal delta math.',
+    ],
+    'pay.ytd_gross_cents' => [
+        'type' => 'money_cents',
+        'label' => 'Year-to-date gross pay (paystub)',
+        'sources' => ['document_extraction'],
+        'notes' => 'Evidence fact — source for the income.bonus_annual_cents derivation.',
+    ],
+    'pay.ytd_federal_withheld_cents' => [
+        'type' => 'money_cents',
+        'label' => 'Year-to-date federal tax withheld (paystub)',
+        'sources' => ['document_extraction'],
+        'notes' => 'Evidence fact — context for withholding-vs-liability comparisons.',
     ],
 
     // ── W-4 plane ─────────────────────────────────────────────────────────────

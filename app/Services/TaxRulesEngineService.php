@@ -817,8 +817,10 @@ class TaxRulesEngineService
 
         $gross = (int) ($baseline['annual_gross_cents'] ?? 0);
         $se = (int) ($baseline['se_income_cents'] ?? 0);
+        // Bonus grounding: MAGI is an annual-income measure — include variable comp.
+        $bonus = max(0, (int) ($baseline['bonus_annual_cents'] ?? 0));
 
-        $magiBeforeIra = max(0, $gross + $se - $a['trad401k'] - $a['hsa']);
+        $magiBeforeIra = max(0, $gross + $bonus + $se - $a['trad401k'] - $a['hsa']);
         $deductibleIra = $this->deductibleTradIraCents($baseline, $a['iraTrad'], $a['deferralCents'], $magiBeforeIra, $year);
 
         return max(0, $magiBeforeIra - $deductibleIra);
@@ -864,6 +866,13 @@ class TaxRulesEngineService
         $age = $baseline['age'] ?? null;
         $gross = (int) ($baseline['annual_gross_cents'] ?? 0);
         $se = (int) ($baseline['se_income_cents'] ?? 0);
+        // Bonus grounding (2026-07-06): variable comp (bonus/commission/RSU) confirmed
+        // from paystub YTD evidence. Enters ANNUAL taxable income and MAGI on BOTH
+        // sides (cur + scn) so the tax tile reflects real income and deferral deltas
+        // price at the correct marginal bracket. NEVER added to per-period gross,
+        // per-period withholding/FICA, or contribution math — bonuses are not in the
+        // regular check and payroll deferral percentages apply to base wages.
+        $bonus = max(0, (int) ($baseline['bonus_annual_cents'] ?? 0));
         $periods = max(1, (int) ($baseline['pay_periods_per_year'] ?? 0));
 
         $clamps = [];
@@ -927,7 +936,7 @@ class TaxRulesEngineService
         $iraRoom = $this->remainingIraRoomCents($iraTradYtd + $iraRothYtd, $age, $year);
         $iraTrad = (int) $v['ira']['traditional_cents'];
         $iraRoth = (int) $v['ira']['roth_cents'];
-        $magiBeforeIra = max(0, $gross + $se - $trad401k - $hsa);
+        $magiBeforeIra = max(0, $gross + $bonus + $se - $trad401k - $hsa);
 
         $rothElig = $this->rothIraEligibility($magiBeforeIra, $status, $year);
         $rothAllowed = max(0, $rothElig['limit_cents'] - $iraRothYtd);
@@ -967,7 +976,7 @@ class TaxRulesEngineService
         if ($baseline['is_marketplace_enrollee'] ?? false) {
             $buffer = config('optimizer-scenarios.assumptions.aca_cliff_buffer_cents');
             // iraTrad is already deductible-capped in Step 1d, so it reduces MAGI dollar-for-dollar.
-            $magi = max(0, $gross + $se - $trad401k - $hsa - $iraTrad);
+            $magi = max(0, $gross + $bonus + $se - $trad401k - $hsa - $iraTrad);
             $need = $buffer - $this->acaCliffHeadroomCents($magi, $status, $year);
 
             if ($need > 0) {
@@ -979,7 +988,7 @@ class TaxRulesEngineService
 
                 // (b) Roth IRA → Traditional IRA, up to the deductible headroom.
                 if ($need > 0 && $iraRoth > 0) {
-                    $magiAfterA = max(0, $gross + $se - $trad401k - $hsa);
+                    $magiAfterA = max(0, $gross + $bonus + $se - $trad401k - $hsa);
                     $dedCapA = $this->tradIraDeductibleCapCents($baseline, $magiAfterA, $covered, $year);
                     $dedHeadroom = max(0, $dedCapA - $iraTrad);
                     $shift2 = min($need, $iraRoth, $dedHeadroom);
@@ -1013,15 +1022,15 @@ class TaxRulesEngineService
 
         $stdDeduction = $this->standardDeductionCents($status, $age, $year);
 
-        $curMagiBeforeIra = max(0, $gross + $se - $curTrad401k - $curHsa);
+        $curMagiBeforeIra = max(0, $gross + $bonus + $se - $curTrad401k - $curHsa);
         $curDedIra = $this->deductibleTradIraCents($baseline, $curIraTrad, $curTrad401k + $curRoth401k, $curMagiBeforeIra, $year);
         $curPretax = $curTrad401k + $curHsa + $curDedIra;
-        $curTaxable = max(0, $gross + $se - $curPretax - $stdDeduction);
+        $curTaxable = max(0, $gross + $bonus + $se - $curPretax - $stdDeduction);
         $curTax = $this->computeTax($curTaxable, $status, $year);
 
         $scnDedIra = $iraTrad; // already capped at the deductible amount in Step 1d.
         $scnPretax = $trad401k + $hsa + $scnDedIra;
-        $scnTaxable = max(0, $gross + $se - $scnPretax - $stdDeduction);
+        $scnTaxable = max(0, $gross + $bonus + $se - $scnPretax - $stdDeduction);
         $scnTax = $this->computeTax($scnTaxable, $status, $year);
 
         $federalTaxAnnualDelta = $scnTax - $curTax;
