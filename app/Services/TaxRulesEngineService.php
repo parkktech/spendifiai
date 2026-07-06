@@ -873,6 +873,13 @@ class TaxRulesEngineService
         // per-period withholding/FICA, or contribution math — bonuses are not in the
         // regular check and payroll deferral percentages apply to base wages.
         $bonus = max(0, (int) ($baseline['bonus_annual_cents'] ?? 0));
+        // Bonus 401(k) eligibility: when the plan takes deferrals from bonus checks,
+        // the bonus joins deferral-eligible comp (contribution amounts, 402(g) clamps,
+        // match capture). $baseShare recovers the regular-check portion of any deferral
+        // for per-period math (model assumption: the same election % applies to both).
+        $bonusEligible = ($baseline['bonus_401k_eligible'] ?? false) === true;
+        $deferralBase = $gross + ($bonusEligible ? $bonus : 0);
+        $baseShare = $deferralBase > 0 ? $gross / $deferralBase : 1;
         $periods = max(1, (int) ($baseline['pay_periods_per_year'] ?? 0));
 
         $clamps = [];
@@ -890,11 +897,11 @@ class TaxRulesEngineService
 
         // ── Step 1: ordered clamps ─────────────────────────────────────────
         // 1a. 401(k) full-year deferral limit incl. catch-ups.
-        $deferralCents = (int) round($gross * $v['k401']['deferral_pct'] / 100);
+        $deferralCents = (int) round($deferralBase * $v['k401']['deferral_pct'] / 100);
         $limit401k = $this->full401kLimitCents($age, $year);
         if ($deferralCents > $limit401k) {
             $deferralCents = $limit401k;
-            $v['k401']['deferral_pct'] = $gross > 0 ? $deferralCents / $gross * 100 : 0;
+            $v['k401']['deferral_pct'] = $deferralBase > 0 ? $deferralCents / $deferralBase * 100 : 0;
             $clamps[] = '401k_annual_limit';
         }
         $roth401k = (int) round($deferralCents * $v['k401']['roth_share_pct'] / 100);
@@ -1053,7 +1060,7 @@ class TaxRulesEngineService
 
         $scnWH = $this->estimatePeriodWithholdingCents(
             $periodGross,
-            (int) round(($trad401k + $hsa) / $periods),
+            (int) round(($trad401k * $baseShare + $hsa) / $periods),
             $v['w4']['filing_status'],
             (int) $v['w4']['dependents_under_17'],
             (int) $v['w4']['other_dependents'],
@@ -1067,14 +1074,16 @@ class TaxRulesEngineService
         // so the displayed absolutes match the real check — the delta is unaffected
         // (same constant both sides — DELTA-CONSISTENCY LAW).
         $otherDeductionsPP = max(0, (int) ($baseline['other_per_period_deductions_cents'] ?? 0));
-        $scnTakeHome = $periodGross - (int) round(($trad401k + $roth401k + $hsa) / $periods) - $scnWH - $scnFica - $otherDeductionsPP;
+        // Per-period 401(k) uses only the regular-check portion ($baseShare) — the
+        // bonus-check deferral never reduces the regular paycheck.
+        $scnTakeHome = $periodGross - (int) round((($trad401k + $roth401k) * $baseShare + $hsa) / $periods) - $scnWH - $scnFica - $otherDeductionsPP;
         // Observed withholding per period (paystub actual); set only in the annual_withholding branch
         // for context display — NEVER used as one side of a delta (DELTA-CONSISTENCY LAW).
         $observedCurWH = null;
         if ($w4Known) {
             $curWH = $this->estimatePeriodWithholdingCents(
                 $periodGross,
-                (int) round(($curTrad401k + $curHsa) / $periods),
+                (int) round(($curTrad401k * $baseShare + $curHsa) / $periods),
                 $w4OnFile['filing_status'],
                 (int) ($w4OnFile['dependents_claimed'] ?? 0),
                 0,
@@ -1090,7 +1099,7 @@ class TaxRulesEngineService
             $observedCurWH = (int) round($baseline['annual_withholding_cents'] / $periods);
             $curWH = $this->estimatePeriodWithholdingCents(
                 $periodGross,
-                (int) round(($curTrad401k + $curHsa) / $periods),
+                (int) round(($curTrad401k * $baseShare + $curHsa) / $periods),
                 $v['w4']['filing_status'],
                 (int) $v['w4']['dependents_under_17'],
                 (int) $v['w4']['other_dependents'],
@@ -1102,7 +1111,7 @@ class TaxRulesEngineService
             // No W-4 evidence: align baseline withholding to the scenario W-4 (K1 delta = 0).
             $curWH = $this->estimatePeriodWithholdingCents(
                 $periodGross,
-                (int) round(($curTrad401k + $curHsa) / $periods),
+                (int) round(($curTrad401k * $baseShare + $curHsa) / $periods),
                 $v['w4']['filing_status'],
                 (int) $v['w4']['dependents_under_17'],
                 (int) $v['w4']['other_dependents'],
@@ -1112,10 +1121,11 @@ class TaxRulesEngineService
             $w4DeltaIncluded = false;
         }
         $curFica = (int) round($this->employeeFicaCents(max(0, $gross - $curHsa), $year)['total_cents'] / $periods);
-        $curTakeHome = $periodGross - (int) round(($curTrad401k + $curRoth401k + $curHsa) / $periods) - $curWH - $curFica - $otherDeductionsPP;
+        // Per-period 401(k) uses only the regular-check portion ($baseShare) — see scn side.
+        $curTakeHome = $periodGross - (int) round((($curTrad401k + $curRoth401k) * $baseShare + $curHsa) / $periods) - $curWH - $curFica - $otherDeductionsPP;
         // Observed take-home context (when paystub withholding exists but no W-4 on file).
         $observedCurTakeHome = $observedCurWH !== null
-            ? $periodGross - (int) round(($curTrad401k + $curRoth401k + $curHsa) / $periods) - $observedCurWH - $curFica - $otherDeductionsPP
+            ? $periodGross - (int) round((($curTrad401k + $curRoth401k) * $baseShare + $curHsa) / $periods) - $observedCurWH - $curFica - $otherDeductionsPP
             : null;
 
         $perPaycheckDelta = $scnTakeHome - $curTakeHome;
@@ -1136,8 +1146,9 @@ class TaxRulesEngineService
 
         $matchPct = (float) ($baseline['employer']['match_pct'] ?? 0);
         $threshPct = (float) ($baseline['employer']['match_threshold_pct'] ?? 0);
-        $scnMatch = $this->matchCaptureCents($gross, (float) $v['k401']['deferral_pct'], $matchPct, $threshPct);
-        $curMatch = $this->matchCaptureCents($gross, (float) ($baseline['current']['deferral_pct'] ?? 0), $matchPct, $threshPct);
+        // Match capture on deferral-eligible comp (includes the bonus when eligible).
+        $scnMatch = $this->matchCaptureCents($deferralBase, (float) $v['k401']['deferral_pct'], $matchPct, $threshPct);
+        $curMatch = $this->matchCaptureCents($deferralBase, (float) ($baseline['current']['deferral_pct'] ?? 0), $matchPct, $threshPct);
         $matchDelta = $scnMatch - $curMatch;
 
         $hsaDelta = $hsa - $curHsa;
@@ -1234,7 +1245,11 @@ class TaxRulesEngineService
     private function deriveKnobAmounts(array $baseline, array $normalizedKnobs): array
     {
         $gross = (int) ($baseline['annual_gross_cents'] ?? 0);
-        $deferralCents = (int) round($gross * $normalizedKnobs['k401']['deferral_pct'] / 100);
+        // Deferral-eligible comp includes the bonus when the plan defers from bonus checks.
+        $deferralBase = $gross + ((($baseline['bonus_401k_eligible'] ?? false) === true)
+            ? max(0, (int) ($baseline['bonus_annual_cents'] ?? 0))
+            : 0);
+        $deferralCents = (int) round($deferralBase * $normalizedKnobs['k401']['deferral_pct'] / 100);
         $roth401k = (int) round($deferralCents * $normalizedKnobs['k401']['roth_share_pct'] / 100);
 
         return [

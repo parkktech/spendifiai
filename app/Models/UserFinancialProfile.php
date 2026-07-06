@@ -14,7 +14,7 @@ class UserFinancialProfile extends Model
         'user_id', 'employment_type', 'business_type', 'has_home_office',
         'housing_status', 'tax_filing_status', 'estimated_tax_bracket',
         'monthly_income', 'bonus_structure_type', 'bonus_structure_pct', 'bonus_structure_amount',
-        'monthly_savings_goal', 'custom_rules',
+        'bonus_401k_eligible', 'monthly_savings_goal', 'custom_rules',
         // Student info
         'is_student', 'school_name', 'enrollment_status',
         // Spouse info
@@ -39,6 +39,7 @@ class UserFinancialProfile extends Model
             'monthly_income' => 'encrypted',
             'bonus_structure_pct' => 'decimal:2',
             'bonus_structure_amount' => 'decimal:2',
+            'bonus_401k_eligible' => 'boolean',
             'monthly_savings_goal' => 'decimal:2',
             'custom_rules' => 'encrypted:array',
             'spouse_income' => 'encrypted',

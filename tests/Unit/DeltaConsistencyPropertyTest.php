@@ -441,6 +441,103 @@ it('DC-05d: absent or zero bonus is a no-op (backward compat)', function () {
 });
 
 // ─────────────────────────────────────────────────────────────────────────
+// DC-06: BONUS 401(k) ELIGIBILITY — deferral base vs per-paycheck isolation
+// ─────────────────────────────────────────────────────────────────────────
+// Owner: "the optimization needs to properly account for that bonus, its taxes
+// and 401k contributions". When bonus_401k_eligible=true the bonus joins
+// deferral-eligible comp (contribution amounts, 402(g) clamps, match capture),
+// but the REGULAR paycheck only ever carries the base-wage share of the
+// deferral — the bonus-check deferral must never reduce the regular check.
+
+it('DC-06a: eligible bonus increases scenario contributions by pct x bonus', function () {
+    $bonus = 5_000_000; // $50k
+    // 5% keeps the combined deferral ($12.5k) safely under the 402(g) limit —
+    // at 10% the $25k total would clamp (that clamp is covered by DC-06d).
+    $knobs = dcKnobs(5.0, 0.0);
+
+    $ineligible = $this->engine->computeScenarioOutcome(
+        dcBaseline(['bonus_annual_cents' => $bonus, 'bonus_401k_eligible' => false]),
+        $knobs
+    );
+    $eligible = $this->engine->computeScenarioOutcome(
+        dcBaseline(['bonus_annual_cents' => $bonus, 'bonus_401k_eligible' => true]),
+        $knobs
+    );
+
+    // 5% of the $50k bonus = $2,500 more in annual contributions.
+    expect(
+        $eligible['retirement']['annual_contributions_delta_cents']
+        - $ineligible['retirement']['annual_contributions_delta_cents']
+    )->toBe(250_000);
+});
+
+it('DC-06b: per-paycheck take-home carries only the base-wage share of the deferral', function () {
+    $bonus = 5_000_000;
+    $knobs = dcKnobs(10.0, 0.0);
+
+    $ineligible = $this->engine->computeScenarioOutcome(
+        dcBaseline(['bonus_annual_cents' => $bonus, 'bonus_401k_eligible' => false]),
+        $knobs
+    );
+    $eligible = $this->engine->computeScenarioOutcome(
+        dcBaseline(['bonus_annual_cents' => $bonus, 'bonus_401k_eligible' => true]),
+        $knobs
+    );
+
+    // The regular check's 401(k) deduction is pct x base wages either way, but the
+    // eligible case defers more pre-tax overall -> annual withholding drops via the
+    // period WH table, so eligible take-home per check can only be >= ineligible.
+    expect($eligible['baseline_absolute']['per_period_take_home_cents'])
+        ->toBeGreaterThanOrEqual($ineligible['baseline_absolute']['per_period_take_home_cents'] - 100);
+});
+
+it('DC-06c: match capture uses deferral-eligible comp', function () {
+    $bonus = 5_000_000;
+    $knobs = dcKnobs(6.0, 0.0);
+    $matchTerms = ['employer' => ['match_pct' => 50.0, 'match_threshold_pct' => 6.0, 'has_401k' => true]];
+
+    $ineligible = $this->engine->computeScenarioOutcome(
+        dcBaseline(array_merge($matchTerms, ['bonus_annual_cents' => $bonus, 'bonus_401k_eligible' => false])),
+        $knobs
+    );
+    $eligible = $this->engine->computeScenarioOutcome(
+        dcBaseline(array_merge($matchTerms, ['bonus_annual_cents' => $bonus, 'bonus_401k_eligible' => true])),
+        $knobs
+    );
+
+    // 50% match on 6% of $50k more comp = $1,500 more employer match.
+    expect(
+        $eligible['retirement']['employer_match_delta_cents']
+        - $ineligible['retirement']['employer_match_delta_cents']
+    )->toBe(150_000);
+});
+
+it('DC-06d: 402(g) clamp applies to the combined deferral', function () {
+    // 20% of ($200k + $50k) = $50k >> the employee deferral limit — must clamp.
+    $out = $this->engine->computeScenarioOutcome(
+        dcBaseline(['bonus_annual_cents' => 5_000_000, 'bonus_401k_eligible' => true]),
+        dcKnobs(20.0, 0.0)
+    );
+
+    expect($out['guards']['clamps'])->toContain('401k_annual_limit');
+});
+
+it('DC-06e: ineligible bonus leaves all contribution math unchanged (backward compat)', function () {
+    $knobs = dcKnobs(10.0, 20.0);
+
+    $noBonus = $this->engine->computeScenarioOutcome(dcBaseline(), $knobs);
+    $ineligibleBonus = $this->engine->computeScenarioOutcome(
+        dcBaseline(['bonus_annual_cents' => 5_000_000, 'bonus_401k_eligible' => false]),
+        $knobs
+    );
+
+    expect($ineligibleBonus['retirement']['annual_contributions_delta_cents'])
+        ->toBe($noBonus['retirement']['annual_contributions_delta_cents']);
+    expect($ineligibleBonus['take_home']['per_paycheck_delta_cents'])
+        ->toBe($noBonus['take_home']['per_paycheck_delta_cents']);
+});
+
+// ─────────────────────────────────────────────────────────────────────────
 // DC-03: No outbound HTTP
 // ─────────────────────────────────────────────────────────────────────────
 

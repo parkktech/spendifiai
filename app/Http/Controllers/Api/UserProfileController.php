@@ -149,6 +149,21 @@ class UserProfileController extends Controller
                     taxYear: now()->year,
                 );
             }
+
+            // Bonus 401(k) eligibility: whether the plan takes deferrals from bonus
+            // checks. Feeds the engine's deferral-eligible comp (contributions,
+            // 402(g) clamps, match capture).
+            if (array_key_exists('bonus_401k_eligible', $validated) && $validated['bonus_401k_eligible'] !== null) {
+                UserTaxFact::recordFact(
+                    userId: $userId,
+                    factKey: 'employer.bonus_401k_eligible',
+                    value: $validated['bonus_401k_eligible'] ? 'yes' : 'no',
+                    sourceType: 'user_edit',
+                    label: '401(k) deferrals taken from bonus checks (from profile)',
+                    volatility: 'stable',
+                    taxYear: now()->year,
+                );
+            }
         } catch (\Throwable $e) {
             // Non-fatal: fact sync is a best-effort bridge. The profile save
             // itself has already succeeded. Log and continue.

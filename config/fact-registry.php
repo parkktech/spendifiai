@@ -232,6 +232,19 @@ return [
         'label' => 'Employer match percentage',
         'sources' => ['interview_answer', 'user_edit', 'document_extraction', 'derived'],
     ],
+    'employer.bonus_401k_eligible' => [
+        'type' => 'enum',
+        'label' => '401(k) deferrals taken from bonus checks',
+        'enum' => ['yes', 'no'],
+        'sources' => ['interview_answer', 'user_edit', 'document_extraction'],
+        'notes' => 'When yes, the engine includes the annual bonus in deferral-eligible comp (contributions, 402(g) clamps, match capture). Per-paycheck figures always stay base-only. Absent/unknown → no (conservative).',
+    ],
+    'retirement.statement_ytd_employer_contributions_cents' => [
+        'type' => 'money_cents',
+        'label' => 'Employer YTD contributions (retirement statement)',
+        'sources' => ['document_extraction'],
+        'notes' => 'Evidence fact — source for the employer match derivation (ratio vs employee YTD).',
+    ],
     'employer.match_threshold_pct' => [
         'type' => 'int',
         'label' => 'Employer match threshold',

@@ -59,6 +59,7 @@ export default function SettingsIndex() {
     bonus_structure_type: '',
     bonus_structure_pct: '',
     bonus_structure_amount: '',
+    bonus_401k_eligible: false,
     business_type: '',
     has_home_office: false,
     housing_status: '',
@@ -98,6 +99,7 @@ export default function SettingsIndex() {
         bonus_structure_amount: (profile as { bonus_structure_amount?: string | number | null }).bonus_structure_amount != null
           ? String((profile as { bonus_structure_amount?: string | number | null }).bonus_structure_amount)
           : '',
+        bonus_401k_eligible: (profile as { bonus_401k_eligible?: boolean | null }).bonus_401k_eligible ?? false,
         business_type: profile.business_type || '',
         has_home_office: profile.has_home_office ?? false,
         housing_status: profile.housing_status || '',
@@ -115,6 +117,7 @@ export default function SettingsIndex() {
         ? Number(profileForm.bonus_structure_pct) : null,
       bonus_structure_amount: profileForm.bonus_structure_type === 'flat' && profileForm.bonus_structure_amount
         ? Number(profileForm.bonus_structure_amount) : null,
+      bonus_401k_eligible: profileForm.bonus_structure_type ? profileForm.bonus_401k_eligible : null,
       business_type: profileForm.business_type || null,
       has_home_office: profileForm.has_home_office,
       housing_status: profileForm.housing_status || null,
@@ -422,6 +425,19 @@ export default function SettingsIndex() {
               <p className="text-[11px] text-sw-muted mt-1">
                 Used to estimate your full-year taxes. Percent recalculates as your income changes.
               </p>
+              {profileForm.bonus_structure_type && (
+                <label className="flex items-center gap-2 mt-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={profileForm.bonus_401k_eligible}
+                    onChange={(e) => setProfileForm({ ...profileForm, bonus_401k_eligible: e.target.checked })}
+                    className="rounded border-sw-border"
+                  />
+                  <span className="text-[12px] text-sw-text-secondary">
+                    My 401(k) contributions also come out of bonus checks
+                  </span>
+                </label>
+              )}
             </div>
 
             <div>

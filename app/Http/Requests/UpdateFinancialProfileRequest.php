@@ -26,6 +26,7 @@ class UpdateFinancialProfileRequest extends FormRequest
             'bonus_structure_type' => 'nullable|in:percent,flat',
             'bonus_structure_pct' => 'nullable|numeric|min:0|max:200|required_if:bonus_structure_type,percent',
             'bonus_structure_amount' => 'nullable|numeric|min:0|required_if:bonus_structure_type,flat',
+            'bonus_401k_eligible' => 'nullable|boolean',
             'monthly_savings_goal' => 'nullable|numeric|min:0',
             'tax_year_start' => 'nullable|date',
             // Student info

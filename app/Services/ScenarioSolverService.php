@@ -236,9 +236,23 @@ final class ScenarioSolverService
         $spouseCovered = in_array($spCovered, ['yes', 'true', '1', true], true);
 
         // ── Annual withholding (for safe-harbor guardrail, T3) ────────────────
-        $annualWithholding = $v('employer.federal_withholding') !== null
-            ? (int) $v('employer.federal_withholding')
-            : null;
+        // Bonus-accounting fix (2026-07-06): PREFER the paystub YTD projection —
+        // ytd-withheld + per-period × remaining checks. It captures bonus-check
+        // withholding and mid-year W-4 changes, which both the resolver's
+        // per-period×periods derivation and a prior-year W-2 figure miss.
+        $annualWithholding = null;
+        $resolvedYtdWH = $this->resolver->resolve($user, $year, 'pay.ytd_federal_withheld_cents');
+        $resolvedPPWH = $this->resolver->resolve($user, $year, 'pay.federal_withholding_per_period_cents');
+        if ($resolvedYtdWH !== null && $resolvedPPWH !== null) {
+            $remainingPeriods = max(0, $periods - (int) round($periods * $annFraction));
+            $annualWithholding = max(0, (int) $resolvedYtdWH['value'])
+                + max(0, (int) $resolvedPPWH['value']) * $remainingPeriods;
+        }
+
+        // Fallback: the resolver chain (direct fact or derivation).
+        if ($annualWithholding === null && $v('employer.federal_withholding') !== null) {
+            $annualWithholding = (int) $v('employer.federal_withholding');
+        }
 
         // ── Prior year federal liability (T8) ─────────────────────────────────
         $priorFedLiability = $v('prior_year.federal_liability_cents') !== null
@@ -263,6 +277,25 @@ final class ScenarioSolverService
         } else {
             $resolvedBonus = $this->resolver->resolve($user, $year, 'income.bonus_annual_cents');
             $bonusAnnualCents = $resolvedBonus !== null ? max(0, (int) $resolvedBonus['value']) : 0;
+        }
+
+        // ── Bonus 401(k) eligibility (owner request 2026-07-06) ───────────────
+        // When the plan takes deferrals from bonus checks, the engine includes
+        // the bonus in deferral-eligible comp. Unknown → no (conservative).
+        $resolvedBonusElig = $this->resolver->resolve($user, $year, 'employer.bonus_401k_eligible');
+        $bonus401kEligible = in_array($resolvedBonusElig['value'] ?? null, ['yes', 'true', '1'], true);
+
+        // Current-side bonus deferral: the observed per-period 401(k) amounts are
+        // base-check-sourced. When the bonus is deferral-eligible, the same
+        // election percentage also comes out of bonus checks — add that portion
+        // to current annual contributions (pro-rata by the observed roth share)
+        // so taxes and headroom reflect what is actually being contributed.
+        if ($bonus401kEligible && $bonusAnnualCents > 0 && $curDeferralPct > 0) {
+            $bonusDeferral = (int) round($bonusAnnualCents * $curDeferralPct / 100);
+            $baseTotal = $annTrad401k + $annRoth401k;
+            $rothShare = $baseTotal > 0 ? $annRoth401k / $baseTotal : 0.0;
+            $annRoth401k += (int) round($bonusDeferral * $rothShare);
+            $annTrad401k += $bonusDeferral - (int) round($bonusDeferral * $rothShare);
         }
 
         // ── Knob-invariant per-paycheck deductions (banner-anchor fix) ────────
@@ -329,6 +362,7 @@ final class ScenarioSolverService
             'prior_year_federal_liability_cents' => $priorFedLiability,
             'other_per_period_deductions_cents' => $otherDeductionsPP,
             'bonus_annual_cents' => $bonusAnnualCents,
+            'bonus_401k_eligible' => $bonus401kEligible,
             'fact_set_hash' => $factSetHash,
         ];
 
@@ -1229,6 +1263,13 @@ final class ScenarioSolverService
         $curRoth401k = (int) ($baseline['current']['roth_401k_cents'] ?? 0);
         $curHsa = (int) ($baseline['current']['hsa_cents'] ?? 0);
 
+        // Bonus-eligible deferrals: current amounts include the bonus-check portion;
+        // per-period math must use only the regular-check share (mirrors the engine).
+        $bonusForShare = (($baseline['bonus_401k_eligible'] ?? false) === true)
+            ? max(0, (int) ($baseline['bonus_annual_cents'] ?? 0))
+            : 0;
+        $baseShare = ($gross + $bonusForShare) > 0 ? $gross / ($gross + $bonusForShare) : 1.0;
+
         // Prefer the confirmed per-period gross over annual÷periods to avoid
         // the units error where annual_gross_cents was set from per-period gross
         // (causing periodGross = per_period_gross / periods instead of per_period_gross).
@@ -1252,7 +1293,7 @@ final class ScenarioSolverService
         if ($w4Status !== '') {
             $curWH = $this->engine->estimatePeriodWithholdingCents(
                 $periodGross,
-                (int) round(($curTrad401k + $curHsa) / $periods),
+                (int) round(($curTrad401k * $baseShare + $curHsa) / $periods),
                 $w4Status,
                 $w4DepsAll,
                 0,
@@ -1265,7 +1306,7 @@ final class ScenarioSolverService
             // estimate from confirmed filing status so the floor guard is model-consistent.
             $curWH = $this->engine->estimatePeriodWithholdingCents(
                 $periodGross,
-                (int) round(($curTrad401k + $curHsa) / $periods),
+                (int) round(($curTrad401k * $baseShare + $curHsa) / $periods),
                 $this->confirmedStatusToW4Status((string) ($baseline['filing_status'] ?? 'single')),
                 0, 0,
                 $periods,
@@ -1279,7 +1320,7 @@ final class ScenarioSolverService
         );
 
         return $periodGross
-            - (int) round(($curTrad401k + $curRoth401k + $curHsa) / $periods)
+            - (int) round((($curTrad401k + $curRoth401k) * $baseShare + $curHsa) / $periods)
             - $curWH
             - $curFica
             // Banner-anchor fix: same knob-invariant deductions the engine subtracts,

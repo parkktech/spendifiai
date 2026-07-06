@@ -196,6 +196,13 @@ class PaystubFactExtractorService
             'volatility' => 'annual',
             'money' => true,
         ],
+        // Bonus-accounting fix (2026-07-06): employer YTD feeds the match derivation.
+        'ytd_employer_contributions' => [
+            'fact_key' => 'retirement.statement_ytd_employer_contributions_cents',
+            'label' => 'Employer YTD contributions (retirement statement)',
+            'volatility' => 'annual',
+            'money' => true,
+        ],
     ];
 
     /**
@@ -418,6 +425,14 @@ class PaystubFactExtractorService
         // pay.period_end proposals (or falls back to raw extracted fields) and
         // derives the pay frequency using the canonical span table.
         // Emits pay.frequency as a document_extraction proposal (known tier; confirmable).
+        // ── Bonus-accounting fix: derive the employer match from statement YTDs ──
+        // employer_ytd / employee_ytd = the match rate actually being paid. Beats
+        // asking the user ("I don't remember" was previously recorded as 0% match,
+        // making the engine model ZERO employer match).
+        if ($document->category === TaxDocumentCategory::RetirementStatement) {
+            $this->proposeEmployerMatch($document, $fields, $count);
+        }
+
         if ($document->category === TaxDocumentCategory::PayStub) {
             $frequencyProposalId = $this->proposeFrequency($document, $fields, $count);
 
@@ -633,6 +648,88 @@ class PaystubFactExtractorService
                 'ytd_variable_comp_note' => $ytdVariableCompNote,
             ],
         );
+    }
+
+    /**
+     * Bonus-accounting fix (2026-07-06): derive the employer 401(k) match from a
+     * retirement statement's YTD figures and write confirmable proposals.
+     *
+     * match rate = employer_ytd / employee_ytd (the rate actually being paid).
+     * The threshold is not directly observable — but the ratio holding at the
+     * user's CURRENT deferral percentage proves threshold ≥ that percentage, so
+     * we propose the observed deferral pct as an "at least" threshold. Both are
+     * document_extraction proposals (user can correct to the plan's real terms).
+     *
+     * Interview answers of "I don't remember" were previously recorded as 0% —
+     * a statement-derived rate replaces modeled-zero match with observed reality.
+     */
+    protected function proposeEmployerMatch(TaxDocument $document, array $fields, int &$count): void
+    {
+        $employeeYtd = $this->fieldValue($fields, 'ytd_contributions');
+        $employerYtd = $this->fieldValue($fields, 'ytd_employer_contributions');
+
+        if ($employeeYtd === null || (float) $employeeYtd <= 0
+            || $employerYtd === null || (float) $employerYtd <= 0) {
+            return;
+        }
+
+        $ratioPct = (float) $employerYtd / (float) $employeeYtd * 100;
+
+        // Plausible match range (10%–200%); outside it the figures likely include
+        // profit-sharing or rollovers — don't propose garbage.
+        if ($ratioPct < 10 || $ratioPct > 200) {
+            return;
+        }
+
+        UserTaxFact::recordFact(
+            userId: $document->user_id,
+            factKey: 'employer.match_pct',
+            value: (string) round($ratioPct),
+            sourceType: 'document_extraction',
+            label: 'Employer 401(k) match percentage',
+            volatility: 'stable',
+            taxYear: $document->tax_year,
+            sourceId: (string) $document->id,
+            metadata: [
+                'confidence' => 0.85,
+                'document_id' => $document->id,
+                'derived_from' => 'statement_employer_vs_employee_ytd',
+                'employee_ytd_dollars' => round((float) $employeeYtd, 2),
+                'employer_ytd_dollars' => round((float) $employerYtd, 2),
+            ],
+        );
+        $count++;
+
+        // Threshold ≥ current deferral pct (observed: the full match rate held at
+        // this deferral level). Derive the pct from confirmed paystub facts.
+        $grossPP = UserTaxFact::currentFact($document->user_id, 'pay.gross_per_period_cents', null, $document->tax_year);
+        $tradPP = UserTaxFact::currentFact($document->user_id, 'retirement.traditional_401k_per_period_cents', null, $document->tax_year);
+        $rothPP = UserTaxFact::currentFact($document->user_id, 'retirement.roth_401k_per_period_cents', null, $document->tax_year);
+
+        $grossCents = $grossPP !== null ? (int) $grossPP->value : 0;
+        $deferralCents = ($tradPP !== null ? (int) $tradPP->value : 0)
+            + ($rothPP !== null ? (int) $rothPP->value : 0);
+
+        if ($grossCents > 0 && $deferralCents > 0) {
+            $deferralPct = $deferralCents / $grossCents * 100;
+            UserTaxFact::recordFact(
+                userId: $document->user_id,
+                factKey: 'employer.match_threshold_pct',
+                value: (string) round($deferralPct),
+                sourceType: 'document_extraction',
+                label: 'Employer match threshold (% of pay matched)',
+                volatility: 'stable',
+                taxYear: $document->tax_year,
+                sourceId: (string) $document->id,
+                metadata: [
+                    'confidence' => 0.70,
+                    'document_id' => $document->id,
+                    'derived_from' => 'match_held_at_observed_deferral',
+                    'note' => 'At least this much — the full match rate held at your current deferral. Correct to your plan\'s stated threshold if you know it.',
+                ],
+            );
+            $count++;
+        }
     }
 
     /**
