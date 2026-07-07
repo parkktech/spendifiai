@@ -243,6 +243,142 @@ class ScenarioController extends Controller
     }
 
     // ══════════════════════════════════════════════════════════════════════════
+    // POST /optimizer/scenarios/{year}/simulate
+    // ══════════════════════════════════════════════════════════════════════════
+
+    /**
+     * What-if calculator (owner request 2026-07-06): the user drags a contribution
+     * slider and watches bring-home, federal tax, and the retirement projection
+     * update live. ZERO Claude — pure TaxRulesEngineService math.
+     *
+     * OWNER SEMANTICS: contribution_pct_of_max is a percentage of the IRS LEGAL
+     * MAXIMUM (402(g) employee deferral limit incl. age catch-ups) — 100 means
+     * "contribute the full legally allowed amount". The server converts it to a
+     * payroll deferral percentage against deferral-eligible comp (base wages +
+     * bonus when the plan takes 401(k) deferrals from bonus checks) and returns
+     * the translation so the UI can say "that's X% of each paycheck".
+     *
+     * Non-401(k) knobs (W-4, HSA, IRA) are seeded from the user's chosen plan so
+     * the numbers line up with the checklist banner. Engine clamps everything
+     * (Pitfall 4 — client input never reaches the math unclamped).
+     */
+    public function simulate(\App\Http\Requests\SimulateScenarioRequest $request, int $year): JsonResponse
+    {
+        $user = $request->user();
+
+        $baseline = $this->solver->assembleBaseline($user, $year);
+
+        /** @var \App\Services\TaxRulesEngineService $engine */
+        $engine = app(\App\Services\TaxRulesEngineService::class);
+
+        // Legal maximum for this user's age (402(g) + catch-ups).
+        $legalMaxCents = $engine->remaining401kRoomCents(0, $baseline['age'] ?? null, $year);
+
+        // Deferral-eligible comp mirrors the engine: base + bonus when eligible.
+        $bonusEligible = ($baseline['bonus_401k_eligible'] ?? false) === true;
+        $deferralBaseCents = (int) ($baseline['annual_gross_cents'] ?? 0)
+            + ($bonusEligible ? (int) ($baseline['bonus_annual_cents'] ?? 0) : 0);
+
+        // Defaults = the user's CURRENT position, so the calculator opens where
+        // they actually are today instead of an arbitrary point.
+        $curTrad = (int) ($baseline['current']['trad_401k_cents'] ?? 0);
+        $curRoth = (int) ($baseline['current']['roth_401k_cents'] ?? 0);
+        $curDeferralTotal = $curTrad + $curRoth;
+
+        $pctOfMaxInput = $request->input('contribution_pct_of_max');
+        $pctOfMax = $pctOfMaxInput !== null
+            ? (float) $pctOfMaxInput
+            : ($legalMaxCents > 0 ? min(100.0, $curDeferralTotal / $legalMaxCents * 100) : 0.0);
+
+        $rothInput = $request->input('roth_share_pct');
+        $rothSharePct = $rothInput !== null
+            ? (int) $rothInput
+            : ($curDeferralTotal > 0 ? (int) round($curRoth / $curDeferralTotal * 100) : 0);
+
+        $targetContributionCents = (int) round($legalMaxCents * $pctOfMax / 100);
+        $deferralPct = $deferralBaseCents > 0
+            ? min(100.0, $targetContributionCents / $deferralBaseCents * 100)
+            : 0.0;
+
+        // Seed W-4/HSA/IRA knobs from the chosen plan so results match the banner.
+        $chosenKnobsJson = UserTaxFact::currentFact($user->id, 'scenario.chosen_knobs', null, $year)?->value;
+        $seed = $chosenKnobsJson !== null ? (json_decode($chosenKnobsJson, true) ?: []) : [];
+        $knobs = $this->mergeClientKnobs($baseline, $seed);
+        $knobs['k401'] = ['deferral_pct' => $deferralPct, 'roth_share_pct' => $rothSharePct];
+
+        $outcome = $engine->computeScenarioOutcome($baseline, $knobs, $year);
+
+        // ── Banner-parallel absolutes ─────────────────────────────────────────
+        $abs = $outcome['baseline_absolute'];
+        $beforePP = (int) $abs['per_period_take_home_cents'];
+        $afterPP = $beforePP + (int) $outcome['take_home']['per_paycheck_delta_cents'];
+        $beforeTax = (int) $abs['federal_tax_annual_cents'];
+        $afterTax = $beforeTax + (int) $outcome['federal_tax']['annual_delta_cents'];
+
+        $matchBefore = (int) ($abs['employer_match_cents'] ?? 0);
+        $matchAfter = $matchBefore + (int) $outcome['retirement']['employer_match_delta_cents'];
+
+        $curTotalContrib = (int) ($abs['annual_contributions_cents'] ?? 0) + $matchBefore;
+        $simTotalContrib = $curTotalContrib
+            + (int) $outcome['retirement']['annual_contributions_delta_cents']
+            + (int) $outcome['retirement']['employer_match_delta_cents'];
+
+        $curAge = $baseline['age'] ?? null;
+        $targetAge = $baseline['target_retirement_age'] ?? null;
+        $horizon = ($curAge !== null && $targetAge !== null) ? max(0, (int) $targetAge - (int) $curAge) : 0;
+        $fvBefore = ($horizon > 0 && $curTotalContrib > 0)
+            ? $engine->futureValueRangeCents(max(0, $curTotalContrib), $horizon, $year)
+            : null;
+        $fvAfter = ($horizon > 0)
+            ? $engine->futureValueRangeCents(max(0, $simTotalContrib), $horizon, $year)
+            : null;
+
+        // ── Payroll translation (post-clamp) ──────────────────────────────────
+        $clampedPct = (float) $outcome['knobs']['k401']['deferral_pct'];
+        $appliedContribCents = (int) round($deferralBaseCents * $clampedPct / 100);
+        $periods = max(1, (int) ($baseline['pay_periods_per_year'] ?? 26));
+        $baseShare = $deferralBaseCents > 0
+            ? (int) ($baseline['annual_gross_cents'] ?? 0) / $deferralBaseCents
+            : 1;
+        $perCheckCents = (int) round($appliedContribCents * $baseShare / $periods);
+
+        return response()->json([
+            'contribution' => [
+                'annual_cents' => $appliedContribCents,
+                'legal_max_cents' => $legalMaxCents,
+                'pct_of_max' => $legalMaxCents > 0
+                    ? round($appliedContribCents / $legalMaxCents * 100)
+                    : 0,
+                'payroll_deferral_pct' => round($clampedPct, 1),
+                'per_check_cents' => $perCheckCents,
+                'roth_share_pct' => (int) round((float) $outcome['knobs']['k401']['roth_share_pct']),
+                'bonus_included' => $bonusEligible,
+            ],
+            'bring_home' => [
+                'before_per_check_cents' => $beforePP,
+                'after_per_check_cents' => $afterPP,
+                'delta_per_check_cents' => $afterPP - $beforePP,
+                'delta_annual_cents' => (int) $outcome['take_home']['annual_delta_cents'],
+            ],
+            'federal_tax' => [
+                'before_annual_cents' => $beforeTax,
+                'after_annual_cents' => $afterTax,
+                'delta_annual_cents' => $afterTax - $beforeTax,
+            ],
+            'retirement' => [
+                'before_fv' => $fvBefore,
+                'after_fv' => $fvAfter,
+                'target_age' => $targetAge,
+                'horizon_years' => $horizon,
+                'employer_match_before_cents' => $matchBefore,
+                'employer_match_after_cents' => $matchAfter,
+            ],
+            'clamps' => $outcome['guards']['clamps'] ?? [],
+            'disclaimer' => self::DISCLAIMER,
+        ]);
+    }
+
+    // ══════════════════════════════════════════════════════════════════════════
     // POST /optimizer/scenarios/{year}/choose
     // ══════════════════════════════════════════════════════════════════════════
 

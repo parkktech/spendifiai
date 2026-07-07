@@ -401,6 +401,10 @@ Route::middleware(['auth:sanctum'])->group(function () {
                 ->middleware('throttle:60,1');
             Route::post('/{year}/compute', [\App\Http\Controllers\Api\ScenarioController::class, 'compute'])
                 ->middleware('throttle:30,1');
+            // What-if calculator (2026-07-06): pure engine math, no Claude — debounced
+            // slider drags need headroom, hence 120/min.
+            Route::post('/{year}/simulate', [\App\Http\Controllers\Api\ScenarioController::class, 'simulate'])
+                ->middleware('throttle:120,1');
             Route::post('/{year}/choose', [\App\Http\Controllers\Api\ScenarioController::class, 'choose'])
                 // D24: idempotent (server recomputes); 20/min met a frontend
                 // retry loop and locked the owner out of choosing entirely.

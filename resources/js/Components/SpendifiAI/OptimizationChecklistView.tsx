@@ -20,7 +20,7 @@
  * Educational framing: "may", "could", "consider" — no assertive language.
  */
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import axios from 'axios';
 import {
   CheckCircle2,
@@ -561,6 +561,265 @@ interface Props {
   onBackToChoices?: () => void;
 }
 
+// ─── What-if calculator (owner request 2026-07-06) ───────────────────────────
+
+interface SimulateResult {
+  contribution: {
+    annual_cents: number;
+    legal_max_cents: number;
+    pct_of_max: number;
+    payroll_deferral_pct: number;
+    per_check_cents: number;
+    roth_share_pct: number;
+    bonus_included: boolean;
+  };
+  bring_home: {
+    before_per_check_cents: number;
+    after_per_check_cents: number;
+    delta_per_check_cents: number;
+    delta_annual_cents: number;
+  };
+  federal_tax: {
+    before_annual_cents: number;
+    after_annual_cents: number;
+    delta_annual_cents: number;
+  };
+  retirement: {
+    before_fv: { low_cents: number; high_cents: number } | null;
+    after_fv: { low_cents: number; high_cents: number } | null;
+    target_age: number | null;
+    horizon_years: number;
+    employer_match_before_cents: number;
+    employer_match_after_cents: number;
+  };
+  clamps: string[];
+  disclaimer: string;
+}
+
+/**
+ * ScenarioPlayground — interactive 401(k) what-if calculator.
+ *
+ * SEMANTICS (owner-mandated): the contribution slider is a percentage of the
+ * IRS LEGAL MAXIMUM (402(g) limit incl. catch-ups) — 100% = "contribute the
+ * full legally allowed amount", bonus included when the plan defers from bonus
+ * checks. The server translates to a payroll percentage ("tell HR X%").
+ *
+ * Opens at the user's CURRENT position (empty first call returns it).
+ * Debounced 350ms; pure engine math server-side — no AI calls.
+ * UNIT DISCIPLINE: every dollar figure carries its inline unit.
+ */
+function ScenarioPlayground({ taxYear }: { taxYear: number }) {
+  const [expanded, setExpanded] = useState(false);
+  const [pctOfMax, setPctOfMax] = useState<number | null>(null);
+  const [rothShare, setRothShare] = useState<number | null>(null);
+  const [result, setResult] = useState<SimulateResult | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [simError, setSimError] = useState(false);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const seededRef = useRef(false);
+
+  const simulate = useCallback(async (payload: Record<string, number>) => {
+    setLoading(true);
+    setSimError(false);
+    try {
+      const res = await axios.post<SimulateResult>(
+        `/api/v1/optimizer/scenarios/${taxYear}/simulate`,
+        payload,
+      );
+      setResult(res.data);
+      // First call (empty payload) seeds the controls at the current position.
+      if (!seededRef.current) {
+        seededRef.current = true;
+        setPctOfMax(res.data.contribution.pct_of_max);
+        setRothShare(res.data.contribution.roth_share_pct);
+      }
+    } catch {
+      setSimError(true);
+    } finally {
+      setLoading(false);
+    }
+  }, [taxYear]);
+
+  // Seed on first expand
+  useEffect(() => {
+    if (expanded && !seededRef.current) void simulate({});
+  }, [expanded, simulate]);
+
+  // Debounced re-simulate on control changes (after seeding)
+  useEffect(() => {
+    if (!seededRef.current || pctOfMax === null || rothShare === null) return;
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      void simulate({ contribution_pct_of_max: pctOfMax, roth_share_pct: rothShare });
+    }, 350);
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, [pctOfMax, rothShare, simulate]);
+
+  const fmtDollars = (cents: number) => `$${(cents / 100).toLocaleString('en-US', { maximumFractionDigits: 0 })}`;
+  const fmtK = (cents: number) => {
+    const abs = Math.abs(cents) / 100;
+    return abs >= 1000 ? `$${(abs / 1000).toFixed(1)}k` : `$${abs.toLocaleString('en-US', { maximumFractionDigits: 0 })}`;
+  };
+
+  const matchDropped = result
+    && result.retirement.employer_match_after_cents < result.retirement.employer_match_before_cents;
+  const capped = result?.clamps.includes('401k_annual_limit') ?? false;
+
+  return (
+    <div className="rounded-2xl ring-1 ring-sw-border bg-sw-card shadow-sw-1 mb-4 overflow-hidden">
+      <button
+        onClick={() => setExpanded((e) => !e)}
+        className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-sw-surface/60 transition"
+      >
+        <span className="flex items-center gap-2 text-[13px] font-semibold text-sw-text">
+          <Sparkles size={14} className="text-sw-accent" />
+          Try your own mix
+        </span>
+        <span className="text-[11px] text-sw-muted">
+          {expanded ? 'Hide' : 'Adjust your 401(k) and watch the numbers move'}
+        </span>
+      </button>
+
+      {expanded && (
+        <div className="px-4 pb-4 border-t border-sw-border/60 pt-3">
+          {simError && (
+            <p className="text-[12px] text-sw-danger mb-2">Could not compute — try again in a moment.</p>
+          )}
+
+          {/* Control 1: contribution as % of the IRS legal max */}
+          <div className="mb-3">
+            <div className="flex items-center justify-between mb-1">
+              <label className="text-[12px] font-medium text-sw-text-secondary">
+                401(k) contribution — % of the IRS max
+                {result && (
+                  <span className="text-sw-muted font-normal"> ({fmtDollars(result.contribution.legal_max_cents)} limit/yr)</span>
+                )}
+              </label>
+              <div className="flex items-center gap-1">
+                <input
+                  type="number"
+                  min={0}
+                  max={100}
+                  value={pctOfMax ?? ''}
+                  onChange={(e) => setPctOfMax(Math.min(100, Math.max(0, Number(e.target.value))))}
+                  className="w-14 text-right text-[12px] font-tabular rounded border border-sw-border px-1 py-0.5 bg-sw-card text-sw-text"
+                  aria-label="Contribution percent of IRS maximum"
+                />
+                <span className="text-[12px] text-sw-muted">%</span>
+              </div>
+            </div>
+            <input
+              type="range"
+              min={0}
+              max={100}
+              step={1}
+              value={pctOfMax ?? 0}
+              onChange={(e) => setPctOfMax(Number(e.target.value))}
+              className="w-full accent-sw-accent"
+              aria-label="Contribution percent of IRS maximum slider"
+            />
+            {result && (
+              <p className="text-[11px] text-sw-muted mt-0.5 font-tabular">
+                = {fmtDollars(result.contribution.annual_cents)}/yr
+                {' · '}{result.contribution.payroll_deferral_pct}% of each paycheck
+                {' · '}{fmtDollars(result.contribution.per_check_cents)} per check
+                {result.contribution.bonus_included ? ' · bonus checks included' : ''}
+                {capped ? ' · capped at the IRS annual limit' : ''}
+              </p>
+            )}
+          </div>
+
+          {/* Control 2: Roth share */}
+          <div className="mb-4">
+            <div className="flex items-center justify-between mb-1">
+              <label className="text-[12px] font-medium text-sw-text-secondary">
+                Roth share <span className="text-sw-muted font-normal">(rest goes to Traditional)</span>
+              </label>
+              <div className="flex items-center gap-1">
+                <input
+                  type="number"
+                  min={0}
+                  max={100}
+                  value={rothShare ?? ''}
+                  onChange={(e) => setRothShare(Math.min(100, Math.max(0, Math.round(Number(e.target.value)))))}
+                  className="w-14 text-right text-[12px] font-tabular rounded border border-sw-border px-1 py-0.5 bg-sw-card text-sw-text"
+                  aria-label="Roth share percent"
+                />
+                <span className="text-[12px] text-sw-muted">%</span>
+              </div>
+            </div>
+            <input
+              type="range"
+              min={0}
+              max={100}
+              step={5}
+              value={rothShare ?? 0}
+              onChange={(e) => setRothShare(Number(e.target.value))}
+              className="w-full accent-sw-accent"
+              aria-label="Roth share percent slider"
+            />
+          </div>
+
+          {/* Live outcome tiles */}
+          {result && (
+            <div className={`grid grid-cols-3 gap-2 transition-opacity ${loading ? 'opacity-50' : 'opacity-100'}`}>
+              <div className="rounded-xl bg-sw-surface ring-1 ring-sw-border/40 p-2.5 text-center">
+                <p className="text-[9px] font-semibold uppercase tracking-wider text-sw-muted mb-1">Bring home</p>
+                <p className="text-[13px] font-semibold text-sw-text font-tabular leading-tight">
+                  {fmtK(result.bring_home.after_per_check_cents)}{' '}
+                  <span className="text-[9px] font-normal text-sw-muted">est. per paycheck</span>
+                </p>
+                <p className={`text-[11px] font-[700] font-tabular mt-1 ${result.bring_home.delta_per_check_cents > 0 ? 'text-sw-success' : result.bring_home.delta_per_check_cents < 0 ? 'text-sw-danger' : 'text-sw-muted'}`}>
+                  {fmtCents(result.bring_home.delta_per_check_cents)}/check est.
+                </p>
+              </div>
+              <div className="rounded-xl bg-sw-surface ring-1 ring-sw-border/40 p-2.5 text-center">
+                <p className="text-[9px] font-semibold uppercase tracking-wider text-sw-muted mb-1">Est. federal tax</p>
+                <p className="text-[13px] font-semibold text-sw-text font-tabular leading-tight">
+                  {fmtK(result.federal_tax.after_annual_cents)}{' '}
+                  <span className="text-[9px] font-normal text-sw-muted">per year</span>
+                </p>
+                <p className={`text-[11px] font-[700] font-tabular mt-1 ${result.federal_tax.delta_annual_cents < 0 ? 'text-sw-success' : result.federal_tax.delta_annual_cents > 0 ? 'text-sw-danger' : 'text-sw-muted'}`}>
+                  {fmtCents(result.federal_tax.delta_annual_cents)}/yr
+                </p>
+              </div>
+              <div className="rounded-xl bg-sw-surface ring-1 ring-sw-border/40 p-2.5 text-center">
+                <p className="text-[9px] font-semibold uppercase tracking-wider text-sw-muted mb-1">
+                  {result.retirement.target_age ? `At age ${result.retirement.target_age}` : 'Retirement'}
+                </p>
+                {result.retirement.after_fv ? (
+                  <p className="text-[11px] font-semibold text-sw-text font-tabular leading-tight">
+                    ~{fmtK(result.retirement.after_fv.low_cents)}–{fmtK(result.retirement.after_fv.high_cents)}{' '}
+                    <span className="text-[9px] font-normal text-sw-muted">est. range</span>
+                  </p>
+                ) : (
+                  <p className="text-[11px] text-sw-muted">—</p>
+                )}
+                <p className={`text-[11px] font-tabular mt-1 ${matchDropped ? 'text-sw-danger font-[700]' : 'text-sw-muted'}`}>
+                  match {fmtK(result.retirement.employer_match_after_cents)}/yr
+                </p>
+              </div>
+            </div>
+          )}
+
+          {matchDropped && result && (
+            <p className="text-[11px] text-sw-danger mt-2 flex items-center gap-1">
+              <AlertCircle size={11} className="shrink-0" />
+              This level gives up {fmtK(result.retirement.employer_match_before_cents - result.retirement.employer_match_after_cents)}/yr of free employer match.
+            </p>
+          )}
+
+          <p className="text-[10px] text-sw-dim mt-3">
+            Estimates only — this does not change your plan. Consider reviewing with a tax professional.
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function OptimizationChecklistView({
   taxYear,
   hasBankConnected,
@@ -766,6 +1025,9 @@ export default function OptimizationChecklistView({
 
       {/* Header aggregate banner */}
       {headerRow && <HeaderAggregateBanner params={headerRow.benefit_line_params} />}
+
+      {/* What-if calculator (owner request 2026-07-06) */}
+      <ScenarioPlayground taxYear={taxYear} />
 
       {/* Progress */}
       <div className="flex items-center justify-between mb-3">
