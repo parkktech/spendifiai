@@ -25,15 +25,22 @@ function getCookie(name: string): string | null {
     return null;
 }
 
+// Bare domain, matching bootstrap.ts auth-cookie rule (avoids www vs non-www duplicates)
+function getCookieDomain(): string {
+    return window.location.hostname.replace(/^www\./, '.');
+}
+
 function setCookie(name: string, value: string, days: number) {
     const date = new Date();
     date.setTime(date.getTime() + days * 24 * 60 * 60 * 1000);
     const expires = `expires=${date.toUTCString()}`;
     const secure = window.location.protocol === 'https:' ? ' secure;' : '';
-    document.cookie = `${name}=${value}; ${expires}; path=/;${secure} samesite=lax`;
+    document.cookie = `${name}=${value}; ${expires}; path=/; domain=${getCookieDomain()};${secure} samesite=lax`;
 }
 
 function deleteCookie(name: string) {
+    // Clear both forms: bare-domain (current) and host-only (cookies set before the domain fix)
+    document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=${getCookieDomain()};`;
     document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
 }
 
