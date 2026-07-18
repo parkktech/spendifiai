@@ -10,24 +10,13 @@ return [
     'ai' => [
         'model' => env('ANTHROPIC_MODEL', 'claude-sonnet-4-6'),
         'api_key' => env('ANTHROPIC_API_KEY'),
-        'batch_size' => 10,
-        'rate_limit_ms' => 500,
         // Output token ceiling for Claude calls. Sonnet only bills for tokens
         // actually generated, so a generous ceiling avoids mid-JSON truncation
         // (stop_reason=max_tokens) on larger categorization batches without
         // increasing cost. Config-driven so it can be tuned without a deploy.
         'max_tokens' => (int) env('ANTHROPIC_MAX_TOKENS', 8000),
-        'confidence_thresholds' => [
-            'auto_accept' => 0.85,  // Auto-categorize silently
-            'flag_review' => 0.60,  // Categorize but flag
-            'ask_question' => 0.40,  // Generate question for user
-            // Below 0.40 → open-ended question
-        ],
         'extraction_thresholds' => [
             'classification_gate' => 0.70,  // Below this: skip extraction, flag for manual review
-            'field_auto_accept' => 0.85,    // Green badge
-            'field_review' => 0.60,         // Amber badge
-            // Below 0.60: Red badge
         ],
         'alternatives' => [
             'cache_days' => 7,
@@ -60,10 +49,6 @@ return [
     |--------------------------------------------------------------------------
     */
     'sync' => [
-        'bank_transactions_hours' => 4,
-        'email_orders_hours' => 6,
-        'subscription_detection' => 'daily',
-        'savings_analysis' => 'weekly',
         'question_expiry_days' => 7,
         'active_sync_days' => 7,
         'inactive_sync_days' => 30,
@@ -106,16 +91,6 @@ return [
         'period' => 30,
         'algorithm' => 'sha1',
         'recovery_codes' => 8,
-    ],
-
-    /*
-    |--------------------------------------------------------------------------
-    | Tax Export
-    |--------------------------------------------------------------------------
-    */
-    'tax' => [
-        'default_bracket' => 22,
-        'export_dir' => 'tax-exports',
     ],
 
     /*
