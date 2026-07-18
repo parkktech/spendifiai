@@ -1100,16 +1100,13 @@ class DashboardController extends Controller
     }
 
     /**
-     * Clear all dashboard caches for a user (default + any custom period caches).
+     * Clear the default-period dashboard cache for each view.
+     * Custom-period entries expire via the 60s TTL.
      */
     private function clearDashboardCache(int $userId): void
     {
         foreach (['all', 'personal', 'business'] as $view) {
-            // Default cache (no period params)
             Cache::forget("dashboard:{$userId}:{$view}::");
-
-            // Legacy cache key (without period suffix) for backward compat
-            Cache::forget("dashboard:{$userId}:{$view}");
         }
     }
 
