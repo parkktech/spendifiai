@@ -74,8 +74,6 @@ Route::prefix('auth')->group(function () {
 
     // Email verification (public — signed URLs are self-verifying)
     // Note: Web route handles this instead (routes/web.php)
-    // Route::get('/email/verify/{id}/{hash}', [EmailVerificationController::class, 'verify'])
-    //     ->middleware(['signed']);
 
     // Google OAuth (stateless — no CSRF)
     Route::get('/google/redirect', [SocialAuthController::class, 'redirectToGoogle']);
