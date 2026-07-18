@@ -304,45 +304,4 @@ class ReconciliationService
             }
         });
     }
-
-    /**
-     * Get a tax summary grouped by category for a date range.
-     */
-    public function getTaxSummary(User $user, string $startDate, string $endDate): array
-    {
-        $items = OrderItem::where('user_id', $user->id)
-            ->whereHas('order', function ($q) use ($startDate, $endDate) {
-                $q->whereBetween('order_date', [$startDate, $endDate]);
-            })
-            ->get();
-
-        $summary = [
-            'period' => ['start' => $startDate, 'end' => $endDate],
-            'total_spending' => $items->sum('total_price'),
-            'total_deductible' => $items->where('tax_deductible', true)->sum('total_price'),
-            'total_personal' => $items->where('expense_type', 'personal')->sum('total_price'),
-            'total_business' => $items->where('expense_type', 'business')->sum('total_price'),
-            'categories' => [],
-        ];
-
-        $grouped = $items->groupBy('ai_category');
-        foreach ($grouped as $category => $categoryItems) {
-            $summary['categories'][$category] = [
-                'total' => $categoryItems->sum('total_price'),
-                'item_count' => $categoryItems->count(),
-                'deductible_total' => $categoryItems->where('tax_deductible', true)->sum('total_price'),
-                'items' => $categoryItems->map(fn ($item) => [
-                    'product_name' => $item->product_name,
-                    'total_price' => $item->total_price,
-                    'tax_deductible' => $item->tax_deductible,
-                    'expense_type' => $item->expense_type,
-                ])->values()->toArray(),
-            ];
-        }
-
-        // Sort categories by total spending descending
-        arsort($summary['categories']);
-
-        return $summary;
-    }
 }
