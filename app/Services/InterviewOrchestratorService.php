@@ -45,6 +45,8 @@ use Illuminate\Validation\ValidationException;
  */
 class InterviewOrchestratorService
 {
+    use \App\Services\Concerns\GuardsClaudeBudget;
+
     /**
      * INT-04 prerequisite map.
      * key = probe fact_key (or finding_key) that is GATED
@@ -1826,31 +1828,6 @@ SYS;
         }
 
         return 'other';
-    }
-
-    /**
-     * D17 per-purpose daily budget guard + call counter (Cache/Redis-backed).
-     *
-     * Reads `claude_calls_{purpose}_{date}`, skips at the configured cap
-     * (null => uncapped), otherwise increments the day-counter for the Admin
-     * ai-usage surface. Mirrors NarrationService.
-     */
-    private function checkAndIncrementBudget(string $purpose): bool
-    {
-        $date = now()->toDateString();
-        $key = "claude_calls_{$purpose}_{$date}";
-        $cap = config("services.anthropic.daily_budget_{$purpose}");
-        $cap = ($cap === null) ? PHP_INT_MAX : (int) $cap;
-
-        if ((int) Cache::get($key, 0) >= $cap) {
-            Log::info("Claude daily budget cap hit: {$purpose}", ['date' => $date, 'cap' => $cap]);
-
-            return false;
-        }
-
-        Cache::increment($key);
-
-        return true;
     }
 
     // ─── Answer Recording ─────────────────────────────────────────────────────

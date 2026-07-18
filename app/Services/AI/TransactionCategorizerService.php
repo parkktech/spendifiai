@@ -7,12 +7,13 @@ use App\Models\Order;
 use App\Models\Transaction;
 use App\Models\UserFinancialProfile;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
 class TransactionCategorizerService
 {
+    use \App\Services\Concerns\GuardsClaudeBudget;
+
     protected ?string $apiKey;
 
     protected string $model;
@@ -534,32 +535,6 @@ MSG;
         }
 
         return implode(', ', $options);
-    }
-
-    /**
-     * D17 per-purpose daily budget guard + call counter (Cache/Redis-backed).
-     *
-     * Reads `claude_calls_{purpose}_{date}`, skips at the configured cap
-     * (null => uncapped = PHP_INT_MAX), otherwise increments the day-counter for
-     * the Admin ai-usage surface. For categorization the default is uncapped, so
-     * throughput is unchanged unless a cap is explicitly configured (D17.2).
-     */
-    protected function checkAndIncrementBudget(string $purpose): bool
-    {
-        $date = now()->toDateString();
-        $key = "claude_calls_{$purpose}_{$date}";
-        $cap = config("services.anthropic.daily_budget_{$purpose}");
-        $cap = ($cap === null) ? PHP_INT_MAX : (int) $cap;
-
-        if ((int) Cache::get($key, 0) >= $cap) {
-            Log::info("Claude daily budget cap hit: {$purpose}", ['date' => $date, 'cap' => $cap]);
-
-            return false;
-        }
-
-        Cache::increment($key);
-
-        return true;
     }
 
     /**

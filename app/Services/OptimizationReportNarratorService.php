@@ -2,7 +2,6 @@
 
 namespace App\Services;
 
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
@@ -36,6 +35,8 @@ use Illuminate\Support\Facades\Log;
  */
 class OptimizationReportNarratorService
 {
+    use \App\Services\Concerns\GuardsClaudeBudget;
+
     protected string $apiKey;
 
     protected string $model;
@@ -310,31 +311,6 @@ SYS;
         $parts = preg_split('/[.!?]+\s+|[.!?]+$/', trim($text), -1, PREG_SPLIT_NO_EMPTY);
 
         return max(1, count($parts ?? [1]));
-    }
-
-    /**
-     * D17 per-purpose daily budget guard + call counter (Cache/Redis-backed).
-     *
-     * Mirrors NarrationService: reads `claude_calls_{purpose}_{date}`, skips at the
-     * configured cap (null => uncapped), otherwise increments the day-counter for
-     * the Admin ai-usage surface.
-     */
-    protected function checkAndIncrementBudget(string $purpose): bool
-    {
-        $date = now()->toDateString();
-        $key = "claude_calls_{$purpose}_{$date}";
-        $cap = config("services.anthropic.daily_budget_{$purpose}");
-        $cap = ($cap === null) ? PHP_INT_MAX : (int) $cap;
-
-        if ((int) Cache::get($key, 0) >= $cap) {
-            Log::info("Claude daily budget cap hit: {$purpose}", ['date' => $date, 'cap' => $cap]);
-
-            return false;
-        }
-
-        Cache::increment($key);
-
-        return true;
     }
 
     /**

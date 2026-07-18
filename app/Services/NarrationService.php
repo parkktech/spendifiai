@@ -3,7 +3,6 @@
 namespace App\Services;
 
 use App\Models\OptimizationFinding;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
@@ -29,6 +28,8 @@ use Illuminate\Support\Facades\Log;
  */
 class NarrationService
 {
+    use \App\Services\Concerns\GuardsClaudeBudget;
+
     protected string $apiKey;
 
     protected string $model;
@@ -216,32 +217,6 @@ SYS;
             '{value}' => $valueDisplay,
             '{severity}' => (string) ($finding->severity ?? 'medium'),
         ]);
-    }
-
-    /**
-     * D17 per-purpose daily budget guard + call counter (Cache/Redis-backed).
-     *
-     * Reads the day-key `claude_calls_{purpose}_{date}`, compares it to the
-     * configured daily budget cap (null/absent => uncapped = PHP_INT_MAX). At the
-     * cap it logs and returns false (caller skips the call, no HTTP). Otherwise it
-     * increments the day-counter (for the Admin ai-usage surface) and returns true.
-     */
-    protected function checkAndIncrementBudget(string $purpose): bool
-    {
-        $date = now()->toDateString();
-        $key = "claude_calls_{$purpose}_{$date}";
-        $cap = config("services.anthropic.daily_budget_{$purpose}");
-        $cap = ($cap === null) ? PHP_INT_MAX : (int) $cap;
-
-        if ((int) Cache::get($key, 0) >= $cap) {
-            Log::info("Claude daily budget cap hit: {$purpose}", ['date' => $date, 'cap' => $cap]);
-
-            return false;
-        }
-
-        Cache::increment($key);
-
-        return true;
     }
 
     /**
