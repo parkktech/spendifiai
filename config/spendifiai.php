@@ -30,9 +30,6 @@ return [
     |--------------------------------------------------------------------------
     */
     'plaid' => [
-        'client_id' => env('PLAID_CLIENT_ID'),
-        'secret' => env('PLAID_SECRET'),
-        'env' => env('PLAID_ENV', 'sandbox'),
         'base_url' => match (env('PLAID_ENV', 'sandbox')) {
             'production' => 'https://production.plaid.com',
             'development' => 'https://development.plaid.com',
