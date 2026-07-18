@@ -2,10 +2,9 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Builder;
+use App\Traits\BelongsToUser;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
  * Versioned, citable snapshot of a resolved fact set (SCENARIOS-SPEC §A.8.2).
@@ -33,7 +32,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  */
 class ScenarioFactSet extends Model
 {
-    use HasFactory;
+    use BelongsToUser, HasFactory;
 
     protected $fillable = [
         'user_id',
@@ -61,24 +60,6 @@ class ScenarioFactSet extends Model
             'tax_year' => 'integer',
             'resolved_facts' => 'encrypted',
         ];
-    }
-
-    // ─── Relationships ────────────────────────────────────────────────────────
-
-    public function user(): BelongsTo
-    {
-        return $this->belongsTo(User::class);
-    }
-
-    // ─── Scopes ───────────────────────────────────────────────────────────────
-
-    /**
-     * SECURITY: Always scope queries through this method.
-     * Consistent with UserTaxFact / IncomeOptimizationProfile / InterviewSession.
-     */
-    public function scopeForUser(Builder $query, int $userId): Builder
-    {
-        return $query->where('user_id', $userId);
     }
 
     // ─── Helpers ──────────────────────────────────────────────────────────────

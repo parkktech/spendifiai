@@ -2,11 +2,9 @@
 
 namespace App\Models;
 
-use App\Models\UserTaxFact;
-use Illuminate\Database\Eloquent\Builder;
+use App\Traits\BelongsToUser;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
  * Per-user financial snapshot for the Optimize My Income feature.
@@ -25,7 +23,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  */
 class IncomeOptimizationProfile extends Model
 {
-    use HasFactory;
+    use BelongsToUser, HasFactory;
 
     protected $fillable = [
         'user_id',
@@ -121,24 +119,6 @@ class IncomeOptimizationProfile extends Model
         ];
     }
 
-    // ─── Relationships ───────────────────────────────────────────────────────
-
-    public function user(): BelongsTo
-    {
-        return $this->belongsTo(User::class);
-    }
-
-    // ─── Scopes ─────────────────────────────────────────────────────────────
-
-    /**
-     * SECURITY: Always scope queries through this scope.
-     * Mirrors TaxDocument::scopeForUser for consistent V4 access-control.
-     */
-    public function scopeForUser(Builder $query, int $userId): Builder
-    {
-        return $query->where('user_id', $userId);
-    }
-
     // ─── Helpers ─────────────────────────────────────────────────────────────
 
     /**
@@ -154,8 +134,8 @@ class IncomeOptimizationProfile extends Model
      * If no proxy is passed, falls back to the original 9-key base map.
      *
      * @param  UserTaxFact|null  $factsProxy  A (possibly empty) UserTaxFact instance used
-     *                                         to call currentFactKeys($this->user_id).
-     *                                         Pass null (default) to use base map only.
+     *                                        to call currentFactKeys($this->user_id).
+     *                                        Pass null (default) to use base map only.
      * @return array<string, bool>
      */
     public function answerableFields(?UserTaxFact $factsProxy = null): array

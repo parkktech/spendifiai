@@ -2,7 +2,7 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Builder;
+use App\Traits\BelongsToUser;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -29,7 +29,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  */
 class TaxProfileEntity extends Model
 {
-    use HasFactory;
+    use BelongsToUser, HasFactory;
 
     protected $fillable = [
         'user_id',
@@ -61,11 +61,6 @@ class TaxProfileEntity extends Model
 
     // ─── Relationships ────────────────────────────────────────────────────────
 
-    public function user(): BelongsTo
-    {
-        return $this->belongsTo(User::class);
-    }
-
     /**
      * UserTaxFacts that reference this entity.
      */
@@ -80,16 +75,6 @@ class TaxProfileEntity extends Model
     public function supersededBy(): BelongsTo
     {
         return $this->belongsTo(self::class, 'superseded_by_id');
-    }
-
-    // ─── Scopes ──────────────────────────────────────────────────────────────
-
-    /**
-     * SECURITY: Always scope queries through this scope.
-     */
-    public function scopeForUser(Builder $query, int $userId): Builder
-    {
-        return $query->where('user_id', $userId);
     }
 
     // ─── STORE-02: Basis Ledger ───────────────────────────────────────────────
@@ -169,7 +154,7 @@ class TaxProfileEntity extends Model
      * Net basis = sum(improvements) - sum(rebates).
      * Maintenance entries are never in the ledger (enforced by addBasisEntry).
      *
-     * @return int  Net adjusted basis in integer cents
+     * @return int Net adjusted basis in integer cents
      */
     public function computeNetBasisCents(): int
     {

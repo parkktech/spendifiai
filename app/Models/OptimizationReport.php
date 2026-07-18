@@ -2,10 +2,9 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Builder;
+use App\Traits\BelongsToUser;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
  * The assembled, ranked, sectioned optimization report for a user + tax year.
@@ -26,7 +25,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  */
 class OptimizationReport extends Model
 {
-    use HasFactory;
+    use BelongsToUser, HasFactory;
 
     protected $fillable = [
         'user_id',
@@ -63,24 +62,6 @@ class OptimizationReport extends Model
             // D19: structured executive summary
             'executive_summary_structured' => 'array',
         ];
-    }
-
-    // ─── Relationships ───────────────────────────────────────────────────────
-
-    public function user(): BelongsTo
-    {
-        return $this->belongsTo(User::class);
-    }
-
-    // ─── Scopes ─────────────────────────────────────────────────────────────
-
-    /**
-     * SECURITY (T-12-03-02): Scope all queries to a specific user.
-     * Never query OptimizationReport without this scope in application code.
-     */
-    public function scopeForUser(Builder $query, int $userId): Builder
-    {
-        return $query->where('user_id', $userId);
     }
 
     // ─── Helpers ────────────────────────────────────────────────────────────

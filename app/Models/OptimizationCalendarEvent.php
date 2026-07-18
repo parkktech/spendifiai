@@ -2,10 +2,10 @@
 
 namespace App\Models;
 
+use App\Traits\BelongsToUser;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
  * OptimizationCalendarEvent — stores predictive calendar entries (MON-02 / D15 / D16).
@@ -23,7 +23,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  */
 class OptimizationCalendarEvent extends Model
 {
-    use HasFactory;
+    use BelongsToUser, HasFactory;
 
     protected $fillable = [
         'user_id',
@@ -44,23 +44,6 @@ class OptimizationCalendarEvent extends Model
             'alert_fired_at' => 'datetime',
             'metadata' => 'array',
         ];
-    }
-
-    // ─── Relationships ────────────────────────────────────────────────────────
-
-    public function user(): BelongsTo
-    {
-        return $this->belongsTo(User::class);
-    }
-
-    // ─── Scopes ───────────────────────────────────────────────────────────────
-
-    /**
-     * SECURITY (T-14-09-04): Scope all queries to a specific user.
-     */
-    public function scopeForUser(Builder $query, int $userId): Builder
-    {
-        return $query->where('user_id', $userId);
     }
 
     /**

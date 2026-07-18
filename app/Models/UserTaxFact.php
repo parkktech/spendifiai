@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Traits\BelongsToUser;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -30,7 +31,7 @@ use Illuminate\Support\Facades\DB;
  */
 class UserTaxFact extends Model
 {
-    use HasFactory;
+    use BelongsToUser, HasFactory;
 
     protected $fillable = [
         'user_id',
@@ -75,11 +76,6 @@ class UserTaxFact extends Model
 
     // ─── Relationships ────────────────────────────────────────────────────────
 
-    public function user(): BelongsTo
-    {
-        return $this->belongsTo(User::class);
-    }
-
     public function entity(): BelongsTo
     {
         return $this->belongsTo(TaxProfileEntity::class, 'entity_id');
@@ -91,17 +87,6 @@ class UserTaxFact extends Model
     public function supersededBy(): BelongsTo
     {
         return $this->belongsTo(self::class, 'superseded_by_id');
-    }
-
-    // ─── Scopes ──────────────────────────────────────────────────────────────
-
-    /**
-     * SECURITY: Always scope queries through this method.
-     * Mirrors IncomeOptimizationProfile::scopeForUser for consistent V4 access-control.
-     */
-    public function scopeForUser(Builder $query, int $userId): Builder
-    {
-        return $query->where('user_id', $userId);
     }
 
     // ─── Static Lookup Helpers ────────────────────────────────────────────────

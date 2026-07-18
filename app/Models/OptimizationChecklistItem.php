@@ -2,10 +2,9 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Builder;
+use App\Traits\BelongsToUser;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
  * OptimizationChecklistItem — the D9 durable action checklist store (§D.5).
@@ -29,7 +28,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  */
 class OptimizationChecklistItem extends Model
 {
-    use HasFactory;
+    use BelongsToUser, HasFactory;
 
     protected $fillable = [
         'user_id',
@@ -59,23 +58,8 @@ class OptimizationChecklistItem extends Model
 
     // ─── Relationships ────────────────────────────────────────────────────────
 
-    public function user(): BelongsTo
-    {
-        return $this->belongsTo(User::class);
-    }
-
     public function factSet(): BelongsTo
     {
         return $this->belongsTo(ScenarioFactSet::class, 'fact_set_id');
-    }
-
-    // ─── Scopes ───────────────────────────────────────────────────────────────
-
-    /**
-     * Cross-user isolation scope (T-14-08-02).
-     */
-    public function scopeForUser(Builder $query, int $userId): Builder
-    {
-        return $query->where('user_id', $userId);
     }
 }

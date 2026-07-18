@@ -4,17 +4,17 @@ namespace App\Models;
 
 use App\Enums\DocumentStatus;
 use App\Enums\TaxDocumentCategory;
+use App\Traits\BelongsToUser;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class TaxDocument extends Model
 {
-    use HasFactory, SoftDeletes;
+    use BelongsToUser, HasFactory, SoftDeletes;
 
     protected $fillable = [
         'user_id',
@@ -51,11 +51,6 @@ class TaxDocument extends Model
 
     // ─── Relationships ───
 
-    public function user(): BelongsTo
-    {
-        return $this->belongsTo(User::class);
-    }
-
     public function auditLogs(): HasMany
     {
         return $this->hasMany(TaxVaultAuditLog::class);
@@ -69,15 +64,6 @@ class TaxDocument extends Model
     }
 
     // ─── Scopes ───
-
-    /**
-     * SECURITY: Always scope queries through user relationship or forUser scope.
-     * Never use TaxDocument::find() without tenant check (AUDIT-06).
-     */
-    public function scopeForUser(Builder $query, int $userId): Builder
-    {
-        return $query->where('user_id', $userId);
-    }
 
     public function scopeByYear(Builder $query, int $year): Builder
     {

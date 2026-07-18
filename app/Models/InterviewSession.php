@@ -2,10 +2,9 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Builder;
+use App\Traits\BelongsToUser;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
  * Persisted state machine for the one-question-at-a-time guided interview (INT-01 / D3).
@@ -37,7 +36,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  */
 class InterviewSession extends Model
 {
-    use HasFactory;
+    use BelongsToUser, HasFactory;
 
     protected $fillable = [
         'user_id',
@@ -76,24 +75,6 @@ class InterviewSession extends Model
             'skipped' => 'array',
             'assertions' => 'encrypted',  // TEXT column (AES-256-GCM via Laravel)
         ];
-    }
-
-    // ─── Relationships ────────────────────────────────────────────────────────
-
-    public function user(): BelongsTo
-    {
-        return $this->belongsTo(User::class);
-    }
-
-    // ─── Scopes ──────────────────────────────────────────────────────────────
-
-    /**
-     * SECURITY: Always scope queries through this method.
-     * Consistent with UserTaxFact::scopeForUser() and IncomeOptimizationProfile::scopeForUser().
-     */
-    public function scopeForUser(Builder $query, int $userId): Builder
-    {
-        return $query->where('user_id', $userId);
     }
 
     // ─── State Machine Helpers ────────────────────────────────────────────────
