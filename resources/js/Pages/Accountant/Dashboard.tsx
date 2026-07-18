@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import axios from 'axios';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, router } from '@inertiajs/react';
 import {
@@ -198,8 +199,7 @@ export default function Dashboard() {
 
     const handleCopyInviteLink = async () => {
         try {
-            const res = await fetch('/api/v1/accountant/firm/invite-link');
-            const json = await res.json();
+            const { data: json } = await axios.get('/api/v1/accountant/firm/invite-link');
             if (json.url) {
                 await navigator.clipboard.writeText(json.url);
                 setCopiedLink(true);
