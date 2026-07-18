@@ -868,18 +868,6 @@ export interface PrimaryVsExtra {
   coverage_pct: number;
 }
 
-// --- Savings Action Response Types ---
-
-export interface AlternativeSuggestion {
-  name: string;
-  provider: string;
-  cost: number;
-  savings_vs_current: number;
-  description: string;
-  switch_effort: 'easy' | 'medium' | 'hard';
-  trade_offs: string;
-}
-
 export interface ProjectedSavings {
   projected_monthly_savings: number;
   projected_annual_savings: number;
@@ -1057,26 +1045,6 @@ export interface AdminCharityStats {
   with_donate_url: number;
   categories: Array<{ category: string; count: number }>;
   recently_added: CharitableOrganization[];
-}
-
-// --- Cookie Consent Types ---
-
-export interface ConsentPreferences {
-  analytics: boolean;
-  marketing: boolean;
-  version: string;
-  region?: string;
-  updated_at?: string;
-}
-
-export interface ConsentConfig {
-  region: 'eu' | 'california' | 'other';
-  region_label: string;
-  requires_opt_in: boolean;
-  requires_opt_out_notice: boolean;
-  consent_version: string;
-  has_consent: boolean;
-  current_preferences: { analytics: boolean; marketing: boolean } | null;
 }
 
 export interface ConsentAuditEntry {
