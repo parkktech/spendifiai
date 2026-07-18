@@ -6,54 +6,18 @@ use App\Enums\DocumentStatus;
 use App\Enums\TaxDocumentCategory;
 use App\Models\TaxDocument;
 use App\Models\Transaction;
+use App\Services\Support\IncomeTypeClassifier;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 
 class TaxDocumentIntelligenceService
 {
-    /**
-     * Plaid detailed category to income type mapping.
-     * Replicates IncomeDetectorService maps with dividend distinction.
-     */
-    protected array $plaidTypeMap = [
-        'INCOME_WAGES' => 'employment',
-        'INCOME_SALARY' => 'employment',
-        'INCOME_DIVIDENDS' => 'dividend',
-        'INCOME_INTEREST_EARNED' => 'interest',
-        'INCOME_RETIREMENT_PENSION' => 'employment',
-        'INCOME_TAX_REFUND' => 'other',
-        'INCOME_UNEMPLOYMENT' => 'employment',
-        'INCOME_OTHER_INCOME' => 'other',
-        'TRANSFER_IN_ACCOUNT_TRANSFER' => 'transfer',
-        'TRANSFER_IN_CASH_ADVANCES_AND_LOANS' => 'other',
-        'TRANSFER_IN_DEPOSIT' => 'other',
-        'TRANSFER_IN_INVESTMENT_AND_RETIREMENT_FUNDS' => 'other',
-        'TRANSFER_IN_SAVINGS' => 'transfer',
-        'TRANSFER_IN_TRANSFER_IN_FROM_APPS' => 'transfer',
-    ];
+    private IncomeTypeClassifier $classifier;
 
-    protected array $plaidPrimaryMap = [
-        'INCOME' => 'employment',
-        'TRANSFER_IN' => 'transfer',
-    ];
-
-    protected array $aiTypeMap = [
-        'Salary & Wages' => 'employment',
-        'Income (Salary)' => 'employment',
-        'Payroll' => 'employment',
-        'Direct Deposit' => 'employment',
-        'Contractor Income' => 'contractor',
-        'Freelance Income' => 'contractor',
-        'Income (Freelance)' => 'contractor',
-        'Income (1099)' => 'contractor',
-        'Interest Income' => 'interest',
-        'Dividends' => 'dividend',
-        'Investment Income' => 'interest',
-        'Income (Investment)' => 'interest',
-        'Rental Income' => 'other',
-        'Refund' => 'other',
-        'Tax Refund' => 'other',
-    ];
+    public function __construct()
+    {
+        $this->classifier = new IncomeTypeClassifier(distinguishDividends: true);
+    }
 
     /**
      * Run full intelligence analysis for a user and tax year.
@@ -561,44 +525,11 @@ class TaxDocumentIntelligenceService
 
     /**
      * Classify a transaction's income type.
-     * Replicates IncomeDetectorService logic with dividend distinction.
+     * Uses IncomeTypeClassifier with dividend distinction enabled.
      */
     protected function classifyIncomeType(object $tx): string
     {
-        // 1. Plaid detailed category (most specific)
-        if ($tx->plaid_detailed_category && isset($this->plaidTypeMap[$tx->plaid_detailed_category])) {
-            return $this->plaidTypeMap[$tx->plaid_detailed_category];
-        }
-
-        // 2. Plaid primary category
-        if ($tx->plaid_category && isset($this->plaidPrimaryMap[$tx->plaid_category])) {
-            return $this->plaidPrimaryMap[$tx->plaid_category];
-        }
-
-        // 3. AI/user category
-        $resolved = $tx->resolved_category ?? null;
-        if ($resolved && isset($this->aiTypeMap[$resolved])) {
-            return $this->aiTypeMap[$resolved];
-        }
-
-        // 4. Merchant name heuristics
-        $merchant = strtoupper($tx->merchant_name ?? '');
-        if (str_contains($merchant, 'PAYROLL') || str_contains($merchant, 'DIRECT DEP')
-            || str_contains($merchant, 'SALARY') || str_contains($merchant, 'PAYCHECK')) {
-            return 'employment';
-        }
-        if (str_contains($merchant, 'ZELLE') || str_contains($merchant, 'VENMO')
-            || str_contains($merchant, 'CASHAPP') || str_contains($merchant, 'CASH APP')) {
-            return 'transfer';
-        }
-        if (str_contains($merchant, 'DIVIDEND')) {
-            return 'dividend';
-        }
-        if (str_contains($merchant, 'INTEREST')) {
-            return 'interest';
-        }
-
-        return 'other';
+        return $this->classifier->classify($tx);
     }
 
     /**
@@ -606,26 +537,7 @@ class TaxDocumentIntelligenceService
      */
     protected function normalizeMerchant(?string $name, string $type): string
     {
-        if (! $name) {
-            return match ($type) {
-                'employment' => 'Employment Income',
-                'contractor' => 'Contractor Income',
-                'interest' => 'Interest Income',
-                'dividend' => 'Dividend Income',
-                'mortgage' => 'Mortgage Lender',
-                default => 'Other Income',
-            };
-        }
-
-        $upper = strtoupper(trim($name));
-
-        $clean = preg_replace('/[#*]+\d*\s*$/', '', $upper);
-        $clean = preg_replace('/\s+\d{3,}$/', '', $clean);
-        $clean = preg_replace('/\s+(DIRECT|DIR)\s*(DEP|DEPOSIT).*$/i', '', $clean);
-        $clean = preg_replace('/\s+PAYROLL.*$/i', '', $clean);
-        $clean = preg_replace('/\s+SALARY.*$/i', '', $clean);
-
-        return trim($clean) ?: $name;
+        return $this->classifier->normalizeMerchant($name, $type);
     }
 
     /**
