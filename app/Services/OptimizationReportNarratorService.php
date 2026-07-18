@@ -148,18 +148,6 @@ SYS;
     }
 
     /**
-     * Legacy prose accessor for backward compat — returns summary string from structured object,
-     * or null if narration unavailable. Used by renderers that have not yet been updated (D19
-     * rollout: renderers compose from fields when structured is present, fall back to prose clamp).
-     *
-     * @param  array{summary: string, bullets: string[]}|null  $structured
-     */
-    public function narrateSectionProse(?array $structured): ?string
-    {
-        return $structured['summary'] ?? null;
-    }
-
-    /**
      * D19 — Narrate an executive summary across all sections (structured output contract).
      *
      * Returns {summary: string, bullets: string[]} or null on failure.
