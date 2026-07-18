@@ -39,13 +39,17 @@ class TaxDocumentIntelligenceService
 
     protected array $aiTypeMap = [
         'Salary & Wages' => 'employment',
+        'Income (Salary)' => 'employment',
         'Payroll' => 'employment',
         'Direct Deposit' => 'employment',
         'Contractor Income' => 'contractor',
         'Freelance Income' => 'contractor',
+        'Income (Freelance)' => 'contractor',
+        'Income (1099)' => 'contractor',
         'Interest Income' => 'interest',
         'Dividends' => 'dividend',
         'Investment Income' => 'interest',
+        'Income (Investment)' => 'interest',
         'Rental Income' => 'other',
         'Refund' => 'other',
         'Tax Refund' => 'other',
