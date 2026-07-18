@@ -964,16 +964,7 @@ export default function Dashboard() {
 
   const handleLegacyApply = async (item: ActionItem) => {
     setActionLoading(item.id);
-    if (item.type === 'recommendation' && item.sourceId) {
-      const result = await respondToAction(undefined, { url: `/api/v1/savings/${item.sourceId}/apply` } as never) as { budget_created?: boolean } | undefined;
-      if (result?.budget_created) {
-        showToast(`Applied! Budget set for ${item.category}.`);
-      } else {
-        showToast(`Applied: ${item.title}`);
-      }
-    } else {
-      showToast(`Applied: ${item.title}`);
-    }
+    showToast(`Applied: ${item.title}`);
     setActionLoading(null);
     refresh();
   };
