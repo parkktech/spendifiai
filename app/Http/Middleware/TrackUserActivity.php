@@ -16,9 +16,8 @@ class TrackUserActivity
         if ($user) {
             $cacheKey = "user_activity:{$user->id}";
 
-            if (! Cache::has($cacheKey)) {
+            if (Cache::add($cacheKey, true, 3600)) {
                 $user->updateQuietly(['last_active_at' => now()]);
-                Cache::put($cacheKey, true, 3600);
             }
         }
 
