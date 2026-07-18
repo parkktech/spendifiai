@@ -34,6 +34,7 @@ import {
 } from 'lucide-react';
 import FileDropZone from './FileDropZone';
 import axios from 'axios';
+import { formatDateShort } from '@/utils/formatDate';
 
 // ─── Document type catalogue ───────────────────────────────────────────────────
 
@@ -82,15 +83,6 @@ export interface DocumentUploadFlowProps {
 }
 
 // ─── Helpers ───────────────────────────────────────────────────────────────────
-
-function formatDate(iso: string | null): string {
-  if (!iso) return '';
-  try {
-    return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-  } catch {
-    return '';
-  }
-}
 
 export default function DocumentUploadFlow({ onComplete, compact = false, onExclusionsChange }: DocumentUploadFlowProps) {
   const [step, setStep] = useState<FlowStep>('type');
@@ -319,7 +311,7 @@ export default function DocumentUploadFlow({ onComplete, compact = false, onExcl
               const hasReady = status?.has_ready_doc === true;
               const isExcluded = status?.is_excluded === true;
               const date = hasReady && status.latest_uploaded_at
-                ? formatDate(status.latest_uploaded_at)
+                ? formatDateShort(status.latest_uploaded_at)
                 : null;
               const count = status?.ready_count ?? 0;
               const isToggling = togglingExclusion === dt.value;
@@ -495,7 +487,7 @@ export default function DocumentUploadFlow({ onComplete, compact = false, onExcl
               <p className="text-sm font-semibold text-sw-text">Already on file</p>
               <p className="text-xs text-sw-muted max-w-xs mx-auto">
                 {duplicateDoc?.category_label
-                  ? `Your ${duplicateDoc.category_label}${duplicateDoc.created_at ? ` uploaded ${formatDate(duplicateDoc.created_at)}` : ''} is already in your vault — no duplicate created.`
+                  ? `Your ${duplicateDoc.category_label}${duplicateDoc.created_at ? ` uploaded ${formatDateShort(duplicateDoc.created_at)}` : ''} is already in your vault — no duplicate created.`
                   : 'This document is already in your vault — no duplicate created.'}
               </p>
             </>

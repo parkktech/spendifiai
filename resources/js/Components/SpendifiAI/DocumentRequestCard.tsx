@@ -1,14 +1,11 @@
 import { AlertCircle, CheckCircle, XCircle, Upload, Calendar, User } from 'lucide-react';
 import Badge from '@/Components/SpendifiAI/Badge';
+import { formatDate } from '@/utils/formatDate';
 import type { DocumentRequest } from '@/types/spendifiai';
 
 interface DocumentRequestCardProps {
     request: DocumentRequest;
     onUpload?: () => void;
-}
-
-function formatDate(dateStr: string): string {
-    return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
 const statusConfig: Record<string, { icon: typeof AlertCircle; variant: 'warning' | 'success' | 'neutral'; label: string; borderColor: string }> = {

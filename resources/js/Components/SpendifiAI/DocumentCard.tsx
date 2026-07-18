@@ -3,6 +3,7 @@ import { ChevronDown, ChevronUp, CheckCircle, Loader2, AlertCircle, Eye, Downloa
 import { Link } from '@inertiajs/react';
 import axios from 'axios';
 import Badge from '@/Components/SpendifiAI/Badge';
+import { formatDate } from '@/utils/formatDate';
 import type { VaultCategoryCard, TaxDocument } from '@/types/spendifiai';
 
 interface DocumentCardProps {
@@ -57,18 +58,6 @@ function overallStatus(statuses: VaultCategoryCard['statuses']) {
     );
   }
   return null;
-}
-
-function formatDate(dateStr: string): string {
-  try {
-    return new Date(dateStr).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-    });
-  } catch {
-    return dateStr;
-  }
 }
 
 function formatSize(bytes: number): string {

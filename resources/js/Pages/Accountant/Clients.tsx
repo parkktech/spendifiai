@@ -21,6 +21,7 @@ import {
 import Badge from '@/Components/SpendifiAI/Badge';
 import { useApi } from '@/hooks/useApi';
 import { useImpersonation } from '@/contexts/ImpersonationContext';
+import { formatDate as formatDateUtil } from '@/utils/formatDate';
 import type { AccountantClient, AccountantInvite } from '@/types/spendifiai';
 import axios from 'axios';
 
@@ -229,11 +230,7 @@ export default function Clients() {
         }
     };
 
-    const formatDate = (dateStr: string | undefined | null) => {
-        if (!dateStr) return '—';
-        const d = new Date(dateStr);
-        return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-    };
+    const formatDate = (dateStr: string | undefined | null) => (dateStr ? formatDateUtil(dateStr) : '—');
 
     const formatRelativeTime = (dateStr: string | undefined | null) => {
         if (!dateStr) return 'Never';
