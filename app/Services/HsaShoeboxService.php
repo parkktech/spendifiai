@@ -115,24 +115,4 @@ class HsaShoeboxService
             ->orderByDesc('asserted_at')
             ->get();
     }
-
-    /**
-     * Calculate the total amount in the shoebox for a given tax year.
-     *
-     * Returns total in integer cents. Value column is encrypted — fetched via
-     * model accessor and summed.
-     *
-     * @return int Total cents
-     */
-    public function totalForYear(int $userId, int $taxYear): int
-    {
-        return UserTaxFact::forUser($userId)
-            ->where('fact_key', 'like', 'hsa_shoebox.%')
-            ->where('tax_year', $taxYear)
-            ->where('is_current', true)
-            ->get()
-            ->sum(fn (UserTaxFact $fact) => (int) ($fact->getRawOriginal('value')
-                ? decrypt($fact->getRawOriginal('value'))
-                : 0));
-    }
 }
