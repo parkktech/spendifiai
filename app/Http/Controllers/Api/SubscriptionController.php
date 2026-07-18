@@ -135,9 +135,9 @@ class SubscriptionController extends Controller
 
         // Clear dashboard cache
         $userId = auth()->id();
-        Cache::forget("dashboard:{$userId}:all");
-        Cache::forget("dashboard:{$userId}:personal");
-        Cache::forget("dashboard:{$userId}:business");
+        Cache::forget("dashboard:{$userId}:all::");
+        Cache::forget("dashboard:{$userId}:personal::");
+        Cache::forget("dashboard:{$userId}:business::");
 
         return response()->json([
             'subscription' => new SubscriptionResource($subscription->fresh()),

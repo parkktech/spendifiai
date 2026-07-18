@@ -23,9 +23,9 @@ class OrderItemController extends Controller
 
         // Clear dashboard cache for all view modes
         $userId = $item->user_id;
-        Cache::forget("dashboard:{$userId}:all");
-        Cache::forget("dashboard:{$userId}:personal");
-        Cache::forget("dashboard:{$userId}:business");
+        Cache::forget("dashboard:{$userId}:all::");
+        Cache::forget("dashboard:{$userId}:personal::");
+        Cache::forget("dashboard:{$userId}:business::");
 
         return response()->json([
             'message' => 'Expense type updated',

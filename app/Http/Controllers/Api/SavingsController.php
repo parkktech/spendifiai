@@ -65,9 +65,9 @@ class SavingsController extends Controller
 
         // Clear dashboard cache so fresh recommendations show immediately
         foreach ($userIds as $uid) {
-            Cache::forget("dashboard:{$uid}:all");
-            Cache::forget("dashboard:{$uid}:personal");
-            Cache::forget("dashboard:{$uid}:business");
+            Cache::forget("dashboard:{$uid}:all::");
+            Cache::forget("dashboard:{$uid}:personal::");
+            Cache::forget("dashboard:{$uid}:business::");
         }
 
         return response()->json($result);
@@ -136,9 +136,9 @@ class SavingsController extends Controller
 
         // Clear dashboard cache for all household members
         foreach ($userIds as $uid) {
-            Cache::forget("dashboard:{$uid}:all");
-            Cache::forget("dashboard:{$uid}:personal");
-            Cache::forget("dashboard:{$uid}:business");
+            Cache::forget("dashboard:{$uid}:all::");
+            Cache::forget("dashboard:{$uid}:personal::");
+            Cache::forget("dashboard:{$uid}:business::");
         }
 
         return response()->json([
@@ -457,9 +457,9 @@ class SavingsController extends Controller
 
         // Clear dashboard cache for all household members
         foreach ($userIds as $uid) {
-            Cache::forget("dashboard:{$uid}:all");
-            Cache::forget("dashboard:{$uid}:personal");
-            Cache::forget("dashboard:{$uid}:business");
+            Cache::forget("dashboard:{$uid}:all::");
+            Cache::forget("dashboard:{$uid}:personal::");
+            Cache::forget("dashboard:{$uid}:business::");
         }
 
         return response()->json([

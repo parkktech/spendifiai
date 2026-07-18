@@ -121,9 +121,9 @@ class TransactionController extends Controller
 
         // Invalidate dashboard cache for all household members
         foreach ($userIds as $id) {
-            Cache::forget("dashboard:{$id}:all");
-            Cache::forget("dashboard:{$id}:personal");
-            Cache::forget("dashboard:{$id}:business");
+            Cache::forget("dashboard:{$id}:all::");
+            Cache::forget("dashboard:{$id}:personal::");
+            Cache::forget("dashboard:{$id}:business::");
         }
 
         return response()->json([
@@ -171,9 +171,9 @@ class TransactionController extends Controller
 
         // Clear dashboard cache
         foreach ($userIds as $id) {
-            Cache::forget("dashboard:{$id}:all");
-            Cache::forget("dashboard:{$id}:personal");
-            Cache::forget("dashboard:{$id}:business");
+            Cache::forget("dashboard:{$id}:all::");
+            Cache::forget("dashboard:{$id}:personal::");
+            Cache::forget("dashboard:{$id}:business::");
         }
 
         return response()->json([
@@ -209,9 +209,9 @@ class TransactionController extends Controller
 
         // Clear dashboard cache for all household members
         foreach ($userIds as $id) {
-            Cache::forget("dashboard:{$id}:all");
-            Cache::forget("dashboard:{$id}:personal");
-            Cache::forget("dashboard:{$id}:business");
+            Cache::forget("dashboard:{$id}:all::");
+            Cache::forget("dashboard:{$id}:personal::");
+            Cache::forget("dashboard:{$id}:business::");
         }
 
         $stats = Transaction::whereIn('user_id', $userIds)
