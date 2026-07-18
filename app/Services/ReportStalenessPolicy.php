@@ -53,15 +53,6 @@ class ReportStalenessPolicy
     ];
 
     /**
-     * Classify an event class into USER_ACTION or DATA_CHURN.
-     * Unknown events fall back to DATA_CHURN (conservative default).
-     */
-    public static function classifyTrigger(string $eventClass): string
-    {
-        return self::TRIGGER_CLASSIFICATION[$eventClass] ?? self::TRIGGER_DATA_CHURN;
-    }
-
-    /**
      * True when the report was rebuilt recently enough to suppress routine churn.
      *
      * "Fresh" means rebuilt_at is within the configured freshness_days window.
