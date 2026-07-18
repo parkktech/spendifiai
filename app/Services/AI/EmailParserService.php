@@ -197,44 +197,4 @@ PROMPT;
 
         return $data;
     }
-
-    /**
-     * Re-categorize items in bulk with additional user context.
-     * Useful for improving accuracy after initial parse — e.g., user says
-     * "I'm a freelance web developer" and we can re-score deductibility.
-     */
-    public function recategorizeItems(array $items, string $userContext): array
-    {
-        $systemPrompt = <<<PROMPT
-You are a tax categorization assistant. Given the user's business context and a list of purchased items,
-re-evaluate each item's category, tax deductibility, and expense type (personal vs business).
-
-User context: {$userContext}
-
-Respond with ONLY a JSON array of objects with these fields for each item:
-- product_name (unchanged)
-- suggested_category
-- tax_deductible (boolean)
-- tax_deductible_confidence (0.0-1.0)
-- expense_type ("personal", "business", "mixed")
-- reasoning (brief explanation)
-PROMPT;
-
-        $response = Http::withHeaders([
-            'x-api-key' => $this->apiKey,
-            'anthropic-version' => '2023-06-01',
-            'content-type' => 'application/json',
-        ])->timeout(30)->post('https://api.anthropic.com/v1/messages', [
-            'model' => $this->model,
-            'max_tokens' => 2000,
-            'system' => $systemPrompt,
-            'messages' => [
-                ['role' => 'user', 'content' => json_encode($items)],
-            ],
-        ]);
-
-        $content = $response->json('content.0.text');
-
-        return $this->parseResponse($content);
-    }
 }
