@@ -5,10 +5,34 @@ use App\Models\User;
 use App\Models\UserFinancialProfile;
 use App\Models\UserTaxFact;
 use App\Services\AI\PaystubFactExtractorService;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
 use Laravel\Sanctum\Sanctum;
 
 uses(\Illuminate\Foundation\Testing\RefreshDatabase::class);
+
+beforeEach(function () {
+    // Fact confirms dispatch BuildIncomeOptimizationProfile on the sync queue,
+    // whose event chain runs report generation + AI narration inline. Fake the
+    // Anthropic API so tests never spend real tokens or hit retry backoff.
+    // The body is a valid Claude messages response whose content[0].text JSON
+    // satisfies both narrator validators ({summary, bullets} and
+    // {hook, detail, action_cue}).
+    Http::fake([
+        'api.anthropic.com/*' => Http::response([
+            'content' => [[
+                'type' => 'text',
+                'text' => json_encode([
+                    'summary' => 'This area may be worth exploring.',
+                    'bullets' => ['Consider reviewing this area with a professional.'],
+                    'hook' => 'You may want to review this area.',
+                    'detail' => 'This could be worth exploring further.',
+                    'action_cue' => 'Consider discussing with a tax professional.',
+                ]),
+            ]],
+        ], 200),
+    ]);
+});
 
 /**
  * Item 3: Pay-frequency derivation from period dates + income reconciliation.
