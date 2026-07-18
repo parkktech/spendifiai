@@ -41,3 +41,4 @@ boost.json
 
 # Source design files
 graphics/
+.planning/intel/codemap.txt
