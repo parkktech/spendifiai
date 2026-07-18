@@ -279,3 +279,14 @@ Phases execute in this order: 10 → 11 → 12 → 14 → 13 (Phase 13 SAFE hard
 | 12. Optimization Report, Document Intake & Feature Surface | v2.1 | 5/5 | Complete   | 2026-07-02 |
 | 14. Action Center, Scenarios & Design Elevation | v2.1 | 11/10 | Complete   | 2026-07-02 |
 | 13. Safety, Validation & Hardening | v2.1 | 4/4 | Complete   | 2026-07-03 |
+
+### Phase 15: AnthropicClient consolidation — one Anthropic HTTP transport (client, retries, budget guard) for the 13 services with hand-rolled call sites; characterization tests first for uncovered services
+
+**Goal:** [To be planned]
+**Requirements**: TBD
+**Depends on:** Phase 14
+**Plans:** 0 plans
+
+Plans:
+
+- [ ] TBD (run /gsd-plan-phase 15 to break down)
