@@ -11,6 +11,7 @@ import {
   ResponsiveContainer,
   Legend,
 } from 'recharts';
+import { formatCurrencyCompact as formatCurrency } from '@/utils/formatCurrency';
 
 interface SpendingChartProps {
   data: Array<{ month: string; expenses: number; income: number }>;
@@ -21,11 +22,6 @@ const CHART_COLORS = [
   '#2563eb', '#7c3aed', '#059669', '#d97706', '#dc2626',
   '#06b6d4', '#ec4899', '#f97316', '#a855f7', '#14b8a6',
 ];
-
-function formatCurrency(value: number): string {
-  if (value >= 1000) return `$${(value / 1000).toFixed(1)}k`;
-  return `$${value}`;
-}
 
 export default function SpendingChart({ data, categories }: SpendingChartProps) {
   return (

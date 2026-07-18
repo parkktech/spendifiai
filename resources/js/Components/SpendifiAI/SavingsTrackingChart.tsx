@@ -9,15 +9,11 @@ import {
 } from 'recharts';
 import { TrendingUp } from 'lucide-react';
 import type { SavingsHistoryEntry } from '@/types/spendifiai';
+import { formatCurrencyCompact as formatCurrency } from '@/utils/formatCurrency';
 
 interface SavingsTrackingChartProps {
   data: SavingsHistoryEntry[];
   projectedMonthly: number;
-}
-
-function formatCurrency(value: number): string {
-  if (value >= 1000) return `$${(value / 1000).toFixed(1)}k`;
-  return `$${value}`;
 }
 
 export default function SavingsTrackingChart({ data, projectedMonthly }: SavingsTrackingChartProps) {
