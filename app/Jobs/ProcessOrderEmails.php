@@ -57,7 +57,7 @@ class ProcessOrderEmails implements ShouldQueue
 
             // Step 1: Fetch emails — route to correct service based on connection type
             $emails = match ($connection->connection_type) {
-                'imap' => $this->fetchViaImap($imapService, $connection, $since),
+                'imap' => $imapService->fetchOrderEmails($connection, $since),
                 'oauth' => $connection->provider === 'outlook'
                     ? $this->fetchViaMicrosoft($microsoftService, $connection, $since)
                     : $this->fetchViaGmail($gmailService, $connection, $since),
@@ -228,14 +228,6 @@ class ProcessOrderEmails implements ShouldQueue
             ]);
             throw $e;
         }
-    }
-
-    /**
-     * Fetch emails via IMAP — returns full email data directly.
-     */
-    protected function fetchViaImap(ImapEmailService $imapService, EmailConnection $connection, ?Carbon $since): array
-    {
-        return $imapService->fetchOrderEmails($connection, $since);
     }
 
     /**
