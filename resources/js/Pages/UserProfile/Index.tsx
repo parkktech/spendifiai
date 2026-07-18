@@ -6,9 +6,8 @@
  *
  *   1. EnhancedProfileSection    (imported UNCHANGED from Phase 11)
  *   2. LearnedTaxFactsSection    (imported UNCHANGED from Phase 11)
- *   3. AiOnboardingUploadSection (new — fastest path to a complete profile)
- *   4. FamilyHouseholdSection    (new — spouse/dependents/household read-only)
- *   5. HsaShoeboxSection         (new — STORE-03 receipt tracking)
+ *   3. FamilyHouseholdSection    (new — spouse/dependents/household read-only)
+ *   4. HsaShoeboxSection         (new — STORE-03 receipt tracking)
  *
  * Settings keeps account/security — nothing is moved off Settings (additive only).
  *
@@ -19,7 +18,6 @@
  *
  * SKILL USAGE:
  *   - ui-ux-pro-max query: "onboarding upload wizard proposal confirm" → applied
- *     step indicator + upload-first onboarding flow (AiOnboardingUploadSection)
  *   - soft-skill: 16px rhythm, shadow-sm depth, label/value hierarchy
  *
  * EDUCATIONAL FRAMING (UI-03): Inline disclaimer on page + each new section.
