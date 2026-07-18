@@ -2,31 +2,11 @@
 
 namespace App\Services;
 
-use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
 class BankStatementParserService
 {
-    public function parseFile(UploadedFile $file, string $bankName, string $accountType): array
-    {
-        $extension = strtolower($file->getClientOriginalExtension());
-
-        Log::info('Statement parse started', [
-            'bank' => $bankName,
-            'type' => $accountType,
-            'format' => $extension,
-            'size_kb' => round($file->getSize() / 1024, 1),
-            'filename' => $file->getClientOriginalName(),
-        ]);
-
-        return match ($extension) {
-            'pdf' => $this->parsePdf($file->getRealPath(), $bankName),
-            'csv', 'txt' => $this->parseCsv($file->getRealPath(), $bankName),
-            default => throw new \InvalidArgumentException("Unsupported file type: {$extension}"),
-        };
-    }
-
     public function parsePdf(string $filePath, string $bankName): array
     {
         return $this->extractTransactionsFromPdfWithAI($filePath, $bankName);
