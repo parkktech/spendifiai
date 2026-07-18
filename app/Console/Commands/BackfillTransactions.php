@@ -13,8 +13,7 @@ class BackfillTransactions extends Command
                             {--user= : User ID to backfill (omit for all active connections)}
                             {--from= : Start date (YYYY-MM-DD, defaults to Jan 1 of previous year)}
                             {--to= : End date (YYYY-MM-DD, defaults to today)}
-                            {--categorize : Also run AI categorization on new transactions}
-                            {--sync : Legacy: reset sync cursor and dispatch sync job instead}';
+                            {--categorize : Also run AI categorization on new transactions}';
 
     protected $description = 'Fetch historical transactions using Plaid /transactions/get for reliable date-range backfill';
 
@@ -32,11 +31,6 @@ class BackfillTransactions extends Command
             $this->warn('No active bank connections found.');
 
             return self::SUCCESS;
-        }
-
-        // Legacy mode: just reset cursor
-        if ($this->option('sync')) {
-            return $this->legacyCursorReset($connections);
         }
 
         $startDate = $this->option('from') ?? now()->subYear()->startOfYear()->format('Y-m-d');
@@ -74,20 +68,6 @@ class BackfillTransactions extends Command
         }
 
         $this->info("Done. {$totalAdded} new transactions added.");
-
-        return self::SUCCESS;
-    }
-
-    private function legacyCursorReset($connections): int
-    {
-        $this->info("Resetting sync cursor for {$connections->count()} connection(s)...");
-
-        foreach ($connections as $connection) {
-            $connection->update(['sync_cursor' => null]);
-            $this->line("  [{$connection->id}] {$connection->institution_name} — cursor reset");
-        }
-
-        $this->info('Cursors reset. Trigger a sync manually or wait for the scheduled job.');
 
         return self::SUCCESS;
     }
