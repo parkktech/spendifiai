@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import axios from 'axios';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head } from '@inertiajs/react';
 import {
@@ -292,16 +293,7 @@ export default function ConnectIndex() {
     setOauthConnecting(true);
     setConnectError(null);
     try {
-      const token = localStorage.getItem('auth_token');
-      const response = await fetch(`/api/v1/email/connect/${provider}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-          ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
-        },
-      });
-      const data = await response.json();
+      const { data } = await axios.post(`/api/v1/email/connect/${provider}`);
       if (data.auth_url) {
         window.location.href = data.auth_url;
       } else if (data.error) {
