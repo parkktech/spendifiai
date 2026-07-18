@@ -237,8 +237,8 @@ class DurableFactsController extends Controller
             'value' => 'nullable|string|max:500',
         ]);
 
-        // Owner-only authorization
-        if ($fact->user_id !== $request->user()->id) {
+        // Household-aware authorization (UserTaxFactPolicy::confirm)
+        if ($request->user()->cannot('confirm', $fact)) {
             abort(403, 'You are not authorized to confirm this fact.');
         }
 
@@ -422,8 +422,8 @@ class DurableFactsController extends Controller
             'answer' => 'required|string|max:500',
         ]);
 
-        // Owner-only + must be the current active fact
-        if ($fact->user_id !== $request->user()->id) {
+        // Household-aware (UserTaxFactPolicy::update) + must be the current active fact
+        if ($request->user()->cannot('update', $fact)) {
             abort(403, 'You are not authorized to update this fact.');
         }
 
