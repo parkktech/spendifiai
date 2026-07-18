@@ -150,6 +150,7 @@ class RetroactiveScanner
                     ruleId: null,  // bypass validateRule — retro scanner surfaces expired credits intentionally
                     isRecurring: $withinWindow->where('is_subscription', true)->isNotEmpty(),
                     annualTotalCents: (int) round($withinWindow->sum('amount') * 100),
+                    loanServicer: true, // matched via SOLAR_LOAN_SERVICERS — always-interrogate per D2/FLAG-08
                     transactionIds: $withinWindow->pluck('id')->toArray(),
                     docsMissing: ['solar_invoice', 'prior_year_return'],
                     electionFacts: $electionFacts,

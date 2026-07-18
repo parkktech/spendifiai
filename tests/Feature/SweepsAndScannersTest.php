@@ -190,11 +190,12 @@ it('RetroactiveScanner 25D finding uses educational RANGE framing with uncertain
         })
         ->first();
 
-    if ($finding) {
-        // Educational range framing with uncertainty — NEVER "you will recover $X"
-        expect($finding->treatment)->not->toContain('you will recover')
-            ->and($finding->treatment)->not->toContain('guaranteed recovery');
-    }
+    // Loan-servicer signal is always-interrogate (FLAG-08) — the finding MUST exist
+    expect($finding)->not->toBeNull();
+
+    // Educational range framing with uncertainty — NEVER "you will recover $X"
+    expect($finding->treatment)->not->toContain('you will recover')
+        ->and($finding->treatment)->not->toContain('guaranteed recovery');
 });
 
 it('RetroactiveScanner 30D is strictly date-gated past-window only', function () {
