@@ -4,12 +4,15 @@ namespace App\Services\Email;
 
 use App\Models\EmailConnection;
 use App\Models\ParsedEmail;
+use App\Services\Email\Concerns\CleansEmailHtml;
 use Illuminate\Support\Facades\Log;
 use Webklex\PHPIMAP\ClientManager;
 use Webklex\PHPIMAP\Exceptions\ConnectionFailedException;
 
 class ImapEmailService
 {
+    use CleansEmailHtml;
+
     /**
      * Provider presets: auto-detect IMAP settings from email domain.
      */
@@ -354,32 +357,6 @@ class ImapEmailService
         }
 
         return $text ?? '';
-    }
-
-    /**
-     * Clean HTML while preserving structure for Claude parsing.
-     */
-    public function cleanHtml(string $html): string
-    {
-        $html = preg_replace('/<style[^>]*>.*?<\/style>/si', '', $html);
-        $html = preg_replace('/<script[^>]*>.*?<\/script>/si', '', $html);
-        $html = preg_replace('/<\/td>/i', ' | ', $html);
-        $html = preg_replace('/<\/tr>/i', "\n", $html);
-        $html = preg_replace('/<br\s*\/?>/i', "\n", $html);
-        $html = preg_replace('/<\/p>/i', "\n", $html);
-        $html = preg_replace('/<\/div>/i', "\n", $html);
-        $html = preg_replace('/<\/li>/i', "\n", $html);
-
-        $text = strip_tags($html);
-        $text = preg_replace('/[ \t]+/', ' ', $text);
-        $text = preg_replace('/\n{3,}/', "\n\n", $text);
-        $text = trim($text);
-
-        if (strlen($text) > 8000) {
-            $text = substr($text, 0, 8000)."\n...[truncated]";
-        }
-
-        return $text;
     }
 
     /**
