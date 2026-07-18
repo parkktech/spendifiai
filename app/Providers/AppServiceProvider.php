@@ -2,7 +2,6 @@
 
 namespace App\Providers;
 
-use App\Http\Middleware\Enforce2FA;
 use App\Http\Middleware\EnsureBankConnected;
 use App\Http\Middleware\EnsureProfileComplete;
 use App\Http\Middleware\VerifyCaptcha;
@@ -95,7 +94,6 @@ class AppServiceProvider extends ServiceProvider
         // ── Middleware Aliases ──
         Route::aliasMiddleware('bank.connected', EnsureBankConnected::class);
         Route::aliasMiddleware('profile.complete', EnsureProfileComplete::class);
-        Route::aliasMiddleware('2fa', Enforce2FA::class);
         Route::aliasMiddleware('captcha', VerifyCaptcha::class);
 
         // ── Policies ──
