@@ -280,6 +280,7 @@ class IncomeDetectorService
         $clean = preg_replace('/\s+\d{3,}$/', '', $clean);
         $clean = preg_replace('/\s+(DIRECT|DIR)\s*(DEP|DEPOSIT).*$/i', '', $clean);
         $clean = preg_replace('/\s+PAYROLL.*$/i', '', $clean);
+        $clean = preg_replace('/\s+SALARY.*$/i', '', $clean);
 
         return trim($clean) ?: $name;
     }
