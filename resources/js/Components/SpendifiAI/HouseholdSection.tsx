@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import axios from 'axios';
 import { Users, Copy, Trash2, LogOut, Plus, Loader2, CheckCircle, Mail, Clock, XCircle } from 'lucide-react';
 import Badge from '@/Components/SpendifiAI/Badge';
 import ConfirmDialog from '@/Components/SpendifiAI/ConfirmDialog';
@@ -55,11 +56,7 @@ export default function HouseholdSection() {
 
   const handleRemoveMember = async (member: HouseholdMember) => {
     try {
-      const token = localStorage.getItem('auth_token');
-      await fetch(`/api/v1/household/members/${member.id}`, {
-        method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-      });
+      await axios.delete(`/api/v1/household/members/${member.id}`);
       refresh();
       setConfirmRemove(null);
       setSuccess('Member removed');
@@ -71,11 +68,7 @@ export default function HouseholdSection() {
 
   const handleLeave = async () => {
     try {
-      const token = localStorage.getItem('auth_token');
-      await fetch('/api/v1/household/leave', {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-      });
+      await axios.post('/api/v1/household/leave');
       refresh();
       setConfirmLeave(false);
       setSuccess('You left the household');
@@ -87,11 +80,7 @@ export default function HouseholdSection() {
 
   const handleRevokeInvite = async (token: string) => {
     try {
-      const authToken = localStorage.getItem('auth_token');
-      await fetch(`/api/v1/household/invite/${token}/revoke`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${authToken}`, 'Content-Type': 'application/json' },
-      });
+      await axios.post(`/api/v1/household/invite/${token}/revoke`);
       refresh();
     } catch {
       setError('Failed to revoke invitation');
