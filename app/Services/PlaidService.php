@@ -59,6 +59,36 @@ class PlaidService
     }
 
     /**
+     * Create a Plaid Link token without the statements product.
+     *
+     * Used as a fallback when the Plaid account/institution does not have the
+     * statements product enabled (sandbox or lower-tier production plans). The
+     * link token will enable bank-account linking and transaction access without
+     * the PDF/statement download capability.
+     */
+    public function createLinkTokenWithoutStatements(User $user): array
+    {
+        $params = [
+            'user' => [
+                'client_user_id' => (string) $user->id,
+                'email_address' => $user->email,
+                'email_address_verified_time' => $user->email_verified_at?->toIso8601String() ?? now()->toIso8601String(),
+                'phone_number_verified_time' => now()->toIso8601String(),
+            ],
+            'client_name' => config('app.name', 'SpendifiAI'),
+            'products' => ['transactions'],
+            'country_codes' => config('spendifiai.plaid.country_codes', ['US']),
+            'language' => 'en',
+        ];
+
+        if ($webhookUrl = config('spendifiai.plaid.webhook_url')) {
+            $params['webhook'] = $webhookUrl;
+        }
+
+        return $this->post('/link/token/create', $params);
+    }
+
+    /**
      * Exchange a public token (from Plaid Link success) for an access token.
      * Store the connection and fetch initial account data.
      */

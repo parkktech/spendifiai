@@ -332,6 +332,10 @@ it('stale_queue_self_heal: session with empty queue + conditional findings yield
 });
 
 it('stale_queue_self_heal_skips_already_asked_keys', function () {
+    // This test verifies that a key which was asked AND answered (UserTaxFact exists)
+    // is NOT re-added to the queue during stale-queue self-heal.
+    // The v3 self-heal clears asked[] on format_version upgrade, but isAlreadyAnswered()
+    // still prevents confirmed facts from being re-served.
     Http::fake(['https://api.anthropic.com/*' => Http::response(['content' => [['text' => 'test?']]], 200)]);
 
     $user = createAuthenticatedUser();
@@ -342,9 +346,14 @@ it('stale_queue_self_heal_skips_already_asked_keys', function () {
         'status' => 'in_progress',
         'queue' => [],
         'asked' => ['already_answered_probe'],  // previously asked
+        'format_version' => \App\Services\InterviewOrchestratorService::FORMAT_VERSION,
     ]);
 
-    // Two findings — one already asked, one new (D18: question-phrased narrations)
+    // Mark the key as ANSWERED (UserTaxFact exists) — this is the crucial difference
+    // vs an "orphaned" asked key (asked but no answer recorded).
+    UserTaxFact::recordFact($user->id, 'already_answered_probe', 'yes', 'interview_answer');
+
+    // Two findings — one already asked+answered, one new (D18: question-phrased narrations)
     OptimizationFinding::factory()->create([
         'user_id' => $user->id,
         'tax_year' => 2026,
@@ -368,10 +377,50 @@ it('stale_queue_self_heal_skips_already_asked_keys', function () {
     $service = app(InterviewOrchestratorService::class);
     $resumed = $service->startOrResume($user->id, 2026);
 
-    // already_answered_probe must NOT be re-added to the rebuilt queue
+    // already_answered_probe must NOT be re-added — it has a UserTaxFact (answered)
     expect($resumed->queue)->not->toContain('already_answered_probe');
     // new_probe must be in the queue
     expect($resumed->queue)->toContain('new_probe');
+});
+
+it('stale_session_orphaned_asked_keys_are_requeueable_on_upgrade', function () {
+    // Stale-session self-heal: a session created under pre-v3 code may have keys in
+    // asked[] that were SERVED but never answered (e.g. user navigated away mid-question).
+    // On format_version upgrade, asked[] is cleared so these orphaned keys re-enter the
+    // queue and the user can answer them — eliminating the "Review complete" dead-end.
+    Http::fake(['https://api.anthropic.com/*' => Http::response(['content' => [['text' => 'test?']]], 200)]);
+
+    $user = createAuthenticatedUser();
+
+    // Pre-v3 session: version not set (defaults to null → treated as 0)
+    $session = InterviewSession::factory()->create([
+        'user_id' => $user->id,
+        'tax_year' => 2026,
+        'status' => 'in_progress',
+        'queue' => [],
+        'asked' => ['orphaned_gap_key'],  // served but never answered
+        // No format_version set → pre-v3 → upgrade will clear asked[]
+    ]);
+
+    // No UserTaxFact for orphaned_gap_key — simulates question served but answer lost
+    OptimizationFinding::factory()->create([
+        'user_id' => $user->id,
+        'tax_year' => 2026,
+        'finding_key' => 'orphaned_gap_key',
+        'finding_type' => 'deduction_probe',
+        'band' => 'conditional',
+        'status' => 'open',
+        'description' => 'Are you enrolled in an HSA-eligible health plan this year?',
+    ]);
+
+    $service = app(InterviewOrchestratorService::class);
+    $resumed = $service->startOrResume($user->id, 2026);
+
+    // After upgrade the session should be on the current format_version
+    expect($resumed->format_version)->toBe(\App\Services\InterviewOrchestratorService::FORMAT_VERSION);
+
+    // orphaned_gap_key must be RE-ADDED because no UserTaxFact exists — user can answer it
+    expect($resumed->queue)->toContain('orphaned_gap_key');
 });
 
 // ─── Session record-answer plumbing ──────────────────────────────────────────

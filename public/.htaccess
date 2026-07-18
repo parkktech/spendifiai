@@ -5,6 +5,9 @@
     RewriteCond %{HTTP_HOST} ^spendifiai\.com$ [NC]
     RewriteRule ^ https://www.spendifiai.com%{REQUEST_URI} [L,R=301]
 
+    # JAZ standalone app lives in /jaz — never route it into this app
+    RewriteRule ^jaz(/|$) - [L]
+
     # Handle Authorization Header
     RewriteCond %{HTTP:Authorization} .
     RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]

@@ -556,13 +556,18 @@ return [
             'label' => 'FSA YTD (stated)',
         ],
         'ira.traditional_ytd_contribution_cents' => [
-            'question' => 'So far this year, roughly how much have you contributed to a Traditional IRA? Enter 0 if none.',
+            // Fix 10: Explicitly distinguish IRA from 401(k) payroll deductions.
+            // Context: 401(k) deductions come directly from your paycheck (we already see
+            // those on your paystub). IRA contributions are separate — money you send
+            // yourself to a personal account at a brokerage (Fidelity, Vanguard, Schwab, etc.).
+            'question' => 'Separate from your workplace 401(k) (which we see on your paystub), have you contributed to a personal Traditional IRA this year? These are accounts you fund yourself — e.g. at Fidelity, Vanguard, or a similar brokerage. Enter 0 if none.',
             'answer_type' => 'money_dollars', 'allow_zero' => true,
             'volatility' => 'annual', 'tax_year_scoped' => true,
             'label' => 'Traditional IRA YTD (stated)',
         ],
         'ira.roth_ytd_contribution_cents' => [
-            'question' => 'So far this year, roughly how much have you contributed to a Roth IRA? Enter 0 if none.',
+            // Fix 10: Same explicit 401(k) distinction for Roth IRA.
+            'question' => 'Separate from any Roth 401(k) contributions through your paycheck (already captured from your paystub), have you contributed to a personal Roth IRA this year? These are contributions you make yourself to a Roth account at a brokerage — not through payroll. Enter 0 if none.',
             'answer_type' => 'money_dollars', 'allow_zero' => true,
             'volatility' => 'annual', 'tax_year_scoped' => true,
             'label' => 'Roth IRA YTD (stated)',

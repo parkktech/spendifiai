@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\User;
 use App\Models\UserTaxFact;
+use Illuminate\Support\Facades\Log;
 
 /**
  * ObjectiveReadinessService — THE single readiness source (SCENARIOS-SPEC §A.8.1, M5).
@@ -136,6 +137,27 @@ final class ObjectiveReadinessService
         }
 
         $fresh = $session->fresh();
+
+        // D24: Log reason when enqueueGaps returns empty — kills silent no-ops.
+        if (empty($keys)) {
+            $readinessState = $this->readiness($user, $taxYear)[$objective] ?? null;
+            $blockingCount = count($readinessState['blocking_missing'] ?? []);
+            $candidateCount = count($candidateKeys);
+            Log::info('ObjectiveReadinessService::enqueueGaps returned empty', [
+                'user_id' => $user->id,
+                'tax_year' => $taxYear,
+                'objective' => $objective,
+                'candidate_keys_count' => $candidateCount,
+                'blocking_missing_count' => $blockingCount,
+                'reason' => $candidateCount === 0
+                    ? 'no blocking/confirm gaps found for objective'
+                    : 'all gap candidates excluded (already in queue, answered, or skipped)',
+                'candidate_keys' => $candidateKeys,
+                'excluded_from_queue' => count($queue),
+                'excluded_answered' => count($answeredInAsked),
+                'excluded_skipped' => count($skipped),
+            ]);
+        }
 
         return [
             'session' => $fresh->only(['id', 'tax_year', 'status']),

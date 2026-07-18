@@ -22,10 +22,27 @@ class PlaidController extends Controller
 
     /**
      * Create a Plaid Link token for the frontend to initialize Plaid Link.
+     *
+     * If the Plaid account is not enabled for the 'statements' product (common
+     * in sandbox and some production tiers), fall back to creating a link token
+     * without statements rather than surfacing a 500 to the UI.
      */
     public function createLinkToken(): JsonResponse
     {
-        $token = $this->plaidService->createLinkToken(auth()->user());
+        try {
+            $token = $this->plaidService->createLinkToken(auth()->user());
+        } catch (\RuntimeException $e) {
+            // Sandbox / accounts not enrolled in the statements product will return
+            // "Your account is not enabled for statements" or PRODUCTS_NOT_SUPPORTED.
+            // Retry without statements so the Link button is still usable.
+            if (str_contains($e->getMessage(), 'not enabled for statements')
+                || str_contains($e->getMessage(), 'PRODUCTS_NOT_SUPPORTED')
+            ) {
+                $token = $this->plaidService->createLinkTokenWithoutStatements(auth()->user());
+            } else {
+                throw $e;
+            }
+        }
 
         return response()->json(['link_token' => $token['link_token']]);
     }

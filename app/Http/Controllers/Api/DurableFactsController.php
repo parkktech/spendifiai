@@ -115,6 +115,20 @@ class DurableFactsController extends Controller
             ->map(fn ($group) => $group->sortByDesc('id')->first())
             ->values();
 
+        // D18: ensure every confirmed fact has a human-readable label.
+        // Facts written without a label (e.g. pre-label seeding, interview_answer
+        // written before label was stored) fall back to the question_template label
+        // and finally to a humanized key string. Raw dot-path keys must NEVER reach
+        // the UI (D18 — no raw fact_key paths in copy).
+        $templates = (array) config('optimization-objectives.question_templates', []);
+        $confirmed = $confirmed->map(function ($fact) use ($templates): mixed {
+            if (($fact->label ?? '') === '') {
+                $fact->label = $this->resolveLabel($fact->fact_key, $templates);
+            }
+
+            return $fact;
+        });
+
         return response()->json([
             'confirmed' => $confirmed,
             'proposals' => $proposals,
@@ -122,6 +136,27 @@ class DurableFactsController extends Controller
     }
 
     // ─── Private helpers ──────────────────────────────────────────────────────
+
+    /**
+     * Resolve a human-readable label for a fact key.
+     *
+     * Priority:
+     *   1. question_templates config label (canonical source)
+     *   2. Humanized key: "employer.match_pct" → "Employer Match Pct"
+     *
+     * D18: raw dotted fact_key paths must never appear in UI copy.
+     */
+    private function resolveLabel(string $factKey, array $templates): string
+    {
+        if (! empty($templates[$factKey]['label'])) {
+            return $templates[$factKey]['label'];
+        }
+
+        // Humanize: replace dots and underscores with spaces, title-case each word
+        $humanized = str_replace(['.', '_'], ' ', $factKey);
+
+        return ucwords($humanized);
+    }
 
     /**
      * Convert a stored fact value to a human-readable display string.
