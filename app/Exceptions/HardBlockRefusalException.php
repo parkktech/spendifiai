@@ -46,14 +46,4 @@ class HardBlockRefusalException extends Exception
     {
         return response()->json($this->refusal, 200);
     }
-
-    /**
-     * Return the refusal payload directly (for testing or programmatic access).
-     *
-     * @return array{refused: bool, category: string, education: string, blocked_reason: string}
-     */
-    public function getRefusal(): array
-    {
-        return $this->refusal;
-    }
 }
