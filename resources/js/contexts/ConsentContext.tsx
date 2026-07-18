@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useCallback, useEffect, type ReactNode } from 'react';
 import axios from 'axios';
+import { getCookie } from '@/utils/cookies';
 
 interface ConsentState {
   hasConsent: boolean;
@@ -45,13 +46,6 @@ function updateGoogleConsent(analytics: boolean, marketing: boolean) {
     ad_user_data: marketing ? 'granted' : 'denied',
     ad_personalization: marketing ? 'granted' : 'denied',
   });
-}
-
-function getCookie(name: string): string | null {
-  const value = `; ${document.cookie}`;
-  const parts = value.split(`; ${name}=`);
-  if (parts.length === 2) return parts.pop()?.split(';').shift() || null;
-  return null;
 }
 
 function readConsentCookie(): { hasConsent: boolean; analytics: boolean; marketing: boolean; version: string } {

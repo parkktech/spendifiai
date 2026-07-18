@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useCallback, PropsWithChildren } from 'react';
 import { router } from '@inertiajs/react';
 import axios from 'axios';
+import { getCookie } from '@/utils/cookies';
 
 interface ImpersonationState {
     isImpersonating: boolean;
@@ -17,13 +18,6 @@ const ImpersonationContext = createContext<ImpersonationState>({
     startImpersonation: async () => {},
     stopImpersonation: async () => {},
 });
-
-function getCookie(name: string): string | null {
-    const value = `; ${document.cookie}`;
-    const parts = value.split(`; ${name}=`);
-    if (parts.length === 2) return parts.pop()?.split(';').shift() || null;
-    return null;
-}
 
 // Bare domain, matching bootstrap.ts auth-cookie rule (avoids www vs non-www duplicates)
 function getCookieDomain(): string {

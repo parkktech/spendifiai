@@ -1,17 +1,11 @@
 import axios from 'axios';
+import { getCookie } from './utils/cookies';
+
 window.axios = axios;
 
 window.axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';
 window.axios.defaults.withCredentials = true;
 window.axios.defaults.withXSRFToken = true;
-
-// Helper to get cookie value
-function getCookie(name: string): string | null {
-    const value = `; ${document.cookie}`;
-    const parts = value.split(`; ${name}=`);
-    if (parts.length === 2) return parts.pop()?.split(';').shift() || null;
-    return null;
-}
 
 // Cookie domain helper — always use bare domain to avoid www vs non-www duplicates
 function getAuthCookieDomain(): string {

@@ -8,16 +8,9 @@ import { ConsentProvider } from '@/contexts/ConsentContext';
 import { ImpersonationProvider } from '@/contexts/ImpersonationContext';
 import GoogleConsentMode from '@/Components/SpendifiAI/GoogleConsentMode';
 import CookieConsentBanner from '@/Components/SpendifiAI/CookieConsentBanner';
+import { getCookie } from '@/utils/cookies';
 
 const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
-
-// Helper to get cookie value
-function getCookie(name: string): string | null {
-    const value = `; ${document.cookie}`;
-    const parts = value.split(`; ${name}=`);
-    if (parts.length === 2) return parts.pop()?.split(';').shift() || null;
-    return null;
-}
 
 // Ensure token is set before any requests
 const tokenFromStorage = localStorage.getItem('auth_token');
