@@ -711,14 +711,4 @@ class ScenarioController extends Controller
             ],
         ];
     }
-
-    /**
-     * @deprecated Unused after choose() fix — materialize() receives the full knob vector.
-     * Kept for future custom-knob subset feature. Not referenced.
-     */
-    private function extractKnobList(array $knobs): array
-    {
-        // All six knob dimensions are always present in the vector.
-        return ['k1', 'k2', 'k3', 'k4', 'k5', 'k6'];
-    }
 }
